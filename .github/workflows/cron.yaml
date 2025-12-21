@@ -29,3 +29,11 @@ jobs:
           cd backend
           echo "DATABASE_URL=$DATABASE_URL" > .env
           scrapy crawl job_spider
+      - name: Enviar Newsletter
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+        run: |
+          cd backend
+          python mailer.py
