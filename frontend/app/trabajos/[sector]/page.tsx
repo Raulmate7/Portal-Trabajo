@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import JobCard from '@/components/JobCard';
 import LocationFilter from '@/components/LocationFilter';
+import Newsletter from '@/components/Newsletter'; // <--- IMPORTACIÓN NUEVA
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 
@@ -17,11 +18,9 @@ interface Job {
   created_at: string;
 }
 
-// CONFIGURACIÓN DE PAGINACIÓN
 const ITEMS_PER_PAGE = 20;
 
 async function getSectorAndJobs(slug: string, locationQuery?: string, page: number = 1) {
-  // 1. Obtener sector
   const { data: sectorData } = await supabase
     .from('sectors')
     .select('id, name, slug')
@@ -30,19 +29,16 @@ async function getSectorAndJobs(slug: string, locationQuery?: string, page: numb
 
   if (!sectorData) return { sector: null, jobs: [], total: 0 };
 
-  // 2. Calcular rango de paginación (Ej: Pag 1 es del 0 al 19)
   const from = (page - 1) * ITEMS_PER_PAGE;
   const to = from + ITEMS_PER_PAGE - 1;
 
-  // 3. Consulta base
   let query = supabase
     .from('jobs')
-    .select('*', { count: 'exact' }) // Pedimos el total de ofertas
+    .select('*', { count: 'exact' })
     .eq('sector_id', sectorData.id)
     .order('created_at', { ascending: false })
-    .range(from, to); // Aplicamos el recorte
+    .range(from, to);
 
-  // 4. Filtro de ubicación
   if (locationQuery) {
     query = query.ilike('location', `%${locationQuery}%`);
   }
@@ -56,10 +52,9 @@ async function getSectorAndJobs(slug: string, locationQuery?: string, page: numb
   };
 }
 
-// Metadatos
 export async function generateMetadata({ params }: { params: Promise<{ sector: string }> }) {
   const { sector } = await params;
-  return { title: `Ofertas de ${sector} | Portal` };
+  return { title: `Ofertas de ${sector} | Portal IT` };
 }
 
 export default async function SectorPage(props: { 
@@ -76,12 +71,10 @@ export default async function SectorPage(props: {
 
   if (!sector) notFound();
 
-  // Cálculos para los botones
   const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
   const hasNext = page < totalPages;
   const hasPrev = page > 1;
 
-  // Función para generar enlaces manteniendo los filtros
   const createPageLink = (newPage: number) => {
     const query = new URLSearchParams();
     if (locationFilter) query.set('ubicacion', locationFilter);
@@ -93,14 +86,17 @@ export default async function SectorPage(props: {
     <main className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
         <div className="mb-8">
-          <a href="/" className="text-indigo-600 hover:underline mb-4 inline-block">&larr; Volver a sectores</a>
+          <a href="/" className="text-indigo-600 hover:underline mb-4 inline-block">&larr; Volver a inicio</a>
           <h1 className="text-3xl font-bold text-gray-900">Ofertas de {sector.name}</h1>
           <p className="text-gray-500 mt-2">
             Mostrando {jobs.length} de {total} ofertas (Página {page})
           </p>
         </div>
 
+        {/* --- AQUÍ ESTÁN TUS HERRAMIENTAS DE CRECIMIENTO --- */}
         <LocationFilter />
+        <Newsletter /> 
+        {/* -------------------------------------------------- */}
 
         <div className="grid grid-cols-1 gap-4 mt-6">
           {jobs.map((job) => (
@@ -114,7 +110,6 @@ export default async function SectorPage(props: {
           )}
         </div>
 
-        {/* BARRA DE PAGINACIÓN */}
         <div className="flex justify-center items-center gap-4 mt-10">
           {hasPrev ? (
             <Link 
