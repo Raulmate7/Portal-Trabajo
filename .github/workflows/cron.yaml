@@ -31,9 +31,11 @@ jobs:
           scrapy crawl job_spider
       - name: Enviar Newsletter
         env:
+          # Pasamos las variables directamente al entorno
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
         run: |
           cd backend
+          # Truco de seguridad: Forzamos la creacion de variables
           python mailer.py
