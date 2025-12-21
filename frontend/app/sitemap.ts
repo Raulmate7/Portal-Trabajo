@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://portal-trabajo.vercel.app/'; // OJO: Tu dominio real se pondrá aquí automático si usas variables, pero por ahora pon tu URL de Vercel si la sabes, o dejalo así
+  const baseUrl = 'https://portal-trabajo.vercel.app'; // OJO: Tu dominio real se pondrá aquí automático si usas variables, pero por ahora pon tu URL de Vercel si la sabes, o dejalo así
 
   // Las rutas estáticas básicas
   const routes = [
