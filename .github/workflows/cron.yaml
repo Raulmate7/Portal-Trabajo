@@ -1,0 +1,31 @@
+name: Scrape Diario de Ofertas
+
+on:
+  schedule:
+    # SE EJECUTA CADA 8 HORAS (00:00, 08:00, 16:00)
+    - cron: '0 */8 * * *'
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar código del repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Instalar dependencias
+        run: |
+          pip install scrapy psycopg2-binary python-dotenv
+
+      - name: Ejecutar el Robot
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          cd backend
+          echo "DATABASE_URL=$DATABASE_URL" > .env
+          scrapy crawl job_spider
