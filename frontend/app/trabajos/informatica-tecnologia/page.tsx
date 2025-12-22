@@ -2,7 +2,8 @@ import { supabase } from '@/lib/supabase';
 import JobCard from '@/components/JobCard';
 import Search from '@/components/Search';
 import LocationFilter from '@/components/LocationFilter';
-import ScopeTabs from '@/components/ScopeTabs'; // <--- NUEVO COMPONENTE
+import ScopeTabs from '@/components/ScopeTabs';
+import SubscribeForm from '@/components/SubscribeForm'; // <--- Componente Nuevo
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -26,11 +27,10 @@ export default async function JobsPage(props: Props) {
 
   // 1. LÓGICA DE PAÍS (ESPAÑA vs GLOBAL)
   if (scopeFilter === 'espana') {
-    // Filtramos para incluir solo ciudades españolas comunes + "Remoto" genérico (que asumimos ES)
-    // OJO: Esto depende de cómo guarden los scrapers la info.
+    // Filtramos para incluir solo ciudades españolas comunes + "Remoto" genérico
     query = query.or('location.ilike.%Madrid%,location.ilike.%Barcelona%,location.ilike.%Valencia%,location.ilike.%Sevilla%,location.ilike.%Bilbao%,location.ilike.%Málaga%,location.ilike.%Spain%,location.ilike.%España%,location.eq.Remoto');
   } else {
-    // Si es Global, NO filtramos por país (mostramos todo: USA, World, etc.)
+    // Si es Global, no filtramos por país
   }
 
   // 2. Filtro de Ubicación (Sidebar manual)
@@ -73,7 +73,7 @@ export default async function JobsPage(props: Props) {
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         
-        {/* --- PESTAÑAS DE ALCANCE (NUEVO) --- */}
+        {/* --- PESTAÑAS DE ALCANCE --- */}
         <ScopeTabs />
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
@@ -84,25 +84,8 @@ export default async function JobsPage(props: Props) {
               <LocationFilter />
             </div>
 
-            <div className="bg-gray-900 p-6 rounded-xl shadow-lg text-white border border-gray-800">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-2xl">⚡</span>
-                <h3 className="font-bold text-lg text-white">Alertas de Empleo</h3>
-              </div>
-              <p className="text-gray-300 text-sm mb-5 leading-relaxed">
-                Recibe las ofertas de <strong>{locationFilter || (scopeFilter === 'espana' ? 'España' : 'Todo el mundo')}</strong> en tu inbox.
-              </p>
-              <form className="space-y-3">
-                <input 
-                  type="email" 
-                  placeholder="tu@email.com" 
-                  className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                />
-                <button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-4 rounded-lg transition-colors text-sm shadow-md">
-                  Suscribirme
-                </button>
-              </form>
-            </div>
+            {/* AQUÍ ESTÁ EL CAMBIO: Usamos el componente funcional */}
+            <SubscribeForm location={locationFilter || (scopeFilter === 'espana' ? 'España' : 'Todo el mundo')} />
           </aside>
 
           {/* --- RESULTADOS --- */}
@@ -122,12 +105,11 @@ export default async function JobsPage(props: Props) {
                   </h3>
                   <p className="mt-1 text-gray-500 max-w-sm mx-auto">
                     {scopeFilter === 'espana' 
-                      ? 'Tus fuentes actuales son internacionales. Prueba a cambiar a la pestaña "Global".' 
-                      : 'Intenta buscar otra tecnología.'}
+                      ? 'Prueba a cambiar a la pestaña "Global" o busca otra tecnología.' 
+                      : 'Intenta buscar algo más general.'}
                   </p>
                   <div className="mt-6">
                     {scopeFilter === 'espana' ? (
-                       // Si estamos en España y no hay nada, sugerimos ir a Global
                        <Link href="?scope=global" className="text-indigo-600 font-semibold hover:underline">
                          Ver ofertas Globales &rarr;
                        </Link>
