@@ -1,0 +1,34 @@
+name: Actualizador Ofertas (Cada 8h)
+
+on:
+  schedule:
+    # Se ejecuta en el minuto 0 cada 8 horas (ej: 00:00, 08:00, 16:00 UTC)
+    - cron: '0 */8 * * *'
+  # Esto permite ejecutarlo manualmente con un botón (para probar)
+  workflow_dispatch:
+
+jobs:
+  scrape-and-update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 1. Descargar tu código
+        uses: actions/checkout@v3
+
+      - name: 🐍 2. Instalar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: 📦 3. Instalar librerías necesarias
+        run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: 🚀 4. Lanza los Robots
+        env:
+          # Aquí coge la llave que guardaste en el paso 1
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          cd backend
+          python main.py
