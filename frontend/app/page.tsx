@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Search from '@/components/Search';
+import { Suspense } from 'react'; // <--- Importamos Suspense
 
 export default function Home() {
   const categories = [
@@ -11,7 +12,7 @@ export default function Home() {
 
   return (
     <div className="bg-white">
-      {/* SECCIÓN HERO: Esto le encanta a Google porque define de qué trata la web */}
+      {/* SECCIÓN HERO */}
       <section className="relative py-20 bg-gradient-to-b from-indigo-50 to-white">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <h1 className="text-5xl font-extrabold text-gray-900 tracking-tight sm:text-6xl">
@@ -22,12 +23,15 @@ export default function Home() {
           </p>
           
           <div className="mt-10 max-w-xl mx-auto">
-            <Search placeholder="¿Qué tecnología dominas?" />
+            {/* ENVOLVEMOS EL SEARCH EN SUSPENSE PARA EVITAR EL ERROR DE VERCEL */}
+            <Suspense fallback={<div className="h-12 bg-gray-100 animate-pulse rounded-xl"></div>}>
+              <Search placeholder="¿Qué tecnología dominas?" />
+            </Suspense>
           </div>
         </div>
       </section>
 
-      {/* SECCIÓN DE CATEGORÍAS RÁPIDAS */}
+      {/* SECCIÓN DE CATEGORÍAS */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">Explora por tecnología</h2>
@@ -46,7 +50,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* BOTÓN DE ACCESO AL LISTADO COMPLETO */}
+      {/* BOTÓN DE ACCESO AL LISTADO */}
       <section className="py-12 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <Link 
