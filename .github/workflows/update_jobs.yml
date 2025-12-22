@@ -2,8 +2,8 @@ name: Update Job Offers
 
 on:
   schedule:
-    - cron: '0 8 * * *' # Se ejecuta cada día a las 08:00 AM
-  workflow_dispatch: # Permite ejecutarlo manualmente desde GitHub para probar
+    - cron: '0 8 * * *'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -19,10 +19,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install requests beautifulsoup4 supabase
+          pip install requests beautifulsoup4 supabase python-dotenv
 
       - name: Run scraper
         env:
+          # Estas líneas son las que inyectan tus secretos de GitHub al script
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-        run: python src/scraper.py # Verifica que esta sea la ruta de tu script
+        run: python src/scraper.py
