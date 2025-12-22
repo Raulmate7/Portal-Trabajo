@@ -1,0 +1,28 @@
+name: Update Job Offers
+
+on:
+  schedule:
+    - cron: '0 8 * * *' # Se ejecuta cada día a las 08:00 AM
+  workflow_dispatch: # Permite ejecutarlo manualmente desde GitHub para probar
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 supabase
+
+      - name: Run scraper
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: python src/scraper.py # Verifica que esta sea la ruta de tu script
