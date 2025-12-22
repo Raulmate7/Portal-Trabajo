@@ -13,7 +13,7 @@ interface Job {
   title: string;
   company: string;
   location: string;
-  salary: string | null;
+  salary?: string | null;
   description_snippet: string | null;
   url_source: string;
   created_at: string;

@@ -5,7 +5,7 @@ interface Job {
   title: string;
   company: string;
   location: string;
-  salary: string;
+  salary?: string | null;
   description_snippet: string;
   created_at: string;
   url_source: string;
