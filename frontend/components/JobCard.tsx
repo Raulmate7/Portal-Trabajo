@@ -1,14 +1,14 @@
 import React from 'react';
 
-// CORRECCIÓN AQUÍ: Permitimos que el ID sea texto o número
+// CORRECCIÓN FINAL: Permitimos 'null' en los campos opcionales
 interface Job {
   id?: string | number; 
   title: string;
   company: string;
   location: string;
   url_source: string;
-  description_snippet?: string;
-  category?: string;
+  description_snippet?: string | null; // Aceptamos texto o NULL
+  category?: string | null;            // Aceptamos texto o NULL
   created_at?: string;
 }
 
@@ -18,7 +18,8 @@ interface JobCardProps {
 
 export default function JobCard({ job }: JobCardProps) {
   
-  const getCategoryColor = (cat: string) => {
+  const getCategoryColor = (cat: string | null | undefined) => {
+    // Si es null o undefined, usamos 'otros'
     const category = cat ? cat.toLowerCase() : 'otros';
 
     if (category.includes('frontend')) return 'bg-green-100 text-green-800 border-green-200';
@@ -39,7 +40,7 @@ export default function JobCard({ job }: JobCardProps) {
             {job.title}
           </h3>
           
-          <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${getCategoryColor(job.category || '')}`}>
+          <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${getCategoryColor(job.category)}`}>
             {job.category || 'General'}
           </span>
         </div>
