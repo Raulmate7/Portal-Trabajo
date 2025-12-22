@@ -3,7 +3,6 @@ from bs4 import BeautifulSoup
 from supabase import create_client
 import os
 
-# Configuración de conexión (Mantenemos lo que ya funcionaba)
 url_supabase = os.environ.get("SUPABASE_URL")
 key_supabase = os.environ.get("SUPABASE_KEY")
 
@@ -13,30 +12,33 @@ if not url_supabase or not url_supabase.startswith("http"):
 
 supabase = create_client(url_supabase, key_supabase)
 
-# --- CEREBRO DE CATEGORIZACIÓN ---
 def detectar_categoria(titulo):
     t = titulo.lower()
     
-    # Palabras clave para Frontend
-    if any(k in t for k in ['frontend', 'react', 'angular', 'vue', 'javascript', 'html', 'css', 'ux/ui']):
+    # FRONTEND
+    if any(k in t for k in ['frontend', 'react', 'angular', 'vue', 'javascript', 'js', 'html', 'css', 'ux', 'ui', 'web', 'maquetador']):
         return 'Frontend'
     
-    # Palabras clave para Backend
-    if any(k in t for k in ['backend', 'java', 'php', 'python', 'node', 'c#', '.net', 'ruby', 'go', 'spring']):
+    # BACKEND
+    if any(k in t for k in ['backend', 'java', 'php', 'python', 'node', 'c#', '.net', 'ruby', 'go', 'spring', 'django', 'flask', 'api', 'laravel']):
         return 'Backend'
     
-    # Palabras clave para Datos/IA
-    if any(k in t for k in ['data', 'analyst', 'sql', 'big data', 'machine learning', 'ia', 'inteligencia', 'power bi']):
+    # DATA & IA
+    if any(k in t for k in ['data', 'sql', 'mysql', 'postgres', 'oracle', 'bi', 'tableau', 'machine', 'learning', 'ia', 'ai ', 'inteligencia', 'analista de datos']):
         return 'Data & AI'
     
-    # Palabras clave para Cloud/Sistemas
-    if any(k in t for k in ['cloud', 'devops', 'aws', 'azure', 'docker', 'kubernetes', 'linux', 'sysadmin']):
+    # CLOUD & SISTEMAS
+    if any(k in t for k in ['cloud', 'aws', 'azure', 'google cloud', 'devops', 'docker', 'kubernetes', 'linux', 'sysadmin', 'sistemas', 'redes', 'seguridad', 'cyber', 'ciber']):
         return 'Cloud & DevOps'
         
-    return 'Otros' # Si no encuentra nada
+    # MOBILE
+    if any(k in t for k in ['mobile', 'android', 'ios', 'swift', 'kotlin', 'flutter', 'react native', 'app']):
+        return 'Mobile'
+
+    return 'Otros'
 
 def scrape_tecnoempleo():
-    print("Iniciando scraping inteligente...")
+    print("Iniciando scraping (Modo Debug)...")
     url = "https://www.tecnoempleo.com/ofertas-trabajo/"
     try:
         response = requests.get(url, timeout=10)
@@ -46,12 +48,22 @@ def scrape_tecnoempleo():
         count = 0
         for oferta in ofertas:
             try:
-                titulo = oferta.find('h3').text.strip()
-                empresa = oferta.find('div', class_='text-primary').text.strip()
-                link = oferta.find('a')['href']
+                # Búsqueda más robusta del título
+                h3 = oferta.find('h3')
+                if not h3: continue
+                titulo = h3.text.strip()
                 
-                # Aquí aplicamos la inteligencia
+                empresa_div = oferta.find('div', class_='text-primary')
+                empresa = empresa_div.text.strip() if empresa_div else "Desconocida"
+                
+                link_tag = oferta.find('a')
+                link = link_tag['href'] if link_tag else "#"
+                
+                # Clasificar
                 categoria = detectar_categoria(titulo)
+                
+                # DEBUG: Imprimir qué detectamos para ver errores en los logs
+                print(f"Procesando: '{titulo}' -> {categoria}")
                 
                 data = {
                     "title": titulo,
@@ -64,14 +76,14 @@ def scrape_tecnoempleo():
                 
                 supabase.table("jobs").upsert(data).execute()
                 count += 1
-                print(f"[{categoria}] Guardada: {titulo}")
                 
-            except Exception:
+            except Exception as e:
+                print(f"Error en una oferta: {e}")
                 continue
         print(f"Resumen: {count} ofertas procesadas.")
         
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error Global: {e}")
 
 if __name__ == "__main__":
     scrape_tecnoempleo()
