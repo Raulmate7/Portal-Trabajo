@@ -1,9 +1,8 @@
 import { supabase } from '@/lib/supabase';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import CourseAffiliate from '@/components/CourseAffiliate'; // <--- IMPORTANTE
 
-// ESTO ES LO MÁS IMPORTANTE PARA VERCEL:
-// Le dice que no intente generar esta página durante el despliegue, sino solo cuando alguien entre.
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
 
@@ -11,6 +10,7 @@ type Props = {
   params: Promise<{ id: string }>
 }
 
+// SEO Dinámico
 export async function generateMetadata(props: Props) {
   const params = await props.params;
   const { data: job } = await supabase
@@ -21,15 +21,14 @@ export async function generateMetadata(props: Props) {
 
   return {
     title: job ? `${job.title} en ${job.company} | Portal Trabajo IT` : 'Oferta de Empleo IT',
-    description: `Postúlate a la vacante de ${job?.title} en ${job?.company} a través de nuestro portal de empleo tecnológico.`,
+    description: `Postúlate a la vacante de ${job?.title} en ${job?.company} a través de nuestro portal.`,
   }
 }
 
 export default async function JobDetailPage(props: Props) {
   const params = await props.params;
-  const id = params.id;
+  const { id } = params;
 
-  // Consultamos a Supabase
   const { data: job, error } = await supabase
     .from('jobs')
     .select('*')
@@ -41,29 +40,35 @@ export default async function JobDetailPage(props: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-white p-8">
-      <div className="max-w-3xl mx-auto">
-        <Link href="/trabajos/informatica-tecnologia" className="text-indigo-600 hover:underline">
+    <div className="min-h-screen bg-white pb-20">
+      <div className="max-w-3xl mx-auto px-6 pt-10">
+        <Link href="/trabajos/informatica-tecnologia" className="text-indigo-600 hover:underline font-medium">
           ← Volver al listado
         </Link>
         
-        <h1 className="text-3xl font-bold mt-6 text-gray-900">{job.title}</h1>
-        <p className="text-xl text-gray-600 mt-2">{job.company} - {job.location}</p>
-        
-        <div className="mt-8 p-6 bg-gray-50 rounded-xl border border-gray-200">
-          <p className="whitespace-pre-line text-gray-800 leading-relaxed">
+        <header className="mt-8">
+          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">{job.title}</h1>
+          <p className="text-xl text-gray-500 mt-2 font-medium">{job.company} • {job.location}</p>
+        </header>
+
+        {/* --- SISTEMA DE MONETIZACIÓN AUTOMÁTICA --- */}
+        <CourseAffiliate title={job.title} />
+
+        <div className="mt-10 prose prose-lg">
+          <h3 className="text-gray-900 font-bold">Descripción del puesto</h3>
+          <p className="whitespace-pre-line text-gray-700 leading-relaxed mt-4">
             {job.description_snippet}
           </p>
         </div>
 
-        <div className="mt-10">
+        <div className="mt-12 pt-8 border-t border-gray-100">
           <a 
             href={job.url_source} 
             target="_blank" 
             rel="noopener noreferrer"
-            className="inline-block bg-indigo-600 text-white font-bold py-4 px-8 rounded-lg shadow-lg hover:bg-indigo-700 transition-colors"
+            className="w-full sm:w-auto inline-flex justify-center items-center bg-indigo-600 text-white font-bold py-4 px-10 rounded-xl shadow-xl hover:bg-indigo-700 transition-all transform hover:-translate-y-1"
           >
-            Ver oferta original y aplicar
+            Ver oferta original y aplicar &rarr;
           </a>
         </div>
       </div>
