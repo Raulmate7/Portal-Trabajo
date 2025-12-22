@@ -1,7 +1,8 @@
-import { supabase } from "@/lib/supabase"; // <--- CAMBIO IMPORTANTE: Usamos tu archivo real
+import { supabase } from "@/lib/supabase";
 import JobCard from "@/components/JobCard";
+import { Metadata } from "next"; // Importamos tipos para SEO
 
-// Definimos los tipos exactos para evitar errores de TypeScript
+// Tipos
 interface Job {
   id: string | number;
   title: string;
@@ -13,7 +14,6 @@ interface Job {
   created_at: string;
 }
 
-// 1. DICCIONARIO DE CATEGORÍAS (URL -> Base de Datos)
 const categoryMap: Record<string, string> = {
   'backend': 'Backend',
   'frontend': 'Frontend',
@@ -24,7 +24,6 @@ const categoryMap: Record<string, string> = {
   'inteligencia-artificial': 'Data & AI'
 };
 
-// 2. DICCIONARIO DE PUBLICIDAD
 const adMap: Record<string, { title: string, text: string, link: string }> = {
   'backend': { 
     title: '¿Quieres ser experto en Java/Spring?', 
@@ -38,34 +37,43 @@ const adMap: Record<string, { title: string, text: string, link: string }> = {
   }
 };
 
-// Tipo para los parámetros de Next.js 15+
 type Params = Promise<{ sector: string }>;
+
+// --- NUEVA SECCIÓN: GENERADOR DE SEO ---
+export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+  const { sector } = await params;
+  const sectorSlug = sector.toLowerCase();
+  const categoriaBonita = categoryMap[sectorSlug] || sector.replace('-', ' ');
+  const tituloCapitalizado = categoriaBonita.charAt(0).toUpperCase() + categoriaBonita.slice(1);
+
+  return {
+    title: `Ofertas de trabajo de ${tituloCapitalizado} en España | Portal Trabajo`,
+    description: `Encuentra las mejores vacantes de ${tituloCapitalizado} actualizadas hoy. Recopilamos ofertas de las mejores empresas tecnológicas para perfiles ${tituloCapitalizado}.`,
+    openGraph: {
+      title: `Empleo ${tituloCapitalizado} - Vacantes Urgentes`,
+      description: `Listado actualizado de ofertas de ${tituloCapitalizado}.`,
+    }
+  };
+}
+// ---------------------------------------
 
 export default async function SectorPage({ params }: { params: Params }) {
   const { sector } = await params;
   const sectorSlug = sector.toLowerCase();
   
-  // Determinamos qué categoría buscar en la DB
   const dbCategory = categoryMap[sectorSlug];
   
-  // CONSTRUCCIÓN DE LA CONSULTA
-  // Usamos 'supabase' directamente, sin await createClient()
   let query = supabase
     .from("jobs")
     .select("*")
     .order("created_at", { ascending: false });
 
-  // Lógica de Filtrado
   if (dbCategory) {
-    // Si la URL coincide con una categoría conocida (ej: /backend)
     query = query.eq('category', dbCategory);
   } else if (sectorSlug !== 'informatica-tecnologia') {
-    // Si es una búsqueda rara, intentamos buscar en el título
-    // "informatica-tecnologia" se salta esto para mostrar todo
     query = query.ilike('title', `%${sectorSlug}%`);
   }
 
-  // Ejecutamos la consulta
   const { data: jobs, error } = await query;
 
   if (error) {
@@ -73,13 +81,11 @@ export default async function SectorPage({ params }: { params: Params }) {
     return <div className="p-10 text-center text-red-500">Error temporal cargando ofertas.</div>;
   }
 
-  // Seleccionamos el anuncio adecuado
   const ad = adMap[sectorSlug];
 
   return (
     <div className="container mx-auto px-4 py-8">
       
-      {/* TÍTULO */}
       <h1 className="text-3xl font-bold mb-2 capitalize text-gray-900">
         Ofertas de {dbCategory || sector.replace('-', ' ')}
       </h1>
@@ -87,7 +93,6 @@ export default async function SectorPage({ params }: { params: Params }) {
         {jobs?.length || 0} ofertas encontradas hoy.
       </p>
 
-      {/* BANNER PUBLICIDAD (Solo sale si hay anuncio configurado) */}
       {ad && (
         <div className="mb-8 p-6 bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 rounded-xl">
           <h3 className="text-lg font-bold text-indigo-900">{ad.title}</h3>
@@ -98,12 +103,9 @@ export default async function SectorPage({ params }: { params: Params }) {
         </div>
       )}
 
-      {/* LISTA DE TARJETAS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {jobs && jobs.length > 0 ? (
           jobs.map((job) => (
-            // TypeScript detectará automáticamente que 'job' coincide con la interfaz gracias a la inferencia de Supabase
-            // pero forzamos el tipo 'any' o 'Job' en el map si fuera necesario. Aquí debería ir fluido.
             <JobCard key={job.id} job={job as Job} />
           ))
         ) : (
