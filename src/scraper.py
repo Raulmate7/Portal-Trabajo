@@ -24,8 +24,9 @@ def detectar_categoria(titulo):
     return 'Otros'
 
 def scrape_tecnoempleo():
-    print("Iniciando scraping por Títulos...")
+    print("Iniciando scraping (Versión Todoterreno)...")
     target_url = "https://www.tecnoempleo.com/ofertas-trabajo/"
+    domain = "https://www.tecnoempleo.com" # Para arreglar enlaces relativos
     
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -34,60 +35,76 @@ def scrape_tecnoempleo():
 
     try:
         response = requests.get(target_url, headers=headers, timeout=15)
-        if response.status_code != 200:
-            print(f"Bloqueo o Error: {response.status_code}")
-            return
-
         soup = BeautifulSoup(response.text, 'html.parser')
         
-        # ESTRATEGIA NUEVA: Buscamos todos los H3 (Títulos) que tengan enlace dentro
-        # Esta estrategia falla mucho menos porque los títulos siempre son H3 o H2.
-        titulos_encontrados = soup.find_all('h3')
-        
-        print(f"Posibles títulos encontrados: {len(titulos_encontrados)}")
+        # Buscamos los H3
+        elementos = soup.find_all('h3')
+        print(f"Elementos H3 encontrados: {len(elementos)}")
         
         count = 0
-        for h3 in titulos_encontrados:
+        errores = 0
+        
+        for index, elem in enumerate(elementos):
             try:
-                # Buscamos el enlace dentro del h3
-                enlace_tag = h3.find('a')
-                if not enlace_tag:
-                    continue # Si no tiene enlace, no es una oferta
+                # ESTRATEGIA 1: El enlace está DENTRO del h3
+                link_tag = elem.find('a')
                 
-                titulo = enlace_tag.text.strip()
-                link = enlace_tag['href']
+                # ESTRATEGIA 2: Si no está dentro, miramos si el H3 está DENTRO de un enlace
+                if not link_tag:
+                    link_tag = elem.find_parent('a')
                 
-                # Para la empresa, miramos el contenedor padre o hermanos
-                # En TecnoEmpleo suele estar cerca. Si falla, ponemos "Ver oferta"
-                # Intentamos buscar un div con clase text-primary cerca
-                padre = h3.find_parent('div')
-                empresa_tag = padre.find('div', class_='text-primary') if padre else None
-                empresa = empresa_tag.text.strip() if empresa_tag else "Consultar en Web"
+                if not link_tag:
+                    # Si falla, imprimimos el HTML del primero para ver qué estructura tiene
+                    if errores < 1: 
+                        print(f"DEBUG ESTRUCTURA: {elem}")
+                    errores += 1
+                    continue
+
+                # Extracción de datos
+                titulo = elem.text.strip()
+                href = link_tag['href']
+                
+                # Arreglar enlace si es relativo (empieza por /)
+                if href.startswith('/'):
+                    href = domain + href
+                
+                # Buscar empresa (intento genérico)
+                # Buscamos un div cercano con texto
+                padre = elem.find_parent('div')
+                empresa = "Consultar oferta"
+                if padre:
+                    # Intentamos encontrar cualquier texto que no sea el título
+                    textos = padre.get_text(separator='|').split('|')
+                    # Cogemos el segundo trozo de texto si existe (el primero suele ser el título)
+                    if len(textos) > 1:
+                        empresa = textos[-1].strip()
 
                 categoria = detectar_categoria(titulo)
                 
                 data = {
                     "title": titulo,
-                    "company": empresa,
-                    "url_source": link,
+                    "company": empresa[:50], # Cortamos por si acaso captura mucho texto
+                    "url_source": href,
                     "location": "España",
-                    "description_snippet": "Ver detalles en TecnoEmpleo",
+                    "description_snippet": "Oferta activa en TecnoEmpleo",
                     "category": categoria 
                 }
                 
-                # Insertamos en Supabase
+                # Insertar
                 supabase.table("jobs").upsert(data).execute()
                 count += 1
-                print(f"[{categoria}] Guardada: {titulo}")
+                if count <= 3: # Solo imprimimos los 3 primeros para no ensuciar
+                    print(f"Guardado OK: {titulo} -> {categoria}")
                 
             except Exception as e:
-                # print(f"Saltando elemento no válido: {e}")
+                print(f"Error procesando oferta {index}: {e}")
+                errores += 1
                 continue
                 
-        print(f"Resumen Final: {count} ofertas guardadas.")
+        print(f"FIN: {count} guardadas. {errores} fallidas.")
         
     except Exception as e:
-        print(f"Error Crítico: {e}")
+        print(f"Error Crítico Conexión: {e}")
 
 if __name__ == "__main__":
     scrape_tecnoempleo()
