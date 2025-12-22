@@ -1,33 +1,25 @@
 import { supabase } from '@/lib/supabase';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import CourseAffiliate from '@/components/CourseAffiliate'; // <--- IMPORTANTE
+import CourseAffiliate from '@/components/CourseAffiliate';
 
 export const dynamic = 'force-dynamic';
-export const fetchCache = 'force-no-store';
 
-type Props = {
-  params: Promise<{ id: string }>
+interface Props {
+  params: Promise<{ id: string }>;
 }
 
-// SEO Dinámico
 export async function generateMetadata(props: Props) {
   const params = await props.params;
-  const { data: job } = await supabase
-    .from('jobs')
-    .select('title, company')
-    .eq('id', params.id)
-    .single();
-
+  const { data: job } = await supabase.from('jobs').select('title, company').eq('id', params.id).single();
   return {
-    title: job ? `${job.title} en ${job.company} | Portal Trabajo IT` : 'Oferta de Empleo IT',
-    description: `Postúlate a la vacante de ${job?.title} en ${job?.company} a través de nuestro portal.`,
+    title: job ? `${job.title} | Portal Trabajo IT` : 'Oferta de Empleo',
   }
 }
 
 export default async function JobDetailPage(props: Props) {
   const params = await props.params;
-  const { id } = params;
+  const id = params.id;
 
   const { data: job, error } = await supabase
     .from('jobs')
@@ -40,35 +32,26 @@ export default async function JobDetailPage(props: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-white pb-20">
-      <div className="max-w-3xl mx-auto px-6 pt-10">
-        <Link href="/trabajos/informatica-tecnologia" className="text-indigo-600 hover:underline font-medium">
-          ← Volver al listado
-        </Link>
+    <div className="min-h-screen bg-white p-8">
+      <div className="max-w-3xl mx-auto">
+        <Link href="/" className="text-indigo-600 hover:underline">← Volver al listado</Link>
         
-        <header className="mt-8">
-          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">{job.title}</h1>
-          <p className="text-xl text-gray-500 mt-2 font-medium">{job.company} • {job.location}</p>
-        </header>
-
-        {/* --- SISTEMA DE MONETIZACIÓN AUTOMÁTICA --- */}
+        <h1 className="text-3xl font-bold mt-6 text-gray-900">{job.title}</h1>
+        <p className="text-xl text-gray-600 mt-2">{job.company} - {job.location}</p>
+        
+        {/* Aquí el componente de monetización */}
         <CourseAffiliate title={job.title} />
 
-        <div className="mt-10 prose prose-lg">
-          <h3 className="text-gray-900 font-bold">Descripción del puesto</h3>
-          <p className="whitespace-pre-line text-gray-700 leading-relaxed mt-4">
+        <div className="mt-8 p-6 bg-gray-50 rounded-xl border border-gray-200">
+          <p className="whitespace-pre-line text-gray-800 leading-relaxed">
             {job.description_snippet}
           </p>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-gray-100">
-          <a 
-            href={job.url_source} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="w-full sm:w-auto inline-flex justify-center items-center bg-indigo-600 text-white font-bold py-4 px-10 rounded-xl shadow-xl hover:bg-indigo-700 transition-all transform hover:-translate-y-1"
-          >
-            Ver oferta original y aplicar &rarr;
+        <div className="mt-10">
+          <a href={job.url_source} target="_blank" rel="noopener noreferrer"
+             className="inline-block bg-indigo-600 text-white font-bold py-4 px-8 rounded-lg shadow-lg">
+            Ver oferta original y aplicar
           </a>
         </div>
       </div>
