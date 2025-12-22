@@ -23,7 +23,7 @@ jobs:
 
       - name: Run scraper
         env:
-          # Estas líneas son las que inyectan tus secretos de GitHub al script
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          # Aquí conectamos tu secreto de GitHub con el código
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: python src/scraper.py

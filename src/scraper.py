@@ -3,19 +3,24 @@ from bs4 import BeautifulSoup
 from supabase import create_client
 import os
 
-# Configuración desde variables de entorno
-url_supabase = os.environ.get("SUPABASE_URL")
-key_supabase = os.environ.get("SUPABASE_KEY")
+# Usamos la variable que ya tienes en GitHub
+url_supabase = os.environ.get("DATABASE_URL")
+# Como solo tienes una URL, usaremos la misma para la KEY o una vacía 
+# (Nota: Supabase suele requerir ambas, si falla, necesitaremos añadir la KEY luego)
+key_supabase = os.environ.get("SUPABASE_KEY", "") 
+
+if not url_supabase:
+    print("Error: DATABASE_URL no encontrada")
+    exit(1)
+
 supabase = create_client(url_supabase, key_supabase)
 
 def scrape_tecnoempleo():
-    print("Iniciando scraping de TecnoEmpleo...")
+    print("Iniciando scraping con DATABASE_URL...")
     url = "https://www.tecnoempleo.com/ofertas-trabajo/"
     try:
         response = requests.get(url, timeout=10)
         soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Buscamos las tarjetas de empleo
         ofertas = soup.find_all('div', class_='p-2')
         
         for oferta in ofertas:
@@ -31,14 +36,12 @@ def scrape_tecnoempleo():
                     "location": "España",
                     "description_snippet": "Oferta de TecnoEmpleo"
                 }
-                
                 supabase.table("jobs").upsert(data).execute()
                 print(f"Guardada: {titulo}")
-                
             except Exception:
                 continue
     except Exception as e:
-        print(f"Error en el scraping: {e}")
+        print(f"Error: {e}")
 
 if __name__ == "__main__":
     scrape_tecnoempleo()
