@@ -3,26 +3,17 @@ from bs4 import BeautifulSoup
 from supabase import create_client
 import os
 
-# Leemos los secretos que ya tienes
-url_raw = os.environ.get("DATABASE_URL", "")
-key_supabase = os.environ.get("SUPABASE_KEY", "")
+url_supabase = os.environ.get("SUPABASE_URL")
+key_supabase = os.environ.get("SUPABASE_KEY")
 
-# LIMPIEZA DE URL: Si es una URL de PostgreSQL, intentamos avisar.
-# Supabase API URL debe ser: https://xyz.supabase.co
-if url_raw.startswith("postgresql://"):
-    print("ERROR: El secreto DATABASE_URL contiene una ruta de base de datos (PostgreSQL),")
-    print("pero el Scraper necesita la API URL (https://...).")
-    print("Copia la 'Project URL' desde Settings -> API en Supabase.")
+if not url_supabase or not url_supabase.startswith("http"):
+    print("Error: SUPABASE_URL no configurada correctamente")
     exit(1)
 
-if not url_raw.startswith("http"):
-    print(f"ERROR: La URL proporcionada no es válida: {url_raw[:10]}...")
-    exit(1)
-
-supabase = create_client(url_raw, key_supabase)
+supabase = create_client(url_supabase, key_supabase)
 
 def scrape_tecnoempleo():
-    print("Iniciando scraping...")
+    print("Iniciando scraping con la API URL...")
     url = "https://www.tecnoempleo.com/ofertas-trabajo/"
     try:
         response = requests.get(url, timeout=10)

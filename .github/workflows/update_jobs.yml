@@ -23,7 +23,7 @@ jobs:
 
       - name: Run scraper
         env:
-          # IMPORTANTE: Aquí le decimos que use tu secreto DATABASE_URL
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # Ahora usamos el secreto nuevo que no rompe nada
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: python src/scraper.py
