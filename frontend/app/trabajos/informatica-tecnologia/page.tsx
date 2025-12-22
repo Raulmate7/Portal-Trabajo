@@ -37,13 +37,14 @@ export default async function JobsPage({
     query = query.or(`title.ilike.%${queryFilter}%,description_snippet.ilike.%${queryFilter}%`);
   }
 
+  // Limitamos a 50 resultados
   query = query.limit(50);
   const { data: jobs } = await query;
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
       
-      {/* --- CABECERA (LOGO + BUSCADOR DE TEXTO) --- */}
+      {/* --- CABECERA (LOGO + BUSCADOR DE TECNOLOGÍA) --- */}
       <header className="bg-white shadow-sm sticky top-0 z-20 border-b border-gray-200">
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           
@@ -54,17 +55,18 @@ export default async function JobsPage({
               <h1 className="text-xl font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
                 Portal Trabajo IT
               </h1>
+              {/* Mostramos pequeño texto si hay búsqueda activa */}
               {queryFilter && (
                 <span className="text-xs text-gray-500 font-normal">
-                  Buscando: "{queryFilter}"
+                  Filtro: "{queryFilter}"
                 </span>
               )}
             </div>
           </Link>
           
-          {/* BUSCADOR DE TEXTO (A la derecha) */}
+          {/* BUSCADOR DE TEXTO (Python, Java...) A la derecha */}
           <div className="w-full md:w-80">
-            <Search placeholder="Buscar tecnología (ej: Python)..." />
+            <Search placeholder="Tecnología (ej: Python, React)..." />
           </div>
         </div>
       </header>
@@ -75,27 +77,28 @@ export default async function JobsPage({
           {/* --- COLUMNA IZQUIERDA (FILTROS + CORREO) --- */}
           <aside className="lg:col-span-1 space-y-6">
             
-            {/* 1. Selector de Ubicación */}
+            {/* 1. Selector de Ubicación (Ahora es buscador gracias a LocationFilter) */}
             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
               <LocationFilter />
             </div>
 
-            {/* 2. Caja de Suscripción (Aquí está, bien visible) */}
-            <div className="bg-gradient-to-br from-indigo-600 to-violet-700 p-6 rounded-xl shadow-md text-white">
+            {/* 2. Caja de Suscripción (DISEÑO OSCURO ALTO CONTRASTE) */}
+            <div className="bg-gray-900 p-6 rounded-xl shadow-lg text-white border border-gray-800">
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-2xl">📬</span>
-                <h3 className="font-bold text-lg">Mejores Ofertas</h3>
+                <span className="text-2xl">⚡</span>
+                <h3 className="font-bold text-lg text-white">Alertas de Empleo</h3>
               </div>
-              <p className="text-indigo-100 text-sm mb-4 leading-relaxed">
-                No pierdas tiempo buscando. Te enviamos las ofertas de <strong>{locationFilter || 'España'}</strong> a tu correo cada mañana.
+              <p className="text-gray-300 text-sm mb-5 leading-relaxed">
+                Recibe las ofertas de <strong>{locationFilter || 'España'}</strong> directamente en tu inbox. Cero spam.
               </p>
-              <form className="space-y-2">
+              <form className="space-y-3">
+                {/* Input con fondo oscuro y texto BLANCO */}
                 <input 
                   type="email" 
                   placeholder="tu@email.com" 
-                  className="w-full px-3 py-2 rounded text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-white/50"
+                  className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                 />
-                <button className="w-full bg-white text-indigo-600 font-bold py-2 px-4 rounded hover:bg-indigo-50 transition-colors text-sm shadow-sm">
+                <button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-4 rounded-lg transition-colors text-sm shadow-md">
                   Suscribirme Gratis
                 </button>
               </form>
