@@ -1,29 +1,40 @@
 import { MetadataRoute } from 'next';
+import { supabase } from '@/lib/supabase';
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://portal-trabajo.vercel.app'; // OJO: Tu dominio real se pondrá aquí automático si usas variables, pero por ahora pon tu URL de Vercel si la sabes, o dejalo así
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // ⚠️ CAMBIA ESTO POR TU URL REAL (ej: https://empleo-it.vercel.app)
+  const baseUrl = 'https://portal-trabajo.vercel.app';
 
-  // Las rutas estáticas básicas
-  const routes = [
-    '',
-    '/trabajos/informatica-tecnologia',
-  ].map((route) => ({
-    url: `${baseUrl}${route}`,
-    lastModified: new Date(),
-    changeFrequency: 'daily' as const,
-    priority: 1,
-  }));
+  // 1. Obtener todas las ofertas de la base de datos (ID y fecha)
+  // Limitamos a las últimas 5000 para no saturar si crece mucho
+  const { data: jobs } = await supabase
+    .from('jobs')
+    .select('id, created_at')
+    .order('created_at', { ascending: false })
+    .limit(5000);
 
-  // Generamos rutas para las principales ciudades tecnológicas
-  // (Esto es SEO Programático: crear páginas que la gente busca)
-  const cities = ['Madrid', 'Barcelona', 'Valencia', 'Sevilla', 'Remoto', 'Bilbao', 'Malaga'];
-  
-  const cityRoutes = cities.map((city) => ({
-    url: `${baseUrl}/trabajos/informatica-tecnologia?ubicacion=${city}`,
-    lastModified: new Date(),
-    changeFrequency: 'hourly' as const,
-    priority: 0.8,
-  }));
+  // 2. Generar las URLs de las ofertas
+  const jobUrls = jobs?.map((job) => ({
+    url: `${baseUrl}/oferta/${job.id}`,
+    lastModified: new Date(job.created_at),
+    changeFrequency: 'weekly' as const,
+    priority: 0.7,
+  })) ?? [];
 
-  return [...routes, ...cityRoutes];
+  // 3. Devolver la lista completa (Páginas estáticas + Ofertas)
+  return [
+    {
+      url: baseUrl,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 1,
+    },
+    {
+      url: `${baseUrl}/trabajos/informatica-tecnologia`,
+      lastModified: new Date(),
+      changeFrequency: 'hourly',
+      priority: 0.9,
+    },
+    ...jobUrls,
+  ];
 }
