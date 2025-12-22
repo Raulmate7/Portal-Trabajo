@@ -1,8 +1,7 @@
-import { createClient } from "@/utils/supabase/server";
+import { supabase } from "@/lib/supabase"; // <--- CAMBIO IMPORTANTE: Usamos tu archivo real
 import JobCard from "@/components/JobCard";
-import { notFound } from "next/navigation";
 
-// Definimos los tipos para que TypeScript no se queje
+// Definimos los tipos exactos para evitar errores de TypeScript
 interface Job {
   id: string | number;
   title: string;
@@ -14,8 +13,7 @@ interface Job {
   created_at: string;
 }
 
-// 1. DICCIONARIO DE TRADUCCIÓN (URL -> Base de Datos)
-// Si la URL es "backend", buscamos "Backend" en la DB.
+// 1. DICCIONARIO DE CATEGORÍAS (URL -> Base de Datos)
 const categoryMap: Record<string, string> = {
   'backend': 'Backend',
   'frontend': 'Frontend',
@@ -26,13 +24,12 @@ const categoryMap: Record<string, string> = {
   'inteligencia-artificial': 'Data & AI'
 };
 
-// 2. DICCIONARIO DE DINERO (URL -> Publicidad)
-// Aquí definiremos qué vendemos en cada sección
+// 2. DICCIONARIO DE PUBLICIDAD
 const adMap: Record<string, { title: string, text: string, link: string }> = {
   'backend': { 
     title: '¿Quieres ser experto en Java/Spring?', 
     text: 'Las empresas pagan +40k a los seniors. Fórmate aquí.', 
-    link: 'https://ejemplo.com/curso-java' // Aquí pondremos tu link de afiliado luego
+    link: 'https://ejemplo.com/curso-java' 
   },
   'data': { 
     title: 'Domina el Big Data y PowerBI', 
@@ -41,35 +38,30 @@ const adMap: Record<string, { title: string, text: string, link: string }> = {
   }
 };
 
-// Necesario para Next.js 15+ (Params son asíncronos)
+// Tipo para los parámetros de Next.js 15+
 type Params = Promise<{ sector: string }>;
 
 export default async function SectorPage({ params }: { params: Params }) {
-  // Await de los parámetros (obligatorio en versiones nuevas)
   const { sector } = await params;
-  
-  // Normalizamos el sector de la URL (minusculas)
   const sectorSlug = sector.toLowerCase();
   
-  // Buscamos si tenemos una categoría exacta para este sector
+  // Determinamos qué categoría buscar en la DB
   const dbCategory = categoryMap[sectorSlug];
   
-  // Iniciamos Supabase
-  const supabase = await createClient();
-
   // CONSTRUCCIÓN DE LA CONSULTA
+  // Usamos 'supabase' directamente, sin await createClient()
   let query = supabase
     .from("jobs")
     .select("*")
     .order("created_at", { ascending: false });
 
-  // Lógica de Filtrado:
+  // Lógica de Filtrado
   if (dbCategory) {
-    // A) Si es un sector conocido (ej: /trabajos/backend), filtramos por categoría
+    // Si la URL coincide con una categoría conocida (ej: /backend)
     query = query.eq('category', dbCategory);
   } else if (sectorSlug !== 'informatica-tecnologia') {
-    // B) Si es un sector raro (ej: /trabajos/java), buscamos en el título por si acaso
-    // Si es "informatica-tecnologia" (tu home), no filtramos nada (mostramos todo)
+    // Si es una búsqueda rara, intentamos buscar en el título
+    // "informatica-tecnologia" se salta esto para mostrar todo
     query = query.ilike('title', `%${sectorSlug}%`);
   }
 
@@ -77,45 +69,47 @@ export default async function SectorPage({ params }: { params: Params }) {
   const { data: jobs, error } = await query;
 
   if (error) {
-    console.error("Error fetching jobs:", error);
-    return <div className="p-10 text-center text-red-500">Error cargando ofertas. Intenta recargar.</div>;
+    console.error("Error cargando ofertas:", error);
+    return <div className="p-10 text-center text-red-500">Error temporal cargando ofertas.</div>;
   }
 
-  // Recuperamos el banner de publicidad (si existe para este sector)
+  // Seleccionamos el anuncio adecuado
   const ad = adMap[sectorSlug];
 
   return (
     <div className="container mx-auto px-4 py-8">
       
-      {/* TÍTULO DE LA SECCIÓN */}
+      {/* TÍTULO */}
       <h1 className="text-3xl font-bold mb-2 capitalize text-gray-900">
         Ofertas de {dbCategory || sector.replace('-', ' ')}
       </h1>
       <p className="text-gray-600 mb-8">
-        {jobs?.length || 0} ofertas encontradas actualizadas hoy.
+        {jobs?.length || 0} ofertas encontradas hoy.
       </p>
 
-      {/* ESPACIO PARA PUBLICIDAD (Monetización) */}
+      {/* BANNER PUBLICIDAD (Solo sale si hay anuncio configurado) */}
       {ad && (
         <div className="mb-8 p-6 bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 rounded-xl">
           <h3 className="text-lg font-bold text-indigo-900">{ad.title}</h3>
           <p className="text-indigo-700 mb-3">{ad.text}</p>
-          <a href={ad.link} target="_blank" className="inline-block bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition">
+          <a href={ad.link} target="_blank" rel="noopener noreferrer" className="inline-block bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition">
             Ver Curso Recomendado →
           </a>
         </div>
       )}
 
-      {/* LISTA DE OFERTAS */}
+      {/* LISTA DE TARJETAS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {jobs && jobs.length > 0 ? (
-          jobs.map((job: Job) => (
-            <JobCard key={job.id} job={job} />
+          jobs.map((job) => (
+            // TypeScript detectará automáticamente que 'job' coincide con la interfaz gracias a la inferencia de Supabase
+            // pero forzamos el tipo 'any' o 'Job' en el map si fuera necesario. Aquí debería ir fluido.
+            <JobCard key={job.id} job={job as Job} />
           ))
         ) : (
           <div className="col-span-full text-center py-20 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-            <p className="text-gray-500">No hay ofertas activas en esta categoría hoy.</p>
-            <p className="text-sm text-gray-400 mt-2">El robot volverá a buscar mañana a las 08:00.</p>
+            <p className="text-gray-500">No hay ofertas de {dbCategory || sector} ahora mismo.</p>
+            <p className="text-sm text-gray-400 mt-2">Vuelve mañana a las 08:00.</p>
           </div>
         )}
       </div>
