@@ -11,6 +11,20 @@ type Props = {
   params: Promise<{ id: string }>
 }
 
+export async function generateMetadata(props: Props) {
+  const params = await props.params;
+  const { data: job } = await supabase
+    .from('jobs')
+    .select('title, company')
+    .eq('id', params.id)
+    .single();
+
+  return {
+    title: job ? `${job.title} en ${job.company} | Portal Trabajo IT` : 'Oferta de Empleo IT',
+    description: `Postúlate a la vacante de ${job?.title} en ${job?.company} a través de nuestro portal de empleo tecnológico.`,
+  }
+}
+
 export default async function JobDetailPage(props: Props) {
   const params = await props.params;
   const id = params.id;
