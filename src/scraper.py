@@ -3,19 +3,26 @@ from bs4 import BeautifulSoup
 from supabase import create_client
 import os
 
-# Cambiado para usar EXACTAMENTE lo que tienes en GitHub Secrets
-url_supabase = os.environ.get("DATABASE_URL")
-key_supabase = os.environ.get("SUPABASE_KEY")
+# Leemos los secretos que ya tienes
+url_raw = os.environ.get("DATABASE_URL", "")
+key_supabase = os.environ.get("SUPABASE_KEY", "")
 
-if not url_supabase:
-    print("Error: No se encuentra DATABASE_URL en los secretos")
+# LIMPIEZA DE URL: Si es una URL de PostgreSQL, intentamos avisar.
+# Supabase API URL debe ser: https://xyz.supabase.co
+if url_raw.startswith("postgresql://"):
+    print("ERROR: El secreto DATABASE_URL contiene una ruta de base de datos (PostgreSQL),")
+    print("pero el Scraper necesita la API URL (https://...).")
+    print("Copia la 'Project URL' desde Settings -> API en Supabase.")
     exit(1)
 
-# Si no tienes la KEY, el cliente fallará, pero intentaremos conectar
-supabase = create_client(url_supabase, key_supabase if key_supabase else "")
+if not url_raw.startswith("http"):
+    print(f"ERROR: La URL proporcionada no es válida: {url_raw[:10]}...")
+    exit(1)
+
+supabase = create_client(url_raw, key_supabase)
 
 def scrape_tecnoempleo():
-    print(f"Conectando a: {url_supabase[:20]}...")
+    print("Iniciando scraping...")
     url = "https://www.tecnoempleo.com/ofertas-trabajo/"
     try:
         response = requests.get(url, timeout=10)
@@ -37,10 +44,10 @@ def scrape_tecnoempleo():
                 }
                 supabase.table("jobs").upsert(data).execute()
                 print(f"Guardada: {titulo}")
-            except Exception as e:
+            except Exception:
                 continue
     except Exception as e:
-        print(f"Error en el proceso: {e}")
+        print(f"Error: {e}")
 
 if __name__ == "__main__":
     scrape_tecnoempleo()
