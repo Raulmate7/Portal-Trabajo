@@ -13,8 +13,8 @@ export default function Newsletter() {
     setStatus('loading');
 
     try {
-      // Aquí conectaremos con tu Backend en el siguiente paso
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/subscribe`, {
+      // CORRECCIÓN: Usamos la ruta interna de Next.js
+      const response = await fetch('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -27,6 +27,7 @@ export default function Newsletter() {
         setStatus('error');
       }
     } catch (error) {
+      console.error(error);
       setStatus('error');
     }
   };
@@ -41,7 +42,7 @@ export default function Newsletter() {
       </p>
 
       {status === 'success' ? (
-        <div className="bg-green-500 text-white p-4 rounded-xl font-bold animate-pulse">
+        <div className="bg-green-500 text-white p-4 rounded-xl font-bold animate-pulse border-2 border-green-400">
           ¡Genial! Te has apuntado correctamente. 🎉
         </div>
       ) : (
@@ -52,12 +53,13 @@ export default function Newsletter() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="px-6 py-4 rounded-xl text-gray-900 w-full focus:outline-none focus:ring-4 focus:ring-indigo-300"
+            // DISEÑO NUEVO: Fondo oscuro y letra blanca para máximo contraste
+            className="px-6 py-4 rounded-xl bg-indigo-900 border border-indigo-500 text-white placeholder-indigo-300 w-full focus:outline-none focus:ring-4 focus:ring-indigo-400 transition-all"
           />
           <button
             type="submit"
             disabled={status === 'loading'}
-            className="bg-white text-indigo-700 font-bold py-4 px-8 rounded-xl hover:bg-gray-100 transition-colors disabled:opacity-50"
+            className="bg-white text-indigo-700 font-bold py-4 px-8 rounded-xl hover:bg-gray-100 transition-colors disabled:opacity-50 whitespace-nowrap"
           >
             {status === 'loading' ? 'Guardando...' : 'Suscribirme'}
           </button>
@@ -65,7 +67,7 @@ export default function Newsletter() {
       )}
       
       {status === 'error' && (
-        <p className="text-red-300 mt-4 font-semibold">
+        <p className="text-red-200 bg-red-900/50 p-2 rounded mt-4 font-semibold text-sm">
           Hubo un error. Inténtalo de nuevo más tarde.
         </p>
       )}
