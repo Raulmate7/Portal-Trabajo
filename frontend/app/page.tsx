@@ -22,15 +22,6 @@ export default function Home() {
             Agregamos las mejores ofertas de tecnología de toda España. Tu carrera profesional empieza aquí.
           </p>
           
-          {/* ======================================================== */}
-          {/* ZONA DE VERIFICACIÓN DE IMPACT (UDEMY)                   */}
-          {/* ESTO LO BORRAREMOS EN CUANTO TENGAS EL TICK VERDE        */}
-          {/* ======================================================== */}
-          <div className="mt-4 p-2 bg-yellow-100 text-yellow-800 rounded text-sm font-mono inline-block border border-yellow-300">
-             Impact-Site-Verification: 4f0a2a9d-8d83-4f33-851f-1663a9270bdb
-          </div>
-          {/* ======================================================== */}
-
           <div className="mt-10 max-w-xl mx-auto">
             <Suspense fallback={<div className="h-12 bg-gray-100 animate-pulse rounded-xl"></div>}>
               <Search placeholder="¿Qué tecnología dominas?" />
