@@ -1,0 +1,46 @@
+name: Newsletter Automática
+
+on:
+  schedule:
+    # Cron: Minuto 0, Hora 7 UTC (Son las 08:00 en España Invierno / 09:00 Verano)
+    # Días: 1 (Lunes) y 5 (Viernes)
+    - cron: '0 7 * * 1,5'
+  
+  # Botón manual para probarlo cuando quieras
+  workflow_dispatch:
+
+jobs:
+  enviar-newsletter:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Descargar tu código
+        uses: actions/checkout@v3
+
+      - name: 🐍 Instalar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: 📦 Instalar librerías
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          # Aseguramos psycopg2 por si acaso
+          pip install psycopg2-binary python-dotenv
+
+      - name: 🕵️ Ejecutar Scrapers (Buscar ofertas)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          cd backend
+          python main.py
+
+      - name: 📧 Enviar Correos (Mailer)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+        run: |
+          cd backend
+          python mailer.py
