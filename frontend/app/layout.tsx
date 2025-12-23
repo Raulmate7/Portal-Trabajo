@@ -1,37 +1,44 @@
-import './globals.css'
-import { Inter } from 'next/font/google'
-import Footer from '@/components/Footer'
+import type { Metadata } from "next";
+import localFont from "next/font/local";
+import "./globals.css";
 
-const inter = Inter({ subsets: ['latin'] })
+const geistSans = localFont({
+  src: "./fonts/GeistVF.woff",
+  variable: "--font-geist-sans",
+  weight: "100 900",
+});
+const geistMono = localFont({
+  src: "./fonts/GeistMonoVF.woff",
+  variable: "--font-geist-mono",
+  weight: "100 900",
+});
 
-// CONFIGURACIÓN DE METADATOS Y GOOGLE
-export const metadata = {
-  title: 'Portal Trabajo IT - Encuentra tu próximo empleo',
-  description: 'Las mejores ofertas de tecnología en un solo lugar. Encuentra trabajos de Programación, Sistemas y Data Science.',
-  verification: {
-    // REEMPLAZA el texto de abajo con el código largo que te dio Google
-    google: 'PEGA_AQUI_TU_CODIGO_DE_VERIFICACION', 
+// --- CONFIGURACIÓN SEO Y VERIFICACIONES ---
+export const metadata: Metadata = {
+  title: "Portal Trabajo | Ofertas de Empleo IT en España",
+  description: "Encuentra las mejores ofertas de trabajo para programadores, analistas de datos y expertos en sistemas en España.",
+  
+  // Verificación para Impact.com (Udemy)
+  other: {
+    'impact-site-verification': '4f0a2a9d-8d83-4f33-851f-1663a9270bdb',
   },
-}
+};
+// -------------------------------------------
 
 export default function RootLayout({
   children,
-}: {
-  children: React.ReactNode
-}) {
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html lang="es">
-      <body className={inter.className}>
-        <div className="flex flex-col min-h-screen">
-          {/* El contenido principal ocupa todo el espacio disponible */}
-          <main className="flex-grow">
-            {children}
-          </main>
-          
-          {/* El footer se queda siempre al final */}
-          <Footer />
-        </div>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 text-gray-900`}
+      >
+        <main className="min-h-screen flex flex-col">
+          {children}
+        </main>
       </body>
     </html>
-  )
+  );
 }
