@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Search from '@/components/Search';
+import Newsletter from '@/components/Newsletter'; // <--- IMPORTAMOS EL COMPONENTE
 import { Suspense } from 'react';
 
 export default function Home() {
@@ -47,6 +48,11 @@ export default function Home() {
             ))}
           </div>
         </div>
+      </section>
+
+      {/* SECCIÓN NEWSLETTER (NUEVA) */}
+      <section className="py-4">
+        <Newsletter />
       </section>
 
       {/* BOTÓN DE ACCESO AL LISTADO */}
