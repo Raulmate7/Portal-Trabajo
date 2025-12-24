@@ -21,8 +21,10 @@ def send_newsletter():
 
     # 2. BUSCAR OFERTAS (Últimas 24h)
     yesterday = datetime.now() - timedelta(hours=24)
+    
+    # AHORA PEDIMOS EL 'ID' TAMBIÉN
     cur.execute("""
-        SELECT title, company, location, url_source 
+        SELECT id, title, company, location, url_source 
         FROM jobs 
         WHERE created_at > %s 
         ORDER BY created_at DESC 
@@ -39,22 +41,43 @@ def send_newsletter():
     # 3. PREPARAR HTML
     jobs_html = ""
     for job in new_jobs:
-        title, company, location, url = job
+        # Desempaquetamos los 5 datos
+        job_id, title, company, location, url_source = job
+        
+        # --- ¡CAMBIA ESTO POR TU URL REAL DE VERCEL! ---
+        # Ejemplo: https://mi-proyecto.vercel.app
+        base_url = "https://portal-trabajo.vercel.app"
+        
+        # Enlace a tu página de detalle
+        job_link = f"{base_url}/job/{job_id}"
+
         jobs_html += f"""
             <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #ddd;">
                 <h3 style="color: #4F46E5; margin: 0;">{title}</h3>
                 <p style="margin: 5px 0;">🏢 {company} | 📍 {location}</p>
-                <a href="{url}" style="background-color: #4F46E5; color: white; padding: 8px 12px; text-decoration: none; border-radius: 5px; font-size: 14px;">Ver Oferta</a>
+                <div style="margin-top: 10px;">
+                    <a href="{job_link}" style="background-color: #4F46E5; color: white; padding: 8px 12px; text-decoration: none; border-radius: 5px; font-size: 14px; font-weight: bold;">
+                        Ver Oferta en la Web
+                    </a>
+                </div>
             </div>
         """
 
     email_body = f"""
     <html>
-        <body style="font-family: Arial, sans-serif; padding: 20px;">
-            <h1 style="color: #111827;">🔥 Novedades IT del día</h1>
-            <p>Hemos encontrado estas ofertas para ti:</p>
-            {jobs_html}
-            <p style="color: #666; font-size: 12px; margin-top: 30px;">Portal Trabajo IT</p>
+        <body style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto;">
+                <h1 style="color: #111827; text-align: center;">🔥 Novedades IT del día</h1>
+                <p style="text-align: center; color: #666;">Hemos seleccionado estas ofertas para ti:</p>
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+                
+                {jobs_html}
+                
+                <p style="color: #999; font-size: 12px; margin-top: 30px; text-align: center;">
+                    Enviado automáticamente por Portal Trabajo IT.<br>
+                    <a href="{base_url}" style="color: #999;">Visitar la web</a>
+                </p>
+            </div>
         </body>
     </html>
     """
@@ -62,7 +85,7 @@ def send_newsletter():
     # 4. OBTENER SUSCRIPTORES
     cur.execute("SELECT DISTINCT email FROM subscribers")
     subscribers = [row[0] for row in cur.fetchall()]
-    conn.close() # Cerramos conexión a BD, ya tenemos los datos
+    conn.close()
 
     if not subscribers:
         print("⚠️ No hay suscriptores.")
@@ -70,7 +93,7 @@ def send_newsletter():
 
     print(f"📦 Intentando enviar a {len(subscribers)} personas...")
 
-    # 5. INICIAR SESIÓN EN GMAIL (Esto se hace una sola vez)
+    # 5. INICIAR SESIÓN EN GMAIL
     try:
         server = smtplib.SMTP("smtp.gmail.com", 587)
         server.starttls()
@@ -78,15 +101,14 @@ def send_newsletter():
         print("✅ Login correcto en Gmail.")
     except Exception as e:
         print(f"❌ ERROR DE LOGIN (Revisa tu .env): {e}")
-        return # Si falla el login, no podemos seguir
+        return
 
-    # 6. BUCLE DE ENVÍO BLINDADO
+    # 6. BUCLE DE ENVÍO BLINDADO (No se rompe si falla uno)
     success_count = 0
     error_count = 0
 
     for email in subscribers:
         try:
-            # Intentamos enviar a ESTE usuario concreto
             msg = MIMEMultipart()
             msg['From'] = f"Portal Trabajo IT <{os.getenv('EMAIL_USER')}>"
             msg['To'] = email
@@ -98,7 +120,6 @@ def send_newsletter():
             success_count += 1
             
         except Exception as e:
-            # Si falla uno, NO rompemos el programa. Solo lo apuntamos.
             print(f"⚠️ Error enviando a {email}: {e}")
             error_count += 1
 
