@@ -1,125 +1,107 @@
-import { notFound } from 'next/navigation';
-import { Pool } from 'pg';
-import Link from 'next/link';
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { Pool } from "pg";
 
-// 1. Configuración de Base de Datos
+// Configuración de la Base de Datos (solo lectura para esta página)
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
 });
 
-// 2. Función para buscar la oferta en la BD
 async function getJob(id: string) {
-  const client = await pool.connect();
   try {
-    // Buscamos por ID (asegúrate de que tu tabla tiene columna 'id')
+    const client = await pool.connect();
+    // Buscamos la oferta que coincida con el ID
     const result = await client.query(
-      'SELECT * FROM jobs WHERE id = $1',
+      "SELECT * FROM jobs WHERE id = $1",
       [id]
     );
+    client.release();
+    
+    // Si no existe, devolvemos null
+    if (result.rows.length === 0) return null;
     return result.rows[0];
   } catch (error) {
+    console.error("Error fetching job:", error);
     return null;
-  } finally {
-    client.release();
   }
 }
 
-// 3. Generar Título Dinámico para la pestaña del navegador (SEO Básico)
-export async function generateMetadata({ params }: { params: { id: string } }) {
-  const job = await getJob(params.id);
-  if (!job) return { title: 'Oferta no encontrada' };
-  
-  return {
-    title: `${job.title} en ${job.company} | Portal Trabajo IT`,
-    description: `Oferta de empleo: ${job.title} en ${job.location}. Aplica ahora.`,
-  };
-}
-
-// 4. Componente Principal de la Página
 export default async function JobPage({ params }: { params: { id: string } }) {
-  const job = await getJob(params.id);
+  // 1. Obtenemos el ID de la URL
+  const { id } = params;
+  
+  // 2. Buscamos los datos en la BD
+  const job = await getJob(id);
 
+  // 3. Si no existe, mostramos error 404
   if (!job) {
-    notFound(); // Si no existe, muestra error 404
+    notFound();
   }
 
-  // --- EL TRUCO DE GOOGLE (SCHEMA.ORG) ---
-  // Esto es lo que lee Google para ponerte en el recuadro azul
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'JobPosting',
-    title: job.title,
-    description: job.description_snippet || job.title, // Google necesita descripción
-    datePosted: job.created_at,
-    validThrough: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // Caduca en 3 meses
-    employmentType: 'FULL_TIME',
-    hiringOrganization: {
-      '@type': 'Organization',
-      name: job.company,
-    },
-    jobLocation: {
-      '@type': 'Place',
-      address: {
-        '@type': 'PostalAddress',
-        addressLocality: job.location || 'Remoto', 
-        addressCountry: 'ES', // Asumimos España por defecto, o adáptalo
-      },
-    },
-    baseSalary: job.salary ? {
-      '@type': 'MonetaryAmount',
-      currency: 'EUR',
-      value: {
-        '@type': 'QuantitativeValue',
-        value: job.salary, // Google intentará entender el texto "30.000 - 40.000"
-        unitText: 'YEAR',
-      },
-    } : undefined,
-  };
-
+  // 4. Si existe, pintamos la página
   return (
-    <main className="max-w-4xl mx-auto p-6 md:py-12">
-      {/* Script Invisible para Google */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+    <main className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-3xl mx-auto">
+        
+        {/* Botón Volver */}
+        <Link href="/" className="text-indigo-600 hover:text-indigo-800 font-medium mb-6 inline-block">
+          ← Volver al listado
+        </Link>
 
-      <Link href="/" className="text-indigo-600 hover:underline mb-6 inline-block">
-        ← Volver a ofertas
-      </Link>
-
-      <article className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-        <div className="bg-indigo-600 p-8 text-white">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">{job.title}</h1>
-          <div className="flex flex-wrap gap-4 text-indigo-100 font-medium">
-            <span className="flex items-center gap-2">🏢 {job.company}</span>
-            <span className="flex items-center gap-2">📍 {job.location}</span>
-            <span className="flex items-center gap-2">💰 {job.salary || 'Salario no disponible'}</span>
-          </div>
-        </div>
-
-        <div className="p-8">
-          <h2 className="text-xl font-bold mb-4 text-gray-800">Descripción del puesto</h2>
-          <div className="prose max-w-none text-gray-600 leading-relaxed whitespace-pre-line">
-            {job.description_snippet}
-          </div>
-
-          <div className="mt-10 pt-8 border-t border-gray-100 flex flex-col md:flex-row gap-4 items-center justify-between">
-            <p className="text-sm text-gray-500">
-              Publicado el {new Date(job.created_at).toLocaleDateString()}
+        <div className="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
+          
+          {/* Encabezado */}
+          <div className="bg-indigo-600 px-8 py-10 text-white">
+            <h1 className="text-3xl font-bold mb-2">{job.title}</h1>
+            <p className="text-indigo-100 text-lg flex items-center gap-2">
+              🏢 {job.company}
             </p>
-            <a 
-              href={job.url_source} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="bg-indigo-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-200 w-full md:w-auto text-center"
-            >
-              Aplicar en la web original 🚀
-            </a>
+          </div>
+
+          {/* Detalles */}
+          <div className="p-8 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-600">
+              <div className="bg-gray-50 p-4 rounded-xl">
+                <span className="block text-sm text-gray-400 uppercase font-bold tracking-wider">Ubicación</span>
+                <span className="text-lg font-semibold text-gray-800">📍 {job.location}</span>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-xl">
+                <span className="block text-sm text-gray-400 uppercase font-bold tracking-wider">Salario</span>
+                <span className="text-lg font-semibold text-gray-800">💰 {job.salary || "A convenir"}</span>
+              </div>
+            </div>
+
+            {/* Descripción (si la tuvieras en BD, si no, ponemos un placeholder) */}
+            <div className="prose max-w-none text-gray-600 mt-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Descripción del puesto</h3>
+              <p>
+                {job.description 
+                  ? job.description 
+                  : "Esta oferta fue recopilada automáticamente. Pulsa en el botón de abajo para ver la descripción completa en la web original."}
+              </p>
+            </div>
+
+            {/* Botón de Acción Principal */}
+            <div className="mt-10 pt-6 border-t border-gray-100 text-center">
+              <a 
+                href={job.url_source} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white text-lg font-bold py-4 px-10 rounded-xl transition-all shadow-lg hover:shadow-indigo-500/30 transform hover:-translate-y-1"
+              >
+                🚀 Aplicar a esta Oferta
+                <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+              <p className="text-sm text-gray-400 mt-4">
+                Serás redirigido a la web original para completar tu inscripción.
+              </p>
+            </div>
+
           </div>
         </div>
-      </article>
+      </div>
     </main>
   );
 }
