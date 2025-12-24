@@ -28,7 +28,7 @@ def send_to_telegram():
 
     # 3. Buscar ofertas NUEVAS (últimas 24h)
 
-    yesterday = datetime.now() - timedelta(hours=7)
+    yesterday = datetime.now() - timedelta(hours=72)
     # NOTA: Si quieres probar con ofertas viejas, cambia 24 por 720 (un mes) temporalmente
     
     cur.execute("""
