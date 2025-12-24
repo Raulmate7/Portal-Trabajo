@@ -7,8 +7,35 @@ from datetime import datetime, timedelta
 # Cargar claves
 load_dotenv()
 
+# --- ⚙️ CONFIGURACIÓN DE TUS FILTROS ---
+# El bot solo enviará la oferta si contiene ALGUNA de estas palabras.
+# (Escríbelas en minúsculas).
+PALABRAS_CLAVE = [
+    "junior",
+    "python",
+    "react",
+    "node",
+    "remoto",
+    "teletrabajo",
+    "beca",
+    "prácticas",
+    "trainee",
+    "javascript",
+    "full stack",
+    "backend",
+    "frontend"
+]
+# ---------------------------------------
+
+def matches_keywords(text):
+    """Devuelve True si el texto contiene alguna palabra clave."""
+    if not text:
+        return False
+    text_lower = text.lower()
+    return any(word in text_lower for word in PALABRAS_CLAVE)
+
 def send_to_telegram():
-    print("📢 Iniciando difusión en Telegram...")
+    print("📢 Iniciando difusión FILTRADA en Telegram...")
 
     # 1. Verificar credenciales
     TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -27,7 +54,6 @@ def send_to_telegram():
         return
 
     # 3. Buscar ofertas NUEVAS (Últimas 7 horas)
-    # Ponemos 7h para cubrir el ciclo de 6h del robot + 1h de margen
     time_window = datetime.now() - timedelta(hours=7)
     
     cur.execute("""
@@ -40,48 +66,58 @@ def send_to_telegram():
     jobs = cur.fetchall()
     
     if not jobs:
-        print("💤 No hay ofertas nuevas en las últimas 7 horas.")
+        print("💤 No hay ofertas nuevas en la BD (últimas 7h).")
         conn.close()
         return
 
-    print(f"🚀 Encontradas {len(jobs)} ofertas nuevas. Enviando...")
+    print(f"🔎 Analizando {len(jobs)} ofertas nuevas contra tus filtros...")
 
-    # 4. Enviar a Telegram
+    # 4. Enviar a Telegram SOLO si pasan el filtro
     headers = {"Content-Type": "application/json"}
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-
-    # --- 👇 PEGA TU URL DE VERCEL AQUÍ DENTRO 👇 ---
+    
+    # Tu URL real
     base_url = "https://portal-trabajo.vercel.app"
-    # -----------------------------------------------
+
+    enviadas = 0
 
     for job in jobs:
         job_id, title, company, location, salary = job
         
-        # Construir enlace a tu detalle
-        job_url = f"{base_url}/job/{job_id}"
+        # Combinamos título y ubicación para buscar ahí las palabras clave
+        texto_a_analizar = f"{title} {location}"
         
-        message = (
-            f"🔥 <b>NUEVA OPORTUNIDAD</b>\n\n"
-            f"💻 <b>{title}</b>\n"
-            f"🏢 {company}\n"
-            f"📍 {location}\n"
-            f"💰 {salary or 'Consultar'}\n\n"
-            f"👇 <b>Ver y aplicar:</b>\n"
-            f"{job_url}"
-        )
+        # --- EL PORTERO: ¿Pasa el filtro? ---
+        if matches_keywords(texto_a_analizar):
+            
+            job_url = f"{base_url}/job/{job_id}"
+            
+            message = (
+                f"🎯 <b>MATCH ENCONTRADO</b>\n\n"
+                f"💻 <b>{title}</b>\n"
+                f"🏢 {company}\n"
+                f"📍 {location}\n"
+                f"💰 {salary or 'Consultar'}\n\n"
+                f"👇 <b>Ver detalle:</b>\n"
+                f"{job_url}"
+            )
 
-        payload = {
-            "chat_id": CHANNEL_ID,
-            "text": message,
-            "parse_mode": "HTML",
-            "disable_web_page_preview": False
-        }
+            payload = {
+                "chat_id": CHANNEL_ID,
+                "text": message,
+                "parse_mode": "HTML",
+                "disable_web_page_preview": False
+            }
 
-        try:
-            requests.post(url, json=payload, headers=headers)
-        except Exception as e:
-            print(f"❌ Error enviando mensaje: {e}")
+            try:
+                requests.post(url, json=payload, headers=headers)
+                enviadas += 1
+            except Exception as e:
+                print(f"❌ Error enviando mensaje: {e}")
+        else:
+            print(f"❌ Descartada por filtro: {title}")
 
+    print(f"✅ Proceso terminado. Enviadas {enviadas} de {len(jobs)} ofertas.")
     conn.close()
 
 if __name__ == "__main__":
