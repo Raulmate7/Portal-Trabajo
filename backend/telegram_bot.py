@@ -2,20 +2,19 @@ import os
 import requests
 import psycopg2
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
 
 # Cargar claves
 load_dotenv()
 
 def send_to_telegram():
-    print("📢 Iniciando difusión en Telegram...")
+    print("📢 Iniciando difusión en Telegram (MODO TEST: SIN FECHA)...")
 
     # 1. Verificar credenciales
     TOKEN = os.getenv("TELEGRAM_TOKEN")
     CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL")
     
     if not TOKEN or not CHANNEL_ID:
-        print("❌ Error: Faltan las variables TELEGRAM en el archivo .env")
+        print("❌ Error: Faltan las variables TELEGRAM en el archivo .env o Secrets")
         return
 
     # 2. Conectar a Base de Datos
@@ -26,45 +25,44 @@ def send_to_telegram():
         print(f"❌ Error conectando a BD: {e}")
         return
 
-    # 3. Buscar ofertas NUEVAS (últimas 24h)
-
-    yesterday = datetime.now() - timedelta(hours=72)
-    # NOTA: Si quieres probar con ofertas viejas, cambia 24 por 720 (un mes) temporalmente
-    
+    # 3. Buscar la ÚLTIMA oferta registrada (Ignorando fecha)
+    # Esto garantiza que si hay ALGO en la base de datos, lo envíe.
     cur.execute("""
         SELECT id, title, company, location, salary 
         FROM jobs 
-        WHERE created_at > %s 
         ORDER BY created_at DESC 
-        LIMIT 5
-    """, (yesterday,))
+        LIMIT 1
+    """)
     
     jobs = cur.fetchall()
     
     if not jobs:
-        print("💤 No hay ofertas nuevas hoy para Telegram.")
+        print("💤 La base de datos está COMPLETAMENTE VACÍA. Ejecuta main.py primero.")
         return
 
-    print(f"🚀 Encontradas {len(jobs)} ofertas. Enviando al canal...")
+    print(f"🚀 Encontrada 1 oferta de prueba. Enviando al canal...")
 
-    # 4. Enviar una a una
+    # 4. Configurar envío
     headers = {"Content-Type": "application/json"}
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
 
     for job in jobs:
         job_id, title, company, location, salary = job
         
-        # Enlace a TU web (para ganar tráfico)
-        job_url = f"https://portal-trabajo.vercel.app/job/{job_id}"
+        # --- ¡PON TU URL DE VERCEL AQUÍ! ---
+        base_url = "https://portal-trabajo.vercel.app" 
+        # Si tienes otra URL, cámbiala arriba ↑
+        
+        job_url = f"{base_url}/job/{job_id}"
         
         # Mensaje con formato HTML
         message = (
-            f"🔥 <b>NUEVA OPORTUNIDAD</b>\n\n"
+            f"🧪 <b>PRUEBA DE CONEXIÓN</b>\n\n"
             f"💻 <b>{title}</b>\n"
             f"🏢 {company}\n"
             f"📍 {location}\n"
             f"💰 {salary or 'Salario a convenir'}\n\n"
-            f"👇 <b>Aplicar aquí:</b>\n"
+            f"👇 <b>Ver detalles:</b>\n"
             f"{job_url}"
         )
 
@@ -78,7 +76,7 @@ def send_to_telegram():
         try:
             r = requests.post(url, json=payload, headers=headers)
             if r.status_code == 200:
-                print(f"✅ Publicado: {title}")
+                print(f"✅ MENSAJE ENVIADO CON ÉXITO: {title}")
             else:
                 print(f"⚠️ Error Telegram ({r.status_code}): {r.text}")
         except Exception as e:
