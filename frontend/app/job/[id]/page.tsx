@@ -2,63 +2,63 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Pool } from "pg";
 
-// Configuración de la Base de Datos (solo lectura para esta página)
+// 1. Configuración de BD con soporte SSL para producción
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
+// Definimos el tipo para las props (compatible con Next.js 15)
+type Props = {
+  params: Promise<{ id: string }>
+}
+
 async function getJob(id: string) {
+  let client;
   try {
-    const client = await pool.connect();
-    // Buscamos la oferta que coincida con el ID
+    client = await pool.connect();
+    // Buscamos la oferta por ID
     const result = await client.query(
       "SELECT * FROM jobs WHERE id = $1",
       [id]
     );
-    client.release();
-    
-    // Si no existe, devolvemos null
-    if (result.rows.length === 0) return null;
-    return result.rows[0];
+    return result.rows[0] || null;
   } catch (error) {
-    console.error("Error fetching job:", error);
+    // Imprimimos el error real en los logs de Vercel para poder depurar
+    console.error("❌ ERROR CRÍTICO DE BD:", error);
     return null;
+  } finally {
+    if (client) client.release();
   }
 }
 
-export default async function JobPage({ params }: { params: { id: string } }) {
-  // 1. Obtenemos el ID de la URL
-  const { id } = params;
+export default async function JobPage({ params }: Props) {
+  // 2. AWAIT params (Obligatorio en versiones nuevas de Next.js)
+  const { id } = await params;
   
-  // 2. Buscamos los datos en la BD
+  console.log(`🔍 Buscando oferta ID: ${id}`); // Log para depuración
+
   const job = await getJob(id);
 
-  // 3. Si no existe, mostramos error 404
+  // Si no se encuentra o hay error de BD, muestra 404
   if (!job) {
+    console.log("⚠️ Oferta no encontrada o error de conexión.");
     notFound();
   }
 
-  // 4. Si existe, pintamos la página
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
-        
-        {/* Botón Volver */}
         <Link href="/" className="text-indigo-600 hover:text-indigo-800 font-medium mb-6 inline-block">
           ← Volver al listado
         </Link>
 
         <div className="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
-          
-          {/* Encabezado */}
           <div className="bg-indigo-600 px-8 py-10 text-white">
             <h1 className="text-3xl font-bold mb-2">{job.title}</h1>
-            <p className="text-indigo-100 text-lg flex items-center gap-2">
-              🏢 {job.company}
-            </p>
+            <p className="text-indigo-100 text-lg">🏢 {job.company}</p>
           </div>
 
-          {/* Detalles */}
           <div className="p-8 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-600">
               <div className="bg-gray-50 p-4 rounded-xl">
@@ -71,17 +71,13 @@ export default async function JobPage({ params }: { params: { id: string } }) {
               </div>
             </div>
 
-            {/* Descripción (si la tuvieras en BD, si no, ponemos un placeholder) */}
             <div className="prose max-w-none text-gray-600 mt-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Descripción del puesto</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Descripción</h3>
               <p>
-                {job.description 
-                  ? job.description 
-                  : "Esta oferta fue recopilada automáticamente. Pulsa en el botón de abajo para ver la descripción completa en la web original."}
+                {job.description || "Pulsa en el botón de abajo para ver la descripción completa."}
               </p>
             </div>
 
-            {/* Botón de Acción Principal */}
             <div className="mt-10 pt-6 border-t border-gray-100 text-center">
               <a 
                 href={job.url_source} 
@@ -89,16 +85,9 @@ export default async function JobPage({ params }: { params: { id: string } }) {
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white text-lg font-bold py-4 px-10 rounded-xl transition-all shadow-lg hover:shadow-indigo-500/30 transform hover:-translate-y-1"
               >
-                🚀 Aplicar a esta Oferta
-                <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
+                🚀 Aplicar en web original
               </a>
-              <p className="text-sm text-gray-400 mt-4">
-                Serás redirigido a la web original para completar tu inscripción.
-              </p>
             </div>
-
           </div>
         </div>
       </div>
