@@ -3,6 +3,7 @@ import { Pool } from "pg";
 import SearchFilters from "./components/SearchFilters";
 import { Suspense } from "react";
 
+// Forzamos que la página sea dinámica
 export const dynamic = 'force-dynamic';
 
 const pool = new Pool({
@@ -22,10 +23,10 @@ async function getJobs(query: string, location: string) {
     const params: any[] = [];
     let paramIndex = 1;
 
-    // --- CORRECCIÓN DE BÚSQUEDA ---
+    // --- CORRECCIÓN DEL FILTRO ---
+    // Ahora busca en Título, Empresa O Descripción
     if (query && query.trim()) {
-      // Usamos COALESCE para evitar errores si la descripción es NULL
-      sql += ` AND (title ILIKE $${paramIndex} OR COALESCE(description, '') ILIKE $${paramIndex})`;
+      sql += ` AND (title ILIKE $${paramIndex} OR company ILIKE $${paramIndex} OR COALESCE(description, '') ILIKE $${paramIndex})`;
       params.push(`%${query}%`);
       paramIndex++;
     }
@@ -37,9 +38,6 @@ async function getJobs(query: string, location: string) {
     }
 
     sql += " ORDER BY created_at DESC LIMIT 50";
-
-    // Debug: Veremos en los logs de Vercel qué está buscando
-    console.log(`🔍 Buscando: "${query}" en "${location}"`);
 
     const result = await client.query(sql, params);
     client.release();
@@ -94,7 +92,9 @@ export default async function Home({ searchParams }: Props) {
                   <p className="text-gray-600 font-medium mt-1">{job.company}</p>
                   
                   <div className="flex flex-wrap gap-3 mt-3 text-sm text-gray-500">
-                    {/* ENLACE MAPS OFICIAL */}
+                    
+                    {/* --- CORRECCIÓN DEL MAPA --- */}
+                    {/* Usamos la URL oficial de búsqueda de Google Maps */}
                     <a 
                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`}
                       target="_blank"
@@ -103,6 +103,7 @@ export default async function Home({ searchParams }: Props) {
                     >
                       📍 {job.location}
                     </a>
+
                     <span className="bg-gray-50 px-2 py-1 rounded">💰 {job.salary || "Consultar"}</span>
                     <span className="bg-gray-50 px-2 py-1 rounded">📅 {new Date(job.created_at).toLocaleDateString()}</span>
                   </div>
@@ -120,7 +121,8 @@ export default async function Home({ searchParams }: Props) {
 
           {jobs.length === 0 && (
             <div className="text-center py-12 bg-white rounded-xl border border-gray-100">
-              <p className="text-gray-500">No hay ofertas que coincidan con "{q}".</p>
+              <p className="text-gray-500">No hay ofertas que contengan "{q}" en título o empresa.</p>
+              <p className="text-sm text-gray-400 mt-2">Prueba con una palabra que veas en la lista (ej: "Junior", "Senior", "Developer").</p>
             </div>
           )}
         </div>
