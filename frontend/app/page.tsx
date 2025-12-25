@@ -1,18 +1,16 @@
 import Link from "next/link";
 import { Pool } from "pg";
 import SearchFilters from "./components/SearchFilters";
-import { Suspense } from "react"; // IMPORTANTE: Necesario para que no explote
+import { Suspense } from "react";
 
-// 1. OBLIGAMOS A QUE LA PÁGINA SEA DINÁMICA (Para que el buscador funcione siempre)
+// Forzamos que la página sea dinámica para que la búsqueda funcione siempre
 export const dynamic = 'force-dynamic';
 
-// Configuración BD
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Definimos los tipos para los parámetros de búsqueda
 type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
@@ -22,19 +20,17 @@ async function getJobs(query: string, location: string) {
   try {
     client = await pool.connect();
     
-    // Construimos la consulta SQL
     let sql = "SELECT * FROM jobs WHERE 1=1";
     const params: any[] = [];
     let paramIndex = 1;
 
-    // Filtro por Palabra Clave
+    // Filtros seguros
     if (query && query.trim() !== "") {
       sql += ` AND (title ILIKE $${paramIndex} OR description ILIKE $${paramIndex})`;
       params.push(`%${query}%`);
       paramIndex++;
     }
 
-    // Filtro por Ubicación
     if (location && location.trim() !== "") {
       sql += ` AND location ILIKE $${paramIndex}`;
       params.push(`%${location}%`);
@@ -54,16 +50,18 @@ async function getJobs(query: string, location: string) {
 }
 
 export default async function Home({ searchParams }: Props) {
+  // 1. AWAIT seguro de los parámetros
   const resolvedParams = await searchParams;
   const q = typeof resolvedParams.q === 'string' ? resolvedParams.q : '';
   const loc = typeof resolvedParams.location === 'string' ? resolvedParams.location : '';
 
   const jobs = await getJobs(q, loc);
+  const hasFilters = q !== '' || loc !== '';
 
   return (
     <main className="min-h-screen bg-gray-50">
       
-      {/* SECCIÓN HERO */}
+      {/* HEADER / HERO */}
       <div className="bg-indigo-900 text-white">
         <div className="max-w-5xl mx-auto px-4 py-12 text-center">
           <h1 className="text-4xl font-bold mb-4">
@@ -83,23 +81,23 @@ export default async function Home({ searchParams }: Props) {
 
       <div className="max-w-5xl mx-auto px-4 py-8 -mt-8">
         
-        {/* BUSCADOR ENVUELTO EN SUSPENSE (ESTO EVITA QUE EXPLOTE) */}
-        <Suspense fallback={<div className="bg-white p-4 rounded-xl shadow h-32 animate-pulse">Cargando buscador...</div>}>
+        {/* BUSCADOR (Protegido con Suspense) */}
+        <Suspense fallback={<div className="h-32 bg-white rounded-xl shadow animate-pulse"></div>}>
           <SearchFilters />
         </Suspense>
 
-        {/* RESULTADOS */}
+        {/* LISTADO DE RESULTADOS */}
         <div className="space-y-4 mt-8">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold text-gray-800">
               {jobs.length === 0 ? "No se encontraron ofertas" : `Últimas ofertas (${jobs.length})`}
             </h2>
             
-            {/* Botón Borrar Filtros */}
-            {(q || loc) && (
-              <a href="/" className="text-sm text-indigo-600 hover:underline cursor-pointer">
+            {/* BOTÓN BORRAR FILTROS (Corregido con Link) */}
+            {hasFilters && (
+              <Link href="/" className="text-sm text-indigo-600 hover:underline cursor-pointer flex items-center gap-1">
                 Borrar filtros ✖
-              </a>
+              </Link>
             )}
           </div>
 
@@ -109,18 +107,18 @@ export default async function Home({ searchParams }: Props) {
                 key={job.id}
                 className="relative block bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow hover:border-indigo-200 group"
               >
-                {/* Enlace principal (Toda la tarjeta) */}
+                {/* Click en toda la tarjeta */}
                 <Link href={`/job/${job.id}`} className="absolute inset-0 z-0" />
 
                 <div className="relative z-10 flex justify-between items-start pointer-events-none">
-                  <div className="pointer-events-auto">
+                  <div className="pointer-events-auto w-full">
                     <h2 className="text-xl font-semibold text-indigo-900 group-hover:text-indigo-600 transition-colors">
                       <Link href={`/job/${job.id}`}>{job.title}</Link>
                     </h2>
                     <p className="text-gray-600 font-medium mt-1">{job.company}</p>
                     
                     <div className="flex flex-wrap gap-4 mt-3 text-sm text-gray-500">
-                      {/* Enlace a Google Maps (Funciona independientemente) */}
+                      {/* ENLACE GOOGLE MAPS CORREGIDO */}
                       <a 
                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`}
                         target="_blank" 
@@ -142,7 +140,7 @@ export default async function Home({ searchParams }: Props) {
                   
                   <Link 
                     href={`/job/${job.id}`}
-                    className="hidden sm:inline-block pointer-events-auto px-4 py-2 bg-gray-50 text-indigo-600 rounded-lg font-medium group-hover:bg-indigo-50 transition-colors"
+                    className="hidden sm:inline-block pointer-events-auto px-4 py-2 bg-gray-50 text-indigo-600 rounded-lg font-medium group-hover:bg-indigo-50 transition-colors shrink-0 ml-4"
                   >
                     Ver oferta →
                   </Link>
@@ -152,9 +150,9 @@ export default async function Home({ searchParams }: Props) {
           ) : (
             <div className="text-center py-20 bg-white rounded-xl border border-gray-100">
               <p className="text-gray-500 text-lg">No hay ofertas que coincidan con tu búsqueda.</p>
-              <a href="/" className="text-indigo-600 font-medium mt-2 inline-block hover:underline">
+              <Link href="/" className="text-indigo-600 font-medium mt-2 inline-block hover:underline">
                 Ver todas las ofertas
-              </a>
+              </Link>
             </div>
           )}
         </div>

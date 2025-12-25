@@ -7,18 +7,18 @@ export default function SearchFilters() {
   const searchParams = useSearchParams();
   const { replace } = useRouter();
   
-  // Estado local
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
 
-  // Sincronizar estado con la URL al cargar
+  // Sincronizar estado con la URL de forma segura
   useEffect(() => {
-    setQuery(searchParams.get("q") || "");
-    setLocation(searchParams.get("location") || "");
+    // Si searchParams es null (raro pero posible), usamos string vacío
+    setQuery(searchParams?.get("q") || "");
+    setLocation(searchParams?.get("location") || "");
   }, [searchParams]);
 
   const handleSearch = () => {
-    const params = new URLSearchParams(searchParams);
+    const params = new URLSearchParams(searchParams ? searchParams.toString() : "");
     
     if (query.trim()) {
       params.set("q", query);
@@ -32,7 +32,6 @@ export default function SearchFilters() {
       params.delete("location");
     }
 
-    // Navegamos a la nueva URL
     replace(`/?${params.toString()}`);
   };
 
