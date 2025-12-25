@@ -2,10 +2,6 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
-import { useDebouncedCallback } from "use-debounce"; 
-
-// NOTA: Como no tenemos instalada la librería use-debounce, 
-// usaremos un useEffect manual que es más ligero y no requiere instalar nada.
 
 export default function SearchFilters() {
   const searchParams = useSearchParams();
@@ -14,9 +10,10 @@ export default function SearchFilters() {
   const [query, setQuery] = useState(searchParams?.get("q") || "");
   const [location, setLocation] = useState(searchParams?.get("location") || "");
 
-  // --- AUTOMATIZACIÓN DE BÚSQUEDA ---
+  // BÚSQUEDA AUTOMÁTICA (DEBOUNCE)
+  // Se ejecuta cada vez que 'query' o 'location' cambian
   useEffect(() => {
-    // Esperamos 400ms después de que dejes de escribir
+    // Espera 300ms a que termines de escribir o borrar
     const timer = setTimeout(() => {
       const params = new URLSearchParams();
       
@@ -24,7 +21,7 @@ export default function SearchFilters() {
       if (location.trim()) params.set("location", location);
 
       replace(`/?${params.toString()}`);
-    }, 400);
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [query, location, replace]);
@@ -46,7 +43,8 @@ export default function SearchFilters() {
             {query && (
               <button 
                 onClick={() => setQuery("")}
-                className="absolute right-3 top-2 text-gray-400 hover:text-red-600 font-bold"
+                className="absolute right-3 top-2 text-gray-400 hover:text-red-600 font-bold px-2"
+                title="Borrar"
               >
                 ✕
               </button>
@@ -68,7 +66,8 @@ export default function SearchFilters() {
             {location && (
               <button 
                 onClick={() => setLocation("")}
-                className="absolute right-3 top-2 text-gray-400 hover:text-red-600 font-bold"
+                className="absolute right-3 top-2 text-gray-400 hover:text-red-600 font-bold px-2"
+                title="Borrar"
               >
                 ✕
               </button>

@@ -3,7 +3,7 @@ import { Pool } from "pg";
 import SearchFilters from "./components/SearchFilters";
 import { Suspense } from "react";
 
-// Forzamos que la página se actualice siempre (importante para que el filtro funcione)
+// Forzar dinamismo para evitar caché
 export const dynamic = 'force-dynamic';
 
 const pool = new Pool({
@@ -23,15 +23,13 @@ async function getJobs(query: string, location: string) {
     const params: any[] = [];
     let paramIndex = 1;
 
-    // --- FILTRO MEJORADO ---
+    // --- CORRECCIÓN CRÍTICA ---
+    // Buscamos solo en TITLE y COMPANY.
+    // Quitamos 'description' porque si la columna no existe en tu BD, la búsqueda falla y devuelve 0.
+    // ILIKE hace que sea indiferente mayúsculas o minúsculas (Java = java = JAVA).
     if (query && query.trim()) {
-      // Busca en Título OR Empresa OR Descripción (ignorando mayúsculas/minúsculas)
-      sql += ` AND (
-        title ILIKE $${paramIndex} 
-        OR company ILIKE $${paramIndex} 
-        OR COALESCE(description, '') ILIKE $${paramIndex}
-      )`;
-      params.push(`%${query.trim()}%`); // El % busca coincidencias parciales
+      sql += ` AND (title ILIKE $${paramIndex} OR company ILIKE $${paramIndex})`;
+      params.push(`%${query.trim()}%`);
       paramIndex++;
     }
 
@@ -58,11 +56,9 @@ export default async function Home({ searchParams }: Props) {
   const loc = typeof resolvedParams.location === 'string' ? resolvedParams.location : '';
 
   const jobs = await getJobs(q, loc);
-  const isFiltering = q !== '' || loc !== '';
 
   return (
     <main className="min-h-screen bg-gray-50">
-      {/* HEADER */}
       <div className="bg-indigo-900 text-white">
         <div className="max-w-5xl mx-auto px-4 py-12 text-center">
           <h1 className="text-4xl font-bold mb-4">Portal Empleo IT</h1>
@@ -75,7 +71,6 @@ export default async function Home({ searchParams }: Props) {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 py-8 -mt-6">
-        
         <Suspense fallback={<div className="h-24 bg-white rounded-xl shadow animate-pulse"></div>}>
           <SearchFilters />
         </Suspense>
@@ -83,7 +78,7 @@ export default async function Home({ searchParams }: Props) {
         <div className="mt-8 space-y-4">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold text-gray-800">
-              {jobs.length === 0 ? "Sin resultados" : `Ofertas encontradas: ${jobs.length}`}
+              {jobs.length === 0 ? "Sin resultados" : `Resultados: ${jobs.length}`}
             </h2>
           </div>
 
@@ -100,8 +95,6 @@ export default async function Home({ searchParams }: Props) {
                     <p className="text-gray-600 font-medium mt-1">{job.company}</p>
                     
                     <div className="flex flex-wrap gap-3 mt-3 text-sm text-gray-500">
-                      
-                      {/* --- MAPA ARREGLADO (URL OFICIAL) --- */}
                       <a 
                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`}
                         target="_blank"
@@ -110,7 +103,6 @@ export default async function Home({ searchParams }: Props) {
                       >
                         📍 {job.location}
                       </a>
-
                       <span className="bg-gray-50 px-2 py-1 rounded">💰 {job.salary || "Consultar"}</span>
                       <span className="bg-gray-50 px-2 py-1 rounded">📅 {new Date(job.created_at).toLocaleDateString()}</span>
                     </div>
@@ -126,14 +118,9 @@ export default async function Home({ searchParams }: Props) {
               </div>
             ))
           ) : (
-            /* --- MENSAJE DE ERROR CLARO --- */
             <div className="text-center py-12 bg-white rounded-xl border border-gray-100">
               <p className="text-lg text-gray-800 font-medium">No se encontraron ofertas.</p>
-              <p className="text-gray-500 mt-2">
-                Has buscado: <strong className="text-indigo-600">"{q}"</strong> 
-                {loc && <span> en <strong className="text-indigo-600">"{loc}"</strong></span>}
-              </p>
-              <p className="text-sm text-gray-400 mt-4">Prueba con palabras más genéricas como "Developer" o "Junior".</p>
+              <p className="text-gray-500 mt-2">Intenta buscar palabras que veas en el título (ej: "Junior", "Java", "Python").</p>
             </div>
           )}
         </div>
