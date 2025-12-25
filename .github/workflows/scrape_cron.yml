@@ -2,9 +2,8 @@ name: 🤖 Scraper Diario de Empleo
 
 on:
   schedule:
-    # Se ejecuta a las 07:00 UTC (Son las 08:00 o 09:00 en España según horario invierno/verano)
+    # Se ejecuta a las 07:00 UTC (08:00/09:00 España)
     - cron: '0 7 * * *'
-  # Esto permite que lo ejecutes manualmente desde la web de GitHub si quieres probarlo ya
   workflow_dispatch:
 
 jobs:
@@ -12,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Descargar código del repositorio
+      - name: 📥 Descargar código
         uses: actions/checkout@v4
 
       - name: 🐍 Configurar Python
@@ -26,12 +25,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: 🚀 Ejecutar los Robots (Run All)
+      - name: 🚀 Ejecutar Robots
         env:
-          # Aquí le pasamos las claves secretas que guardaremos en GitHub
+          # IZQUIERDA: Nombre que usa Python (no tocar)
+          # DERECHA: Nombre de tu Secreto en GitHub (TUS NOMBRES)
+          
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHANNEL }}
         run: |
           cd backend
           python run_all.py
