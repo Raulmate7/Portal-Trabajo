@@ -2,7 +2,7 @@ name: 📧 Boletín Semanal (Lunes y Viernes)
 
 on:
   schedule:
-    # Lunes y Viernes a las 07:00 UTC (08:00 o 09:00 en España)
+    # Lunes y Viernes a las 07:00 UTC (08:00 en España)
     - cron: '0 7 * * 1,5'
   workflow_dispatch:
 
@@ -27,9 +27,14 @@ jobs:
 
       - name: 📧 Enviar Correos
         env:
+          # Mapeamos TUS secretos exactos:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          # (Supabase URL/Key no suelen hacer falta si usas DATABASE_URL con psycopg2, 
+          # pero si tu script las usa, descomenta las siguientes lineas):
+          # SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          # SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
           cd backend
-          # Asegúrate de que este archivo existe y envía el resumen a TODOS los usuarios
           python email_sender.py
