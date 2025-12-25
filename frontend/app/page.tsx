@@ -63,7 +63,7 @@ export default async function Home({ searchParams }: Props) {
         <div className="max-w-5xl mx-auto px-4 py-12 text-center">
           <h1 className="text-4xl font-bold mb-4">Portal Empleo IT</h1>
           <div className="flex justify-center">
-            <a href="https://t.me/TU_CANAL" target="_blank" className="bg-white text-indigo-900 font-bold py-2 px-6 rounded-full hover:bg-gray-100 transition-colors">
+            <a href="https://t.me/PortalDeTrabajo" target="_blank" className="bg-white text-indigo-900 font-bold py-2 px-6 rounded-full hover:bg-gray-100 transition-colors">
               ✈️ Ver en Telegram
             </a>
           </div>
