@@ -1,92 +1,141 @@
-import { notFound } from "next/navigation";
-import Link from "next/link";
+import { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { Pool } from "pg";
+import Link from 'next/link';
 
-// 1. Configuración de BD con soporte SSL para producción
+// Configuración BD
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Definimos el tipo para las props (compatible con Next.js 15)
 type Props = {
   params: Promise<{ id: string }>
 }
 
-async function getJob(id: string) {
-  let client;
+// 1. GENERADOR DE METADATOS (Para que Google vea "Oferta Python en Madrid")
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  
   try {
-    client = await pool.connect();
-    // Buscamos la oferta por ID
-    const result = await client.query(
-      "SELECT * FROM jobs WHERE id = $1",
-      [id]
-    );
-    return result.rows[0] || null;
+    const client = await pool.connect();
+    const res = await client.query("SELECT title, company, location, description_snippet FROM jobs WHERE id = $1", [id]);
+    client.release();
+
+    const job = res.rows[0];
+    if (!job) return { title: 'Oferta no encontrada' };
+
+    return {
+      title: `${job.title} en ${job.company} | Portal Empleo IT`,
+      description: `Aplica a la posición de ${job.title}. Ubicación: ${job.location}. ${job.description_snippet?.substring(0, 100)}...`,
+    };
+  } catch (e) {
+    return { title: 'Portal Empleo IT' };
+  }
+}
+
+// Función para obtener los datos (Renderizado)
+async function getJob(id: string) {
+  try {
+    const client = await pool.connect();
+    const res = await client.query("SELECT * FROM jobs WHERE id = $1", [id]);
+    client.release();
+    return res.rows[0];
   } catch (error) {
-    // Imprimimos el error real en los logs de Vercel para poder depurar
-    console.error("❌ ERROR CRÍTICO DE BD:", error);
     return null;
-  } finally {
-    if (client) client.release();
   }
 }
 
 export default async function JobPage({ params }: Props) {
-  // 2. AWAIT params (Obligatorio en versiones nuevas de Next.js)
   const { id } = await params;
-  
-  console.log(`🔍 Buscando oferta ID: ${id}`); // Log para depuración
-
   const job = await getJob(id);
 
-  // Si no se encuentra o hay error de BD, muestra 404
   if (!job) {
-    console.log("⚠️ Oferta no encontrada o error de conexión.");
     notFound();
   }
 
+  // 2. DATOS ESTRUCTURADOS (Para la cajita azul de Google Jobs)
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'JobPosting',
+    title: job.title,
+    description: job.description_snippet || `Oferta de trabajo de ${job.title} en ${job.company}.`,
+    datePosted: new Date(job.created_at).toISOString(),
+    hiringOrganization: {
+      '@type': 'Organization',
+      name: job.company,
+    },
+    jobLocation: {
+      '@type': 'Place',
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: job.location,
+        addressCountry: 'ES',
+      },
+    },
+    baseSalary: {
+      '@type': 'MonetaryAmount',
+      currency: 'EUR',
+      value: {
+        '@type': 'QuantitativeValue',
+        value: job.salary === 'Consultar' ? 0 : 0, // Si tuviéramos número real lo pondríamos aquí
+        unitText: 'YEAR'
+      }
+    }
+  };
+
   return (
-    <main className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-gray-50 py-12 px-4">
+      {/* Script Invisible para Google */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       <div className="max-w-3xl mx-auto">
-        <Link href="/" className="text-indigo-600 hover:text-indigo-800 font-medium mb-6 inline-block">
-          ← Volver al listado
+        <Link href="/" className="text-indigo-600 hover:underline mb-6 inline-block">
+          ← Volver a las ofertas
         </Link>
 
-        <div className="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
-          <div className="bg-indigo-600 px-8 py-10 text-white">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+          {/* Cabecera */}
+          <div className="bg-indigo-900 text-white p-8">
             <h1 className="text-3xl font-bold mb-2">{job.title}</h1>
-            <p className="text-indigo-100 text-lg">🏢 {job.company}</p>
+            <div className="flex flex-wrap gap-4 text-indigo-200 mt-4">
+              <span className="flex items-center gap-1">🏢 {job.company}</span>
+              <span className="flex items-center gap-1">📍 {job.location}</span>
+              <span className="flex items-center gap-1">💰 {job.salary}</span>
+              <span className="flex items-center gap-1">📅 {new Date(job.created_at).toLocaleDateString()}</span>
+            </div>
           </div>
 
-          <div className="p-8 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-600">
-              <div className="bg-gray-50 p-4 rounded-xl">
-                <span className="block text-sm text-gray-400 uppercase font-bold tracking-wider">Ubicación</span>
-                <span className="text-lg font-semibold text-gray-800">📍 {job.location}</span>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-xl">
-                <span className="block text-sm text-gray-400 uppercase font-bold tracking-wider">Salario</span>
-                <span className="text-lg font-semibold text-gray-800">💰 {job.salary || "A convenir"}</span>
-              </div>
-            </div>
-
-            <div className="prose max-w-none text-gray-600 mt-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Descripción</h3>
-              <p>
-                {job.description || "Pulsa en el botón de abajo para ver la descripción completa."}
+          {/* Cuerpo */}
+          <div className="p-8">
+            <div className="prose max-w-none text-gray-700">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Descripción del puesto</h3>
+              <p className="whitespace-pre-line mb-6">
+                {job.description_snippet 
+                  ? job.description_snippet 
+                  : "Para ver la descripción completa y aplicar, por favor visita el enlace original de la oferta."}
               </p>
-            </div>
 
-            <div className="mt-10 pt-6 border-t border-gray-100 text-center">
-              <a 
-                href={job.url_source} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white text-lg font-bold py-4 px-10 rounded-xl transition-all shadow-lg hover:shadow-indigo-500/30 transform hover:-translate-y-1"
-              >
-                🚀 Aplicar en web original
-              </a>
+              <div className="bg-indigo-50 border-l-4 border-indigo-500 p-4 my-6">
+                <p className="text-indigo-900 font-medium">
+                  Esta oferta fue encontrada automáticamente en <strong>{job.source || 'Internet'}</strong>.
+                </p>
+              </div>
+
+              {/* Botón de Aplicar */}
+              <div className="flex justify-center mt-8">
+                <a 
+                  href={job.url_source} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-indigo-600 text-white font-bold py-4 px-8 rounded-lg hover:bg-indigo-700 transition-transform hover:scale-105 shadow-md text-lg"
+                >
+                  👉 Solicitar en la web original
+                </a>
+              </div>
             </div>
           </div>
         </div>

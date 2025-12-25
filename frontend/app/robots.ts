@@ -1,14 +1,14 @@
-import { MetadataRoute } from 'next';
-
+import { MetadataRoute } from 'next'
+ 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = 'https://portal-trabajo.vercel.app'; // <--- Pon tu dominio real aquí
+  const BASE_URL = 'https://portal-trabajo.vercel.app'; 
 
   return {
     rules: {
-      userAgent: '*',     // Todos los robots son bienvenidos
-      allow: '/',         // Pueden ver toda la web
-      disallow: '/api/',  // No queremos que cotilleen la API interna (opcional)
+      userAgent: '*',
+      allow: '/',
+      disallow: '/private/', // Si tuvieras carpetas privadas
     },
-    sitemap: `${baseUrl}/sitemap.xml`, // Le indicamos dónde está el mapa
-  };
+    sitemap: `${BASE_URL}/sitemap.xml`,
+  }
 }
