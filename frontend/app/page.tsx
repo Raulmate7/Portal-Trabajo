@@ -1,108 +1,158 @@
-import { Pool } from 'pg';
-import Link from 'next/link';
-import Newsletter from '@/components/Newsletter'; // Aseguramos que la newsletter siga ahí
+import Link from "next/link";
+import { Pool } from "pg";
+import SearchFilters from "./components/SearchFilters";
 
-// Configuración de la Base de Datos
+// Configuración BD
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Función para obtener ofertas
-async function getJobs(search?: string) {
-  const client = await pool.connect();
-  try {
-    let query = 'SELECT * FROM jobs ORDER BY created_at DESC LIMIT 20';
-    let params: any[] = [];
+// Definimos los tipos para los parámetros de búsqueda
+type Props = {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}
 
-    if (search) {
-      query = `
-        SELECT * FROM jobs 
-        WHERE title ILIKE $1 OR company ILIKE $1 OR description_snippet ILIKE $1 
-        ORDER BY created_at DESC LIMIT 20
-      `;
-      params = [`%${search}%`];
+async function getJobs(query: string, location: string) {
+  let client;
+  try {
+    client = await pool.connect();
+    
+    // Construimos la consulta SQL dinámica
+    let sql = "SELECT * FROM jobs WHERE 1=1";
+    const params: any[] = [];
+    let paramIndex = 1;
+
+    // Filtro por Palabra Clave (Título o Descripción)
+    if (query) {
+      sql += ` AND (title ILIKE $${paramIndex} OR description ILIKE $${paramIndex})`;
+      params.push(`%${query}%`);
+      paramIndex++;
     }
 
-    const result = await client.query(query, params);
+    // Filtro por Ubicación
+    if (location) {
+      sql += ` AND location ILIKE $${paramIndex}`;
+      params.push(`%${location}%`);
+      paramIndex++;
+    }
+
+    sql += " ORDER BY created_at DESC LIMIT 50";
+
+    const result = await client.query(sql, params);
     return result.rows;
+  } catch (error) {
+    console.error("Error fetching jobs:", error);
+    return [];
   } finally {
-    client.release();
+    if (client) client.release();
   }
 }
 
-export default async function Home({ searchParams }: { searchParams: { q?: string } }) {
-  const query = searchParams.q;
-  const jobs = await getJobs(query);
+export default async function Home({ searchParams }: Props) {
+  // Leemos los parámetros de la URL
+  const resolvedParams = await searchParams;
+  const q = typeof resolvedParams.q === 'string' ? resolvedParams.q : '';
+  const loc = typeof resolvedParams.location === 'string' ? resolvedParams.location : '';
+
+  const jobs = await getJobs(q, loc);
 
   return (
     <main className="min-h-screen bg-gray-50">
-      {/* HERO SECTION */}
-      <section className="bg-indigo-700 text-white py-20 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight">
-            Encuentra tu próximo empleo IT
+      
+      {/* 1. SECCIÓN HERO (TELEGRAM ARRIBA) */}
+      <div className="bg-indigo-900 text-white">
+        <div className="max-w-5xl mx-auto px-4 py-12 text-center">
+          <h1 className="text-4xl font-bold mb-4">
+            Encuentra tu próximo empleo Tech
           </h1>
-          <p className="text-xl text-indigo-100 mb-10">
-            Recopilamos las mejores ofertas de programación de toda la red.
+          <p className="text-indigo-200 text-lg mb-8">
+            Agregador automático de ofertas de empleo IT en español.
           </p>
-
-          {/* BUSCADOR */}
-          <form className="max-w-2xl mx-auto flex gap-2">
-            <input
-              name="q"
-              defaultValue={query}
-              placeholder="Ej: Python, React, Junior..."
-              className="w-full px-6 py-4 rounded-xl text-gray-900 focus:outline-none focus:ring-4 focus:ring-indigo-400 shadow-lg"
-            />
-            <button type="submit" className="bg-indigo-900 hover:bg-indigo-950 text-white px-8 py-4 rounded-xl font-bold transition-all">
-              Buscar
-            </button>
-          </form>
+          
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <a 
+              href="https://t.me/TU_CANAL" 
+              target="_blank" 
+              className="bg-white text-indigo-900 font-bold py-3 px-8 rounded-full hover:bg-gray-100 transition-colors inline-flex items-center justify-center gap-2"
+            >
+              ✈️ Unirme al canal de Telegram
+            </a>
+          </div>
         </div>
-      </section>
+      </div>
 
-      {/* LISTA DE OFERTAS */}
-      <section className="max-w-5xl mx-auto py-12 px-4">
-        <div className="grid gap-6">
-          {jobs.length === 0 ? (
-            <p className="text-center text-gray-500 py-10">No hemos encontrado ofertas con esa búsqueda.</p>
-          ) : (
+      <div className="max-w-5xl mx-auto px-4 py-8 -mt-8">
+        
+        {/* 2. BARRA DE BÚSQUEDA Y FILTROS */}
+        <SearchFilters />
+
+        {/* 3. RESULTADOS */}
+        <div className="space-y-4">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-gray-800">
+              {jobs.length === 0 ? "No se encontraron ofertas" : `Últimas ofertas (${jobs.length})`}
+            </h2>
+            {(q || loc) && (
+              <Link href="/" className="text-sm text-indigo-600 hover:underline">
+                Borrar filtros
+              </Link>
+            )}
+          </div>
+
+          {jobs.length > 0 ? (
             jobs.map((job) => (
-              <div key={job.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow group">
-                <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+              <Link 
+                href={`/job/${job.id}`} 
+                key={job.id}
+                className="block bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow hover:border-indigo-200 group"
+              >
+                <div className="flex justify-between items-start">
                   <div>
-                    {/* AQUÍ ESTÁ EL CAMBIO CLAVE PARA SEO: ENLACE INTERNO */}
-                    <Link href={`/job/${job.id}`} className="group-hover:text-indigo-600 transition-colors">
-                      <h2 className="text-xl font-bold text-gray-900 mb-1">
-                        {job.title}
-                      </h2>
-                    </Link>
-                    <p className="text-gray-500 font-medium text-sm">
-                      {job.company} • {job.location} • 💰 {job.salary || 'Sueldo no disponible'}
-                    </p>
+                    <h2 className="text-xl font-semibold text-indigo-900 group-hover:text-indigo-600 transition-colors">
+                      {job.title}
+                    </h2>
+                    <p className="text-gray-600 font-medium mt-1">{job.company}</p>
+                    
+                    <div className="flex flex-wrap gap-4 mt-3 text-sm text-gray-500">
+                      {/* ENLACE A GOOGLE MAPS */}
+                      <object>
+                        <a 
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded hover:bg-indigo-100 hover:text-indigo-700 transition-colors z-10 relative"
+                          onClick={(e) => e.stopPropagation()} 
+                        >
+                          📍 {job.location}
+                        </a>
+                      </object>
+                      
+                      <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded">
+                        💰 {job.salary || "Consultar"}
+                      </span>
+                      <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded">
+                        📅 {new Date(job.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
                   </div>
                   
-                  <div className="flex gap-3 items-center">
-                     <span className="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
-                        {new Date(job.created_at).toLocaleDateString()}
-                     </span>
-                     <Link 
-                        href={`/job/${job.id}`}
-                        className="bg-indigo-50 text-indigo-700 px-5 py-2 rounded-lg font-semibold hover:bg-indigo-100 transition-colors text-sm"
-                     >
-                        Ver Detalles
-                     </Link>
-                  </div>
+                  <span className="hidden sm:inline-block px-4 py-2 bg-gray-50 text-indigo-600 rounded-lg font-medium group-hover:bg-indigo-50 transition-colors">
+                    Ver oferta →
+                  </span>
                 </div>
-              </div>
+              </Link>
             ))
+          ) : (
+            <div className="text-center py-20 bg-white rounded-xl border border-gray-100">
+              <p className="text-gray-500 text-lg">No hemos encontrado ofertas con esos filtros.</p>
+              <Link href="/" className="text-indigo-600 font-medium mt-2 inline-block hover:underline">
+                Ver todas las ofertas
+              </Link>
+            </div>
           )}
         </div>
-      </section>
-
-      {/* NEWSLETTER (La que ya arreglamos) */}
-      <Newsletter />
+      </div>
     </main>
   );
 }
