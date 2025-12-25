@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Pool } from "pg";
 import Link from 'next/link';
+import ShareButton from '@/components/ShareButton';
 
 // 1. CONFIGURACIÓN DEL SERVIDOR
 // Forzamos modo dinámico para que siempre busque datos frescos y no falle al construir
