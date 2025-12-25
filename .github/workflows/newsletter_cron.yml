@@ -1,0 +1,35 @@
+name: 📧 Boletín Semanal (Lunes y Viernes)
+
+on:
+  schedule:
+    # Lunes y Viernes a las 07:00 UTC (08:00 o 09:00 en España)
+    - cron: '0 7 * * 1,5'
+  workflow_dispatch:
+
+jobs:
+  send-newsletter:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Descargar código
+        uses: actions/checkout@v4
+
+      - name: 🐍 Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 📦 Instalar dependencias
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 📧 Enviar Correos
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          cd backend
+          # Asegúrate de que este archivo existe y envía el resumen a TODOS los usuarios
+          python email_sender.py
