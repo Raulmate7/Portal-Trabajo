@@ -11,7 +11,7 @@ const pool = new Pool({
 
 // ⚠️ CAMBIA ESTO POR TU URL REAL DE VERCEL (Ej: https://portal-trabajo-beta.vercel.app)
 // Si no lo cambias, Google indexará enlaces rotos.
-const BASE_URL = 'https://TU-URL-DE-VERCEL.vercel.app'; 
+const BASE_URL = 'https://portal-trabajo.vercel.app'; 
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let jobs = [];
