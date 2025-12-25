@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { Pool } from "pg";
 import SearchFilters from "./components/SearchFilters";
+import { Suspense } from "react"; // IMPORTANTE: Necesario para que no explote
+
+// 1. OBLIGAMOS A QUE LA PÁGINA SEA DINÁMICA (Para que el buscador funcione siempre)
+export const dynamic = 'force-dynamic';
 
 // Configuración BD
 const pool = new Pool({
@@ -18,20 +22,20 @@ async function getJobs(query: string, location: string) {
   try {
     client = await pool.connect();
     
-    // Construimos la consulta SQL dinámica
+    // Construimos la consulta SQL
     let sql = "SELECT * FROM jobs WHERE 1=1";
     const params: any[] = [];
     let paramIndex = 1;
 
-    // Filtro por Palabra Clave (Título o Descripción)
-    if (query) {
+    // Filtro por Palabra Clave
+    if (query && query.trim() !== "") {
       sql += ` AND (title ILIKE $${paramIndex} OR description ILIKE $${paramIndex})`;
       params.push(`%${query}%`);
       paramIndex++;
     }
 
     // Filtro por Ubicación
-    if (location) {
+    if (location && location.trim() !== "") {
       sql += ` AND location ILIKE $${paramIndex}`;
       params.push(`%${location}%`);
       paramIndex++;
@@ -50,7 +54,6 @@ async function getJobs(query: string, location: string) {
 }
 
 export default async function Home({ searchParams }: Props) {
-  // Leemos los parámetros de la URL
   const resolvedParams = await searchParams;
   const q = typeof resolvedParams.q === 'string' ? resolvedParams.q : '';
   const loc = typeof resolvedParams.location === 'string' ? resolvedParams.location : '';
@@ -60,17 +63,13 @@ export default async function Home({ searchParams }: Props) {
   return (
     <main className="min-h-screen bg-gray-50">
       
-      {/* 1. SECCIÓN HERO (TELEGRAM ARRIBA) */}
+      {/* SECCIÓN HERO */}
       <div className="bg-indigo-900 text-white">
         <div className="max-w-5xl mx-auto px-4 py-12 text-center">
           <h1 className="text-4xl font-bold mb-4">
             Encuentra tu próximo empleo Tech
           </h1>
-          <p className="text-indigo-200 text-lg mb-8">
-            Agregador automático de ofertas de empleo IT en español.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
+          <div className="flex justify-center gap-4">
             <a 
               href="https://t.me/TU_CANAL" 
               target="_blank" 
@@ -84,49 +83,53 @@ export default async function Home({ searchParams }: Props) {
 
       <div className="max-w-5xl mx-auto px-4 py-8 -mt-8">
         
-        {/* 2. BARRA DE BÚSQUEDA Y FILTROS */}
-        <SearchFilters />
+        {/* BUSCADOR ENVUELTO EN SUSPENSE (ESTO EVITA QUE EXPLOTE) */}
+        <Suspense fallback={<div className="bg-white p-4 rounded-xl shadow h-32 animate-pulse">Cargando buscador...</div>}>
+          <SearchFilters />
+        </Suspense>
 
-        {/* 3. RESULTADOS */}
-        <div className="space-y-4">
+        {/* RESULTADOS */}
+        <div className="space-y-4 mt-8">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold text-gray-800">
               {jobs.length === 0 ? "No se encontraron ofertas" : `Últimas ofertas (${jobs.length})`}
             </h2>
+            
+            {/* Botón Borrar Filtros */}
             {(q || loc) && (
-              <Link href="/" className="text-sm text-indigo-600 hover:underline">
-                Borrar filtros
-              </Link>
+              <a href="/" className="text-sm text-indigo-600 hover:underline cursor-pointer">
+                Borrar filtros ✖
+              </a>
             )}
           </div>
 
           {jobs.length > 0 ? (
             jobs.map((job) => (
-              <Link 
-                href={`/job/${job.id}`} 
+              <div 
                 key={job.id}
-                className="block bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow hover:border-indigo-200 group"
+                className="relative block bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow hover:border-indigo-200 group"
               >
-                <div className="flex justify-between items-start">
-                  <div>
+                {/* Enlace principal (Toda la tarjeta) */}
+                <Link href={`/job/${job.id}`} className="absolute inset-0 z-0" />
+
+                <div className="relative z-10 flex justify-between items-start pointer-events-none">
+                  <div className="pointer-events-auto">
                     <h2 className="text-xl font-semibold text-indigo-900 group-hover:text-indigo-600 transition-colors">
-                      {job.title}
+                      <Link href={`/job/${job.id}`}>{job.title}</Link>
                     </h2>
                     <p className="text-gray-600 font-medium mt-1">{job.company}</p>
                     
                     <div className="flex flex-wrap gap-4 mt-3 text-sm text-gray-500">
-                      {/* ENLACE A GOOGLE MAPS */}
-                      <object>
-                        <a 
-                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded hover:bg-indigo-100 hover:text-indigo-700 transition-colors z-10 relative"
-                          onClick={(e) => e.stopPropagation()} 
-                        >
-                          📍 {job.location}
-                        </a>
-                      </object>
+                      {/* Enlace a Google Maps (Funciona independientemente) */}
+                      <a 
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`}
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded hover:bg-indigo-100 hover:text-indigo-700 transition-colors border border-gray-200"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        📍 {job.location}
+                      </a>
                       
                       <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded">
                         💰 {job.salary || "Consultar"}
@@ -137,18 +140,21 @@ export default async function Home({ searchParams }: Props) {
                     </div>
                   </div>
                   
-                  <span className="hidden sm:inline-block px-4 py-2 bg-gray-50 text-indigo-600 rounded-lg font-medium group-hover:bg-indigo-50 transition-colors">
+                  <Link 
+                    href={`/job/${job.id}`}
+                    className="hidden sm:inline-block pointer-events-auto px-4 py-2 bg-gray-50 text-indigo-600 rounded-lg font-medium group-hover:bg-indigo-50 transition-colors"
+                  >
                     Ver oferta →
-                  </span>
+                  </Link>
                 </div>
-              </Link>
+              </div>
             ))
           ) : (
             <div className="text-center py-20 bg-white rounded-xl border border-gray-100">
-              <p className="text-gray-500 text-lg">No hemos encontrado ofertas con esos filtros.</p>
-              <Link href="/" className="text-indigo-600 font-medium mt-2 inline-block hover:underline">
+              <p className="text-gray-500 text-lg">No hay ofertas que coincidan con tu búsqueda.</p>
+              <a href="/" className="text-indigo-600 font-medium mt-2 inline-block hover:underline">
                 Ver todas las ofertas
-              </Link>
+              </a>
             </div>
           )}
         </div>
