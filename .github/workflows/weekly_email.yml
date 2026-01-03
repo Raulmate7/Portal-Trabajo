@@ -1,0 +1,34 @@
+name: Envio Semanal (Lunes)
+
+on:
+  schedule:
+    # 08:00 UTC = 09:00 Hora España (Invierno)
+    # El '1' del final significa Lunes
+    - cron: '0 8 * * 1'
+  workflow_dispatch: # Permite probarlo manualmente
+
+jobs:
+  send-email:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v3
+
+      - name: Instalar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Instalar dependencias
+        run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: Ejecutar script de correo
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+        run: |
+          cd backend
+          python mailer.py
