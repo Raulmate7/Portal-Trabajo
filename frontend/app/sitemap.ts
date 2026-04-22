@@ -1,17 +1,18 @@
 import { MetadataRoute } from 'next'
-import { Pool } from "pg";
+import pool from '@/lib/db';
 
-// 1. FORZAMOS QUE SEA DINÁMICO (Soluciona errores de Build)
 export const dynamic = 'force-dynamic';
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+const BASE_URL = 'https://portal-trabajo.vercel.app';
 
-// ⚠️ CAMBIA ESTO POR TU URL REAL DE VERCEL (Ej: https://portal-trabajo-beta.vercel.app)
-// Si no lo cambias, Google indexará enlaces rotos.
-const BASE_URL = 'https://portal-trabajo.vercel.app'; 
+const SECTOR_PAGES = [
+  '/trabajos/informatica-tecnologia',
+  '/trabajos/backend',
+  '/trabajos/frontend',
+  '/trabajos/data',
+  '/trabajos/cloud',
+  '/trabajos/mobile',
+]; 
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let jobs = [];
@@ -43,13 +44,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
+  const sectorUrls = SECTOR_PAGES.map((path) => ({
+    url: `${BASE_URL}${path}`,
+    lastModified: new Date(),
+    changeFrequency: 'daily' as const,
+    priority: 0.9,
+  }));
+
   return [
     {
       url: BASE_URL,
       lastModified: new Date(),
-      changeFrequency: 'daily',
+      changeFrequency: 'daily' as const,
       priority: 1,
     },
+    ...sectorUrls,
     ...jobUrls,
   ]
 }
