@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import pool from '@/lib/db';
 import Link from 'next/link';
 import ShareButton from '@/components/ShareButton';
+import CourseAffiliate from '@/components/CourseAffiliate';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -144,7 +145,10 @@ export default async function JobPage({ params }: Props) {
               <p className="whitespace-pre-line">{job.description_snippet || "Ver detalles en la web original."}</p>
             </div>
 
-            <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100 text-center">
+            {/* Curso de Udemy relacionado con la tecnología de la oferta */}
+            <CourseAffiliate title={job.title} />
+
+            <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100 text-center mt-8">
               <p className="text-indigo-900 mb-4 text-sm font-medium">
                 {/* Usamos extractSource() en lugar de job.source que no existe en la BD */}
                 Esta oferta fue encontrada en <strong>{sourceLabel}</strong>
