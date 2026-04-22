@@ -30,11 +30,13 @@ def scrape_tecnoempleo():
     for link in enlaces:
         try:
             url_oferta = link['href']
-            
-            # Filtros básicos
-            if '/ofertas/' not in url_oferta or 'tecnologia' in url_oferta:
-                if not any(char.isdigit() for char in url_oferta):
-                    continue
+
+            # Fix #6: la lógica anterior era invertida.
+            # Queremos SOLO URLs que contengan '/ofertas/' Y tengan al menos un dígito.
+            if '/ofertas/' not in url_oferta:
+                continue
+            if not any(char.isdigit() for char in url_oferta):
+                continue
 
             if not url_oferta.startswith('http'):
                 url_oferta = f"https://www.tecnoempleo.com{url_oferta}"

@@ -2,46 +2,43 @@ import requests
 
 def get_workingnomads_jobs():
     print("🐫 Cruzando el desierto con WorkingNomads (Europa/España)...")
-    
-    # API Oficial (devuelve todas las ofertas)
+
     url = "https://www.workingnomads.com/api/exposed_jobs"
-    
+
     try:
         response = requests.get(url, timeout=20)
         response.raise_for_status()
-        
+
         data = response.json()
         jobs = []
 
-        # Palabras clave para filtrar cercanía
         keywords_europe = ['europe', 'europa', 'spain', 'españa', 'madrid', 'barcelona', 'emea']
 
         for item in data:
             try:
-                # 1. Filtro de Categoría: Solo Desarrollo
+                # Filtro de Categoría: Solo Desarrollo
                 category = item.get('category_name', '').lower()
                 if 'development' not in category:
                     continue
 
-                # 2. Filtro de Ubicación: Solo España o Europa
-                # La ubicación en esta API suele venir en 'location' o 'locations'
                 location_raw = item.get('location', '') or ""
-                
-                # Convertimos a minúsculas para buscar
                 loc_lower = location_raw.lower()
-                
-                # Si NO contiene ninguna palabra clave europea/española, saltamos
+
                 if not any(word in loc_lower for word in keywords_europe):
                     continue
 
                 title = item.get('title', 'Sin título')
                 company = item.get('company_name', 'Empresa')
-                link = item.get('url', '')
-                description = item.get('description', '')[:200] + "..."
-                
-                # Formatear la ubicación para la web
+                url_source = item.get('url', '')
+
+                if not url_source:
+                    continue
+
+                description_raw = item.get('description', '') or ''
+                description_snippet = description_raw[:200].strip() + "..."
+
                 location_display = "Europa / España"
-                if "spain" in loc_lower or "españa" in loc_lower or "madrid" in loc_lower:
+                if any(w in loc_lower for w in ['spain', 'españa', 'madrid', 'barcelona']):
                     location_display = "España"
 
                 jobs.append({
@@ -49,11 +46,11 @@ def get_workingnomads_jobs():
                     'company': company,
                     'location': location_display,
                     'salary': 'Consultar',
-                    'description': description,
-                    'link': link
+                    'description_snippet': description_snippet,  # clave unificada
+                    'url_source': url_source,                    # clave unificada
                 })
 
-            except Exception as e:
+            except Exception:
                 continue
 
         print(f"✅ Encontradas {len(jobs)} ofertas en WorkingNomads.")

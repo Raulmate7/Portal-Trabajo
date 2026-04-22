@@ -1,15 +1,10 @@
 import Link from "next/link";
-import { Pool } from "pg";
+import pool from "@/lib/db";
 import SearchFilters from "./components/SearchFilters";
 import { Suspense } from "react";
 
-// Forzar dinamismo para evitar caché
+// Forzar renderizado dinámico para que siempre lea datos frescos de la BD
 export const dynamic = 'force-dynamic';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
 
 type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
@@ -18,17 +13,14 @@ type Props = {
 async function getJobs(query: string, location: string) {
   try {
     const client = await pool.connect();
-    
+
     let sql = "SELECT * FROM jobs WHERE 1=1";
     const params: any[] = [];
     let paramIndex = 1;
 
-    // --- CORRECCIÓN CRÍTICA ---
-    // Buscamos solo en TITLE y COMPANY.
-    // Quitamos 'description' porque si la columna no existe en tu BD, la búsqueda falla y devuelve 0.
-    // ILIKE hace que sea indiferente mayúsculas o minúsculas (Java = java = JAVA).
     if (query && query.trim()) {
-      sql += ` AND (title ILIKE $${paramIndex} OR company ILIKE $${paramIndex})`;
+      // Buscamos en title, company y description_snippet (insensible a mayúsculas)
+      sql += ` AND (title ILIKE $${paramIndex} OR company ILIKE $${paramIndex} OR description_snippet ILIKE $${paramIndex})`;
       params.push(`%${query.trim()}%`);
       paramIndex++;
     }

@@ -1,40 +1,36 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { Pool } from "pg";
+import pool from '@/lib/db';
 import Link from 'next/link';
-import ShareButton from '@/components/ShareButton'; // <--- IMPORTAMOS EL BOTÓN
+import ShareButton from '@/components/ShareButton';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const BASE_URL = 'https://portal-trabajo.vercel.app'; 
+const BASE_URL = 'https://portal-trabajo.vercel.app';
 
 type Props = {
   params: Promise<{ id: string }>;
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
-const getDb = () => new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const resolvedParams = await params;
   const id = resolvedParams.id;
-  
+
   try {
-    const pool = getDb();
     const client = await pool.connect();
-    const res = await client.query("SELECT title, company, location, description_snippet FROM jobs WHERE id = $1", [id]);
-    client.release();
-    await pool.end();
+    const res = await client.query(
+      "SELECT title, company, location, description_snippet FROM jobs WHERE id = $1",
+      [id]
+    );
+    client.release(); // Solo liberamos el cliente, nunca el pool
 
     const job = res.rows[0];
     if (!job) return { title: 'Oferta no encontrada' };
 
     const titulo = `${job.title} en ${job.location}`;
-    const desc = `Oportunidad laboral en ${job.company}. ${job.description_snippet?.substring(0, 130)}...`;
+    const desc = `Oportunidad laboral en ${job.company}. ${job.description_snippet?.substring(0, 130) ?? ''}...`;
 
     return {
       title: `${titulo} | Portal Empleo`,
@@ -61,15 +57,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 async function getJob(id: string) {
   if (!process.env.DATABASE_URL) return null;
   try {
-    const pool = getDb();
     const client = await pool.connect();
     const res = await client.query("SELECT * FROM jobs WHERE id = $1", [id]);
-    client.release();
-    await pool.end();
-    return res.rows[0];
+    client.release(); // Solo liberamos el cliente, nunca el pool
+    return res.rows[0] ?? null;
   } catch (error) {
+    console.error('Error cargando oferta:', error);
     return null;
   }
+}
+
+/**
+ * Extrae el nombre de la fuente desde description_snippet.
+ * Los scrapers guardan el origen con el formato "[Fuente: X] ..."
+ * Si no hay prefijo, devuelve 'Internet'.
+ */
+function extractSource(descriptionSnippet: string | null | undefined): string {
+  if (!descriptionSnippet) return 'Internet';
+  const match = descriptionSnippet.match(/^\[Fuente:\s*(.+?)\]/);
+  return match ? match[1] : 'Internet';
 }
 
 export default async function JobPage({ params }: Props) {
@@ -86,6 +92,8 @@ export default async function JobPage({ params }: Props) {
       </div>
     );
   }
+
+  const sourceLabel = extractSource(job.description_snippet);
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -110,8 +118,7 @@ export default async function JobPage({ params }: Props) {
           <Link href="/" className="text-indigo-600 hover:underline inline-flex items-center gap-2 font-medium">
             ← Volver al buscador
           </Link>
-          
-          {/* AQUÍ ESTÁ EL BOTÓN DE COMPARTIR QUE HEMOS CREADO */}
+
           <ShareButton title={job.title} company={job.company} />
         </div>
 
@@ -139,11 +146,12 @@ export default async function JobPage({ params }: Props) {
 
             <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100 text-center">
               <p className="text-indigo-900 mb-4 text-sm font-medium">
-                Esta oferta fue encontrada en <strong>{job.source || 'Internet'}</strong>
+                {/* Usamos extractSource() en lugar de job.source que no existe en la BD */}
+                Esta oferta fue encontrada en <strong>{sourceLabel}</strong>
               </p>
-              <a 
-                href={job.url_source} 
-                target="_blank" 
+              <a
+                href={job.url_source}
+                target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex w-full md:w-auto justify-center items-center bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-indigo-700 shadow-md hover:shadow-lg transition-all"
               >

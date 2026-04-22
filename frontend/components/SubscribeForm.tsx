@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { subscribeUser } from '@/app/actions';
 
@@ -8,10 +8,12 @@ export default function SubscribeForm({ location }: { location: string }) {
   const pathname = usePathname();
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  // Ref en lugar de document.getElementById — patrón correcto en React/Next.js
+  const emailRef = useRef<HTMLInputElement>(null);
 
   async function handleSubmit(formData: FormData) {
     setStatus('loading');
-    
+
     // Añadimos la ruta actual para saber desde dónde se suscriben
     formData.append('pathname', pathname);
 
@@ -20,13 +22,13 @@ export default function SubscribeForm({ location }: { location: string }) {
     if (result.success) {
       setStatus('success');
       setMessage(result.message);
-      // Limpiamos el formulario visualmente
-      (document.getElementById('email-input') as HTMLInputElement).value = '';
+      // Limpiar el campo usando ref
+      if (emailRef.current) emailRef.current.value = '';
     } else {
       setStatus('error');
       setMessage(result.message);
     }
-    
+
     // Quitamos el mensaje a los 5 segundos
     setTimeout(() => {
       setStatus('idle');
@@ -40,7 +42,7 @@ export default function SubscribeForm({ location }: { location: string }) {
         <span className="text-2xl">⚡</span>
         <h3 className="font-bold text-lg text-white">Alertas de Empleo</h3>
       </div>
-      
+
       <p className="text-gray-300 text-sm mb-5 leading-relaxed">
         Recibe las ofertas de <strong>{location}</strong> directamente en tu inbox.
       </p>
@@ -51,23 +53,24 @@ export default function SubscribeForm({ location }: { location: string }) {
         </div>
       ) : (
         <form action={handleSubmit} className="space-y-3">
-          <input 
+          <input
+            ref={emailRef}
             id="email-input"
             name="email"
-            type="email" 
+            type="email"
             required
-            placeholder="tu@email.com" 
+            placeholder="tu@email.com"
             className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
           />
-          
-          <button 
-            type="submit" 
+
+          <button
+            type="submit"
             disabled={status === 'loading'}
             className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-400 text-white font-bold py-3 px-4 rounded-lg transition-colors text-sm shadow-md flex justify-center"
           >
             {status === 'loading' ? 'Guardando...' : 'Suscribirme Gratis'}
           </button>
-          
+
           {status === 'error' && (
             <p className="text-red-400 text-xs text-center mt-2">{message}</p>
           )}

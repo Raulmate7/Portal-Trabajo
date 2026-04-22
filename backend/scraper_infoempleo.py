@@ -6,10 +6,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# NOTA: Este archivo se llama scraper_infoempleo.py por razones históricas,
+# pero actualmente scrapea el feed RSS de Stratos (stratos-ad.com).
+# Si se quiere añadir Infoempleo real, crear un archivo separado.
 URL_RSS = "https://www.stratos-ad.com/monitor/rss"
 
 def scrape_stratos():
-    print("🇪🇸 Iniciando robot Stratos (Ajustado a tus columnas)...")
+    print("🇪🇸 Iniciando robot Stratos RSS (scraper_infoempleo.py)...")
     
     headers = {'User-Agent': 'Mozilla/5.0'}
     try:
@@ -78,3 +81,4 @@ def guardar_en_bd(ofertas):
 
 if __name__ == "__main__":
     scrape_stratos()
+

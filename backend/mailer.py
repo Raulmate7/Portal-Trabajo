@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def send_newsletter():
-    print("🚀 Preparando envío de Newsletter...")
+    print("🚀 Preparando envío de Newsletter Semanal...")
 
     # 1. CONEXIÓN A BASE DE DATOS
     try:
@@ -19,36 +19,32 @@ def send_newsletter():
         print(f"❌ Error crítico conectando a BD: {e}")
         return
 
-    # 2. BUSCAR OFERTAS (Últimas 24h)
-    yesterday = datetime.now() - timedelta(hours=24)
+    # 2. BUSCAR OFERTAS (Últimos 7 días para el resumen semanal)
+    # MODIFICADO: Antes era hours=24, ahora days=7
+    search_window = datetime.now() - timedelta(days=7)
     
-    # AHORA PEDIMOS EL 'ID' TAMBIÉN
     cur.execute("""
         SELECT id, title, company, location, url_source 
         FROM jobs 
         WHERE created_at > %s 
         ORDER BY created_at DESC 
         LIMIT 10
-    """, (yesterday,))
+    """, (search_window,))
     
     new_jobs = cur.fetchall()
 
     if not new_jobs:
-        print("💤 No hay ofertas nuevas. Fin del proceso.")
+        print("💤 No hay ofertas nuevas esta semana. Fin del proceso.")
         conn.close()
         return
 
     # 3. PREPARAR HTML
     jobs_html = ""
     for job in new_jobs:
-        # Desempaquetamos los 5 datos
         job_id, title, company, location, url_source = job
         
-        # --- ¡CAMBIA ESTO POR TU URL REAL DE VERCEL! ---
-        # Ejemplo: https://mi-proyecto.vercel.app
+        # URL base (asegúrate de que coincida con tu despliegue)
         base_url = "https://portal-trabajo.vercel.app"
-        
-        # Enlace a tu página de detalle
         job_link = f"{base_url}/job/{job_id}"
 
         jobs_html += f"""
@@ -67,14 +63,14 @@ def send_newsletter():
     <html>
         <body style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
             <div style="max-width: 600px; margin: 0 auto;">
-                <h1 style="color: #111827; text-align: center;">🔥 Novedades IT del día</h1>
-                <p style="text-align: center; color: #666;">Hemos seleccionado estas ofertas para ti:</p>
+                <h1 style="color: #111827; text-align: center;">🔥 Resumen Semanal de Empleo IT</h1>
+                <p style="text-align: center; color: #666;">Aquí tienes las mejores ofertas de los últimos 7 días:</p>
                 <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
                 
                 {jobs_html}
                 
                 <p style="color: #999; font-size: 12px; margin-top: 30px; text-align: center;">
-                    Enviado automáticamente por Portal Trabajo IT.<br>
+                    Enviado automáticamente cada lunes por Portal Trabajo IT.<br>
                     <a href="{base_url}" style="color: #999;">Visitar la web</a>
                 </p>
             </div>
@@ -103,7 +99,7 @@ def send_newsletter():
         print(f"❌ ERROR DE LOGIN (Revisa tu .env): {e}")
         return
 
-    # 6. BUCLE DE ENVÍO BLINDADO (No se rompe si falla uno)
+    # 6. BUCLE DE ENVÍO
     success_count = 0
     error_count = 0
 
@@ -112,7 +108,8 @@ def send_newsletter():
             msg = MIMEMultipart()
             msg['From'] = f"Portal Trabajo IT <{os.getenv('EMAIL_USER')}>"
             msg['To'] = email
-            msg['Subject'] = f"🚀 {len(new_jobs)} Ofertas Nuevas de Programación"
+            # MODIFICADO: Asunto actualizado para reflejar que es semanal
+            msg['Subject'] = f"📅 Resumen Semanal: {len(new_jobs)} Ofertas de Programación"
             msg.attach(MIMEText(email_body, 'html'))
             
             server.send_message(msg)

@@ -1,42 +1,42 @@
 import requests
+from bs4 import BeautifulSoup
 
 def get_remotive_jobs():
     print("⚡ Conectando con API de Remotive...")
-    # URL oficial de la API para desarrolladores de software
     url = "https://remotive.com/api/remote-jobs?category=software-dev&limit=50"
-    
+
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
-        
+
         data = response.json()
-        # En esta API, las ofertas están dentro de una lista llamada 'jobs'
         raw_jobs = data.get('jobs', [])
-        
+
         jobs = []
         for item in raw_jobs:
             try:
-                # Mapeamos los datos de la API a nuestro formato
                 title = item.get('title', 'Sin título')
                 company = item.get('company_name', 'Remotive Inc.')
                 location = item.get('candidate_required_location', 'Remoto')
-                link = item.get('url', '')
+                url_source = item.get('url', '')
                 description_html = item.get('description', '')
-                
-                # Limpieza rápida de la descripción
-                snippet = description_html.replace('<div>', '').replace('</div>', '')[:200] + "..."
-                
-                # Solo guardamos si tenemos título y enlace
-                if title and link:
-                    jobs.append({
-                        'title': title,
-                        'company': company,
-                        'location': location,
-                        'salary': item.get('salary', 'Ver en oferta'), # A veces viene, a veces no
-                        'description': snippet,
-                        'link': link
-                    })
-            except Exception as e:
+
+                # Limpieza HTML con BeautifulSoup para snippet limpio
+                clean_text = BeautifulSoup(description_html, 'html.parser').get_text()
+                description_snippet = clean_text[:200].strip() + "..."
+
+                if not title or not url_source:
+                    continue
+
+                jobs.append({
+                    'title': title,
+                    'company': company,
+                    'location': location,
+                    'salary': item.get('salary', 'Ver en oferta') or 'Ver en oferta',
+                    'description_snippet': description_snippet,  # clave unificada
+                    'url_source': url_source,                    # clave unificada
+                })
+            except Exception:
                 continue
 
         print(f"✅ Encontradas {len(jobs)} ofertas en Remotive.")
