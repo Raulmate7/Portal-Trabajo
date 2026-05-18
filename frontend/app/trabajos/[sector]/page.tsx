@@ -45,8 +45,10 @@ function parseSector(sectorSlug: string) {
   let tec = sectorSlug;
   let ciudad = '';
   
-  if (sectorSlug.includes('-en-')) {
-    [tec, ciudad] = sectorSlug.split('-en-');
+  const enIndex = sectorSlug.indexOf('-en-');
+  if (enIndex !== -1) {
+    tec = sectorSlug.substring(0, enIndex);
+    ciudad = sectorSlug.substring(enIndex + 4).replace(/-/g, ' ');
   } else if (sectorSlug.endsWith('-remoto')) {
     tec = sectorSlug.replace('-remoto', '');
     ciudad = 'remoto';

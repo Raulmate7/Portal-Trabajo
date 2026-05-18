@@ -17,9 +17,6 @@ export default function LocationFilter() {
   // 1. Maneja lo que escribes en la caja (Zaragoza, Vigo...)
   const handleSearch = useDebouncedCallback((term: string) => {
     const params = new URLSearchParams(searchParams);
-    
-    // Al cambiar filtro, volvemos a página 1
-    params.set('page', '1');
 
     if (term) {
       params.set('ubicacion', term);

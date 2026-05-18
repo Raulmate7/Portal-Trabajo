@@ -75,7 +75,7 @@ export default async function Home({ searchParams }: Props) {
         <div className="mt-8 space-y-4">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold text-gray-800">
-              {jobs.length === 0 ? "Sin resultados" : `Resultados: ${jobs.length}`}
+              {jobs.length === 0 ? "Sin resultados" : `${jobs.length} ofertas encontradas`}
             </h2>
           </div>
 

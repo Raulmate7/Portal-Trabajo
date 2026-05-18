@@ -12,7 +12,6 @@ export default function ScopeTabs() {
   const handleTabChange = (scope: string) => {
     const params = new URLSearchParams(searchParams);
     params.set('scope', scope);
-    params.set('page', '1'); // Reseteamos página
     replace(`${pathname}?${params.toString()}`);
   };
 
