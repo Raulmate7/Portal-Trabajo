@@ -63,6 +63,9 @@ export const metadata: Metadata = {
   alternates: {
     canonical: BASE_URL,
   },
+  other: {
+    "impact-site-verification": "58afcc07-f733-4e3d-99c2-05e359693a4c",
+  },
 };
 
 export default function RootLayout({
@@ -72,9 +75,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <head>
-        <meta name='impact-site-verification' value='58afcc07-f733-4e3d-99c2-05e359693a4c' />
-      </head>
       <body className={`${inter.className} min-h-screen bg-gray-50 text-gray-900`}>
         {children}
         <CookieBanner />
