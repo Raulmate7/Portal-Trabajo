@@ -3,7 +3,8 @@ import JobCard from '@/components/JobCard';
 import Search from '@/components/Search';
 import LocationFilter from '@/components/LocationFilter';
 import ScopeTabs from '@/components/ScopeTabs';
-import SubscribeForm from '@/components/SubscribeForm'; // <--- Componente Nuevo
+import SubscribeForm from '@/components/SubscribeForm';
+import AdBanner from '@/components/AdBanner';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -86,6 +87,9 @@ export default async function JobsPage(props: Props) {
 
             {/* AQUÍ ESTÁ EL CAMBIO: Usamos el componente funcional */}
             <SubscribeForm location={locationFilter || (scopeFilter === 'espana' ? 'España' : 'Todo el mundo')} />
+
+            {/* Banner de afiliado: herramientas para devs */}
+            <AdBanner variant="sidebar" />
           </aside>
 
           {/* --- RESULTADOS --- */}

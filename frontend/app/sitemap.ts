@@ -12,6 +12,16 @@ const SECTOR_PAGES = [
   '/trabajos/data',
   '/trabajos/cloud',
   '/trabajos/mobile',
+  // SEO Programático
+  '/trabajos/frontend-en-madrid',
+  '/trabajos/backend-en-madrid',
+  '/trabajos/frontend-en-barcelona',
+  '/trabajos/backend-en-barcelona',
+  '/trabajos/data-en-madrid',
+  '/trabajos/react-remoto',
+  '/trabajos/python-remoto',
+  '/trabajos/node-remoto',
+  '/trabajos/java-remoto'
 ]; 
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
