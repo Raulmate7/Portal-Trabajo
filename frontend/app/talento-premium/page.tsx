@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import PremiumForm from './PremiumForm';
 
 export const metadata: Metadata = {
   title: 'Talento Premium — Accede a oportunidades exclusivas | Portal Trabajo IT',
@@ -117,102 +118,7 @@ export default function TalentoPremiumPage() {
 
       {/* Formulario de Registro */}
       <section id="registro" className="max-w-2xl mx-auto px-4 py-20">
-        <div className="p-8 md:p-12 rounded-3xl bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800 shadow-2xl">
-          <h2 className="text-2xl md:text-3xl font-black text-center mb-2">
-            Únete al programa
-          </h2>
-          <p className="text-gray-400 text-center mb-8 text-sm">
-            Déjanos tus datos y te contactaremos con las ofertas que encajen con tu perfil.
-          </p>
-
-          <form className="space-y-5">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-1.5">
-                Nombre completo
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                placeholder="Ej: Ana García"
-                className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1.5">
-                Email profesional
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                placeholder="ana@empresa.com"
-                className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="stack" className="block text-sm font-medium text-gray-300 mb-1.5">
-                Stack principal
-              </label>
-              <input
-                id="stack"
-                name="stack"
-                type="text"
-                required
-                placeholder="Ej: React, Node.js, AWS"
-                className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="experience" className="block text-sm font-medium text-gray-300 mb-1.5">
-                Años de experiencia
-              </label>
-              <select
-                id="experience"
-                name="experience"
-                required
-                className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
-              >
-                <option value="">Selecciona...</option>
-                <option value="2-4">2 – 4 años (Mid)</option>
-                <option value="4-7">4 – 7 años (Senior)</option>
-                <option value="7+">7+ años (Staff / Lead)</option>
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="linkedin" className="block text-sm font-medium text-gray-300 mb-1.5">
-                LinkedIn (opcional)
-              </label>
-              <input
-                id="linkedin"
-                name="linkedin"
-                type="url"
-                placeholder="https://linkedin.com/in/tu-perfil"
-                className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full bg-gradient-to-r from-amber-400 to-yellow-500 text-gray-900 font-black text-base py-4 px-6 rounded-xl hover:from-amber-300 hover:to-yellow-400 transition-all shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40"
-            >
-              Enviar mi perfil 🚀
-            </button>
-
-            <p className="text-center text-gray-500 text-xs mt-3">
-              No compartiremos tus datos con nadie sin tu consentimiento.{' '}
-              <Link href="/privacy" className="text-indigo-400 hover:underline">
-                Política de Privacidad
-              </Link>
-            </p>
-          </form>
-        </div>
+        <PremiumForm />
       </section>
 
       {/* Footer mínimo */}

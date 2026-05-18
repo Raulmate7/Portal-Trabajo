@@ -32,3 +32,32 @@ export async function subscribeUser(formData: FormData) {
     client.release();
   }
 }
+
+export async function submitPremiumLead(formData: FormData) {
+  const name = formData.get('name') as string;
+  const email = formData.get('email') as string;
+  const stack = formData.get('stack') as string;
+  const experience = formData.get('experience') as string;
+  const linkedin = (formData.get('linkedin') as string) || null;
+
+  if (!name || !email || !stack || !experience) {
+    return { message: 'Por favor, rellena todos los campos obligatorios.', success: false };
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query(
+      "INSERT INTO premium_leads (name, email, stack, experience, linkedin, created_at) VALUES ($1, $2, $3, $4, $5, $6)",
+      [name, email, stack, experience, linkedin, new Date().toISOString()]
+    );
+    return { message: '¡Gracias!', success: true };
+  } catch (error: any) {
+    if (error?.code === '23505') {
+      return { message: 'Tu email ya estaba registrado en el programa.', success: false };
+    }
+    console.error('Error guardando lead premium:', error);
+    return { message: 'Hubo un error interno. Inténtalo más tarde.', success: false };
+  } finally {
+    client.release();
+  }
+}
