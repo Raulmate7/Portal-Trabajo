@@ -59,20 +59,60 @@ def send_newsletter():
             </div>
         """
 
+    # Enlace de afiliado (reemplaza por tu link real)
+    BOOTCAMP_LINK = "https://ejemplo.com/afiliado-bootcamp"
+    CV_LINK = "https://ejemplo.com/afiliado-cv"
+
     email_body = f"""
     <html>
-        <body style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-            <div style="max-width: 600px; margin: 0 auto;">
-                <h1 style="color: #111827; text-align: center;">🔥 Resumen Semanal de Empleo IT</h1>
-                <p style="text-align: center; color: #666;">Aquí tienes las mejores ofertas de los últimos 7 días:</p>
-                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <body style="font-family: Arial, sans-serif; padding: 20px; color: #333; background-color: #f9fafb;">
+            <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb;">
                 
-                {jobs_html}
-                
-                <p style="color: #999; font-size: 12px; margin-top: 30px; text-align: center;">
-                    Enviado automáticamente cada lunes por Portal Trabajo IT.<br>
-                    <a href="{base_url}" style="color: #999;">Visitar la web</a>
-                </p>
+                <!-- Cabecera -->
+                <div style="background: linear-gradient(135deg, #312e81, #4338ca); color: white; padding: 30px; text-align: center;">
+                    <h1 style="margin: 0; font-size: 24px;">🔥 Resumen Semanal de Empleo IT</h1>
+                    <p style="color: #c7d2fe; margin: 8px 0 0;">Las mejores ofertas de los últimos 7 días</p>
+                </div>
+
+                <div style="padding: 24px;">
+                    {jobs_html}
+
+                    <!-- Banner Bootcamp (Afiliado) -->
+                    <div style="margin: 24px 0; padding: 20px; background: linear-gradient(135deg, #312e81, #581c87); border-radius: 12px; text-align: center;">
+                        <p style="color: #c7d2fe; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; margin: 0 0 8px;">Recomendación Premium</p>
+                        <h3 style="color: white; margin: 0 0 8px; font-size: 18px;">🚀 Bootcamp Fullstack Developer</h3>
+                        <p style="color: #c7d2fe; font-size: 13px; margin: 0 0 16px;">Acelera tu carrera tech. Aprende haciendo proyectos reales.</p>
+                        <a href="{BOOTCAMP_LINK}" style="display: inline-block; background: linear-gradient(90deg, #fbbf24, #f59e0b); color: #1f2937; padding: 10px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">
+                            Ver Bootcamp Completo →
+                        </a>
+                    </div>
+
+                    <!-- Banner CV (Afiliado) -->
+                    <div style="margin: 16px 0; padding: 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; display: flex; align-items: center;">
+                        <div>
+                            <h4 style="margin: 0 0 4px; color: #166534; font-size: 14px;">📄 ¿Tu CV no pasa los filtros ATS?</h4>
+                            <p style="margin: 0; color: #15803d; font-size: 12px;">Usa plantillas profesionales optimizadas para recruiters.</p>
+                            <a href="{CV_LINK}" style="color: #4f46e5; font-size: 13px; font-weight: bold; text-decoration: none;">Mejorar mi CV →</a>
+                        </div>
+                    </div>
+
+                    <!-- CTA Talento Premium -->
+                    <div style="margin: 24px 0; padding: 20px; background: #fffbeb; border: 2px solid #fbbf24; border-radius: 12px; text-align: center;">
+                        <h3 style="margin: 0 0 8px; color: #92400e;">⭐ ¿Eres Senior (+3 años)?</h3>
+                        <p style="color: #78350f; font-size: 13px; margin: 0 0 12px;">Accede a ofertas exclusivas con salarios +45K de forma confidencial.</p>
+                        <a href="{base_url}/talento-premium" style="display: inline-block; background: linear-gradient(90deg, #fbbf24, #f59e0b); color: #1f2937; padding: 10px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">
+                            Registrarme en Talento Premium
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
+                    <p style="color: #9ca3af; font-size: 11px; margin: 0;">
+                        Enviado automáticamente cada lunes por Portal Trabajo IT.<br>
+                        <a href="{base_url}" style="color: #6366f1;">Visitar la web</a>
+                    </p>
+                </div>
             </div>
         </body>
     </html>
