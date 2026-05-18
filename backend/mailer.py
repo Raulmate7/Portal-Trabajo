@@ -60,7 +60,7 @@ def send_newsletter():
         """
 
     # Enlace de afiliado (reemplaza por tu link real)
-    BOOTCAMP_LINK = "https://ejemplo.com/afiliado-bootcamp"
+    BOOTCAMP_LINK = "https://trk.udemy.com/9VMAEj"
     CV_LINK = "https://ejemplo.com/afiliado-cv"
 
     email_body = f"""

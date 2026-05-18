@@ -1,5 +1,5 @@
 // Enlaces de afiliado de alto valor (High-Ticket)
-const BOOTCAMP_LINK = "https://ejemplo.com/afiliado-bootcamp"; // Reemplazar por link de Impact/Awin
+const BOOTCAMP_LINK = "https://trk.udemy.com/9VMAEj"; // Enlace de afiliado de Udemy
 const CV_BUILDER_LINK = "https://ejemplo.com/afiliado-cv"; 
 
 const COURSE_MAP: Record<string, { name: string; emoji: string; desc: string }> = {
