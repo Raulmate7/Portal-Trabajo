@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import pool from '@/lib/db';
 import JobCard from '@/components/JobCard';
 import Search from '@/components/Search';
 import LocationFilter from '@/components/LocationFilter';
@@ -13,43 +13,60 @@ type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
+async function getJobs(scopeFilter: string, locationFilter?: string, queryFilter?: string) {
+  const client = await pool.connect();
+  try {
+    let sql = "SELECT * FROM jobs WHERE 1=1";
+    const params: any[] = [];
+    let paramIndex = 1;
+
+    // 1. LÓGICA DE PAÍS (ESPAÑA vs GLOBAL)
+    if (scopeFilter === 'espana') {
+      sql += ` AND (location ILIKE $${paramIndex} OR location ILIKE $${paramIndex + 1} OR location ILIKE $${paramIndex + 2} OR location ILIKE $${paramIndex + 3} OR location ILIKE $${paramIndex + 4} OR location ILIKE $${paramIndex + 5} OR location ILIKE $${paramIndex + 6} OR location ILIKE $${paramIndex + 7} OR location = $${paramIndex + 8})`;
+      params.push('%Madrid%', '%Barcelona%', '%Valencia%', '%Sevilla%', '%Bilbao%', '%Spain%', '%España%', '%Málaga%', 'Remoto');
+      paramIndex += 9;
+    }
+
+    // 2. Filtro de Ubicación (Sidebar manual)
+    if (locationFilter) {
+      if (locationFilter === 'Remoto') {
+        sql += ` AND (location ILIKE $${paramIndex} OR location ILIKE $${paramIndex + 1})`;
+        params.push('%Remoto%', '%Remote%');
+        paramIndex += 2;
+      } else {
+        sql += ` AND location ILIKE $${paramIndex}`;
+        params.push(`%${locationFilter}%`);
+        paramIndex++;
+      }
+    }
+
+    // 3. Filtro de Texto (Buscador Superior)
+    if (queryFilter) {
+      sql += ` AND (title ILIKE $${paramIndex} OR description_snippet ILIKE $${paramIndex})`;
+      params.push(`%${queryFilter}%`);
+      paramIndex++;
+    }
+
+    sql += " ORDER BY created_at DESC LIMIT 50";
+
+    const result = await client.query(sql, params);
+    return result.rows;
+  } catch (error) {
+    console.error("Error cargando ofertas:", error);
+    return [];
+  } finally {
+    client.release();
+  }
+}
+
 export default async function JobsPage(props: Props) {
   const searchParams = await props.searchParams;
 
   const locationFilter = searchParams.ubicacion as string | undefined;
   const queryFilter = searchParams.q as string | undefined;
-  const scopeFilter = (searchParams.scope as string) || 'espana'; // Por defecto España
+  const scopeFilter = (searchParams.scope as string) || 'espana';
 
-  // --- CONSULTA A BASE DE DATOS ---
-  let query = supabase
-    .from('jobs')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  // 1. LÓGICA DE PAÍS (ESPAÑA vs GLOBAL)
-  if (scopeFilter === 'espana') {
-    // Filtramos para incluir solo ciudades españolas comunes + "Remoto" genérico
-    query = query.or('location.ilike.%Madrid%,location.ilike.%Barcelona%,location.ilike.%Valencia%,location.ilike.%Sevilla%,location.ilike.%Bilbao%,location.ilike.%Málaga%,location.ilike.%Spain%,location.ilike.%España%,location.eq.Remoto');
-  } else {
-    // Si es Global, no filtramos por país
-  }
-
-  // 2. Filtro de Ubicación (Sidebar manual)
-  if (locationFilter) {
-    if (locationFilter === 'Remoto') {
-      query = query.or('location.ilike.%Remoto%,location.ilike.%Remote%');
-    } else {
-      query = query.ilike('location', `%${locationFilter}%`);
-    }
-  }
-
-  // 3. Filtro de Texto (Buscador Superior)
-  if (queryFilter) {
-    query = query.or(`title.ilike.%${queryFilter}%,description_snippet.ilike.%${queryFilter}%`);
-  }
-
-  query = query.limit(50);
-  const { data: jobs } = await query;
+  const jobs = await getJobs(scopeFilter, locationFilter, queryFilter);
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">

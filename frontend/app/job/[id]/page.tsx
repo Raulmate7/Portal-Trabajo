@@ -19,13 +19,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const resolvedParams = await params;
   const id = resolvedParams.id;
 
+  const client = await pool.connect();
   try {
-    const client = await pool.connect();
     const res = await client.query(
       "SELECT title, company, location, description_snippet FROM jobs WHERE id = $1",
       [id]
     );
-    client.release(); // Solo liberamos el cliente, nunca el pool
 
     const job = res.rows[0];
     if (!job) return { title: 'Oferta no encontrada' };
@@ -52,19 +51,22 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   } catch (e) {
     return { title: 'Portal de Empleo' };
+  } finally {
+    client.release();
   }
 }
 
 async function getJob(id: string) {
   if (!process.env.DATABASE_URL) return null;
+  const client = await pool.connect();
   try {
-    const client = await pool.connect();
     const res = await client.query("SELECT * FROM jobs WHERE id = $1", [id]);
-    client.release(); // Solo liberamos el cliente, nunca el pool
     return res.rows[0] ?? null;
   } catch (error) {
     console.error('Error cargando oferta:', error);
     return null;
+  } finally {
+    client.release();
   }
 }
 
@@ -84,14 +86,7 @@ export default async function JobPage({ params }: Props) {
   const job = await getJob(resolvedParams.id);
 
   if (!job) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center p-8">
-          <h1 className="text-2xl font-bold text-gray-800">Oferta no disponible</h1>
-          <Link href="/" className="text-indigo-600 hover:underline font-medium">Volver al inicio</Link>
-        </div>
-      </div>
-    );
+    notFound();
   }
 
   const sourceLabel = extractSource(job.description_snippet);
@@ -145,7 +140,7 @@ export default async function JobPage({ params }: Props) {
               <p className="whitespace-pre-line">{job.description_snippet || "Ver detalles en la web original."}</p>
             </div>
 
-            {/* Curso de Udemy relacionado con la tecnología de la oferta */}
+            {/* Bootcamp recomendado según la tecnología de la oferta */}
             <CourseAffiliate title={job.title} />
 
             <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100 text-center mt-8">

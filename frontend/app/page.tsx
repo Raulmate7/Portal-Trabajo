@@ -13,9 +13,8 @@ type Props = {
 }
 
 async function getJobs(query: string, location: string) {
+  const client = await pool.connect();
   try {
-    const client = await pool.connect();
-
     let sql = "SELECT * FROM jobs WHERE 1=1";
     const params: any[] = [];
     let paramIndex = 1;
@@ -36,11 +35,12 @@ async function getJobs(query: string, location: string) {
     sql += " ORDER BY created_at DESC LIMIT 50";
 
     const result = await client.query(sql, params);
-    client.release();
     return result.rows;
   } catch (error) {
     console.error("Error BD:", error);
     return [];
+  } finally {
+    client.release();
   }
 }
 

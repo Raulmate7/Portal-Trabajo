@@ -85,9 +85,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 }
 
 async function getJobs(tec: string, ciudad: string, dbCategory: string | undefined) {
+  const client = await pool.connect();
   try {
-    const client = await pool.connect();
-    
     let sql = "SELECT * FROM jobs WHERE 1=1";
     const paramsQuery: any[] = [];
     let paramIndex = 1;
@@ -111,11 +110,12 @@ async function getJobs(tec: string, ciudad: string, dbCategory: string | undefin
     sql += " ORDER BY created_at DESC LIMIT 50";
 
     const result = await client.query(sql, paramsQuery);
-    client.release();
     return result.rows;
   } catch (error) {
     console.error("Error cargando ofertas de BD:", error);
     return [];
+  } finally {
+    client.release();
   }
 }
 
