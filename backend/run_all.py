@@ -29,5 +29,11 @@ exit_code = os.system("python3 telegram_bot.py")
 if exit_code != 0:
     print("⚠️ Advertencia: Telegram bot terminó con errores.")
 
+# 5. Publicar en Redes Sociales (Twitter)
+print("\n[5/5] 🐦 Publicando en Twitter (twitter_bot.py)...")
+exit_code = os.system("python3 twitter_bot.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: Twitter bot terminó con errores.")
+
 print("\n===============================================")
 print("✅ PROCESO COMPLETADO. El sistema descansa.")
