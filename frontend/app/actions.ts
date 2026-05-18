@@ -50,6 +50,29 @@ export async function submitPremiumLead(formData: FormData) {
       "INSERT INTO premium_leads (name, email, stack, experience, linkedin, created_at) VALUES ($1, $2, $3, $4, $5, $6)",
       [name, email, stack, experience, linkedin, new Date().toISOString()]
     );
+
+    // Enviar notificación por Telegram al Admin (si están las variables configuradas)
+    const telegramToken = process.env.TELEGRAM_TOKEN;
+    const adminChatId = process.env.TELEGRAM_ADMIN_ID;
+
+    if (telegramToken && adminChatId) {
+      const text = `🚨 *NUEVO LEAD PREMIUM* 🚨\n\n👤 *Nombre:* ${name}\n📧 *Email:* ${email}\n💻 *Stack:* ${stack}\n⏱ *Experiencia:* ${experience} años\n🔗 *LinkedIn:* ${linkedin || 'No proporcionado'}`;
+      
+      try {
+        await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: adminChatId,
+            text: text,
+            parse_mode: 'Markdown'
+          })
+        });
+      } catch (e) {
+        console.error("Error enviando notificación de Telegram:", e);
+      }
+    }
+
     return { message: '¡Gracias!', success: true };
   } catch (error: any) {
     if (error?.code === '23505') {
