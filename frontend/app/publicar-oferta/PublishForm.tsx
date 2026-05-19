@@ -23,6 +23,43 @@ export default function PublishForm() {
   };
 
   if (status === "success") {
+    if (selectedPlan === "destacado") {
+      return (
+        <div className="p-8 md:p-12 rounded-3xl bg-gradient-to-br from-gray-900 to-gray-950 border-2 border-amber-500/50 shadow-2xl text-center shadow-amber-500/10">
+          <div className="w-16 h-16 bg-amber-500/20 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">
+            💳
+          </div>
+          <h2 className="text-2xl md:text-3xl font-black mb-4">
+            ¡Casi listo!
+          </h2>
+          <p className="text-gray-300 mb-2 max-w-md mx-auto">
+            Hemos guardado tu solicitud. Para activar la <strong>Oferta Destacada</strong> y publicarla inmediatamente, realiza el pago seguro de 39€.
+          </p>
+          <p className="text-gray-400 text-sm max-w-md mx-auto mb-8">
+            Si pagas con una cuenta de empresa, recibirás la factura correspondiente.
+          </p>
+
+          <a
+            href="https://paypal.me/TU_USUARIO_AQUI/39" 
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block w-full max-w-sm bg-[#0070ba] text-white font-bold text-lg py-4 px-6 rounded-xl hover:bg-[#003087] transition-all shadow-lg mb-6"
+          >
+            Pagar 39€ con PayPal
+          </a>
+
+          <div>
+            <button
+              onClick={() => { setStatus("idle"); setMessage(""); }}
+              className="text-gray-500 hover:text-gray-300 text-sm font-medium"
+            >
+              Ya he pagado / Volver al formulario
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="p-8 md:p-12 rounded-3xl bg-gradient-to-br from-gray-900 to-gray-950 border border-green-500/50 shadow-2xl text-center">
         <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">
@@ -35,7 +72,7 @@ export default function PublishForm() {
           {message}
         </p>
         <p className="text-gray-400 text-sm max-w-md mx-auto mb-8">
-          Te contactaremos en menos de 24 horas para confirmar los detalles y activar tu oferta.
+          Te contactaremos por email en menos de 24 horas para confirmar y activar tu oferta gratuita.
         </p>
         <button
           onClick={() => { setStatus("idle"); setMessage(""); }}
