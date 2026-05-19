@@ -113,7 +113,7 @@ export async function submitSponsoredJob(formData: FormData) {
     const telegramChannel = process.env.TELEGRAM_CHANNEL;
 
     if (telegramToken && telegramChannel) {
-      const planLabel = plan === 'destacado' ? '⭐ DESTACADO (149€)' : '📋 Básico (49€)';
+      const planLabel = plan === 'destacado' ? '⭐ DESTACADO (39€)' : '📋 Básico (Gratis)';
       const text = `💰 *NUEVA SOLICITUD DE OFERTA PATROCINADA* 💰\n\n` +
         `📋 *Plan:* ${planLabel}\n` +
         `🏢 *Empresa:* ${company_name}\n` +

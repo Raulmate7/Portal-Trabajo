@@ -68,7 +68,7 @@ export default function PublishForm() {
           }`}
         >
           <span className="block text-sm font-bold">Básico</span>
-          <span className="block text-xl font-black mt-1">49€</span>
+          <span className="block text-xl font-black mt-1">Gratis</span>
         </button>
         <button
           type="button"
@@ -80,7 +80,7 @@ export default function PublishForm() {
           }`}
         >
           <span className="block text-sm font-bold">⭐ Destacado</span>
-          <span className="block text-xl font-black mt-1">149€</span>
+          <span className="block text-xl font-black mt-1">39€</span>
         </button>
       </div>
 

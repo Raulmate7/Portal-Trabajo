@@ -87,10 +87,10 @@ export default function PublicarOfertaPage() {
       {/* Planes */}
       <section id="planes" className="max-w-5xl mx-auto px-4 py-16">
         <h2 className="text-2xl md:text-3xl font-black text-center mb-4">
-          Planes de publicación
+          Precios de lanzamiento
         </h2>
         <p className="text-gray-400 text-center mb-12 max-w-xl mx-auto">
-          Elige el nivel de visibilidad que necesitas para tu oferta.
+          Aprovecha nuestras tarifas especiales mientras el portal sigue creciendo.
         </p>
 
         <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
@@ -99,8 +99,7 @@ export default function PublicarOfertaPage() {
             <div className="mb-6">
               <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Básico</span>
               <div className="flex items-end gap-1 mt-2">
-                <span className="text-4xl font-black">49€</span>
-                <span className="text-gray-500 mb-1">/oferta</span>
+                <span className="text-4xl font-black">Gratis</span>
               </div>
             </div>
             <ul className="space-y-3 text-sm text-gray-300 flex-1">
@@ -121,7 +120,7 @@ export default function PublicarOfertaPage() {
               href="#formulario"
               className="mt-8 text-center py-3 px-6 rounded-xl border border-gray-700 text-white font-bold hover:bg-gray-800 transition-all"
             >
-              Elegir plan Básico
+              Publicar Gratis
             </a>
           </div>
 
@@ -129,14 +128,14 @@ export default function PublicarOfertaPage() {
           <div className="relative bg-gradient-to-br from-gray-900 to-gray-950 border-2 border-amber-500/60 rounded-2xl p-8 flex flex-col shadow-lg shadow-amber-500/10">
             <div className="absolute -top-3.5 left-6">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-white text-xs font-bold shadow-md uppercase tracking-wider">
-                ⭐ Popular
+                ⭐ Oferta Especial
               </span>
             </div>
             <div className="mb-6">
               <span className="text-xs font-bold uppercase tracking-wider text-amber-500">Destacado</span>
               <div className="flex items-end gap-1 mt-2">
-                <span className="text-4xl font-black">149€</span>
-                <span className="text-gray-500 mb-1">/oferta</span>
+                <span className="text-4xl font-black">39€</span>
+                <span className="text-gray-500 mb-1 line-through ml-2 text-sm">149€</span>
               </div>
             </div>
             <ul className="space-y-3 text-sm text-gray-300 flex-1">
@@ -165,7 +164,7 @@ export default function PublicarOfertaPage() {
               href="#formulario"
               className="mt-8 text-center py-3 px-6 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-gray-900 font-black hover:from-amber-400 hover:to-yellow-400 transition-all shadow-lg shadow-amber-500/20"
             >
-              Elegir plan Destacado
+              Destacar por 39€
             </a>
           </div>
         </div>
