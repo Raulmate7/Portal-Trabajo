@@ -16,6 +16,18 @@ DB_URL = os.getenv("DATABASE_URL")
 
 if not all([TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET]):
     print("⚠️  Faltan credenciales de Twitter en las variables de entorno. Omitiendo publicación.")
+    telegram_token = os.getenv("TELEGRAM_TOKEN")
+    admin_id = os.getenv("TELEGRAM_ADMIN_ID")
+    if telegram_token and admin_id:
+        import requests
+        try:
+            requests.post(f"https://api.telegram.org/bot{telegram_token}/sendMessage", json={
+                "chat_id": admin_id,
+                "text": "❌ *Error en Twitter Bot:*\nFaltan credenciales de Twitter en GitHub Secrets. Revisa que estén añadidas exactamente con los nombres solicitados.",
+                "parse_mode": "Markdown"
+            })
+        except:
+            pass
     exit(0)
 
 if not DB_URL:
@@ -93,5 +105,20 @@ try:
     print(f"✅ ¡Tweet publicado con éxito! ID: {response.data['id']}")
 except Exception as e:
     print(f"❌ Error al enviar el Tweet: {e}")
+    # Enviar error a Telegram para depuración
+    telegram_token = os.getenv("TELEGRAM_TOKEN")
+    admin_id = os.getenv("TELEGRAM_ADMIN_ID")
+    if telegram_token and admin_id:
+        import requests
+        try:
+            requests.post(f"https://api.telegram.org/bot{telegram_token}/sendMessage", json={
+                "chat_id": admin_id,
+                "text": f"❌ *Error en Twitter Bot:*\n{e}",
+                "parse_mode": "Markdown"
+            })
+        except:
+            pass
 
 print("===============================================")
+import sys
+sys.stdout.flush()
