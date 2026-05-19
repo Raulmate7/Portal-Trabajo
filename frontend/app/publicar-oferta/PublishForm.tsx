@@ -49,14 +49,6 @@ export default function PublishForm() {
             >
               💳 Pagar con Tarjeta / PayPal
             </a>
-
-            {/* Opción B2B tradicional */}
-            <a
-              href="mailto:raulmate7@gmail.com?subject=Pago Transferencia - Oferta Destacada&body=Hola, hemos enviado una solicitud para una Oferta Destacada y nos gustaría pagar mediante transferencia bancaria. Por favor, enviadnos los datos bancarios y la factura."
-              className="flex items-center justify-center gap-2 w-full bg-gray-800 text-white font-bold text-base py-3.5 px-6 rounded-xl hover:bg-gray-700 border border-gray-600 transition-all"
-            >
-              🏦 Pagar por Transferencia
-            </a>
           </div>
 
           <div>
