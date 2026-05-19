@@ -63,6 +63,9 @@ export default async function Home({ searchParams }: Props) {
             <Link href="/talento-premium" className="bg-gradient-to-r from-amber-400 to-yellow-500 text-gray-900 font-bold py-2 px-6 rounded-full hover:from-amber-300 hover:to-yellow-400 transition-all">
               ⭐ Talento Premium
             </Link>
+            <Link href="/publicar-oferta" className="bg-gradient-to-r from-green-400 to-emerald-500 text-gray-900 font-bold py-2 px-6 rounded-full hover:from-green-300 hover:to-emerald-400 transition-all">
+              🏢 Publicar Oferta
+            </Link>
           </div>
         </div>
       </div>
