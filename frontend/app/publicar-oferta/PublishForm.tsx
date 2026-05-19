@@ -39,21 +39,32 @@ export default function PublishForm() {
             Si pagas con una cuenta de empresa, recibirás la factura correspondiente.
           </p>
 
-          <a
-            href="https://paypal.me/TU_USUARIO_AQUI/39" 
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block w-full max-w-sm bg-[#0070ba] text-white font-bold text-lg py-4 px-6 rounded-xl hover:bg-[#003087] transition-all shadow-lg mb-6"
-          >
-            Pagar 39€ con PayPal
-          </a>
+          <div className="flex flex-col gap-3 w-full max-w-sm mx-auto mb-8">
+            {/* Botón de PayPal (que también permite pagar con tarjeta como invitado) */}
+            <a
+              href="https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=raulmate7@gmail.com&currency_code=EUR&amount=39&item_name=Oferta+Destacada+Portal+Trabajo+IT" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full bg-[#0070ba] text-white font-bold text-lg py-4 px-6 rounded-xl hover:bg-[#003087] transition-all shadow-lg"
+            >
+              💳 Pagar con Tarjeta / PayPal
+            </a>
+
+            {/* Opción B2B tradicional */}
+            <a
+              href="mailto:raulmate7@gmail.com?subject=Pago Transferencia - Oferta Destacada&body=Hola, hemos enviado una solicitud para una Oferta Destacada y nos gustaría pagar mediante transferencia bancaria. Por favor, enviadnos los datos bancarios y la factura."
+              className="flex items-center justify-center gap-2 w-full bg-gray-800 text-white font-bold text-base py-3.5 px-6 rounded-xl hover:bg-gray-700 border border-gray-600 transition-all"
+            >
+              🏦 Pagar por Transferencia
+            </a>
+          </div>
 
           <div>
             <button
               onClick={() => { setStatus("idle"); setMessage(""); }}
-              className="text-gray-500 hover:text-gray-300 text-sm font-medium"
+              className="text-gray-500 hover:text-gray-300 text-sm font-medium underline"
             >
-              Ya he pagado / Volver al formulario
+              Ya he pagado / Volver
             </button>
           </div>
         </div>
