@@ -17,7 +17,7 @@ DB_URL = os.getenv("DATABASE_URL")
 if not all([TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET]):
     print("⚠️  Faltan credenciales de Twitter en las variables de entorno. Omitiendo publicación.")
     telegram_token = os.getenv("TELEGRAM_TOKEN")
-    admin_id = os.getenv("TELEGRAM_ADMIN_ID")
+    admin_id = os.getenv("TELEGRAM_CHANNEL") # Usando el canal para ver el error
     if telegram_token and admin_id:
         import requests
         try:
@@ -107,7 +107,7 @@ except Exception as e:
     print(f"❌ Error al enviar el Tweet: {e}")
     # Enviar error a Telegram para depuración
     telegram_token = os.getenv("TELEGRAM_TOKEN")
-    admin_id = os.getenv("TELEGRAM_ADMIN_ID")
+    admin_id = os.getenv("TELEGRAM_CHANNEL")
     if telegram_token and admin_id:
         import requests
         try:
