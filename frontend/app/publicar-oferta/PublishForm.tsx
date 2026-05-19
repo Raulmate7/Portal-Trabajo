@@ -40,9 +40,9 @@ export default function PublishForm() {
           </p>
 
           <div className="flex flex-col gap-3 w-full max-w-sm mx-auto mb-8">
-            {/* Botón de PayPal (que también permite pagar con tarjeta como invitado) */}
+            {/* Botón de PayPal (ocultando el correo mediante paypal.me) */}
             <a
-              href="https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=raulmate7@gmail.com&currency_code=EUR&amount=39&item_name=Oferta+Destacada+Portal+Trabajo+IT" 
+              href="https://paypal.me/TU_USUARIO_AQUI/39" 
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full bg-[#0070ba] text-white font-bold text-lg py-4 px-6 rounded-xl hover:bg-[#003087] transition-all shadow-lg"
