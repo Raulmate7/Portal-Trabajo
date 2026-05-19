@@ -42,7 +42,7 @@ export default function PublishForm() {
           <div className="flex flex-col gap-3 w-full max-w-sm mx-auto mb-8">
             {/* Botón de PayPal (ocultando el correo mediante paypal.me) */}
             <a
-              href="https://paypal.me/TU_USUARIO_AQUI/39" 
+              href="https://paypal.me/PortalTrabajoIT/39" 
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full bg-[#0070ba] text-white font-bold text-lg py-4 px-6 rounded-xl hover:bg-[#003087] transition-all shadow-lg"
