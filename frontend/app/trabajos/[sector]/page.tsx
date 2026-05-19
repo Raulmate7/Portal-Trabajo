@@ -30,12 +30,12 @@ const adMap: Record<string, { title: string, text: string, link: string }> = {
   'backend': { 
     title: '¿Quieres ser experto en Java/Spring?', 
     text: 'Las empresas pagan +40k a los seniors. Fórmate aquí.', 
-    link: 'https://ejemplo.com/curso-java' 
+    link: 'https://trk.udemy.com/9VMAEj' 
   },
   'data': { 
     title: 'Domina el Big Data y PowerBI', 
-    text: 'El perfil más demandado de 2025.', 
-    link: 'https://ejemplo.com/curso-data'
+    text: 'El perfil más demandado de 2026.', 
+    link: 'https://trk.udemy.com/9VMAEj'
   }
 };
 

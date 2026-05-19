@@ -1,7 +1,6 @@
 import Link from "next/link";
 import pool from "@/lib/db";
 import SearchFilters from "./components/SearchFilters";
-import FeaturedJobCard from "@/components/FeaturedJobCard";
 import AdBanner from "@/components/AdBanner";
 import { Suspense } from "react";
 
@@ -82,17 +81,8 @@ export default async function Home({ searchParams }: Props) {
             </h2>
           </div>
 
-          {/* Ofertas Patrocinadas (Featured) — las primeras 2 ofertas se muestran como destacadas */}
-          {jobs.length > 0 && (
-            <div className="space-y-5 mb-6">
-              {jobs.slice(0, 2).map((job) => (
-                <FeaturedJobCard key={`featured-${job.id}`} job={job} />
-              ))}
-            </div>
-          )}
-
           {jobs.length > 0 ? (
-            jobs.slice(2).map((job, index) => (
+            jobs.map((job, index) => (
               <div key={job.id}>
                 {/* Banner de afiliado entre las ofertas (después de la 5ª oferta) */}
                 {index === 4 && (

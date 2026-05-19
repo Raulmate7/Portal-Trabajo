@@ -12,6 +12,8 @@ const SECTOR_PAGES = [
   '/trabajos/data',
   '/trabajos/cloud',
   '/trabajos/mobile',
+  '/publicar-oferta',
+  '/talento-premium',
   // SEO Programático
   '/trabajos/frontend-en-madrid',
   '/trabajos/backend-en-madrid',

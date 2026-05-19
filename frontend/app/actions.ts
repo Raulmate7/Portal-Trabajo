@@ -51,9 +51,9 @@ export async function submitPremiumLead(formData: FormData) {
       [name, email, stack, experience, linkedin, new Date().toISOString()]
     );
 
-    // Enviar notificación por Telegram al Admin (si están las variables configuradas)
+    // Enviar notificación por Telegram (al canal, ya que ADMIN_ID no está disponible en Vercel)
     const telegramToken = process.env.TELEGRAM_TOKEN;
-    const adminChatId = process.env.TELEGRAM_ADMIN_ID;
+    const adminChatId = process.env.TELEGRAM_ADMIN_ID || process.env.TELEGRAM_CHANNEL;
 
     if (telegramToken && adminChatId) {
       const text = `🚨 *NUEVO LEAD PREMIUM* 🚨\n\n👤 *Nombre:* ${name}\n📧 *Email:* ${email}\n💻 *Stack:* ${stack}\n⏱ *Experiencia:* ${experience} años\n🔗 *LinkedIn:* ${linkedin || 'No proporcionado'}`;
@@ -108,9 +108,9 @@ export async function submitSponsoredJob(formData: FormData) {
       [company_name, company_email, company_phone, job_title, job_location, job_salary, job_description, job_url, plan, new Date().toISOString()]
     );
 
-    // Notificar al canal de Telegram
+    // Notificar por Telegram (preferiblemente al admin privado para no exponer datos de empresa)
     const telegramToken = process.env.TELEGRAM_TOKEN;
-    const telegramChannel = process.env.TELEGRAM_CHANNEL;
+    const telegramChannel = process.env.TELEGRAM_ADMIN_ID || process.env.TELEGRAM_CHANNEL;
 
     if (telegramToken && telegramChannel) {
       const planLabel = plan === 'destacado' ? '⭐ DESTACADO (39€)' : '📋 Básico (Gratis)';

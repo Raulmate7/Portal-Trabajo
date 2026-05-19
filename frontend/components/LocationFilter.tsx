@@ -2,6 +2,7 @@
 
 import { useSearchParams, usePathname, useRouter } from 'next/navigation';
 import { useDebouncedCallback } from 'use-debounce';
+import { useRef } from 'react';
 
 const popularLocations = [
   { name: 'Remoto', value: 'Remoto' },
@@ -13,6 +14,7 @@ export default function LocationFilter() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { replace } = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // 1. Maneja lo que escribes en la caja (Zaragoza, Vigo...)
   const handleSearch = useDebouncedCallback((term: string) => {
@@ -29,9 +31,7 @@ export default function LocationFilter() {
 
   // 2. Maneja los clics en los botones rápidos
   const handleQuickClick = (value: string) => {
-    // Si pulsamos el botón, rellenamos el input manualmente
-    const input = document.getElementById('location-input') as HTMLInputElement;
-    if (input) input.value = value;
+    if (inputRef.current) inputRef.current.value = value;
     handleSearch(value);
   }
 
@@ -44,6 +44,7 @@ export default function LocationFilter() {
       {/* CAJA DE BÚSQUEDA DE CIUDAD */}
       <div className="relative">
         <input
+          ref={inputRef}
           id="location-input"
           className="block w-full rounded-md border border-gray-300 py-2 pl-9 text-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-indigo-500"
           placeholder="Ciudad (ej: Sevilla)..."
