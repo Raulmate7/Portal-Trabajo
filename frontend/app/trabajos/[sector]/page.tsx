@@ -1,8 +1,10 @@
 import pool from "@/lib/db";
 import JobCard from "@/components/JobCard";
+import SubscribeForm from "@/components/SubscribeForm";
+import AdBanner from "@/components/AdBanner";
 import { Metadata } from "next";
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 // Tipos
 interface Job {
@@ -156,17 +158,29 @@ export default async function SectorPage({ params }: { params: Params }) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {jobs && jobs.length > 0 ? (
-          jobs.map((job) => (
-            <JobCard key={job.id} job={job as Job} />
-          ))
-        ) : (
-          <div className="col-span-full text-center py-20 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-            <p className="text-gray-500">No hay ofertas de {tituloMostrado} ahora mismo.</p>
-            <p className="text-sm text-gray-400 mt-2">Vuelve mañana a las 08:00.</p>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="lg:col-span-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {jobs && jobs.length > 0 ? (
+              jobs.map((job) => (
+                <JobCard key={job.id} job={job as Job} />
+              ))
+            ) : (
+              <div className="col-span-full text-center py-20 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                <p className="text-gray-500">No hay ofertas de {tituloMostrado} ahora mismo.</p>
+                <p className="text-sm text-gray-400 mt-2">Vuelve mañana a las 08:00.</p>
+              </div>
+            )}
           </div>
-        )}
+        </div>
+        
+        {/* Sidebar */}
+        <div className="lg:col-span-1 space-y-6">
+          <div className="sticky top-6 space-y-6">
+            <SubscribeForm location={ciudad ? ciudad : tec} />
+            <AdBanner variant="sidebar" />
+          </div>
+        </div>
       </div>
     </div>
   );

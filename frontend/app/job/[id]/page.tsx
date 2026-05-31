@@ -4,9 +4,10 @@ import pool from '@/lib/db';
 import Link from 'next/link';
 import ShareButton from '@/components/ShareButton';
 import CourseAffiliate from '@/components/CourseAffiliate';
+import SubscribeForm from '@/components/SubscribeForm';
+import AdBanner from '@/components/AdBanner';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 60;
 
 const BASE_URL = 'https://portal-trabajo.vercel.app';
 
@@ -108,7 +109,7 @@ export default async function JobPage({ params }: Props) {
     <main className="min-h-screen bg-gray-50 py-12 px-4 md:px-8">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         {/* Cabecera de navegación */}
         <div className="flex justify-between items-center mb-6">
           <Link href="/" className="text-indigo-600 hover:underline inline-flex items-center gap-2 font-medium">
@@ -118,7 +119,10 @@ export default async function JobPage({ params }: Props) {
           <ShareButton title={job.title} company={job.company} />
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
           <div className="bg-gradient-to-r from-indigo-900 to-indigo-800 text-white p-6 md:p-8">
             <h1 className="text-2xl md:text-3xl font-bold mb-4 leading-tight">{job.title}</h1>
             <div className="flex flex-wrap gap-3 text-indigo-100 text-sm md:text-base">
@@ -156,6 +160,16 @@ export default async function JobPage({ params }: Props) {
               >
                 👉 Aplicar en la web original
               </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sidebar */}
+          <div className="lg:col-span-1 space-y-6">
+            <div className="sticky top-6 space-y-6">
+              <SubscribeForm location={job.location || 'España'} />
+              <AdBanner variant="sidebar" />
             </div>
           </div>
         </div>

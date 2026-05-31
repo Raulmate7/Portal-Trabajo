@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 const BASE_URL = 'https://portal-trabajo.vercel.app';
 
-const SECTOR_PAGES = [
+const BASE_PAGES = [
   '/trabajos/informatica-tecnologia',
   '/trabajos/backend',
   '/trabajos/frontend',
@@ -14,17 +14,25 @@ const SECTOR_PAGES = [
   '/trabajos/mobile',
   '/publicar-oferta',
   '/talento-premium',
-  // SEO Programático
-  '/trabajos/frontend-en-madrid',
-  '/trabajos/backend-en-madrid',
-  '/trabajos/frontend-en-barcelona',
-  '/trabajos/backend-en-barcelona',
-  '/trabajos/data-en-madrid',
-  '/trabajos/react-remoto',
-  '/trabajos/python-remoto',
-  '/trabajos/node-remoto',
-  '/trabajos/java-remoto'
-]; 
+  '/blog',
+];
+
+const TECNOLOGIAS = ['react', 'angular', 'vue', 'node', 'python', 'java', 'php', 'csharp', 'ruby', 'go', 'javascript', 'typescript', 'aws', 'docker', 'kubernetes', 'backend', 'frontend', 'data', 'cloud', 'mobile'];
+const CIUDADES = ['madrid', 'barcelona', 'valencia', 'sevilla', 'bilbao', 'malaga', 'zaragoza', 'alicante', 'remoto'];
+
+const PROGRAMMATIC_PAGES: string[] = [];
+
+for (const tec of TECNOLOGIAS) {
+  for (const ciudad of CIUDADES) {
+    if (ciudad === 'remoto') {
+      PROGRAMMATIC_PAGES.push(`/trabajos/${tec}-remoto`);
+    } else {
+      PROGRAMMATIC_PAGES.push(`/trabajos/${tec}-en-${ciudad}`);
+    }
+  }
+}
+
+const SECTOR_PAGES = [...BASE_PAGES, ...PROGRAMMATIC_PAGES];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let jobs = [];
