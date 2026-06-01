@@ -6,6 +6,7 @@ import ShareButton from '@/components/ShareButton';
 import CourseAffiliate from '@/components/CourseAffiliate';
 import SubscribeForm from '@/components/SubscribeForm';
 import AdBanner from '@/components/AdBanner';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 export const revalidate = 60;
 
@@ -92,7 +93,12 @@ export default async function JobPage({ params }: Props) {
 
   const sourceLabel = extractSource(job.description_snippet);
 
-  const jsonLd = {
+  // Inferencia para SEO
+  const textForInference = `${job.title} ${job.description_snippet || ''}`.toLowerCase();
+  const isRemote = textForInference.includes('remoto') || textForInference.includes('teletrabajo') || textForInference.includes('remote');
+  const isFullTime = textForInference.includes('jornada completa') || textForInference.includes('full time') || textForInference.includes('full-time') || textForInference.includes('indefinido');
+
+  const jsonLd: any = {
     '@context': 'https://schema.org',
     '@type': 'JobPosting',
     title: job.title,
@@ -105,11 +111,27 @@ export default async function JobPage({ params }: Props) {
     },
   };
 
+  if (isRemote) {
+    jsonLd.jobLocationType = "TELECOMMUTE";
+  }
+  
+  if (isFullTime) {
+    jsonLd.employmentType = "FULL_TIME";
+  }
+
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-4 md:px-8">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       <div className="max-w-5xl mx-auto">
+        <Breadcrumbs 
+          items={[
+            { label: 'Inicio', href: '/' },
+            { label: 'Ofertas', href: '/trabajos/informatica-tecnologia' },
+            { label: job.title }
+          ]} 
+        />
+        
         {/* Cabecera de navegación */}
         <div className="flex justify-between items-center mb-6">
           <Link href="/" className="text-indigo-600 hover:underline inline-flex items-center gap-2 font-medium">

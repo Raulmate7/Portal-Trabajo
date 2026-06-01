@@ -2,6 +2,7 @@ import pool from "@/lib/db";
 import JobCard from "@/components/JobCard";
 import SubscribeForm from "@/components/SubscribeForm";
 import AdBanner from "@/components/AdBanner";
+import Breadcrumbs from "@/components/Breadcrumbs";
 import { Metadata } from "next";
 
 export const revalidate = 60;
@@ -138,15 +139,29 @@ export default async function SectorPage({ params }: { params: Params }) {
     ? `${categoriaBonita} en ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}` 
     : categoriaBonita;
 
+  const breadcrumbItems = [
+    { label: 'Inicio', href: '/' },
+    { label: 'Trabajos', href: '/trabajos/informatica-tecnologia' },
+    { label: tituloMostrado }
+  ];
+
   return (
     <div className="container mx-auto px-4 py-8">
+      <Breadcrumbs items={breadcrumbItems} />
       
-      <h1 className="text-3xl font-bold mb-2 capitalize text-gray-900">
+      <h1 className="text-3xl font-bold mb-4 capitalize text-gray-900">
         Ofertas de {tituloMostrado}
       </h1>
-      <p className="text-gray-600 mb-8">
-        {jobs.length} ofertas encontradas hoy.
-      </p>
+      
+      {/* Dynamic SEO Text to avoid Thin Content penalty */}
+      <div className="prose max-w-none text-gray-700 mb-8 bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+        <p>
+          Si buscas empleo de <strong>{categoriaBonita}</strong>{ciudad ? ` en ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}` : ' en España'}, estás en el lugar indicado. 
+          Actualmente contamos con <strong>{jobs.length} ofertas activas</strong>. 
+          El perfil de {categoriaBonita} es uno de los más demandados en el sector tecnológico actual.
+          Explora las vacantes a continuación, que incluyen opciones tanto presenciales como en formato remoto.
+        </p>
+      </div>
 
       {ad && !ciudad && (
         <div className="mb-8 p-6 bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 rounded-xl">
