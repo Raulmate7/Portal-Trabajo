@@ -3,6 +3,7 @@ import JobCard from "@/components/JobCard";
 import SubscribeForm from "@/components/SubscribeForm";
 import AdBanner from "@/components/AdBanner";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import Link from "next/link";
 import { Metadata } from "next";
 
 export const revalidate = 60;
@@ -89,7 +90,9 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   };
 }
 
-async function getJobs(tec: string, ciudad: string, dbCategory: string | undefined) {
+async function getJobs(tec: string, ciudad: string, dbCategory: string | undefined, page: number = 1) {
+  const limit = 50;
+  const offset = (page - 1) * limit;
   const client = await pool.connect();
   try {
     let sql = "SELECT * FROM jobs WHERE 1=1";
@@ -112,7 +115,8 @@ async function getJobs(tec: string, ciudad: string, dbCategory: string | undefin
       paramIndex++;
     }
 
-    sql += " ORDER BY created_at DESC LIMIT 50";
+    sql += ` ORDER BY created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    paramsQuery.push(limit, offset);
 
     const result = await client.query(sql, paramsQuery);
     return result.rows;
@@ -124,13 +128,23 @@ async function getJobs(tec: string, ciudad: string, dbCategory: string | undefin
   }
 }
 
-export default async function SectorPage({ params }: { params: Params }) {
+export default async function SectorPage({ 
+  params, 
+  searchParams 
+}: { 
+  params: Params; 
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }> 
+}) {
   const { sector } = await params;
   const sectorSlug = sector.toLowerCase();
   
+  const resolvedSearchParams = await searchParams;
+  const page = typeof resolvedSearchParams.page === 'string' ? parseInt(resolvedSearchParams.page, 10) : 1;
+  const validPage = isNaN(page) || page < 1 ? 1 : page;
+  
   const { tec, ciudad, dbCategory } = parseSector(sectorSlug);
   
-  const jobs = await getJobs(tec, ciudad, dbCategory);
+  const jobs = await getJobs(tec, ciudad, dbCategory, validPage);
   
   const ad = adMap[tec];
   
@@ -177,9 +191,36 @@ export default async function SectorPage({ params }: { params: Params }) {
         <div className="lg:col-span-3">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {jobs && jobs.length > 0 ? (
-              jobs.map((job) => (
-                <JobCard key={job.id} job={job as Job} />
-              ))
+              <>
+                {jobs.map((job) => (
+                  <JobCard key={job.id} job={job as Job} />
+                ))}
+                
+                {/* Controles de Paginación */}
+                <div className="col-span-full flex justify-between items-center pt-6">
+                  {validPage > 1 ? (
+                    <Link
+                      href={`/trabajos/${sector}?page=${validPage - 1}`}
+                      className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      ← Anterior
+                    </Link>
+                  ) : (
+                    <div />
+                  )}
+                  <span className="text-sm text-gray-600">Página {validPage}</span>
+                  {jobs.length === 50 ? (
+                    <Link
+                      href={`/trabajos/${sector}?page=${validPage + 1}`}
+                      className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      Siguiente →
+                    </Link>
+                  ) : (
+                    <div />
+                  )}
+                </div>
+              </>
             ) : (
               <div className="col-span-full text-center py-20 bg-gray-50 rounded-xl border border-dashed border-gray-300">
                 <p className="text-gray-500">No hay ofertas de {tituloMostrado} ahora mismo.</p>

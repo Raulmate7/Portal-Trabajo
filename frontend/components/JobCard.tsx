@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 
 // CORRECCIÓN FINAL: Permitimos 'null' en los campos opcionales
 interface Job {
@@ -62,14 +63,12 @@ export default function JobCard({ job }: JobCardProps) {
       </div>
 
       <div className="px-6 pb-6 mt-auto">
-        <a 
-          href={job.url_source} 
-          target="_blank" 
-          rel="noopener noreferrer" 
+        <Link 
+          href={job.id ? `/job/${job.id}` : job.url_source} 
           className="block w-full text-center bg-gray-900 hover:bg-black text-white font-medium py-2.5 px-4 rounded-lg transition-colors duration-200"
         >
           Ver Oferta
-        </a>
+        </Link>
       </div>
     </div>
   );

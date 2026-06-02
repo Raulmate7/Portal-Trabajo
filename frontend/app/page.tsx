@@ -11,7 +11,9 @@ type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
-async function getJobs(query: string, location: string) {
+async function getJobs(query: string, location: string, page: number = 1) {
+  const limit = 50;
+  const offset = (page - 1) * limit;
   const client = await pool.connect();
   try {
     let sql = "SELECT * FROM jobs WHERE 1=1";
@@ -31,7 +33,8 @@ async function getJobs(query: string, location: string) {
       paramIndex++;
     }
 
-    sql += " ORDER BY created_at DESC LIMIT 50";
+    sql += ` ORDER BY created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    params.push(limit, offset);
 
     const result = await client.query(sql, params);
     return result.rows;
@@ -47,8 +50,10 @@ export default async function Home({ searchParams }: Props) {
   const resolvedParams = await searchParams;
   const q = typeof resolvedParams.q === 'string' ? resolvedParams.q : '';
   const loc = typeof resolvedParams.location === 'string' ? resolvedParams.location : '';
+  const page = typeof resolvedParams.page === 'string' ? parseInt(resolvedParams.page, 10) : 1;
+  const validPage = isNaN(page) || page < 1 ? 1 : page;
 
-  const jobs = await getJobs(q, loc);
+  const jobs = await getJobs(q, loc, validPage);
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -82,48 +87,75 @@ export default async function Home({ searchParams }: Props) {
           </div>
 
           {jobs.length > 0 ? (
-            jobs.map((job, index) => (
-              <div key={job.id}>
-                {/* Banner de afiliado entre las ofertas (después de la 5ª oferta) */}
-                {index === 4 && (
-                  <div className="mb-4">
-                    <AdBanner variant="inline" />
-                  </div>
-                )}
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                  <div className="flex flex-col md:flex-row justify-between md:items-start gap-4">
-                    <div className="w-full">
-                      <Link href={`/job/${job.id}`}>
-                        <h2 className="text-xl font-semibold text-indigo-900 hover:text-indigo-600 transition-colors">
-                          {job.title}
-                        </h2>
-                      </Link>
-                      <p className="text-gray-600 font-medium mt-1">{job.company}</p>
-                      
-                      <div className="flex flex-wrap gap-3 mt-3 text-sm text-gray-500">
-                        <a 
-                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded hover:bg-indigo-50 text-indigo-600 font-medium border border-gray-200"
-                        >
-                          📍 {job.location}
-                        </a>
-                        <span className="bg-gray-50 px-2 py-1 rounded">💰 {job.salary || "Consultar"}</span>
-                        <span className="bg-gray-50 px-2 py-1 rounded">📅 {new Date(job.created_at).toLocaleDateString()}</span>
-                      </div>
+            <>
+              {jobs.map((job, index) => (
+                <div key={job.id}>
+                  {/* Banner de afiliado entre las ofertas (después de la 5ª oferta) */}
+                  {index === 4 && (
+                    <div className="mb-4">
+                      <AdBanner variant="inline" />
                     </div>
+                  )}
+                  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                    <div className="flex flex-col md:flex-row justify-between md:items-start gap-4">
+                      <div className="w-full">
+                        <Link href={`/job/${job.id}`}>
+                          <h2 className="text-xl font-semibold text-indigo-900 hover:text-indigo-600 transition-colors">
+                            {job.title}
+                          </h2>
+                        </Link>
+                        <p className="text-gray-600 font-medium mt-1">{job.company}</p>
+                        
+                        <div className="flex flex-wrap gap-3 mt-3 text-sm text-gray-500">
+                          <a 
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded hover:bg-indigo-50 text-indigo-600 font-medium border border-gray-200"
+                          >
+                            📍 {job.location}
+                          </a>
+                          <span className="bg-gray-50 px-2 py-1 rounded">💰 {job.salary || "Consultar"}</span>
+                          <span className="bg-gray-50 px-2 py-1 rounded">📅 {new Date(job.created_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
 
-                    <Link 
-                      href={`/job/${job.id}`}
-                      className="px-5 py-2 bg-indigo-50 text-indigo-700 font-medium rounded-lg hover:bg-indigo-100 transition-colors text-center shrink-0"
-                    >
-                      Ver oferta
-                    </Link>
+                      <Link 
+                        href={`/job/${job.id}`}
+                        className="px-5 py-2 bg-indigo-50 text-indigo-700 font-medium rounded-lg hover:bg-indigo-100 transition-colors text-center shrink-0"
+                      >
+                        Ver oferta
+                      </Link>
+                    </div>
                   </div>
                 </div>
+              ))}
+
+              {/* Controles de Paginación */}
+              <div className="flex justify-between items-center pt-6">
+                {validPage > 1 ? (
+                  <Link
+                    href={`/?q=${encodeURIComponent(q)}&location=${encodeURIComponent(loc)}&page=${validPage - 1}`}
+                    className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    ← Anterior
+                  </Link>
+                ) : (
+                  <div />
+                )}
+                <span className="text-sm text-gray-600">Página {validPage}</span>
+                {jobs.length === 50 ? (
+                  <Link
+                    href={`/?q=${encodeURIComponent(q)}&location=${encodeURIComponent(loc)}&page=${validPage + 1}`}
+                    className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    Siguiente →
+                  </Link>
+                ) : (
+                  <div />
+                )}
               </div>
-            ))
+            </>
           ) : (
             <div className="text-center py-12 bg-white rounded-xl border border-gray-100">
               <p className="text-lg text-gray-800 font-medium">No se encontraron ofertas.</p>
