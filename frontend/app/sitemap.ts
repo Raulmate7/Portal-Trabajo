@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next'
 import pool from '@/lib/db';
+import { BLOG_POSTS } from '@/lib/blog';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,6 +72,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.9,
   }));
 
+  const blogUrls = BLOG_POSTS.map((post) => ({
+    url: `${BASE_URL}/blog/${post.slug}`,
+    lastModified: new Date(post.date),
+    changeFrequency: 'monthly' as const,
+    priority: 0.7,
+  }));
+
   return [
     {
       url: BASE_URL,
@@ -80,5 +88,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     ...sectorUrls,
     ...jobUrls,
+    ...blogUrls,
   ]
 }
