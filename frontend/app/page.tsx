@@ -100,9 +100,9 @@ export default async function Home({ searchParams }: Props) {
                     <div className="flex flex-col md:flex-row justify-between md:items-start gap-4">
                       <div className="w-full">
                         <Link href={`/job/${job.id}`}>
-                          <h2 className="text-xl font-semibold text-indigo-900 hover:text-indigo-600 transition-colors">
+                          <h3 className="text-xl font-semibold text-indigo-900 hover:text-indigo-600 transition-colors">
                             {job.title}
-                          </h2>
+                          </h3>
                         </Link>
                         <p className="text-gray-600 font-medium mt-1">{job.company}</p>
                         

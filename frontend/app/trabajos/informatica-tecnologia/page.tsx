@@ -13,7 +13,9 @@ type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
-async function getJobs(scopeFilter: string, locationFilter?: string, queryFilter?: string) {
+async function getJobs(scopeFilter: string, locationFilter?: string, queryFilter?: string, page: number = 1) {
+  const limit = 50;
+  const offset = (page - 1) * limit;
   const client = await pool.connect();
   try {
     let sql = "SELECT * FROM jobs WHERE 1=1";
@@ -47,7 +49,8 @@ async function getJobs(scopeFilter: string, locationFilter?: string, queryFilter
       paramIndex++;
     }
 
-    sql += " ORDER BY created_at DESC LIMIT 50";
+    sql += ` ORDER BY created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    params.push(limit, offset);
 
     const result = await client.query(sql, params);
     return result.rows;
@@ -65,8 +68,10 @@ export default async function JobsPage(props: Props) {
   const locationFilter = searchParams.ubicacion as string | undefined;
   const queryFilter = searchParams.q as string | undefined;
   const scopeFilter = (searchParams.scope as string) || 'espana';
+  const page = typeof searchParams.page === 'string' ? parseInt(searchParams.page, 10) : 1;
+  const validPage = isNaN(page) || page < 1 ? 1 : page;
 
-  const jobs = await getJobs(scopeFilter, locationFilter, queryFilter);
+  const jobs = await getJobs(scopeFilter, locationFilter, queryFilter, validPage);
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
@@ -113,9 +118,36 @@ export default async function JobsPage(props: Props) {
           <div className="lg:col-span-3">
             <div className="space-y-4">
               {jobs && jobs.length > 0 ? (
-                jobs.map((job) => (
-                  <JobCard key={job.id} job={job} />
-                ))
+                <>
+                  {jobs.map((job) => (
+                    <JobCard key={job.id} job={job} />
+                  ))}
+
+                  {/* Controles de Paginación */}
+                  <div className="flex justify-between items-center pt-6">
+                    {validPage > 1 ? (
+                      <Link
+                        href={`/trabajos/informatica-tecnologia?scope=${scopeFilter}&ubicacion=${encodeURIComponent(locationFilter || '')}&q=${encodeURIComponent(queryFilter || '')}&page=${validPage - 1}`}
+                        className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                      >
+                        ← Anterior
+                      </Link>
+                    ) : (
+                      <div />
+                    )}
+                    <span className="text-sm text-gray-600">Página {validPage}</span>
+                    {jobs.length === 50 ? (
+                      <Link
+                        href={`/trabajos/informatica-tecnologia?scope=${scopeFilter}&ubicacion=${encodeURIComponent(locationFilter || '')}&q=${encodeURIComponent(queryFilter || '')}&page=${validPage + 1}`}
+                        className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                      >
+                        Siguiente →
+                      </Link>
+                    ) : (
+                      <div />
+                    )}
+                  </div>
+                </>
               ) : (
                 <div className="text-center py-24 bg-white rounded-xl border border-gray-200 border-dashed">
                   <div className="mx-auto h-16 w-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
