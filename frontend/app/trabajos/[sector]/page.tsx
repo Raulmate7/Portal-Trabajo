@@ -140,7 +140,7 @@ function calculateStats(jobs: any[]) {
     const numbers = cleanStr.match(/\d+/g);
     if (!numbers || numbers.length === 0) continue;
     
-    const parsedNums = numbers.map(n => parseInt(n));
+    const parsedNums = numbers.map((n: string) => parseInt(n));
     let val = 0;
     if (parsedNums.length >= 2) {
       val = (parsedNums[0] + parsedNums[1]) / 2;
