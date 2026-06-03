@@ -2,6 +2,7 @@ import Link from "next/link";
 import pool from "@/lib/db";
 import SearchFilters from "./components/SearchFilters";
 import AdBanner from "@/components/AdBanner";
+import FeaturedJobCard from "@/components/FeaturedJobCard";
 import { Suspense } from "react";
 
 // Forzar renderizado dinámico para que siempre lea datos frescos de la BD
@@ -16,12 +17,11 @@ async function getJobs(query: string, location: string, page: number = 1) {
   const offset = (page - 1) * limit;
   const client = await pool.connect();
   try {
-    let sql = "SELECT * FROM jobs WHERE 1=1";
+    let sql = "SELECT * FROM jobs WHERE (is_featured = FALSE OR is_featured IS NULL)";
     const params: any[] = [];
     let paramIndex = 1;
 
     if (query && query.trim()) {
-      // Buscamos en title, company y description_snippet (insensible a mayúsculas)
       sql += ` AND (title ILIKE $${paramIndex} OR company ILIKE $${paramIndex} OR description_snippet ILIKE $${paramIndex})`;
       params.push(`%${query.trim()}%`);
       paramIndex++;
@@ -46,6 +46,49 @@ async function getJobs(query: string, location: string, page: number = 1) {
   }
 }
 
+async function getFeaturedJobs(query: string, location: string) {
+  const client = await pool.connect();
+  try {
+    let sql = "SELECT * FROM jobs WHERE is_featured = TRUE";
+    const params: any[] = [];
+    let paramIndex = 1;
+
+    if (query && query.trim()) {
+      sql += ` AND (title ILIKE $${paramIndex} OR company ILIKE $${paramIndex} OR description_snippet ILIKE $${paramIndex})`;
+      params.push(`%${query.trim()}%`);
+      paramIndex++;
+    }
+
+    if (location && location.trim()) {
+      sql += ` AND location ILIKE $${paramIndex}`;
+      params.push(`%${location.trim()}%`);
+      paramIndex++;
+    }
+
+    sql += ` ORDER BY created_at DESC LIMIT 3`;
+    const result = await client.query(sql, params);
+    return result.rows;
+  } catch (error) {
+    console.error("Error fetching featured jobs:", error);
+    return [];
+  } finally {
+    client.release();
+  }
+}
+
+async function getJobsCount() {
+  const client = await pool.connect();
+  try {
+    const result = await client.query("SELECT COUNT(*) FROM jobs");
+    return parseInt(result.rows[0].count, 10);
+  } catch (error) {
+    console.error("Error counting jobs:", error);
+    return 0;
+  } finally {
+    client.release();
+  }
+}
+
 export default async function Home({ searchParams }: Props) {
   const resolvedParams = await searchParams;
   const q = typeof resolvedParams.q === 'string' ? resolvedParams.q : '';
@@ -53,36 +96,72 @@ export default async function Home({ searchParams }: Props) {
   const page = typeof resolvedParams.page === 'string' ? parseInt(resolvedParams.page, 10) : 1;
   const validPage = isNaN(page) || page < 1 ? 1 : page;
 
-  const jobs = await getJobs(q, loc, validPage);
+  // Realizamos las consultas en paralelo
+  const [jobs, featuredJobs, totalJobs] = await Promise.all([
+    getJobs(q, loc, validPage),
+    getFeaturedJobs(q, loc),
+    getJobsCount()
+  ]);
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <div className="bg-indigo-900 text-white">
-        <div className="max-w-5xl mx-auto px-4 py-12 text-center">
-          <h1 className="text-4xl font-bold mb-4">Portal Empleo IT</h1>
-          <div className="flex flex-wrap justify-center gap-3">
-            <a href="https://t.me/PortalDeTrabajo" target="_blank" className="bg-white text-indigo-900 font-bold py-2 px-6 rounded-full hover:bg-gray-100 transition-colors">
-              ✈️ Ver en Telegram
+      {/* Hero Section Premium con Degradado y Estadísticas en Vivo */}
+      <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-850 text-white relative overflow-hidden py-16">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.15),transparent_45%)]"></div>
+        <div className="max-w-5xl mx-auto px-4 text-center relative z-10">
+          
+          {/* Badge de Ofertas Activas */}
+          {totalJobs > 0 && (
+            <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-200 text-xs font-semibold mb-6 shadow-sm backdrop-blur-sm animate-pulse">
+              ✨ Más de <strong className="text-white font-bold">{totalJobs}</strong> ofertas de empleo tecnológico activas
+            </span>
+          )}
+          
+          <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tight">
+            Portal Empleo <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500">IT</span>
+          </h1>
+          <p className="text-gray-300 max-w-xl mx-auto mb-8 text-sm md:text-base leading-relaxed">
+            Tu agregador tecnológico de confianza. Consigue las mejores vacantes nacionales e internacionales actualizadas en tiempo real.
+          </p>
+
+          <div className="flex flex-wrap justify-center gap-3.5">
+            <a href="https://t.me/PortalDeTrabajo" target="_blank" className="bg-white text-indigo-900 font-extrabold py-2.5 px-6 rounded-xl hover:bg-gray-100 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-indigo-950/20 flex items-center gap-2">
+              <span>✈️</span> Ver en Telegram
             </a>
-            <Link href="/talento-premium" className="bg-gradient-to-r from-amber-400 to-yellow-500 text-gray-900 font-bold py-2 px-6 rounded-full hover:from-amber-300 hover:to-yellow-400 transition-all">
-              ⭐ Talento Premium
+            <Link href="/talento-premium" className="bg-gradient-to-r from-amber-400 to-yellow-500 text-gray-900 font-extrabold py-2.5 px-6 rounded-xl hover:from-amber-300 hover:to-yellow-400 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-amber-500/25 flex items-center gap-2">
+              <span>⭐</span> Talento Premium
             </Link>
-            <Link href="/publicar-oferta" className="bg-gradient-to-r from-green-400 to-emerald-500 text-gray-900 font-bold py-2 px-6 rounded-full hover:from-green-300 hover:to-emerald-400 transition-all">
-              🏢 Publicar Oferta
+            <Link href="/publicar-oferta" className="bg-gradient-to-r from-green-400 to-emerald-500 text-gray-900 font-extrabold py-2.5 px-6 rounded-xl hover:from-green-300 hover:to-emerald-400 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-green-500/25 flex items-center gap-2">
+              <span>🏢</span> Publicar Oferta
             </Link>
           </div>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-8 -mt-6">
+      <div className="max-w-5xl mx-auto px-4 py-8 -mt-8 relative z-20">
         <Suspense fallback={<div className="h-24 bg-white rounded-xl shadow animate-pulse"></div>}>
           <SearchFilters />
         </Suspense>
 
-        <div className="mt-8 space-y-4">
-          <div className="flex justify-between items-center mb-4">
+        <div className="mt-8 space-y-6">
+          
+          {/* Ofertas Destacadas / Patrocinadas */}
+          {featuredJobs.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-xs font-bold text-amber-600 uppercase tracking-wider flex items-center gap-1.5">
+                ⭐ Ofertas Destacadas
+              </h2>
+              <div className="grid grid-cols-1 gap-4">
+                {featuredJobs.map((job) => (
+                  <FeaturedJobCard key={job.id} job={job} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center pt-2">
             <h2 className="text-xl font-bold text-gray-800">
-              {jobs.length === 0 ? "Sin resultados" : `${jobs.length} ofertas encontradas`}
+              {jobs.length === 0 ? "Sin resultados" : `${jobs.length} ofertas recientes`}
             </h2>
           </div>
 
@@ -92,7 +171,7 @@ export default async function Home({ searchParams }: Props) {
                 <div key={job.id}>
                   {/* Banner de afiliado entre las ofertas (después de la 5ª oferta) */}
                   {index === 4 && (
-                    <div className="mb-4">
+                    <div className="my-4">
                       <AdBanner variant="inline" />
                     </div>
                   )}

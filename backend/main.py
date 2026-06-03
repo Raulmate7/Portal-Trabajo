@@ -8,6 +8,8 @@ from scrapers.remotive import get_remotive_jobs
 from scrapers.jobfluent import get_jobfluent_jobs
 from scrapers.remoteok import get_remoteok_jobs
 from scrapers.workingnomads import get_workingnomads_jobs
+from scrapers.himalayas import get_himalayas_jobs
+from scrapers.pythonorg import get_pythonorg_jobs
 
 load_dotenv()
 
@@ -92,6 +94,12 @@ def main():
 
     print("\n--- Ejecutando Remotive API ---")
     save_jobs(get_remotive_jobs(), "Remotive")
+
+    print("\n--- Ejecutando Himalayas API ---")
+    save_jobs(get_himalayas_jobs(), "Himalayas")
+
+    print("\n--- Ejecutando Python.org RSS ---")
+    save_jobs(get_pythonorg_jobs(), "Python.org")
 
     print("\n✅ Todo terminado con éxito.")
 

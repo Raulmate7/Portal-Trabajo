@@ -75,6 +75,50 @@ export default function SearchFilters() {
           </div>
         </div>
       </div>
+
+      {/* CHIPS DE BÚSQUEDA RÁPIDA */}
+      <div className="mt-4 flex flex-wrap gap-2 items-center text-xs text-gray-500">
+        <span className="font-semibold text-gray-400 mr-1">Sugerencias:</span>
+        {["React", "Node", "Python", "Java", "DevOps"].map((tech) => {
+          const isActive = query.toLowerCase() === tech.toLowerCase();
+          return (
+            <button
+              key={tech}
+              onClick={() => setQuery(query === tech ? "" : tech)}
+              type="button"
+              className={`px-3 py-1.5 rounded-full border transition-all duration-200 font-medium ${
+                isActive
+                  ? "bg-indigo-50 border-indigo-300 text-indigo-700 shadow-sm font-semibold scale-105"
+                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300 hover:text-gray-900 active:scale-95"
+              }`}
+            >
+              {tech}
+            </button>
+          );
+        })}
+        <div className="h-4 w-px bg-gray-200 mx-1 hidden md:block" />
+        {[
+          { label: "📍 Remoto", value: "Remoto" },
+          { label: "📍 Madrid", value: "Madrid" },
+          { label: "📍 Barcelona", value: "Barcelona" }
+        ].map((loc) => {
+          const isActive = location.toLowerCase() === loc.value.toLowerCase();
+          return (
+            <button
+              key={loc.value}
+              onClick={() => setLocation(location === loc.value ? "" : loc.value)}
+              type="button"
+              className={`px-3 py-1.5 rounded-full border transition-all duration-200 font-medium ${
+                isActive
+                  ? "bg-emerald-50 border-emerald-300 text-emerald-700 shadow-sm font-semibold scale-105"
+                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300 hover:text-gray-900 active:scale-95"
+              }`}
+            >
+              {loc.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

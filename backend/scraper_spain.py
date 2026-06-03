@@ -24,36 +24,64 @@ def scrape_tecnoempleo():
 
     soup = BeautifulSoup(response.text, 'html.parser')
     
-    enlaces = soup.find_all('a', href=True)
+    cards = soup.find_all('div', class_='row fs--15')
     nuevas_ofertas = []
 
-    for link in enlaces:
+    for card in cards:
         try:
-            url_oferta = link['href']
-
-            # Fix #6: la lógica anterior era invertida.
-            # Queremos SOLO URLs que contengan '/ofertas/' Y tengan al menos un dígito.
-            if '/ofertas/' not in url_oferta:
+            # 1. Título y Link
+            h3 = card.find('h3')
+            if not h3:
                 continue
-            if not any(char.isdigit() for char in url_oferta):
+            a_title = h3.find('a')
+            if not a_title:
                 continue
-
+            
+            title = a_title.get_text(strip=True)
+            # Limpiar badge 'Urgente' del título si existe
+            if title.startswith('Urgente'):
+                title = title.replace('Urgente', '', 1).strip()
+            
+            url_oferta = a_title['href']
             if not url_oferta.startswith('http'):
                 url_oferta = f"https://www.tecnoempleo.com{url_oferta}"
 
-            title = link.get_text(strip=True)
-            if len(title) < 10:
-                h3 = link.find('h3')
-                title = h3.get_text(strip=True) if h3 else title
+            # 2. Compañía
+            company = "Tecnoempleo Partner"
+            a_company = card.find('a', class_='text-primary')
+            if a_company:
+                company = a_company.get_text(strip=True)
 
-            if len(title) < 5: continue
+            # 3. Ubicación
+            location = "España"
+            b_loc = card.find('b')
+            if b_loc:
+                loc_text = b_loc.get_text(strip=True)
+                sibling = b_loc.next_sibling
+                if sibling and isinstance(sibling, str):
+                    sibling_clean = sibling.strip()
+                    if sibling_clean:
+                        loc_text += f" {sibling_clean}"
+                if " - " in loc_text:
+                    loc_text = loc_text.split(" - ")[0].strip()
+                location = loc_text
+
+            # 4. Descripción snippet
+            desc_div = card.find('span', class_='hidden-md-down')
+            desc_text = ""
+            if desc_div:
+                desc_text = desc_div.get_text(strip=True)
+
+            if len(title) < 5:
+                continue
 
             nuevas_ofertas.append({
                 "title": title,
-                "company": "Tecnoempleo",
-                "location": "España",
-                "url_source": url_oferta, # NOMBRE CORRECTO
-                "salary": "Consultar"
+                "company": company,
+                "location": location,
+                "url_source": url_oferta,
+                "salary": "Consultar",
+                "description_snippet": desc_text
             })
 
         except Exception:
@@ -74,11 +102,15 @@ def guardar_en_bd(ofertas):
         for o in ofertas:
             # 1. VERIFICAR DUPLICADOS (Usando url_source)
             cur.execute("SELECT id FROM jobs WHERE url_source = %s", (o['url_source'],))
-            if cur.fetchone(): continue
+            if cur.fetchone(): 
+                continue
             
-            # 2. INSERTAR (Usando las columnas que SÍ existen)
+            # 2. INSERTAR
             # Metemos el origen en description_snippet porque no hay columna source
-            desc = f"[Fuente: Tecnoempleo] {o['title']}"
+            snippet_raw = o.get('description_snippet') or o['title']
+            desc = f"[Fuente: Tecnoempleo] {snippet_raw}"
+            if len(desc) > 500:
+                desc = desc[:497] + "..."
             
             cur.execute("""
                 INSERT INTO jobs (title, company, location, salary, description_snippet, url_source, created_at) 

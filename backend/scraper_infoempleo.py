@@ -1,7 +1,7 @@
 import os
 import requests
 import psycopg2
-import xml.etree.ElementTree as ET
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -12,35 +12,51 @@ load_dotenv()
 URL_RSS = "https://www.stratos-ad.com/monitor/rss"
 
 def scrape_stratos():
-    print("🇪🇸 Iniciando robot Stratos RSS (scraper_infoempleo.py)...")
+    print("🇪🇸 Iniciando robot Stratos HTML Scraper (scraper_infoempleo.py)...")
     
+    url = "https://www.stratos-ad.com/trabajo"
     headers = {'User-Agent': 'Mozilla/5.0'}
     try:
-        response = requests.get(URL_RSS, headers=headers, timeout=10)
-        if response.status_code != 200: return
-    except: return
+        response = requests.get(url, headers=headers, timeout=15)
+        if response.status_code != 200:
+            print(f"❌ Error Stratos: Status {response.status_code}")
+            return
+    except Exception as e:
+        print(f"❌ Error de conexión con Stratos: {e}")
+        return
 
     try:
-        root = ET.fromstring(response.content)
-        items = root.findall('.//item')
-    except: return
+        soup = BeautifulSoup(response.text, 'html.parser')
+        rows = soup.find_all('tr')
+    except Exception as e:
+        print(f"❌ Error de parseo HTML de Stratos: {e}")
+        return
     
     nuevas_ofertas = []
 
-    for item in items:
+    for row in rows:
         try:
-            title = item.find('title').text
-            link = item.find('link').text
-            if not title or not link: continue
+            tds = row.find_all('td')
+            if len(tds) >= 4:
+                a_link = tds[1].find('a', href=True)
+                if a_link and '/trabajo?job=' in a_link['href']:
+                    title = a_link.get_text(strip=True)
+                    link = "https://www.stratos-ad.com" + a_link['href']
+                    location = tds[2].get_text(strip=True)
+                    company = tds[3].get_text(strip=True) or "Stratos"
+                    
+                    if not title or not link:
+                        continue
 
-            nuevas_ofertas.append({
-                "title": title,
-                "company": "Stratos",
-                "location": "España",
-                "url_source": link, # NOMBRE CORRECTO
-                "salary": "Consultar"
-            })
-        except: continue
+                    nuevas_ofertas.append({
+                        "title": title,
+                        "company": company,
+                        "location": location,
+                        "url_source": link,
+                        "salary": "Consultar"
+                    })
+        except Exception:
+            continue
 
     print(f"🔍 Stratos: Encontradas {len(nuevas_ofertas)} ofertas.")
     guardar_en_bd(nuevas_ofertas)
