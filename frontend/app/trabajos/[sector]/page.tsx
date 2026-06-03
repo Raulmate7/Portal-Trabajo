@@ -128,6 +128,43 @@ async function getJobs(tec: string, ciudad: string, dbCategory: string | undefin
   }
 }
 
+const BASE_URL = 'https://portal-trabajo.vercel.app';
+
+function calculateStats(jobs: any[]) {
+  let countWithSalary = 0;
+  let sumSalary = 0;
+  
+  for (const job of jobs) {
+    if (!job.salary) continue;
+    const cleanStr = job.salary.replace(/\./g, '');
+    const numbers = cleanStr.match(/\d+/g);
+    if (!numbers || numbers.length === 0) continue;
+    
+    const parsedNums = numbers.map(n => parseInt(n));
+    let val = 0;
+    if (parsedNums.length >= 2) {
+      val = (parsedNums[0] + parsedNums[1]) / 2;
+    } else {
+      val = parsedNums[0];
+    }
+    
+    if (val > 0 && val < 5000) {
+      val = val * 12;
+    }
+    
+    if (val >= 12000 && val <= 150000) {
+      sumSalary += val;
+      countWithSalary++;
+    }
+  }
+  
+  const averageSalary = countWithSalary > 0 ? Math.round(sumSalary / countWithSalary) : null;
+  return {
+    averageSalary,
+    totalCount: jobs.length,
+  };
+}
+
 export default async function SectorPage({ 
   params, 
   searchParams 
@@ -159,22 +196,93 @@ export default async function SectorPage({
     { label: tituloMostrado }
   ];
 
+  const stats = calculateStats(jobs);
+
+  const CIUDADES_POPULARES = ['madrid', 'barcelona', 'valencia', 'remoto'];
+  const TECNOLOGIAS_POPULARES = ['react', 'node', 'python', 'java', 'backend', 'frontend', 'data', 'cloud', 'mobile'];
+
+  const relatedLinks: { label: string, href: string }[] = [];
+  if (ciudad) {
+    for (const t of TECNOLOGIAS_POPULARES) {
+      if (t !== tec) {
+        const tLabel = t.charAt(0).toUpperCase() + t.slice(1);
+        const cLabel = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
+        relatedLinks.push({
+          label: `${tLabel} en ${cLabel}`,
+          href: ciudad === 'remoto' ? `/trabajos/${t}-remoto` : `/trabajos/${t}-en-${ciudad.replace(/\s+/g, '-')}`
+        });
+      }
+    }
+  } else {
+    for (const c of CIUDADES_POPULARES) {
+      const tLabel = tec.charAt(0).toUpperCase() + tec.slice(1);
+      const cLabel = c.charAt(0).toUpperCase() + c.slice(1);
+      relatedLinks.push({
+        label: `${tLabel} en ${cLabel}`,
+        href: c === 'remoto' ? `/trabajos/${tec}-remoto` : `/trabajos/${tec}-en-${c}`
+      });
+    }
+  }
+
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: breadcrumbItems.map((item, idx) => ({
+      '@type': 'ListItem',
+      position: idx + 1,
+      name: item.label,
+      item: item.href ? `${BASE_URL}${item.href}` : undefined
+    }))
+  };
+
+  const itemListJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: `Ofertas de empleo de ${tituloMostrado}`,
+    description: `Listado de ofertas de trabajo para ${tituloMostrado} en España`,
+    numberOfItems: jobs.length,
+    itemListElement: jobs.map((job, idx) => ({
+      '@type': 'ListItem',
+      position: idx + 1,
+      url: `${BASE_URL}/job/${job.id}`,
+      name: `${job.title} - ${job.company}`
+    }))
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
+      <script 
+        type="application/ld+json" 
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} 
+      />
+      <script 
+        type="application/ld+json" 
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} 
+      />
+
       <Breadcrumbs items={breadcrumbItems} />
       
       <h1 className="text-3xl font-bold mb-4 capitalize text-gray-900">
         Ofertas de {tituloMostrado}
       </h1>
       
-      {/* Dynamic SEO Text to avoid Thin Content penalty */}
-      <div className="prose max-w-none text-gray-700 mb-8 bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-        <p>
-          Si buscas empleo de <strong>{categoriaBonita}</strong>{ciudad ? ` en ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}` : ' en España'}, estás en el lugar indicado. 
-          Actualmente contamos con <strong>{jobs.length} ofertas activas</strong>. 
-          El perfil de {categoriaBonita} es uno de los más demandados en el sector tecnológico actual.
-          Explora las vacantes a continuación, que incluyen opciones tanto presenciales como en formato remoto.
-        </p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch mb-8 bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+        <div className="md:col-span-2 flex flex-col justify-center">
+          <p className="text-gray-700 leading-relaxed m-0">
+            Si buscas empleo de <strong>{categoriaBonita}</strong>{ciudad ? ` en ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}` : ' en España'}, estás en el lugar indicado. 
+            Actualmente contamos con <strong>{jobs.length} ofertas activas</strong>. 
+            El perfil de {categoriaBonita} es uno de los más demandados en el sector tecnológico actual.
+            Explora las vacantes a continuación, que incluyen opciones tanto presenciales en oficina como en formato híbrido o 100% remoto.
+          </p>
+        </div>
+        <div className="bg-indigo-50/70 p-5 rounded-xl border border-indigo-100 flex flex-col justify-center items-center text-center">
+          <h3 className="text-xs font-bold text-indigo-900 uppercase tracking-wider m-0 mb-1">Estadísticas de la categoría</h3>
+          <p className="text-3xl font-extrabold text-indigo-700 m-0">
+            {stats.averageSalary ? `${stats.averageSalary.toLocaleString('es-ES')}€` : 'N/A'}
+          </p>
+          <span className="text-xs text-gray-500 mt-1">Salario medio anual estimado</span>
+          <span className="text-[10px] text-gray-400 mt-2">Basado en ofertas actuales con sueldo visible</span>
+        </div>
       </div>
 
       {ad && !ciudad && (
@@ -196,7 +304,6 @@ export default async function SectorPage({
                   <JobCard key={job.id} job={job as Job} />
                 ))}
                 
-                {/* Controles de Paginación */}
                 <div className="col-span-full flex justify-between items-center pt-6">
                   {validPage > 1 ? (
                     <Link
@@ -230,7 +337,6 @@ export default async function SectorPage({
           </div>
         </div>
         
-        {/* Sidebar */}
         <div className="lg:col-span-1 space-y-6">
           <div className="sticky top-6 space-y-6">
             <SubscribeForm location={ciudad ? ciudad : tec} />
@@ -238,6 +344,24 @@ export default async function SectorPage({
           </div>
         </div>
       </div>
+
+      {relatedLinks.length > 0 && (
+        <div className="mt-12 pt-8 border-t border-gray-200">
+          <h2 className="text-lg font-bold text-gray-800 mb-4">Búsquedas populares relacionadas</h2>
+          <div className="flex flex-wrap gap-2">
+            {relatedLinks.map((link, idx) => (
+              <Link 
+                key={idx}
+                href={link.href}
+                className="text-xs bg-gray-100 hover:bg-indigo-50 hover:text-indigo-600 text-gray-600 px-3 py-2 rounded-lg font-medium transition-colors border border-gray-200"
+              >
+                🔍 Ofertas de {link.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
+}
 }

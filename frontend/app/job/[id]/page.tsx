@@ -83,6 +83,73 @@ function extractSource(descriptionSnippet: string | null | undefined): string {
   return match ? match[1] : 'Internet';
 }
 
+function parseSalarySchema(salaryStr: string | null | undefined): any {
+  if (!salaryStr) return null;
+  
+  // Limpiar caracteres y convertir a minúsculas
+  const cleanStr = salaryStr.toLowerCase().replace(/\./g, '').replace(/\s/g, '');
+  
+  // Buscar números en la cadena
+  const numbers = cleanStr.match(/\d+/g);
+  if (!numbers || numbers.length === 0) return null;
+  
+  // Intentar determinar si es anual o mensual (por defecto YEAR)
+  let unitText = "YEAR";
+  if (cleanStr.includes("mes") || cleanStr.includes("mensual") || (parseInt(numbers[0]) > 0 && parseInt(numbers[0]) < 5000)) {
+    unitText = "MONTH";
+  }
+  
+  const parsedNums = numbers.map(n => parseInt(n));
+  
+  if (parsedNums.length >= 2) {
+    const minVal = Math.min(parsedNums[0], parsedNums[1]);
+    const maxVal = Math.max(parsedNums[0], parsedNums[1]);
+    
+    if (minVal < 100 || maxVal > 1000000) return null;
+    
+    return {
+      "@type": "MonetaryAmount",
+      "currency": "EUR",
+      "value": {
+        "@type": "QuantitativeValue",
+        "minValue": minVal,
+        "maxValue": maxVal,
+        "unitText": unitText
+      }
+    };
+  } else {
+    const val = parsedNums[0];
+    if (val < 100 || val > 1000000) return null;
+    
+    return {
+      "@type": "MonetaryAmount",
+      "currency": "EUR",
+      "value": {
+        "@type": "QuantitativeValue",
+        "value": val,
+        "unitText": unitText
+      }
+    };
+  }
+}
+
+function inferEmploymentTypes(text: string): string[] {
+  const types: string[] = [];
+  if (text.includes('media jornada') || text.includes('part-time') || text.includes('part time')) {
+    types.push('PART_TIME');
+  }
+  if (text.includes('prácticas') || text.includes('beca') || text.includes('becario') || text.includes('internship')) {
+    types.push('INTERNSHIP');
+  }
+  if (text.includes('autónomo') || text.includes('freelance') || text.includes('contractor')) {
+    types.push('CONTRACTOR');
+  }
+  if (types.length === 0 || text.includes('jornada completa') || text.includes('full time') || text.includes('indefinido') || text.includes('completa')) {
+    types.push('FULL_TIME');
+  }
+  return types;
+}
+
 export default async function JobPage({ params }: Props) {
   const resolvedParams = await params;
   const job = await getJob(resolvedParams.id);
@@ -96,28 +163,43 @@ export default async function JobPage({ params }: Props) {
   // Inferencia para SEO
   const textForInference = `${job.title} ${job.description_snippet || ''}`.toLowerCase();
   const isRemote = textForInference.includes('remoto') || textForInference.includes('teletrabajo') || textForInference.includes('remote');
-  const isFullTime = textForInference.includes('jornada completa') || textForInference.includes('full time') || textForInference.includes('full-time') || textForInference.includes('indefinido');
+  const employmentTypes = inferEmploymentTypes(textForInference);
+
+  const datePosted = new Date(job.created_at);
+  const validThroughDate = new Date(datePosted.getTime() + 45 * 24 * 60 * 60 * 1000); // 45 días después
+
+  const baseSalaryObj = parseSalarySchema(job.salary);
 
   const jsonLd: any = {
     '@context': 'https://schema.org',
     '@type': 'JobPosting',
     title: job.title,
-    description: job.description_snippet,
-    datePosted: new Date(job.created_at).toISOString(),
-    hiringOrganization: { '@type': 'Organization', name: job.company },
+    description: job.description_snippet || `Oferta de empleo para ${job.title} en ${job.company}`,
+    datePosted: datePosted.toISOString(),
+    validThrough: validThroughDate.toISOString(),
+    hiringOrganization: { 
+      '@type': 'Organization', 
+      name: job.company || 'Desconocida'
+    },
     jobLocation: {
       '@type': 'Place',
-      address: { '@type': 'PostalAddress', addressLocality: job.location, addressCountry: 'ES' },
+      address: { 
+        '@type': 'PostalAddress', 
+        addressLocality: job.location || 'Remoto/España', 
+        addressCountry: 'ES' 
+      },
     },
+    employmentType: employmentTypes,
   };
 
   if (isRemote) {
     jsonLd.jobLocationType = "TELECOMMUTE";
   }
-  
-  if (isFullTime) {
-    jsonLd.employmentType = "FULL_TIME";
+
+  if (baseSalaryObj) {
+    jsonLd.baseSalary = baseSalaryObj;
   }
+
 
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-4 md:px-8">

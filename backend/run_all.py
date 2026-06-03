@@ -24,10 +24,16 @@ if exit_code != 0:
 
 # 4. Enviar Alertas a Telegram
 # (Revisa la BD en busca de ofertas creadas en las últimas 7 horas y las envía)
-print("\n[4/4] 📲 Enviando notificaciones a Telegram (telegram_bot.py)...")
+print("\n[4/5] 📲 Enviando notificaciones a Telegram (telegram_bot.py)...")
 exit_code = os.system("python3 telegram_bot.py")
 if exit_code != 0:
     print("⚠️ Advertencia: Telegram bot terminó con errores.")
+
+# 5. Indexar en Google
+print("\n[5/5] 🔍 Enviando nuevas ofertas a Google Indexing API (index_new_jobs.py)...")
+exit_code = os.system("python3 index_new_jobs.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: El script de indexación terminó con errores.")
 
 print("\n===============================================")
 print("✅ PROCESO COMPLETADO. El sistema descansa.")

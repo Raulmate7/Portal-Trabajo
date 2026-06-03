@@ -31,11 +31,18 @@ jobs:
           scrapy crawl job_spider
       - name: Enviar Newsletter
         env:
-          # Pasamos las variables directamente al entorno
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
         run: |
           cd backend
-          # Truco de seguridad: Forzamos la creacion de variables
           python mailer.py
+
+      - name: Indexar Nuevas Ofertas en Google
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          FRONTEND_URL: "https://portal-trabajo.vercel.app"
+        run: |
+          cd backend
+          python index_new_jobs.py
