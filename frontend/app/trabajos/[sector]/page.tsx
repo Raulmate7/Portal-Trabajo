@@ -364,4 +364,3 @@ export default async function SectorPage({
     </div>
   );
 }
-}
