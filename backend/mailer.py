@@ -45,7 +45,7 @@ def send_newsletter():
         
         # URL base (asegúrate de que coincida con tu despliegue)
         base_url = "https://portal-trabajo.vercel.app"
-        job_link = f"{base_url}/job/{job_id}"
+        job_link = f"{base_url}/job/{job_id}?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
 
         jobs_html += f"""
             <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #ddd;">
@@ -100,7 +100,7 @@ def send_newsletter():
                     <div style="margin: 24px 0; padding: 20px; background: #fffbeb; border: 2px solid #fbbf24; border-radius: 12px; text-align: center;">
                         <h3 style="margin: 0 0 8px; color: #92400e;">⭐ ¿Eres Senior (+3 años)?</h3>
                         <p style="color: #78350f; font-size: 13px; margin: 0 0 12px;">Accede a ofertas exclusivas con salarios +45K de forma confidencial.</p>
-                        <a href="{base_url}/talento-premium" style="display: inline-block; background: linear-gradient(90deg, #fbbf24, #f59e0b); color: #1f2937; padding: 10px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">
+                        <a href="{base_url}/talento-premium?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal" style="display: inline-block; background: linear-gradient(90deg, #fbbf24, #f59e0b); color: #1f2937; padding: 10px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">
                             Registrarme en Talento Premium
                         </a>
                     </div>
@@ -110,7 +110,7 @@ def send_newsletter():
                 <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
                     <p style="color: #9ca3af; font-size: 11px; margin: 0;">
                         Enviado automáticamente cada lunes por Portal Trabajo IT.<br>
-                        <a href="{base_url}" style="color: #6366f1;">Visitar la web</a>
+                        <a href="{base_url}?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal" style="color: #6366f1;">Visitar la web</a>
                     </p>
                 </div>
             </div>

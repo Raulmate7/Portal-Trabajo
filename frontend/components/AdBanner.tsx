@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 // Banners de afiliado internos (no AdSense) — rápidos, sin JS externo, sin ad-blockers.
 const UDEMY_LINK = "https://trk.udemy.com/9VMAEj";
@@ -64,17 +64,20 @@ export default function AdBanner({
   // Slot ID por defecto si no se especifica uno personalizado
   const adSlot = slot || (variant === 'inline' ? '9876543210' : '1234567890');
 
+  const initializedRef = useRef(false);
+
   useEffect(() => {
-    if (adsenseClientId && !adError) {
+    if (adsenseClientId && !adError && !initializedRef.current) {
       try {
         // Ejecutar el push de adsbygoogle en el cliente
         (window.adsbygoogle = window.adsbygoogle || []).push({});
+        initializedRef.current = true;
       } catch (err) {
         console.error("⚠️ Error cargando anuncio de AdSense:", err);
         setAdError(true);
       }
     }
-  }, [adsenseClientId, adSlot, adError]);
+  }, [adsenseClientId, adError]);
 
   // Seleccionar un anuncio de afiliados basado en la hora actual
   const ad = ADS[new Date().getHours() % ADS.length];
@@ -129,10 +132,11 @@ export default function AdBanner({
     <div className="w-full overflow-hidden bg-white border border-gray-100 rounded-xl shadow-sm p-4 flex flex-col items-center">
       <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mb-2 block text-center">Anuncio</span>
       <div 
-        className="w-full flex justify-center items-center overflow-hidden" 
-        style={{ 
-          minHeight: variant === 'inline' ? '90px' : '250px',
-        }}
+        className={`w-full flex justify-center items-center overflow-hidden transition-all duration-300 ${
+          variant === 'inline' 
+            ? 'min-h-[90px] md:min-h-[250px] max-h-[280px]' 
+            : 'min-h-[250px] md:min-h-[300px]'
+        }`}
       >
         <ins
           className="adsbygoogle"

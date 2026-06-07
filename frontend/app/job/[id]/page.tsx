@@ -179,7 +179,7 @@ export default async function JobPage({ params }: Props) {
     validThrough: validThroughDate.toISOString(),
     hiringOrganization: { 
       '@type': 'Organization', 
-      name: job.company || 'Desconocida'
+      name: (job.company && job.company !== 'Desconocida') ? job.company : (sourceLabel !== 'Internet' ? sourceLabel : 'Portal Trabajo IT')
     },
     jobLocation: {
       '@type': 'Place',
@@ -194,6 +194,10 @@ export default async function JobPage({ params }: Props) {
 
   if (isRemote) {
     jsonLd.jobLocationType = "TELECOMMUTE";
+    jsonLd.applicantLocationRequirements = {
+      '@type': 'Country',
+      name: 'ES'
+    };
   }
 
   if (baseSalaryObj) {

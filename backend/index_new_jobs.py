@@ -56,10 +56,12 @@ def index_new_jobs():
 
     success_count = 0
     error_count = 0
+    url_list = []
 
     for job in jobs:
         job_id, title = job
         job_url = f"{frontend_url}/job/{job_id}"
+        url_list.append(job_url)
         payload = {
             "url": job_url,
             "type": "URL_UPDATED"
@@ -69,7 +71,7 @@ def index_new_jobs():
             response = requests.post(f"{frontend_url}/api/index-job", json=payload, headers=headers, timeout=10)
             if response.status_code == 200:
                 success_count += 1
-                print(f"✅ Indexada con éxito: {title} ({job_url})")
+                print(f"✅ Google Indexada con éxito: {title} ({job_url})")
             else:
                 error_count += 1
                 print(f"⚠️ Google Indexing falló para {job_url}: {response.status_code} - {response.text}")
@@ -78,6 +80,29 @@ def index_new_jobs():
             print(f"❌ Error de red indexando {job_url}: {e}")
 
     print(f"\n🎉 Google Indexing completado: {success_count} indexados, {error_count} fallidos.")
+
+    # 4. Enviar a IndexNow (Bing/Yandex) en lote
+    if url_list:
+        print(f"\n🚀 Enviando {len(url_list)} URLs a IndexNow (Bing/Yandex)...")
+        from urllib.parse import urlparse
+        host = urlparse(frontend_url).netloc
+        key = "85ae2b8a7c644d6a9a7a974b789128f6"
+        
+        indexnow_payload = {
+            "host": host,
+            "key": key,
+            "keyLocation": f"{frontend_url}/{key}.txt",
+            "urlList": url_list
+        }
+        
+        try:
+            indexnow_resp = requests.post("https://api.indexnow.org/IndexNow", json=indexnow_payload, headers={"Content-Type": "application/json; charset=utf-8"}, timeout=10)
+            if indexnow_resp.status_code == 200:
+                print("✅ URLs enviadas con éxito a IndexNow!")
+            else:
+                print(f"⚠️ IndexNow falló: {indexnow_resp.status_code} - {indexnow_resp.text}")
+        except Exception as e:
+            print(f"❌ Error de red enviando a IndexNow: {e}")
 
 if __name__ == "__main__":
     index_new_jobs()

@@ -5,8 +5,8 @@ import AdBanner from "@/components/AdBanner";
 import FeaturedJobCard from "@/components/FeaturedJobCard";
 import { Suspense } from "react";
 
-// Forzar renderizado dinámico para que siempre lea datos frescos de la BD
-export const dynamic = 'force-dynamic';
+// Caching ISR (Incremental Static Regeneration) de 5 minutos para maximizar rendimiento y Core Web Vitals
+export const revalidate = 300;
 
 type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>

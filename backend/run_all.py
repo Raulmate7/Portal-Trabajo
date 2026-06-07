@@ -15,11 +15,12 @@ exit_code = os.system(f"{python_bin} main.py")
 if exit_code != 0:
     print("⚠️ Advertencia: Algún scraper internacional terminó con errores.")
 
-# 2. Ejecutar el Scraper de Tecnoempleo (Nacional España)
-print("\n[2/5] 🇪🇸 Ejecutando Tecnoempleo Scraper (scraper_spain.py)...")
-exit_code = os.system(f"{python_bin} scraper_spain.py")
+# 2. Ejecutar el Scraper de Tecnoempleo (Nacional España - Scrapy)
+print("\n[2/5] 🇪🇸 Ejecutando Tecnoempleo Scraper (scrapy crawl job_spider)...")
+scrapy_bin = "venv/bin/scrapy" if os.path.exists("venv/bin/scrapy") else "scrapy"
+exit_code = os.system(f"{scrapy_bin} crawl job_spider")
 if exit_code != 0:
-    print("⚠️ Advertencia: Tecnoempleo Scraper terminó con errores.")
+    print("⚠️ Advertencia: Tecnoempleo Scraper (Scrapy) terminó con errores.")
 
 # 3. Ejecutar el Scraper de Stratos (Nacional España)
 print("\n[3/5] 🇪🇸 Ejecutando Stratos Scraper (scraper_infoempleo.py)...")

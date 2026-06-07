@@ -128,6 +128,34 @@ async function getJobs(tec: string, ciudad: string, dbCategory: string | undefin
   }
 }
 
+async function getFallbackJobs(tec: string, ciudad: string, dbCategory: string | undefined, page: number = 1) {
+  // 1. Si buscó en una ciudad, probar en remoto
+  if (ciudad && ciudad !== 'remoto') {
+    const remoteJobs = await getJobs(tec, 'remoto', dbCategory, page);
+    if (remoteJobs.length > 0) {
+      return { jobs: remoteJobs, type: 'remote' };
+    }
+  }
+
+  // 2. Probar a nivel nacional (sin restricción de ciudad)
+  if (ciudad) {
+    const nationalJobs = await getJobs(tec, '', dbCategory, page);
+    if (nationalJobs.length > 0) {
+      return { jobs: nationalJobs, type: 'national' };
+    }
+  }
+
+  // 3. Probar ofertas recientes generales de la misma categoría o tecnología
+  if (tec !== 'informatica-tecnologia') {
+    const generalJobs = await getJobs('informatica-tecnologia', '', undefined, page);
+    if (generalJobs.length > 0) {
+      return { jobs: generalJobs, type: 'general' };
+    }
+  }
+
+  return { jobs: [], type: 'none' };
+}
+
 const BASE_URL = 'https://portal-trabajo.vercel.app';
 
 function calculateStats(jobs: any[]) {
@@ -136,7 +164,7 @@ function calculateStats(jobs: any[]) {
   
   for (const job of jobs) {
     if (!job.salary) continue;
-    const cleanStr = job.salary.replace(/\./g, '');
+    const cleanStr = job.salary.replace(/\./g, '').replace(/\s/g, '');
     const numbers = cleanStr.match(/\d+/g);
     if (!numbers || numbers.length === 0) continue;
     
@@ -181,7 +209,16 @@ export default async function SectorPage({
   
   const { tec, ciudad, dbCategory } = parseSector(sectorSlug);
   
-  const jobs = await getJobs(tec, ciudad, dbCategory, validPage);
+  let jobs = await getJobs(tec, ciudad, dbCategory, validPage);
+  let isFallback = false;
+  let fallbackType = '';
+
+  if (jobs.length === 0) {
+    const fallbackResult = await getFallbackJobs(tec, ciudad, dbCategory, validPage);
+    jobs = fallbackResult.jobs;
+    isFallback = jobs.length > 0;
+    fallbackType = fallbackResult.type;
+  }
   
   const ad = adMap[tec];
   
@@ -297,12 +334,34 @@ export default async function SectorPage({
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <div className="lg:col-span-3">
+          {isFallback && (
+            <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-sm flex items-start gap-3 shadow-sm">
+              <span className="text-xl">⚠️</span>
+              <div>
+                <p className="font-semibold m-0">No encontramos ofertas de {categoriaBonita} en {ciudad === 'remoto' ? 'remoto' : ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}.</p>
+                <p className="text-amber-800 text-xs mt-1 mb-0 leading-relaxed">
+                  {fallbackType === 'remote' && `Te mostramos ofertas para ${categoriaBonita} 100% en remoto como alternativa:`}
+                  {fallbackType === 'national' && `Te mostramos ofertas para ${categoriaBonita} en otras ciudades de España:`}
+                  {fallbackType === 'general' && `No hay ofertas activas de esta categoría. Te sugerimos las ofertas de empleo IT generales más recientes:`}
+                </p>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {jobs && jobs.length > 0 ? (
               <>
-                {jobs.map((job) => (
-                  <JobCard key={job.id} job={job as Job} />
-                ))}
+                {jobs.flatMap((job, index) => {
+                  const card = <JobCard key={job.id} job={job as Job} />;
+                  if (index === 4) {
+                    return [
+                      <div key={`ad-inline-${job.id}`} className="col-span-full my-2">
+                        <AdBanner variant="inline" />
+                      </div>,
+                      card
+                    ];
+                  }
+                  return [card];
+                })}
                 
                 <div className="col-span-full flex justify-between items-center pt-6">
                   {validPage > 1 ? (
