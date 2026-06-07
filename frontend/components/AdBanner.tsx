@@ -55,14 +55,14 @@ export default function AdBanner({
   variant = 'sidebar', 
   slot 
 }: { 
-  variant?: 'sidebar' | 'inline';
+  variant?: 'sidebar' | 'inline' | 'multiplex';
   slot?: string;
 }) {
   const [adError, setAdError] = useState(false);
   const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
 
   // Slot ID por defecto si no se especifica uno personalizado
-  const adSlot = slot || (variant === 'inline' ? '9876543210' : '1234567890');
+  const adSlot = slot || (variant === 'inline' ? '9876543210' : variant === 'multiplex' ? '1122334455' : '1234567890');
 
   const initializedRef = useRef(false);
 
@@ -106,6 +106,35 @@ export default function AdBanner({
       );
     }
 
+    if (variant === 'multiplex') {
+      return (
+        <div className="w-full mt-8 p-6 bg-white border border-gray-100 rounded-xl shadow-sm">
+          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-4 block text-center">Formación Recomendada</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {ADS.map((adItem) => (
+              <div key={adItem.id} className={`p-5 rounded-xl bg-gradient-to-br ${adItem.colors} border shadow-sm flex flex-col justify-between h-full`}>
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-2xl">{adItem.emoji}</span>
+                  </div>
+                  <h4 className="font-bold text-gray-900 text-sm mb-1">{adItem.title}</h4>
+                  <p className="text-gray-600 text-xs mb-4 leading-relaxed">{adItem.desc}</p>
+                </div>
+                <a
+                  href={adItem.href}
+                  target="_blank"
+                  rel="noopener noreferrer sponsored"
+                  className={`block w-full text-center px-4 py-2 text-xs font-bold rounded-lg transition-colors shadow-sm ${adItem.ctaColors}`}
+                >
+                  {adItem.cta}
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
     // Sidebar (vertical)
     return (
       <div className={`p-5 rounded-xl bg-gradient-to-br ${ad.colors} border shadow-sm`}>
@@ -127,7 +156,32 @@ export default function AdBanner({
     );
   }
 
-  // Renderizado del banner de Google AdSense
+  // Renderizado del bloque Multiplex de AdSense
+  if (variant === 'multiplex') {
+    return (
+      <div className="w-full overflow-hidden bg-white border border-gray-100 rounded-xl shadow-sm p-4 mt-8 flex flex-col items-center">
+        <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mb-2 block text-center">Contenido Patrocinado</span>
+        <div className="w-full flex justify-center items-center overflow-hidden min-h-[250px]">
+          <ins
+            className="adsbygoogle"
+            style={{ 
+              display: 'block', 
+              width: '100%',
+              textAlign: 'center'
+            }}
+            data-ad-client={adsenseClientId}
+            data-ad-slot={adSlot}
+            data-ad-format="autorelaxed"
+            data-matched-content-ui-type="image_card_stacked"
+            data-matched-content-rows-num="4,2"
+            data-matched-content-columns-num="1,2"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Renderizado del banner estándar de Google AdSense (inline / sidebar)
   return (
     <div className="w-full overflow-hidden bg-white border border-gray-100 rounded-xl shadow-sm p-4 flex flex-col items-center">
       <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mb-2 block text-center">Anuncio</span>

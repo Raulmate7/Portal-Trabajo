@@ -45,19 +45,35 @@ for (const tec of TECNOLOGIAS) {
 
 const SECTOR_PAGES = [...BASE_PAGES, ...PROGRAMMATIC_PAGES];
 
+function slugify(text: string) {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')           // Reemplaza espacios con -
+    .replace(/[^\w\-]+/g, '')       // Elimina caracteres especiales
+    .replace(/\-\-+/g, '-')         // Evita guiones dobles
+    .replace(/^-+/, '')             // Quita guión inicial
+    .replace(/-+$/, '');            // Quita guión final
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let jobs = [];
+  let companies = [];
 
   try {
     // Intentamos conectar con la base de datos
     const client = await pool.connect();
-    // Cogemos las últimas 2000 ofertas para no sobrecargar
-    const res = await client.query("SELECT id, created_at FROM jobs ORDER BY created_at DESC LIMIT 2000");
+    // 1. Cogemos las últimas 2000 ofertas para no sobrecargar
+    const jobsRes = await client.query("SELECT id, created_at FROM jobs ORDER BY created_at DESC LIMIT 2000");
+    jobs = jobsRes.rows;
+    // 2. Extraemos marcas únicas
+    const compRes = await client.query("SELECT DISTINCT company FROM jobs WHERE company IS NOT NULL AND company != 'Desconocida'");
+    companies = compRes.rows;
     client.release();
-    jobs = res.rows;
   } catch (error) {
-    console.error("⚠️ Error generando sitemap de ofertas (BD):", error);
-    // Dejamos jobs = [] para que el resto del sitemap se genere correctamente
+    console.error("⚠️ Error generando sitemap desde la BD:", error);
+    // Dejamos arrays vacíos para que el resto del sitemap se genere correctamente
   }
 
   const jobUrls = jobs.map((job) => ({
@@ -72,6 +88,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: new Date(),
     changeFrequency: 'daily' as const,
     priority: 0.9,
+  }));
+
+  const companyUrls = companies.map((c) => ({
+    url: `${BASE_URL}/empresas/${slugify(c.company)}`,
+    lastModified: new Date(),
+    changeFrequency: 'weekly' as const,
+    priority: 0.85,
   }));
 
   const blogUrls = BLOG_POSTS.map((post) => ({
@@ -90,6 +113,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     ...sectorUrls,
     ...jobUrls,
+    ...companyUrls,
     ...blogUrls,
   ]
 }

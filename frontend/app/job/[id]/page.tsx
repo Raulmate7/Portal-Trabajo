@@ -204,10 +204,35 @@ export default async function JobPage({ params }: Props) {
     jsonLd.baseSalary = baseSalaryObj;
   }
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Inicio',
+        item: BASE_URL
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Ofertas',
+        item: `${BASE_URL}/trabajos/informatica-tecnologia`
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: job.title,
+        item: `${BASE_URL}/job/${job.id}`
+      }
+    ]
+  };
 
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-4 md:px-8">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
 
       <div className="max-w-5xl mx-auto">
         <Breadcrumbs 
@@ -269,6 +294,9 @@ export default async function JobPage({ params }: Props) {
                 👉 Aplicar en la web original
               </a>
             </div>
+
+            {/* Anuncios Multiplex de AdSense / Udemy Fallback */}
+            <AdBanner variant="multiplex" />
           </div>
         </div>
       </div>
