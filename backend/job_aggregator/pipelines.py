@@ -20,6 +20,18 @@ class PostgresPipeline:
 
     def process_item(self, item, spider):
         try:
+            # Evitar duplicidad semántica (mismo título y empresa conocida en las últimas 48 horas)
+            company = item.get('company', 'Desconocida')
+            title = item.get('title', 'Sin título')
+            if company != 'Desconocida':
+                self.cur.execute("""
+                    SELECT id FROM jobs 
+                    WHERE title = %s AND company = %s AND created_at > NOW() - INTERVAL '48 hours'
+                """, (title, company))
+                if self.cur.fetchone():
+                    spider.logger.info(f"🚫 Oferta duplicada omitida (48h): {title} - {company}")
+                    return item
+
             # MAGIA: Insertamos la oferta buscando automáticamente el ID del sector
             self.cur.execute("""
                 INSERT INTO jobs (

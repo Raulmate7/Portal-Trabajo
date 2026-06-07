@@ -50,10 +50,21 @@ def save_jobs(jobs, source_name):
         if not url_source:
             continue  # Oferta sin URL, no la guardamos
 
-        # Verificar duplicado
+        # Verificar duplicado por URL
         cursor.execute("SELECT id FROM jobs WHERE url_source = %s", (url_source,))
         if cursor.fetchone():
             continue
+
+        # Evitar duplicidad semántica (mismo título y empresa conocida en las últimas 48 horas)
+        title = job.get('title', 'Sin título')
+        company = job.get('company', 'Desconocida')
+        if company != 'Desconocida':
+            cursor.execute("""
+                SELECT id FROM jobs 
+                WHERE title = %s AND company = %s AND created_at > NOW() - INTERVAL '48 hours'
+            """, (title, company))
+            if cursor.fetchone():
+                continue
 
         cursor.execute("""
             INSERT INTO jobs (title, company, location, salary, description_snippet, url_source, sector_id)

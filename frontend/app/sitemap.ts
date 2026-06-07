@@ -18,8 +18,18 @@ const BASE_PAGES = [
   '/blog',
 ];
 
-const TECNOLOGIAS = ['react', 'angular', 'vue', 'node', 'python', 'java', 'php', 'csharp', 'ruby', 'go', 'javascript', 'typescript', 'aws', 'docker', 'kubernetes', 'backend', 'frontend', 'data', 'cloud', 'mobile'];
-const CIUDADES = ['madrid', 'barcelona', 'valencia', 'sevilla', 'bilbao', 'malaga', 'zaragoza', 'alicante', 'remoto'];
+const TECNOLOGIAS = [
+  'react', 'angular', 'vue', 'node', 'python', 'java', 'php', 'csharp', 'ruby', 'go', 
+  'javascript', 'typescript', 'aws', 'docker', 'kubernetes', 'backend', 'frontend', 
+  'data', 'cloud', 'mobile', 'nextjs', 'flutter', 'kotlin', 'swift', 'sql', 'salesforce', 
+  'cybersecurity', 'ciberseguridad'
+];
+
+const CIUDADES = [
+  'madrid', 'barcelona', 'valencia', 'sevilla', 'bilbao', 'malaga', 'zaragoza', 'alicante', 
+  'murcia', 'gijon', 'oviedo', 'vigo', 'coruna', 'granada', 'san-sebastian', 'pamplona', 
+  'valladolid', 'remoto'
+];
 
 const PROGRAMMATIC_PAGES: string[] = [];
 
@@ -39,23 +49,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let jobs = [];
 
   try {
-    // Intentamos conectar con timeout para que no se cuelgue
+    // Intentamos conectar con la base de datos
     const client = await pool.connect();
     // Cogemos las últimas 2000 ofertas para no sobrecargar
     const res = await client.query("SELECT id, created_at FROM jobs ORDER BY created_at DESC LIMIT 2000");
     client.release();
     jobs = res.rows;
   } catch (error) {
-    console.error("⚠️ Error generando sitemap (BD):", error);
-    // Si falla la BD, devolvemos al menos la página principal para que no de error 500
-    return [
-      {
-        url: BASE_URL,
-        lastModified: new Date(),
-        changeFrequency: 'daily',
-        priority: 1,
-      }
-    ];
+    console.error("⚠️ Error generando sitemap de ofertas (BD):", error);
+    // Dejamos jobs = [] para que el resto del sitemap se genere correctamente
   }
 
   const jobUrls = jobs.map((job) => ({

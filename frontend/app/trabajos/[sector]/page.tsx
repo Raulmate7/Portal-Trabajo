@@ -30,6 +30,37 @@ const categoryMap: Record<string, string> = {
   'inteligencia-artificial': 'Data & AI'
 };
 
+const displayNameMap: Record<string, string> = {
+  'react': 'React',
+  'angular': 'Angular',
+  'vue': 'Vue',
+  'node': 'Node.js',
+  'python': 'Python',
+  'java': 'Java',
+  'php': 'PHP',
+  'csharp': 'C#',
+  'ruby': 'Ruby',
+  'go': 'Go',
+  'javascript': 'JavaScript',
+  'typescript': 'TypeScript',
+  'aws': 'AWS',
+  'docker': 'Docker',
+  'kubernetes': 'Kubernetes',
+  'nextjs': 'Next.js',
+  'flutter': 'Flutter',
+  'kotlin': 'Kotlin',
+  'swift': 'Swift',
+  'sql': 'SQL',
+  'salesforce': 'Salesforce',
+  'cybersecurity': 'Ciberseguridad',
+  'ciberseguridad': 'Ciberseguridad',
+  'backend': 'Backend',
+  'frontend': 'Frontend',
+  'data': 'Data',
+  'cloud': 'Cloud',
+  'mobile': 'Mobile'
+};
+
 const adMap: Record<string, { title: string, text: string, link: string }> = {
   'backend': { 
     title: '¿Quieres ser experto en Java/Spring?', 
@@ -68,8 +99,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   
   const { tec, ciudad, dbCategory } = parseSector(sectorSlug);
   
-  const categoriaBonita = dbCategory || tec.replace(/-/g, ' ');
-  const tituloCategoria = categoriaBonita.charAt(0).toUpperCase() + categoriaBonita.slice(1);
+  const categoriaBonita = displayNameMap[tec] || dbCategory || tec.replace(/-/g, ' ');
+  const tituloCategoria = categoriaBonita;
   
   let tituloSeo = `Ofertas de trabajo de ${tituloCategoria}`;
   let descSeo = `Encuentra las mejores vacantes de ${tituloCategoria}`;
@@ -104,9 +135,23 @@ async function getJobs(tec: string, ciudad: string, dbCategory: string | undefin
       paramsQuery.push(dbCategory);
       paramIndex++;
     } else if (tec !== 'informatica-tecnologia') {
-      sql += ` AND title ILIKE $${paramIndex}`;
-      paramsQuery.push(`%${tec}%`);
-      paramIndex++;
+      if (tec === 'nextjs') {
+        sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1} OR title ILIKE $${paramIndex + 2})`;
+        paramsQuery.push('%nextjs%', '%next.js%', '%next-js%');
+        paramIndex += 3;
+      } else if (tec === 'csharp') {
+        sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1} OR title ILIKE $${paramIndex + 2})`;
+        paramsQuery.push('%c#%', '%c-sharp%', '%csharp%');
+        paramIndex += 3;
+      } else if (tec === 'cybersecurity' || tec === 'ciberseguridad') {
+        sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1} OR title ILIKE $${paramIndex + 2})`;
+        paramsQuery.push('%cybersecurity%', '%ciberseguridad%', '%seguridad%');
+        paramIndex += 3;
+      } else {
+        sql += ` AND title ILIKE $${paramIndex}`;
+        paramsQuery.push(`%${tec}%`);
+        paramIndex++;
+      }
     }
 
     if (ciudad) {
@@ -222,7 +267,7 @@ export default async function SectorPage({
   
   const ad = adMap[tec];
   
-  const categoriaBonita = dbCategory || tec.replace(/-/g, ' ');
+  const categoriaBonita = displayNameMap[tec] || dbCategory || tec.replace(/-/g, ' ');
   const tituloMostrado = ciudad 
     ? `${categoriaBonita} en ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}` 
     : categoriaBonita;
