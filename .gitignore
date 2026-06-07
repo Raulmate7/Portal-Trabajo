@@ -6,3 +6,7 @@ __pycache__/
 .next/
 *.pyc
 *.json
+
+# Logs
+*_log.txt
+log.txt
