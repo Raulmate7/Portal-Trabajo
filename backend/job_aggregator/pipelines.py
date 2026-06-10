@@ -1,6 +1,8 @@
 import psycopg2
 import os
 from dotenv import load_dotenv
+from logic.classifier import classify_job
+
 
 class PostgresPipeline:
     def open_spider(self, spider):
@@ -32,7 +34,8 @@ class PostgresPipeline:
                     spider.logger.info(f"🚫 Oferta duplicada omitida (48h): {title} - {company}")
                     return item
 
-            # MAGIA: Insertamos la oferta buscando automáticamente el ID del sector
+            # MAGIA: Insertamos la oferta buscando automáticamente el ID del sector y clasificando la categoría
+            category = classify_job(item['title'], item['description_snippet'])
             self.cur.execute("""
                 INSERT INTO jobs (
                     title, 
@@ -42,11 +45,13 @@ class PostgresPipeline:
                     description_snippet, 
                     url_source, 
                     created_at, 
-                    sector_id
+                    sector_id,
+                    category
                 )
                 VALUES (
                     %s, %s, %s, %s, %s, %s, %s,
-                    (SELECT id FROM sectors WHERE slug = %s)
+                    (SELECT id FROM sectors WHERE slug = %s),
+                    %s
                 )
                 ON CONFLICT (url_source) DO NOTHING;
             """, (
@@ -57,7 +62,8 @@ class PostgresPipeline:
                 item['description_snippet'],
                 item['url_source'],
                 item['created_at'],
-                item['sector_slug'] # Aquí pasamos la etiqueta
+                item['sector_slug'], # Aquí pasamos la etiqueta
+                category
             ))
             
             self.connection.commit()

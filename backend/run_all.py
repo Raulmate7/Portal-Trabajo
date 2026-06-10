@@ -36,10 +36,16 @@ if exit_code != 0:
     print("⚠️ Advertencia: Telegram bot terminó con errores.")
 
 # 5. Indexar en Google
-print("\n[5/5] 🔍 Enviando nuevas ofertas a Google Indexing API (index_new_jobs.py)...")
+print("\n[5/6] 🔍 Enviando nuevas ofertas a Google Indexing API (index_new_jobs.py)...")
 exit_code = os.system(f"{python_bin} index_new_jobs.py")
 if exit_code != 0:
     print("⚠️ Advertencia: El script de indexación terminó con errores.")
+
+# 6. Enviar Alertas Personalizadas por Email
+print("\n[6/6] 📧 Enviando alertas personalizadas de empleo (send_custom_alerts.py)...")
+exit_code = os.system(f"{python_bin} send_custom_alerts.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: Las alertas personalizadas terminaron con errores.")
 
 print("\n===============================================")
 print("✅ PROCESO COMPLETADO. El sistema descansa.")

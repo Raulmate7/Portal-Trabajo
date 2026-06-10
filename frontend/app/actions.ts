@@ -6,6 +6,9 @@ import { revalidatePath } from 'next/cache';
 export async function subscribeUser(formData: FormData) {
   const email = formData.get('email') as string;
   const pathname = formData.get('pathname') as string;
+  const techKeywords = (formData.get('tech_keywords') as string || '').trim();
+  const locationPref = (formData.get('location_pref') as string || '').trim();
+  const frequency = (formData.get('frequency') as string || 'weekly').trim();
 
   if (!email) {
     return { message: 'Por favor, escribe un email.', success: false };
@@ -14,18 +17,19 @@ export async function subscribeUser(formData: FormData) {
   const client = await pool.connect();
   try {
     await client.query(
-      "INSERT INTO subscribers (email, created_at) VALUES ($1, $2)",
-      [email, new Date().toISOString()]
+      `INSERT INTO subscribers (email, tech_keywords, location_pref, frequency, created_at)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (email) DO UPDATE SET
+         tech_keywords = EXCLUDED.tech_keywords,
+         location_pref = EXCLUDED.location_pref,
+         frequency = EXCLUDED.frequency`,
+      [email, techKeywords, locationPref, frequency, new Date().toISOString()]
     );
 
     revalidatePath(pathname);
     return { message: '¡Gracias! Te has suscrito correctamente. 🚀', success: true };
 
   } catch (error: any) {
-    // Si el error es por duplicado (código 23505 en Postgres), avisamos amablemente
-    if (error?.code === '23505') {
-      return { message: '¡Ya estabas suscrito! 😉', success: true };
-    }
     console.error('Error guardando suscriptor:', error);
     return { message: 'Hubo un error al guardar tu email.', success: false };
   } finally {

@@ -17,11 +17,15 @@ export default function Footer() {
     { label: 'Java en Barcelona', href: '/trabajos/java-en-barcelona' },
     { label: 'Python Remoto', href: '/trabajos/python-remoto' },
     { label: 'Node en Madrid', href: '/trabajos/node-en-madrid' },
+    { label: 'React Junior', href: '/trabajos/react-junior' },
+    { label: 'Python Senior', href: '/trabajos/python-senior' },
+    { label: 'Backend Senior Madrid', href: '/trabajos/backend-en-madrid-senior' },
   ];
 
   const navigation = [
     { label: 'Inicio', href: '/' },
     { label: 'Buscador de Empleo', href: '/trabajos/informatica-tecnologia' },
+    { label: '💰 Calculadora de Salarios', href: '/salarios' },
     { label: 'Talento Premium', href: '/talento-premium' },
     { label: 'Publicar Oferta', href: '/publicar-oferta' },
     { label: 'Blog', href: '/blog' },

@@ -2,8 +2,14 @@
 
 import { useState } from "react";
 import { submitSponsoredJob } from "@/app/actions";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 export default function PublishForm() {
+  const searchParams = useSearchParams();
+  const success = searchParams.get("success") === "true";
+  const canceled = searchParams.get("canceled") === "true";
+
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const [selectedPlan, setSelectedPlan] = useState<"basico" | "destacado">("destacado");
@@ -16,53 +22,67 @@ export default function PublishForm() {
     const formData = new FormData(e.currentTarget);
     formData.append("plan", selectedPlan);
 
-    const result = await submitSponsoredJob(formData);
+    if (selectedPlan === "basico") {
+      const result = await submitSponsoredJob(formData);
+      setStatus(result.success ? "success" : "error");
+      setMessage(result.message);
+    } else {
+      // Flujo de Stripe para Plan Destacado
+      try {
+        const jobData = {
+          title: formData.get("job_title"),
+          company: formData.get("company_name"),
+          location: formData.get("job_location"),
+          salary: formData.get("job_salary"),
+          description_snippet: formData.get("job_description"),
+          url_source: formData.get("job_url"),
+          category: "Otros",
+        };
 
-    setStatus(result.success ? "success" : "error");
-    setMessage(result.message);
+        const res = await fetch("/api/checkout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(jobData),
+        });
+
+        const data = await res.json();
+        if (data.url) {
+          window.location.href = data.url; // Redirigir a Stripe Checkout
+        } else {
+          throw new Error(data.error || "No se pudo iniciar la pasarela de Stripe");
+        }
+      } catch (err: any) {
+        setStatus("error");
+        setMessage(err.message || "Error de red al conectar con Stripe.");
+      }
+    }
   };
 
-  if (status === "success") {
-    if (selectedPlan === "destacado") {
-      return (
-        <div className="p-8 md:p-12 rounded-3xl bg-gradient-to-br from-gray-900 to-gray-950 border-2 border-amber-500/50 shadow-2xl text-center shadow-amber-500/10">
-          <div className="w-16 h-16 bg-amber-500/20 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">
-            💳
-          </div>
-          <h2 className="text-2xl md:text-3xl font-black mb-4">
-            ¡Casi listo!
-          </h2>
-          <p className="text-gray-300 mb-2 max-w-md mx-auto">
-            Hemos guardado tu solicitud. Para activar la <strong>Oferta Destacada</strong> y publicarla inmediatamente, realiza el pago seguro de 39€.
-          </p>
-          <p className="text-gray-400 text-sm max-w-md mx-auto mb-8">
-            Si pagas con una cuenta de empresa, recibirás la factura correspondiente.
-          </p>
-
-          <div className="flex flex-col gap-3 w-full max-w-sm mx-auto mb-8">
-            {/* Botón de PayPal (ocultando el correo mediante paypal.me) */}
-            <a
-              href="https://paypal.me/PortalTrabajoIT/39" 
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full bg-[#0070ba] text-white font-bold text-lg py-4 px-6 rounded-xl hover:bg-[#003087] transition-all shadow-lg"
-            >
-              💳 Pagar con Tarjeta / PayPal
-            </a>
-          </div>
-
-          <div>
-            <button
-              onClick={() => { setStatus("idle"); setMessage(""); }}
-              className="text-gray-500 hover:text-gray-300 text-sm font-medium underline"
-            >
-              Ya he pagado / Volver
-            </button>
-          </div>
+  if (success) {
+    return (
+      <div className="p-8 md:p-12 rounded-3xl bg-gradient-to-br from-gray-900 to-gray-950 border border-green-500/50 shadow-2xl text-center shadow-green-500/10">
+        <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">
+          ⭐
         </div>
-      );
-    }
+        <h2 className="text-2xl md:text-3xl font-black mb-4">
+          ¡Pago completado con éxito!
+        </h2>
+        <p className="text-gray-300 mb-4 max-w-md mx-auto">
+          Tu oferta ha sido publicada y destacada en el portal. Aparecerá en las posiciones prioritarias inmediatamente.
+        </p>
+        <p className="text-gray-400 text-sm max-w-md mx-auto mb-8">
+          Recibirás el recibo de la transacción de Stripe por correo electrónico.
+        </p>
+        <Link href="/" className="inline-block px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all">
+          Ir al Buscador
+        </Link>
+      </div>
+    );
+  }
 
+  if (status === "success") {
     return (
       <div className="p-8 md:p-12 rounded-3xl bg-gradient-to-br from-gray-900 to-gray-950 border border-green-500/50 shadow-2xl text-center">
         <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">
@@ -123,6 +143,12 @@ export default function PublishForm() {
           <span className="block text-xl font-black mt-1">39€</span>
         </button>
       </div>
+
+      {canceled && (
+        <div className="mb-6 p-4 bg-amber-950/40 border border-amber-500/30 rounded-xl text-amber-200 text-sm text-center font-medium">
+          ⚠️ El pago ha sido cancelado o no se completó. Puedes volver a intentarlo cuando desees.
+        </div>
+      )}
 
       {status === "error" && (
         <div className="mb-6 p-4 bg-red-900/50 border border-red-500/50 rounded-xl text-red-200 text-sm text-center">

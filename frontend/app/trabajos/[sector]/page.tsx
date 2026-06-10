@@ -2,6 +2,7 @@ import pool from "@/lib/db";
 import JobCard from "@/components/JobCard";
 import SubscribeForm from "@/components/SubscribeForm";
 import AdBanner from "@/components/AdBanner";
+import PushSubscribe from "@/components/PushSubscribe";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import Link from "next/link";
 import { Metadata } from "next";
@@ -77,51 +78,84 @@ const adMap: Record<string, { title: string, text: string, link: string }> = {
 
 type Params = Promise<{ sector: string }>;
 
+const EXPERIENCE_SUFFIXES: Record<string, { keywords: string[]; label: string }> = {
+  'junior': {
+    keywords: ['junior', 'jr', 'junior developer', 'trainee', 'becario', 'prácticas', 'entry level', 'sin experiencia'],
+    label: 'Junior'
+  },
+  'senior': {
+    keywords: ['senior', 'sr', 'lead', 'principal', 'tech lead', 'staff'],
+    label: 'Senior'
+  },
+  'sin-experiencia': {
+    keywords: ['sin experiencia', 'entry level', 'trainee', 'becario', 'prácticas', 'junior'],
+    label: 'Sin Experiencia'
+  },
+};
+
 function parseSector(sectorSlug: string) {
   let tec = sectorSlug;
   let ciudad = '';
-  
-  const enIndex = sectorSlug.indexOf('-en-');
+  let experiencia = '';
+
+  // Detectar nivel de experiencia como sufijo
+  for (const suffix of Object.keys(EXPERIENCE_SUFFIXES)) {
+    if (tec.endsWith(`-${suffix}`)) {
+      experiencia = suffix;
+      tec = tec.slice(0, -(suffix.length + 1));
+      break;
+    }
+  }
+
+  // Detectar ciudad (con experiencia ya removida)
+  const enIndex = tec.indexOf('-en-');
   if (enIndex !== -1) {
-    tec = sectorSlug.substring(0, enIndex);
-    ciudad = sectorSlug.substring(enIndex + 4).replace(/-/g, ' ');
-  } else if (sectorSlug.endsWith('-remoto')) {
-    tec = sectorSlug.replace('-remoto', '');
+    const afterEn = tec.substring(enIndex + 4);
+    tec = tec.substring(0, enIndex);
+    ciudad = afterEn.replace(/-/g, ' ');
+  } else if (tec.endsWith('-remoto')) {
+    tec = tec.replace('-remoto', '');
     ciudad = 'remoto';
   }
 
   const dbCategory = categoryMap[tec];
-  return { tec, ciudad, dbCategory };
+  return { tec, ciudad, experiencia, dbCategory };
 }
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { sector } = await params;
   const sectorSlug = sector.toLowerCase();
   
-  const { tec, ciudad, dbCategory } = parseSector(sectorSlug);
+  const { tec, ciudad, experiencia, dbCategory } = parseSector(sectorSlug);
   
-  // Obtener ofertas de la base de datos para saber si indexar o no (noindex, follow si hay 0 ofertas reales)
-  const jobs = await getJobs(tec, ciudad, dbCategory, 1);
+  const jobs = await getJobs(tec, ciudad, dbCategory, experiencia, 1);
   const isThinPage = jobs.length === 0;
+  const jobCount = jobs.length;
 
   const categoriaBonita = displayNameMap[tec] || dbCategory || tec.replace(/-/g, ' ');
-  const tituloCategoria = categoriaBonita;
+  const expLabel = experiencia ? ` ${EXPERIENCE_SUFFIXES[experiencia]?.label || ''}` : '';
+  const now = new Date();
+  const mes = now.toLocaleDateString('es-ES', { month: 'long' });
+  const anio = now.getFullYear();
   
-  let tituloSeo = `Ofertas de trabajo de ${tituloCategoria}`;
-  let descSeo = `Encuentra las mejores vacantes de ${tituloCategoria}`;
+  let tituloBase = `Trabajo${expLabel} de ${categoriaBonita}`;
+  let descBase = `Ofertas de trabajo${expLabel ? ` para ${expLabel.trim()}` : ''} de ${categoriaBonita}`;
   
   if (ciudad) {
     const ciudadBonita = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
-    tituloSeo += ` en ${ciudadBonita}`;
-    descSeo += ` en ${ciudadBonita}`;
+    tituloBase += ` en ${ciudadBonita}`;
+    descBase += ` en ${ciudadBonita}`;
   }
+
+  const countText = jobCount > 0 ? `${jobCount} ` : '';
+  const tituloSeo = `${countText}${tituloBase} [${mes.charAt(0).toUpperCase() + mes.slice(1)} ${anio}]`;
   
   return {
-    title: `${tituloSeo} en España | Portal Trabajo`,
-    description: `${descSeo} actualizadas hoy. Recopilamos ofertas de las mejores empresas tecnológicas.`,
+    title: `${tituloSeo} | Portal Trabajo`,
+    description: `${descBase} actualizadas hoy. ${jobCount > 0 ? `${jobCount} vacantes disponibles ahora.` : 'Recopilamos ofertas de las mejores empresas tecnológicas.'}`,
     openGraph: {
-      title: `${tituloSeo} - Vacantes Urgentes`,
-      description: `Listado actualizado de ${descSeo.toLowerCase()}.`,
+      title: `${tituloBase} — ${jobCount > 0 ? `${jobCount} Vacantes Disponibles` : 'Vacantes Urgentes'}`,
+      description: `Listado actualizado de ${descBase.toLowerCase()}.`,
     },
     robots: {
       index: !isThinPage,
@@ -130,12 +164,12 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   };
 }
 
-const getJobs = cache(async (tec: string, ciudad: string, dbCategory: string | undefined, page: number = 1) => {
+const getJobs = cache(async (tec: string, ciudad: string, dbCategory: string | undefined, experiencia: string = '', page: number = 1) => {
   const limit = 50;
   const offset = (page - 1) * limit;
   const client = await pool.connect();
   try {
-    let sql = "SELECT * FROM jobs WHERE 1=1";
+    let sql = "SELECT * FROM jobs WHERE is_active = TRUE";
     const paramsQuery: any[] = [];
     let paramIndex = 1;
 
@@ -164,9 +198,27 @@ const getJobs = cache(async (tec: string, ciudad: string, dbCategory: string | u
     }
 
     if (ciudad) {
-      sql += ` AND location ILIKE $${paramIndex}`;
-      paramsQuery.push(`%${ciudad}%`);
-      paramIndex++;
+      if (ciudad.toLowerCase() === 'remoto') {
+        sql += ` AND (location ILIKE $${paramIndex} OR location ILIKE $${paramIndex + 1} OR location ILIKE $${paramIndex + 2} OR location ILIKE $${paramIndex + 3})`;
+        paramsQuery.push('%remoto%', '%remote%', '%worldwide%', '%teletrabajo%');
+        paramIndex += 4;
+      } else {
+        sql += ` AND location ILIKE $${paramIndex}`;
+        paramsQuery.push(`%${ciudad}%`);
+        paramIndex++;
+      }
+    }
+
+    // Filtro de nivel de experiencia: busca keywords en título y description_snippet
+    if (experiencia && EXPERIENCE_SUFFIXES[experiencia]) {
+      const expKeywords = EXPERIENCE_SUFFIXES[experiencia].keywords;
+      const expConditions = expKeywords.map(() => {
+        const cond = `(title ILIKE $${paramIndex} OR description_snippet ILIKE $${paramIndex})`;
+        paramIndex++;
+        return cond;
+      }).join(' OR ');
+      sql += ` AND (${expConditions})`;
+      paramsQuery.push(...expKeywords.map(k => `%${k}%`));
     }
 
     sql += ` ORDER BY created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
@@ -182,10 +234,11 @@ const getJobs = cache(async (tec: string, ciudad: string, dbCategory: string | u
   }
 });
 
+
 async function getFallbackJobs(tec: string, ciudad: string, dbCategory: string | undefined, page: number = 1) {
   // 1. Si buscó en una ciudad, probar en remoto
   if (ciudad && ciudad !== 'remoto') {
-    const remoteJobs = await getJobs(tec, 'remoto', dbCategory, page);
+    const remoteJobs = await getJobs(tec, 'remoto', dbCategory, '', page);
     if (remoteJobs.length > 0) {
       return { jobs: remoteJobs, type: 'remote' };
     }
@@ -193,7 +246,7 @@ async function getFallbackJobs(tec: string, ciudad: string, dbCategory: string |
 
   // 2. Probar a nivel nacional (sin restricción de ciudad)
   if (ciudad) {
-    const nationalJobs = await getJobs(tec, '', dbCategory, page);
+    const nationalJobs = await getJobs(tec, '', dbCategory, '', page);
     if (nationalJobs.length > 0) {
       return { jobs: nationalJobs, type: 'national' };
     }
@@ -201,7 +254,7 @@ async function getFallbackJobs(tec: string, ciudad: string, dbCategory: string |
 
   // 3. Probar ofertas recientes generales de la misma categoría o tecnología
   if (tec !== 'informatica-tecnologia') {
-    const generalJobs = await getJobs('informatica-tecnologia', '', undefined, page);
+    const generalJobs = await getJobs('informatica-tecnologia', '', undefined, '', page);
     if (generalJobs.length > 0) {
       return { jobs: generalJobs, type: 'general' };
     }
@@ -261,9 +314,9 @@ export default async function SectorPage({
   const page = typeof resolvedSearchParams.page === 'string' ? parseInt(resolvedSearchParams.page, 10) : 1;
   const validPage = isNaN(page) || page < 1 ? 1 : page;
   
-  const { tec, ciudad, dbCategory } = parseSector(sectorSlug);
+  const { tec, ciudad, experiencia, dbCategory } = parseSector(sectorSlug);
   
-  let jobs = await getJobs(tec, ciudad, dbCategory, validPage);
+  let jobs = await getJobs(tec, ciudad, dbCategory, experiencia, validPage);
   let isFallback = false;
   let fallbackType = '';
 
@@ -277,9 +330,10 @@ export default async function SectorPage({
   const ad = adMap[tec];
   
   const categoriaBonita = displayNameMap[tec] || dbCategory || tec.replace(/-/g, ' ');
+  const expLabel = experiencia ? ` ${EXPERIENCE_SUFFIXES[experiencia]?.label || ''}` : '';
   const tituloMostrado = ciudad 
-    ? `${categoriaBonita} en ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}` 
-    : categoriaBonita;
+    ? `${categoriaBonita}${expLabel} en ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}` 
+    : `${categoriaBonita}${expLabel}`;
 
   const breadcrumbItems = [
     { label: 'Inicio', href: '/' },
@@ -482,12 +536,18 @@ export default async function SectorPage({
                 <p className="text-sm text-gray-400 mt-2">Vuelve mañana a las 08:00.</p>
               </div>
             )}
+            {jobs && jobs.length > 0 && (
+              <div className="mt-8">
+                <AdBanner variant="multiplex" />
+              </div>
+            )}
           </div>
         </div>
         
         <div className="lg:col-span-1 space-y-6">
           <div className="sticky top-6 space-y-6">
             <SubscribeForm location={ciudad ? ciudad : tec} />
+            <PushSubscribe />
             <AdBanner variant="sidebar" />
           </div>
         </div>

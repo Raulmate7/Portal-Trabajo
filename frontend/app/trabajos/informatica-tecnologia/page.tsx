@@ -5,6 +5,7 @@ import LocationFilter from '@/components/LocationFilter';
 import ScopeTabs from '@/components/ScopeTabs';
 import SubscribeForm from '@/components/SubscribeForm';
 import AdBanner from '@/components/AdBanner';
+import PushSubscribe from '@/components/PushSubscribe';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -18,7 +19,7 @@ async function getJobs(scopeFilter: string, locationFilter?: string, queryFilter
   const offset = (page - 1) * limit;
   const client = await pool.connect();
   try {
-    let sql = "SELECT * FROM jobs WHERE 1=1";
+    let sql = "SELECT * FROM jobs WHERE is_active = TRUE";
     const params: any[] = [];
     let paramIndex = 1;
 
@@ -109,6 +110,7 @@ export default async function JobsPage(props: Props) {
 
             {/* AQUÍ ESTÁ EL CAMBIO: Usamos el componente funcional */}
             <SubscribeForm location={locationFilter || (scopeFilter === 'espana' ? 'España' : 'Todo el mundo')} />
+            <PushSubscribe />
 
             {/* Banner de afiliado: herramientas para devs */}
             <AdBanner variant="sidebar" />

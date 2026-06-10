@@ -55,8 +55,36 @@ class JobSpider(scrapy.Spider):
             if not location:
                 location = container.css('.bg-light.text-secondary::text').get()
 
-            # Si después de los 3 intentos sigue vacío, ponemos España
-            if not location:
+            # Sanitización y normalización para evitar textos largos (párrafos de descripción)
+            if location:
+                location = location.strip()
+                if len(location) > 60 or '\n' in location or '\r' in location:
+                    ciudades_populares = [
+                        'Madrid', 'Barcelona', 'Valencia', 'Sevilla', 'Zaragoza', 'Málaga', 'Murcia', 
+                        'Palma', 'Las Palmas', 'Bilbao', 'Alicante', 'Córdoba', 'Valladolid', 'Vigo', 
+                        'Gijón', 'Hospitalet', 'Vitoria', 'A Coruña', 'Coruña', 'Granada', 'Elche', 'Oviedo', 
+                        'Terrassa', 'Badalona', 'Cartagena', 'Jerez', 'Sabadell', 'Móstoles', 'Pamplona', 
+                        'Almería', 'Leganés', 'San Sebastián', 'Getafe', 'Burgos', 'Santander', 'Albacete', 
+                        'Castellón', 'Logroño', 'Badajoz', 'Huelva', 'Salamanca', 'Lleida', 'Tarragona', 
+                        'León', 'Cádiz', 'Jaén', 'Ourense', 'Girona', 'Lugo', 'Cáceres', 'Toledo'
+                    ]
+                    location_lower = location.lower()
+                    found_city = None
+                    for ciudad in ciudades_populares:
+                        if ciudad.lower() in location_lower:
+                            found_city = ciudad
+                            break
+                    
+                    if "remoto" in location_lower or "teletrabajo" in location_lower or "remote" in location_lower:
+                        if found_city:
+                            location = f"Remoto ({found_city})"
+                        else:
+                            location = "Remoto"
+                    elif found_city:
+                        location = f"{found_city}, España"
+                    else:
+                        location = "España"
+            else:
                 location = "España"
             # --------------------------------------
 

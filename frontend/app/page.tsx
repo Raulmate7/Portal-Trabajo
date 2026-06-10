@@ -17,7 +17,7 @@ async function getJobs(query: string, location: string, page: number = 1) {
   const offset = (page - 1) * limit;
   const client = await pool.connect();
   try {
-    let sql = "SELECT * FROM jobs WHERE (is_featured = FALSE OR is_featured IS NULL)";
+    let sql = "SELECT * FROM jobs WHERE (is_featured = FALSE OR is_featured IS NULL) AND is_active = TRUE";
     const params: any[] = [];
     let paramIndex = 1;
 
@@ -49,7 +49,7 @@ async function getJobs(query: string, location: string, page: number = 1) {
 async function getFeaturedJobs(query: string, location: string) {
   const client = await pool.connect();
   try {
-    let sql = "SELECT * FROM jobs WHERE is_featured = TRUE";
+    let sql = "SELECT * FROM jobs WHERE is_featured = TRUE AND is_active = TRUE";
     const params: any[] = [];
     let paramIndex = 1;
 
@@ -79,7 +79,7 @@ async function getFeaturedJobs(query: string, location: string) {
 async function getJobsCount() {
   const client = await pool.connect();
   try {
-    const result = await client.query("SELECT COUNT(*) FROM jobs");
+    const result = await client.query("SELECT COUNT(*) FROM jobs WHERE is_active = TRUE");
     return parseInt(result.rows[0].count, 10);
   } catch (error) {
     console.error("Error counting jobs:", error);

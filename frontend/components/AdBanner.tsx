@@ -61,8 +61,14 @@ export default function AdBanner({
   const [adError, setAdError] = useState(false);
   const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
 
-  // Slot ID por defecto si no se especifica uno personalizado
-  const adSlot = slot || (variant === 'inline' ? '9876543210' : variant === 'multiplex' ? '1122334455' : '1234567890');
+  // Slot ID por defecto si no se especifica uno personalizado, intentando leer de variables de entorno públicas
+  const defaultSlot = variant === 'inline'
+    ? (process.env.NEXT_PUBLIC_ADSENSE_SLOT_INLINE || '9876543210')
+    : variant === 'multiplex'
+    ? (process.env.NEXT_PUBLIC_ADSENSE_SLOT_MULTIPLEX || '1122334455')
+    : (process.env.NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR || '1234567890');
+
+  const adSlot = slot || defaultSlot;
 
   const initializedRef = useRef(false);
 
@@ -161,9 +167,14 @@ export default function AdBanner({
     return (
       <div className="w-full overflow-hidden bg-white border border-gray-100 rounded-xl shadow-sm p-4 mt-8 flex flex-col items-center">
         <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mb-2 block text-center">Contenido Patrocinado</span>
-        <div className="w-full flex justify-center items-center overflow-hidden min-h-[250px]">
+        <div className="w-full flex justify-center items-center overflow-hidden min-h-[250px] relative bg-gradient-to-r from-gray-50 via-gray-100 to-gray-50 animate-pulse rounded-lg border border-gray-100/50">
+          {/* Fondo elegante del placeholder que se tapará cuando cargue el anuncio */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-gray-300">
+            <span className="text-2xl mb-1">📰</span>
+            <span className="text-[10px] uppercase tracking-wider font-medium">Recomendados para ti</span>
+          </div>
           <ins
-            className="adsbygoogle"
+            className="adsbygoogle relative z-10"
             style={{ 
               display: 'block', 
               width: '100%',
@@ -186,14 +197,19 @@ export default function AdBanner({
     <div className="w-full overflow-hidden bg-white border border-gray-100 rounded-xl shadow-sm p-4 flex flex-col items-center">
       <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mb-2 block text-center">Anuncio</span>
       <div 
-        className={`w-full flex justify-center items-center overflow-hidden transition-all duration-300 ${
+        className={`w-full flex justify-center items-center overflow-hidden transition-all duration-300 relative bg-gradient-to-r from-gray-50 via-gray-100 to-gray-50 animate-pulse rounded-lg border border-gray-100/50 ${
           variant === 'inline' 
             ? 'min-h-[90px] md:min-h-[250px] max-h-[280px]' 
             : 'min-h-[250px] md:min-h-[300px]'
         }`}
       >
+        {/* Fondo elegante del placeholder que se tapará cuando cargue el anuncio */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-gray-300">
+          <span className="text-xl mb-1">📢</span>
+          <span className="text-[9px] uppercase tracking-wider font-medium">Cargando anuncio...</span>
+        </div>
         <ins
-          className="adsbygoogle"
+          className="adsbygoogle relative z-10"
           style={{ 
             display: 'block', 
             width: '100%',

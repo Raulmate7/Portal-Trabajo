@@ -10,6 +10,10 @@ from scrapers.remoteok import get_remoteok_jobs
 from scrapers.workingnomads import get_workingnomads_jobs
 from scrapers.himalayas import get_himalayas_jobs
 from scrapers.pythonorg import get_pythonorg_jobs
+from logic.classifier import classify_job
+from logic.translator import translate_text
+from logic.salary_parser import parse_salary
+
 
 load_dotenv()
 
@@ -66,17 +70,42 @@ def save_jobs(jobs, source_name):
             if cursor.fetchone():
                 continue
 
+        desc_snippet = job.get('description_snippet', '')
+        category = classify_job(title, desc_snippet)
+
+        # Traducir si es un scraper internacional
+        title_es = None
+        desc_es = None
+        is_intl = source_name.lower() in ['weworkremotely', 'remotive', 'himalayas', 'python.org', 'workingnomads', 'remoteok']
+        if is_intl:
+            title_es = translate_text(title)
+            desc_es = translate_text(desc_snippet)
+            if title_es == title:
+                title_es = None
+            if desc_es == desc_snippet:
+                desc_es = None
+
+        # Parsear salarios
+        salary_raw = job.get('salary', 'Consultar')
+        s_min, s_max, s_curr = parse_salary(salary_raw)
+
         cursor.execute("""
-            INSERT INTO jobs (title, company, location, salary, description_snippet, url_source, sector_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO jobs (title, company, location, salary, description_snippet, url_source, sector_id, category, title_es, description_snippet_es, salary_min, salary_max, salary_currency, is_active)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, TRUE)
         """, (
-            job.get('title', 'Sin título'),
+            title,
             job.get('company', 'Desconocida'),
             job.get('location', 'Remoto'),
-            job.get('salary', 'Consultar'),
-            job.get('description_snippet', ''),
+            salary_raw,
+            desc_snippet,
             url_source,
             sector_id,
+            category,
+            title_es,
+            desc_es,
+            s_min,
+            s_max,
+            s_curr,
         ))
         new_count += 1
 

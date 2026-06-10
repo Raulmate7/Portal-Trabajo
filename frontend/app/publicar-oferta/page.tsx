@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import PublishForm from './PublishForm';
 
 export const metadata: Metadata = {
@@ -172,7 +173,9 @@ export default function PublicarOfertaPage() {
 
       {/* Formulario */}
       <section id="formulario" className="max-w-2xl mx-auto px-4 py-20">
-        <PublishForm />
+        <Suspense fallback={<div className="text-center py-12 text-gray-400">Cargando formulario...</div>}>
+          <PublishForm />
+        </Suspense>
       </section>
 
       {/* Footer mínimo */}

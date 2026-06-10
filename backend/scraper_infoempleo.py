@@ -3,6 +3,9 @@ import requests
 import psycopg2
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
+from logic.classifier import classify_job
+from logic.salary_parser import parse_salary
+
 
 load_dotenv()
 
@@ -76,17 +79,24 @@ def guardar_en_bd(ofertas):
             
             # 2. INSERTAR (Columnas reales)
             desc = f"[Fuente: Stratos] {o['title']}"
+            category = classify_job(o['title'], desc)
+            
+            s_min, s_max, s_curr = parse_salary(o['salary'])
             
             cur.execute("""
-                INSERT INTO jobs (title, company, location, salary, description_snippet, url_source, created_at) 
-                VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                INSERT INTO jobs (title, company, location, salary, description_snippet, url_source, category, created_at, salary_min, salary_max, salary_currency, is_active) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), %s, %s, %s, TRUE)
             """, (
                 o['title'], 
                 o['company'], 
                 o['location'], 
                 o['salary'], 
                 desc, 
-                o['url_source']
+                o['url_source'],
+                category,
+                s_min,
+                s_max,
+                s_curr
             ))
             c += 1
         conn.commit()
