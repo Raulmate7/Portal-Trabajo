@@ -5,6 +5,7 @@ import AdBanner from "@/components/AdBanner";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import Link from "next/link";
 import { Metadata } from "next";
+import { cache } from "react";
 
 export const revalidate = 60;
 
@@ -99,6 +100,10 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   
   const { tec, ciudad, dbCategory } = parseSector(sectorSlug);
   
+  // Obtener ofertas de la base de datos para saber si indexar o no (noindex, follow si hay 0 ofertas reales)
+  const jobs = await getJobs(tec, ciudad, dbCategory, 1);
+  const isThinPage = jobs.length === 0;
+
   const categoriaBonita = displayNameMap[tec] || dbCategory || tec.replace(/-/g, ' ');
   const tituloCategoria = categoriaBonita;
   
@@ -117,11 +122,15 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     openGraph: {
       title: `${tituloSeo} - Vacantes Urgentes`,
       description: `Listado actualizado de ${descSeo.toLowerCase()}.`,
+    },
+    robots: {
+      index: !isThinPage,
+      follow: true,
     }
   };
 }
 
-async function getJobs(tec: string, ciudad: string, dbCategory: string | undefined, page: number = 1) {
+const getJobs = cache(async (tec: string, ciudad: string, dbCategory: string | undefined, page: number = 1) => {
   const limit = 50;
   const offset = (page - 1) * limit;
   const client = await pool.connect();
@@ -171,7 +180,7 @@ async function getJobs(tec: string, ciudad: string, dbCategory: string | undefin
   } finally {
     client.release();
   }
-}
+});
 
 async function getFallbackJobs(tec: string, ciudad: string, dbCategory: string | undefined, page: number = 1) {
   // 1. Si buscó en una ciudad, probar en remoto
@@ -331,6 +340,29 @@ export default async function SectorPage({
     }))
   };
 
+  const faqJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    'mainEntity': [
+      {
+        '@type': 'Question',
+        'name': `¿Hay ofertas de empleo de ${tituloMostrado} actualmente?`,
+        'acceptedAnswer': {
+          '@type': 'Answer',
+          'text': `Sí, actualmente contamos con ${jobs.length} ofertas de trabajo activas de ${tituloMostrado} en nuestro portal tecnológico.`
+        }
+      },
+      stats.averageSalary ? {
+        '@type': 'Question',
+        'name': `¿Cuál es el salario medio de un perfil de ${categoriaBonita}?`,
+        'acceptedAnswer': {
+          '@type': 'Answer',
+          'text': `El salario medio estimado para un profesional de la categoría ${categoriaBonita} es de aproximadamente ${stats.averageSalary.toLocaleString('es-ES')}€ brutos anuales, calculado sobre ofertas con salario visible.`
+        }
+      } : null
+    ].filter(Boolean)
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <script 
@@ -340,6 +372,10 @@ export default async function SectorPage({
       <script 
         type="application/ld+json" 
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} 
+      />
+      <script 
+        type="application/ld+json" 
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} 
       />
 
       <Breadcrumbs items={breadcrumbItems} />
@@ -397,9 +433,17 @@ export default async function SectorPage({
               <>
                 {jobs.flatMap((job, index) => {
                   const card = <JobCard key={job.id} job={job as Job} />;
-                  if (index === 4) {
+                  if (index === 3) {
                     return [
-                      <div key={`ad-inline-${job.id}`} className="col-span-full my-2">
+                      <div key={`ad-inline-1-${job.id}`} className="col-span-full my-2">
+                        <AdBanner variant="inline" />
+                      </div>,
+                      card
+                    ];
+                  }
+                  if (index === 9) {
+                    return [
+                      <div key={`ad-inline-2-${job.id}`} className="col-span-full my-2">
                         <AdBanner variant="inline" />
                       </div>,
                       card

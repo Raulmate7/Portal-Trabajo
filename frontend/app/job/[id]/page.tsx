@@ -12,6 +12,72 @@ export const revalidate = 60;
 
 const BASE_URL = 'https://portal-trabajo.vercel.app';
 
+const TECNOLOGIAS = [
+  'react', 'angular', 'vue', 'node', 'python', 'java', 'php', 'csharp', 'ruby', 'go', 
+  'javascript', 'typescript', 'aws', 'docker', 'kubernetes', 'backend', 'frontend', 
+  'data', 'cloud', 'mobile', 'nextjs', 'flutter', 'kotlin', 'swift', 'sql', 'salesforce', 
+  'cybersecurity'
+];
+
+const DISPLAY_NAMES: Record<string, string> = {
+  'react': 'React',
+  'angular': 'Angular',
+  'vue': 'Vue',
+  'node': 'Node.js',
+  'python': 'Python',
+  'java': 'Java',
+  'php': 'PHP',
+  'csharp': 'C#',
+  'ruby': 'Ruby',
+  'go': 'Go',
+  'javascript': 'JavaScript',
+  'typescript': 'TypeScript',
+  'aws': 'AWS',
+  'docker': 'Docker',
+  'kubernetes': 'Kubernetes',
+  'nextjs': 'Next.js',
+  'flutter': 'Flutter',
+  'kotlin': 'Kotlin',
+  'swift': 'Swift',
+  'sql': 'SQL',
+  'salesforce': 'Salesforce',
+  'cybersecurity': 'Ciberseguridad',
+  'backend': 'Backend',
+  'frontend': 'Frontend',
+  'data': 'Data',
+  'cloud': 'Cloud',
+  'mobile': 'Mobile'
+};
+
+function slugify(text: string) {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')           // Reemplaza espacios con -
+    .replace(/[^\w\-]+/g, '')       // Elimina caracteres especiales
+    .replace(/\-\-+/g, '-')         // Evita guiones dobles
+    .replace(/^-+/, '')             // Quita guión inicial
+    .replace(/-+$/, '');            // Quita guión final
+}
+
+function detectTechnology(title: string, desc: string): string | null {
+  const text = `${title} ${desc}`.toLowerCase();
+  for (const tec of TECNOLOGIAS) {
+    if (tec === 'csharp' && (text.includes('c#') || text.includes('c-sharp') || text.includes('csharp'))) {
+      return 'csharp';
+    }
+    if (tec === 'nextjs' && (text.includes('next.js') || text.includes('nextjs') || text.includes('next-js'))) {
+      return 'nextjs';
+    }
+    const regex = new RegExp(`\\b${tec}\\b`, 'i');
+    if (regex.test(text)) {
+      return tec;
+    }
+  }
+  return null;
+}
+
 type Props = {
   params: Promise<{ id: string }>;
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -160,6 +226,20 @@ export default async function JobPage({ params }: Props) {
 
   const sourceLabel = extractSource(job.description_snippet);
 
+  const detectedTec = detectTechnology(job.title, job.description_snippet || '');
+  const tecLabel = detectedTec ? (DISPLAY_NAMES[detectedTec] || detectedTec) : null;
+
+  // Determinar la localización para el enlace
+  const cleanLocation = job.location ? job.location.toLowerCase().trim() : '';
+  const isRemoteLoc = cleanLocation.includes('remoto') || cleanLocation.includes('teletrabajo') || cleanLocation.includes('remote');
+  const locationSlug = isRemoteLoc ? 'remoto' : slugify(job.location || 'espana');
+  
+  // Construir slugs y URLs
+  const sectorUrl = detectedTec ? `/trabajos/${detectedTec}` : null;
+  const sectorLocationUrl = detectedTec 
+    ? (isRemoteLoc ? `/trabajos/${detectedTec}-remoto` : `/trabajos/${detectedTec}-en-${locationSlug}`)
+    : null;
+
   // Inferencia para SEO
   const textForInference = `${job.title} ${job.description_snippet || ''}`.toLowerCase();
   const isRemote = textForInference.includes('remoto') || textForInference.includes('teletrabajo') || textForInference.includes('remote');
@@ -276,6 +356,29 @@ export default async function JobPage({ params }: Props) {
             <div className="prose max-w-none text-gray-600 mb-8 leading-relaxed">
               <p className="whitespace-pre-line">{job.description_snippet || "Ver detalles en la web original."}</p>
             </div>
+
+            {/* Enlaces de Interlinking de SEO */}
+            {detectedTec && tecLabel && (
+              <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-100 text-sm text-gray-600 leading-relaxed mb-8">
+                <span className="font-bold text-gray-700 block mb-1">🔍 Búsquedas Relacionadas:</span>
+                ¿Buscas más oportunidades? Explora ofertas de{" "}
+                <Link href={sectorUrl!} className="text-indigo-600 hover:text-indigo-800 font-semibold hover:underline capitalize">
+                  {tecLabel}
+                </Link>
+                {job.location && (
+                  <>
+                    {" "}o empleos de{" "}
+                    <Link href={sectorLocationUrl!} className="text-indigo-600 hover:text-indigo-800 font-semibold hover:underline capitalize">
+                      {tecLabel} {isRemoteLoc ? 'en remoto' : `en ${job.location}`}
+                    </Link>
+                  </>
+                )}
+                . También puedes ver todas las ofertas de y para{" "}
+                <Link href="/trabajos/informatica-tecnologia" className="text-indigo-600 hover:text-indigo-800 font-semibold hover:underline">
+                  Informática y Tecnología
+                </Link>.
+              </div>
+            )}
 
             {/* Bootcamp recomendado según la tecnología de la oferta */}
             <CourseAffiliate title={job.title} />

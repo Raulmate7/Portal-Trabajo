@@ -85,12 +85,30 @@ export default function RootLayout({
     <html lang="es">
       <head>
         {adsenseClientId && (
-          <Script
-            async
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClientId}`}
-            crossOrigin="anonymous"
-            strategy="lazyOnload"
-          />
+          <Script id="adsense-lazy" strategy="afterInteractive">
+            {`
+              (function() {
+                let adsenseLoaded = false;
+                function loadAdSense() {
+                  if (adsenseLoaded) return;
+                  adsenseLoaded = true;
+                  const script = document.createElement('script');
+                  script.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClientId}";
+                  script.crossOrigin = "anonymous";
+                  script.async = true;
+                  document.head.appendChild(script);
+                  
+                  // Limpiar escuchadores
+                  window.removeEventListener('scroll', loadAdSense);
+                  window.removeEventListener('mousemove', loadAdSense);
+                  window.removeEventListener('touchstart', loadAdSense);
+                }
+                window.addEventListener('scroll', loadAdSense, { passive: true });
+                window.addEventListener('mousemove', loadAdSense, { passive: true });
+                window.addEventListener('touchstart', loadAdSense, { passive: true });
+              })();
+            `}
+          </Script>
         )}
       </head>
       <body className={`${inter.className} min-h-screen flex flex-col bg-gray-50 text-gray-900`}>
