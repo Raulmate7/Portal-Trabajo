@@ -11,8 +11,31 @@ export const metadata: Metadata = {
 };
 
 export default function BlogPage() {
+  const blogJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Blog',
+    'name': 'Blog de Empleo Tech | Portal Trabajo',
+    'description': 'Consejos, guías salariales y recursos para encontrar trabajo como programador en España.',
+    'url': 'https://portal-trabajo.vercel.app/blog',
+    'blogPost': BLOG_POSTS.map(post => ({
+      '@type': 'BlogPosting',
+      'headline': post.title,
+      'description': post.excerpt,
+      'datePublished': new Date(post.date).toISOString(),
+      'url': `https://portal-trabajo.vercel.app/blog/${post.slug}`,
+      'author': {
+        '@type': 'Person',
+        'name': post.author
+      }
+    }))
+  };
+
   return (
     <div className="container mx-auto px-4 py-12 max-w-5xl min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogJsonLd) }}
+      />
       <h1 className="text-4xl font-bold mb-4 text-gray-900">Blog de Empleo Tech</h1>
       <p className="text-xl text-gray-600 mb-12">Recursos, guías y consejos para potenciar tu carrera en tecnología.</p>
 

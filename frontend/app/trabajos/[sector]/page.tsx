@@ -159,6 +159,21 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     openGraph: {
       title: `${tituloBase} — ${jobCount > 0 ? `${jobCount} Vacantes Disponibles` : 'Vacantes Urgentes'}`,
       description: `Listado actualizado de ${descBase.toLowerCase()}.`,
+      url: `https://portal-trabajo.vercel.app/trabajos/${sectorSlug}`,
+      images: [
+        {
+          url: `https://portal-trabajo.vercel.app/trabajos/${sectorSlug}/opengraph-image`,
+          width: 1200,
+          height: 630,
+          alt: `${tituloBase}`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${tituloBase} — ${jobCount > 0 ? `${jobCount} Vacantes Disponibles` : 'Vacantes Urgentes'}`,
+      description: `Listado de ${descBase.toLowerCase()}.`,
+      images: [`https://portal-trabajo.vercel.app/trabajos/${sectorSlug}/opengraph-image`],
     },
     robots: {
       index: !isThinPage,

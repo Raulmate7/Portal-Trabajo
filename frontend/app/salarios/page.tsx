@@ -57,6 +57,7 @@ export default function SalariosPage() {
   const [data, setData] = useState<SalaryData | null>(null);
   const [loading, setLoading] = useState(false);
   const [queried, setQueried] = useState(false);
+  const [copiedShare, setCopiedShare] = useState(false);
 
   const techLabel = TECH_OPTIONS.find(t => t.value === tech)?.label?.replace(/^.{2}\s/, '') || 'IT';
   const locLabel = LOCATION_OPTIONS.find(l => l.value === location)?.label?.replace(/^.{2}\s/, '') || 'España';
@@ -195,6 +196,34 @@ export default function SalariosPage() {
                         style={{ left: `calc(${rangePercent}% - 6px)` }}
                       />
                     </div>
+                  </div>
+
+                  {/* Botón de Compartir */}
+                  <div className="mt-6 pt-6 border-t border-indigo-800/60 flex justify-center">
+                    <button
+                      onClick={async () => {
+                        const url = `${window.location.origin}/salarios?tech=${tech}&location=${location}&experience=${experience}`;
+                        const shareText = `El salario medio para ${techLabel}${expLabel ? ` ${expLabel}` : ''} en ${locLabel} es de ${formatEur(data.average)} según Portal Trabajo IT. ¡Calcula el tuyo!`;
+                        if (navigator.share) {
+                          try {
+                            await navigator.share({
+                              title: 'Calculadora de Salarios IT',
+                              text: shareText,
+                              url: url,
+                            });
+                          } catch (e) {}
+                        } else {
+                          try {
+                            await navigator.clipboard.writeText(url);
+                            setCopiedShare(true);
+                            setTimeout(() => setCopiedShare(false), 2000);
+                          } catch (e) {}
+                        }
+                      }}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 active:scale-95 transition-all text-sm font-bold text-white border border-white/10 cursor-pointer"
+                    >
+                      {copiedShare ? '✅ Enlace Copiado' : '📤 Compartir Resultado'}
+                    </button>
                   </div>
                 </div>
 

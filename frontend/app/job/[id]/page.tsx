@@ -453,10 +453,42 @@ export default async function JobPage({ params }: Props) {
     ]
   };
 
+  const faqJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    'mainEntity': [
+      {
+        '@type': 'Question',
+        'name': `¿Hay vacantes de ${displayTitle} en ${job.company || 'esta empresa'} actualmente?`,
+        'acceptedAnswer': {
+          '@type': 'Answer',
+          'text': `Sí, la oferta para ${displayTitle} en ${job.company || 'la empresa'} está disponible y activa en nuestro portal.`
+        }
+      },
+      {
+        '@type': 'Question',
+        'name': `¿Cuál es el salario para el puesto de ${displayTitle}?`,
+        'acceptedAnswer': {
+          '@type': 'Answer',
+          'text': `El salario para esta oferta de empleo es de ${job.salary && job.salary !== 'Consultar' ? job.salary : 'a consultar directamente con la empresa contratante'}.`
+        }
+      },
+      {
+        '@type': 'Question',
+        'name': `¿Dónde está ubicado el puesto de trabajo de ${displayTitle}?`,
+        'acceptedAnswer': {
+          '@type': 'Answer',
+          'text': `El empleo está ubicado en ${job.location || 'remoto (teletrabajo)'}.`
+        }
+      }
+    ]
+  };
+
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-4 md:px-8">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
 
       <div className="max-w-5xl mx-auto">
         <Breadcrumbs 

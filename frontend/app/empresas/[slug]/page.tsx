@@ -6,6 +6,7 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 import Link from "next/link";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
+import ShareButton from "@/components/ShareButton";
 
 export const revalidate = 60;
 
@@ -118,7 +119,22 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     openGraph: {
       title: `Ofertas de Empleo en ${companyName} - Vacantes Recientes`,
       description: `Listado actualizado de ofertas de trabajo en ${companyName}.`,
-    }
+      url: `https://portal-trabajo.vercel.app/empresas/${slug}`,
+      images: [
+        {
+          url: `https://portal-trabajo.vercel.app/empresas/${slug}/opengraph-image`,
+          width: 1200,
+          height: 630,
+          alt: `Ofertas de empleo en ${companyName}`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `Ofertas de Empleo en ${companyName} - Vacantes Recientes`,
+      description: `Listado actualizado de ofertas de trabajo en ${companyName}.`,
+      images: [`https://portal-trabajo.vercel.app/empresas/${slug}/opengraph-image`],
+    },
   };
 }
 
@@ -177,10 +193,13 @@ export default async function CompanyPage({ params, searchParams }: Props) {
 
       <Breadcrumbs items={breadcrumbItems} />
       
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <h1 className="text-3xl font-extrabold text-gray-900">
-          Empleo en {companyName}
-        </h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="flex flex-wrap items-center gap-3.5">
+          <h1 className="text-3xl font-extrabold text-gray-900">
+            Empleo en {companyName}
+          </h1>
+          <ShareButton title={`Empleo en ${companyName}`} company={companyName} />
+        </div>
         <Link href="/" className="text-indigo-600 hover:underline text-sm font-medium">
           ← Buscar otras ofertas
         </Link>

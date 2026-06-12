@@ -13,6 +13,25 @@ export const metadata: Metadata = {
   alternates: {
     canonical: '/empresas',
   },
+  openGraph: {
+    title: 'Directorio de Empresas IT en España | Portal Trabajo',
+    description: 'Explora las principales empresas que contratan programadores y profesionales de informática en España.',
+    url: 'https://portal-trabajo.vercel.app/empresas',
+    images: [
+      {
+        url: 'https://portal-trabajo.vercel.app/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Directorio de Empresas IT en España',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Directorio de Empresas IT en España | Portal Trabajo',
+    description: 'Explora las principales empresas que contratan programadores en España.',
+    images: ['https://portal-trabajo.vercel.app/og-image.png'],
+  },
 };
 
 interface CompanyRow {
