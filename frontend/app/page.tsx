@@ -1,3 +1,4 @@
+import { Metadata } from "next";
 import Link from "next/link";
 import pool from "@/lib/db";
 import SearchFilters from "./components/SearchFilters";
@@ -88,6 +89,46 @@ async function getJobsCount() {
   } finally {
     client.release();
   }
+}
+
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const resolvedParams = await searchParams;
+  const q = typeof resolvedParams.q === 'string' ? resolvedParams.q.trim() : '';
+  const loc = typeof resolvedParams.location === 'string' ? resolvedParams.location.trim() : '';
+
+  if (!q && !loc) {
+    return {}; // Usa metadatos globales por defecto de layout.tsx
+  }
+
+  let titleText = 'Ofertas de Empleo';
+  if (q) {
+    titleText += ` de ${q}`;
+  }
+  if (loc) {
+    const formattedLoc = loc.charAt(0).toUpperCase() + loc.slice(1);
+    titleText += ` en ${formattedLoc}`;
+  }
+
+  const descText = `Encuentra las mejores ofertas de trabajo y vacantes${q ? ` de ${q}` : ''}${loc ? ` en ${loc}` : ''} en España actualizadas hoy.`;
+  const canonicalUrl = `https://portal-trabajo.vercel.app/?q=${encodeURIComponent(q)}&location=${encodeURIComponent(loc)}`;
+
+  return {
+    title: `${titleText} | Portal Trabajo IT`,
+    description: descText,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title: `${titleText} | Portal Trabajo IT`,
+      description: descText,
+      url: canonicalUrl,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${titleText} | Portal Trabajo IT`,
+      description: descText,
+    }
+  };
 }
 
 export default async function Home({ searchParams }: Props) {

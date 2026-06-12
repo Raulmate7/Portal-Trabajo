@@ -699,6 +699,52 @@ export default async function JobPage({ params }: Props) {
             </div>
           </div>
         </div>
+
+        {/* Enlaces de Interlinking Popular */}
+        <div className="mt-12 pt-8 border-t border-gray-200">
+          <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4">
+            🔍 Empleos IT más buscados
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-xs text-gray-500">
+            <div>
+              <h4 className="font-semibold text-gray-700 mb-2">Tecnologías Principales</h4>
+              <ul className="space-y-2">
+                <li><Link href="/trabajos/react" className="hover:text-indigo-650 hover:underline">Ofertas de React</Link></li>
+                <li><Link href="/trabajos/node" className="hover:text-indigo-650 hover:underline">Ofertas de Node.js</Link></li>
+                <li><Link href="/trabajos/python" className="hover:text-indigo-650 hover:underline">Ofertas de Python</Link></li>
+                <li><Link href="/trabajos/java" className="hover:text-indigo-650 hover:underline">Ofertas de Java</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-700 mb-2">Infraestructura y DevOps</h4>
+              <ul className="space-y-2">
+                <li><Link href="/trabajos/aws" className="hover:text-indigo-650 hover:underline">Ofertas de AWS</Link></li>
+                <li><Link href="/trabajos/docker" className="hover:text-indigo-650 hover:underline">Ofertas de Docker</Link></li>
+                <li><Link href="/trabajos/kubernetes" className="hover:text-indigo-650 hover:underline">Ofertas de Kubernetes</Link></li>
+                <li><Link href="/trabajos/cloud" className="hover:text-indigo-650 hover:underline">Ofertas de Cloud Computing</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-700 mb-2">Empleos por Ubicación</h4>
+              <ul className="space-y-2">
+                <li><Link href="/trabajos/informatica-tecnologia-remoto" className="hover:text-indigo-650 hover:underline">Trabajo 100% Remoto</Link></li>
+                <li><Link href="/trabajos/informatica-tecnologia-en-madrid" className="hover:text-indigo-650 hover:underline">Trabajo en Madrid</Link></li>
+                <li><Link href="/trabajos/informatica-tecnologia-en-barcelona" className="hover:text-indigo-650 hover:underline">Trabajo en Barcelona</Link></li>
+                <li><Link href="/trabajos/informatica-tecnologia-en-valencia" className="hover:text-indigo-650 hover:underline">Trabajo en Valencia</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-700 mb-2">Otros Enlaces de Interés</h4>
+              <ul className="space-y-2">
+                <li><Link href="/salarios" className="hover:text-indigo-650 hover:underline font-bold text-indigo-600">Calculadora de Salarios IT</Link></li>
+                <li><Link href="/empresas" className="hover:text-indigo-650 hover:underline">Directorio de Empresas</Link></li>
+                <li><Link href="/blog" className="hover:text-indigo-650 hover:underline">Consejos de Empleo (Blog)</Link></li>
+                <li><Link href="/talento-premium" className="hover:text-indigo-650 hover:underline">Registrarme como Candidato</Link></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
       </div>
     </main>
   );
