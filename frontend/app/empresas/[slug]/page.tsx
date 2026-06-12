@@ -156,7 +156,7 @@ export default async function CompanyPage({ params, searchParams }: Props) {
 
   const breadcrumbItems = [
     { label: 'Inicio', href: '/' },
-    { label: 'Empresas', href: '#' },
+    { label: 'Empresas', href: '/empresas' },
     { label: companyName }
   ];
 
