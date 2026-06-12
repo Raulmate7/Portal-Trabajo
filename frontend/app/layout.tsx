@@ -4,7 +4,6 @@ import "./globals.css";
 import CookieBanner from "@/components/CookieBanner";
 import Footer from "@/components/Footer";
 import { Analytics } from "@vercel/analytics/react";
-import Script from "next/script";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -85,37 +84,67 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
-        {adsenseClientId && (
-          <Script
-            async
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClientId}`}
-            crossOrigin="anonymous"
-            strategy="afterInteractive"
-          />
-        )}
-        {onesignalAppId && (
-          <>
-            <Script
-              src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
-              defer
-              strategy="afterInteractive"
-            />
-            <Script id="onesignal-init" strategy="afterInteractive">
-              {`
-                window.OneSignalDeferred = window.OneSignalDeferred || [];
-                window.OneSignalDeferred.push(async function(OneSignal) {
-                  await OneSignal.init({
-                    appId: "${onesignalAppId}",
-                    safari_web_id: "web.onesignal.auto.portaltrabajo",
-                    notifyButton: {
-                      enable: false,
-                    },
-                  });
-                });
-              `}
-            </Script>
-          </>
-        )}
+        <script
+          id="third-party-lazy-load"
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                var adsenseId = ${adsenseClientId ? `"${adsenseClientId}"` : 'null'};
+                var onesignalId = ${onesignalAppId ? `"${onesignalAppId}"` : 'null'};
+                var loaded = false;
+
+                function loadThirdParty() {
+                  if (loaded) return;
+                  loaded = true;
+
+                  // Quitar listeners
+                  window.removeEventListener('scroll', loadThirdParty);
+                  window.removeEventListener('mousemove', loadThirdParty);
+                  window.removeEventListener('touchstart', loadThirdParty);
+                  window.removeEventListener('keydown', loadThirdParty);
+
+                  // Inyectar AdSense
+                  if (adsenseId) {
+                    var ads = document.createElement('script');
+                    ads.async = true;
+                    ads.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + adsenseId;
+                    ads.crossOrigin = 'anonymous';
+                    document.head.appendChild(ads);
+                  }
+
+                  // Inyectar OneSignal
+                  if (onesignalId) {
+                    var os = document.createElement('script');
+                    os.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
+                    os.defer = true;
+                    os.onload = function() {
+                      window.OneSignalDeferred = window.OneSignalDeferred || [];
+                      window.OneSignalDeferred.push(async function(OneSignal) {
+                        await OneSignal.init({
+                          appId: onesignalId,
+                          safari_web_id: "web.onesignal.auto.portaltrabajo",
+                          notifyButton: {
+                            enable: false,
+                          },
+                        });
+                      });
+                    };
+                    document.head.appendChild(os);
+                  }
+                }
+
+                // Registrar listeners para interacción del usuario
+                window.addEventListener('scroll', loadThirdParty, { passive: true });
+                window.addEventListener('mousemove', loadThirdParty, { passive: true });
+                window.addEventListener('touchstart', loadThirdParty, { passive: true });
+                window.addEventListener('keydown', loadThirdParty, { passive: true });
+
+                // Carga diferida en 4 segundos como salvaguarda
+                setTimeout(loadThirdParty, 4000);
+              })();
+            `
+          }}
+        />
       </head>
       <body className={`${inter.className} min-h-screen flex flex-col bg-gray-50 text-gray-900`}>
         <div className="flex-grow">

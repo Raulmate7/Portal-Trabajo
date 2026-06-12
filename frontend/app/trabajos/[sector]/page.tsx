@@ -150,11 +150,28 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const countText = jobCount > 0 ? `${jobCount} ` : '';
   const tituloSeo = `${countText}${tituloBase} [${mes.charAt(0).toUpperCase() + mes.slice(1)} ${anio}]`;
   
+  const rssParams = new URLSearchParams();
+  if (dbCategory) {
+    rssParams.set('category', dbCategory);
+  } else if (tec && tec !== 'informatica-tecnologia') {
+    rssParams.set('q', tec);
+  }
+  if (ciudad) {
+    rssParams.set('location', ciudad);
+  }
+  const rssQueryString = rssParams.toString();
+  const rssUrl = rssQueryString 
+    ? `https://portal-trabajo.vercel.app/feed.xml?${rssQueryString}`
+    : 'https://portal-trabajo.vercel.app/feed.xml';
+
   return {
     title: `${tituloSeo} | Portal Trabajo`,
     description: `${descBase} actualizadas hoy. ${jobCount > 0 ? `${jobCount} vacantes disponibles ahora.` : 'Recopilamos ofertas de las mejores empresas tecnológicas.'}`,
     alternates: {
       canonical: `/trabajos/${sectorSlug}`,
+      types: {
+        'application/rss+xml': rssUrl,
+      },
     },
     openGraph: {
       title: `${tituloBase} — ${jobCount > 0 ? `${jobCount} Vacantes Disponibles` : 'Vacantes Urgentes'}`,
