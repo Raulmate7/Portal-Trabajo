@@ -79,6 +79,60 @@ function textToHtml(text: string | null | undefined): string {
     .replace(/(<li>.*?<\/li>)+/g, '<ul>$&</ul>');
 }
 
+function autoLinkDescription(desc: string | null | undefined): string {
+  if (!desc) return '';
+  
+  let escaped = desc
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+    
+  const keywords = [
+    { name: 'React', slug: 'react' },
+    { name: 'Angular', slug: 'angular' },
+    { name: 'Vue', slug: 'vue' },
+    { name: 'Node.js', slug: 'node' },
+    { name: 'Nodejs', slug: 'node' },
+    { name: 'Python', slug: 'python' },
+    { name: 'Java', slug: 'java' },
+    { name: 'TypeScript', slug: 'typescript' },
+    { name: 'JavaScript', slug: 'javascript' },
+    { name: 'Docker', slug: 'docker' },
+    { name: 'Kubernetes', slug: 'kubernetes' },
+    { name: 'Next.js', slug: 'nextjs' },
+    { name: 'Nextjs', slug: 'nextjs' },
+    { name: 'Flutter', slug: 'flutter' },
+    { name: 'Kotlin', slug: 'kotlin' },
+    { name: 'Swift', slug: 'swift' },
+    { name: 'SQL', slug: 'sql' },
+    { name: 'DevOps', slug: 'cloud' },
+    { name: 'AWS', slug: 'aws' },
+    { name: 'Ciberseguridad', slug: 'cybersecurity' },
+    { name: 'Cybersecurity', slug: 'cybersecurity' }
+  ];
+
+  const sortedKeywords = [...keywords].sort((a, b) => b.name.length - a.name.length);
+
+  for (const kw of sortedKeywords) {
+    const regex = new RegExp(`(?<![\\w\\-\\/])(${kw.name.replace('.', '\\.')})(?![\\w\\-\\/])`, 'i');
+    const match = escaped.match(regex);
+    if (match) {
+      const matchedText = match[0];
+      const placeholder = `___LINK_${kw.slug}_START___${matchedText}___LINK_${kw.slug}_END___`;
+      escaped = escaped.replace(regex, placeholder);
+    }
+  }
+
+  for (const kw of sortedKeywords) {
+    const regexPlaceholder = new RegExp(`___LINK_${kw.slug}_START___(.*?)___LINK_${kw.slug}_END___`, 'g');
+    escaped = escaped.replace(regexPlaceholder, `<a href="/trabajos/${kw.slug}" class="text-indigo-600 hover:text-indigo-800 font-bold hover:underline">$1</a>`);
+  }
+
+  return escaped;
+}
+
 function detectTechnology(title: string, desc: string): string | null {
   const text = `${title} ${desc}`.toLowerCase();
   for (const tec of TECNOLOGIAS) {
@@ -547,8 +601,12 @@ export default async function JobPage({ params }: Props) {
 
           <div className="p-6 md:p-8">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Descripción del puesto</h2>
-            <div className="prose max-w-none text-gray-600 mb-8 leading-relaxed">
-              <p className="whitespace-pre-line">{displayDesc || "Ver detalles en la web original."}</p>
+            <div className="prose max-w-none text-gray-650 mb-8 leading-relaxed">
+              {displayDesc ? (
+                <p className="whitespace-pre-line" dangerouslySetInnerHTML={{ __html: autoLinkDescription(displayDesc) }} />
+              ) : (
+                <p className="whitespace-pre-line">Ver detalles en la web original.</p>
+              )}
               {hasTranslation && (
                 <p className="text-xs text-gray-400 italic mt-6 border-t border-gray-100 pt-3 flex items-center gap-1.5">
                   <span>🤖</span> Oferta traducida automáticamente al español. <a href={job.url_source} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800 hover:underline font-semibold">Ver original</a>

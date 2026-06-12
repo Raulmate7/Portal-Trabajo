@@ -7,6 +7,20 @@ export const metadata: Metadata = {
     title: 'Calculadora de Salarios IT — ¿Cuánto cobran los programadores en España?',
     description: 'Datos reales de salarios tech en España: React, Python, Java, Cloud y más. Filtra por tecnología, ciudad y experiencia.',
     url: 'https://portal-trabajo.vercel.app/salarios',
+    images: [
+      {
+        url: 'https://portal-trabajo.vercel.app/salarios/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'Calculadora de Salarios IT en España',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Calculadora de Salarios IT en España [2026] | Portal Trabajo',
+    description: 'Descubre cuánto cobra un programador en España.',
+    images: ['https://portal-trabajo.vercel.app/salarios/opengraph-image'],
   },
   alternates: {
     canonical: '/salarios',
