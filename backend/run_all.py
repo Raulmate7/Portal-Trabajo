@@ -41,6 +41,10 @@ exit_code = os.system(f"{python_bin} index_new_jobs.py")
 if exit_code != 0:
     print("⚠️ Advertencia: El script de indexación terminó con errores.")
 
+# 5.5 Ping a Google Sitemap
+print("\n[5.5/7] 📡 Avisando a Google del nuevo Sitemap (ping_sitemap.py)...")
+os.system(f"{python_bin} ping_sitemap.py")
+
 # 6. Desactivar y Desindexar ofertas expiradas (>30 días)
 print("\n[6/7] 🧹 Limpiando y desindexando ofertas expiradas (deactivate_expired_jobs.py)...")
 exit_code = os.system(f"{python_bin} deactivate_expired_jobs.py")

@@ -5,6 +5,7 @@ import { getPostBySlug, BLOG_POSTS } from '@/lib/blog';
 import AdBanner from '@/components/AdBanner';
 import SubscribeForm from '@/components/SubscribeForm';
 import pool from '@/lib/db';
+import { Markdown } from '@/lib/markdown';
 
 export const revalidate = 3600;
 
@@ -32,6 +33,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       type: 'article',
       publishedTime: post.date,
       authors: [post.author],
+      images: [
+        {
+          url: `/blog/${resolvedParams.slug}/opengraph-image`,
+          width: 1200,
+          height: 630,
+          alt: post.title,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description: post.excerpt,
+      images: [`/blog/${resolvedParams.slug}/opengraph-image`],
     },
   };
 }
@@ -120,20 +135,7 @@ export default async function BlogPostPage({ params }: Props) {
               </header>
 
               <div className="prose prose-indigo max-w-none text-gray-700 leading-relaxed text-lg mb-8">
-                {/* Parseamos básico de markdown simulado (solo saltos de línea, negritas y encabezados) */}
-                {post.content.split('\n').map((paragraph, idx) => {
-                  if (paragraph.startsWith('## ')) {
-                    return <h2 key={idx} className="text-2xl font-bold text-gray-900 mt-8 mb-4">{paragraph.replace('## ', '')}</h2>;
-                  }
-                  if (paragraph.startsWith('* ')) {
-                    return <li key={idx} className="ml-4 mb-2" dangerouslySetInnerHTML={{__html: paragraph.replace('* ', '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}} />;
-                  }
-                  if (paragraph.trim() === '') return null;
-                  
-                  return (
-                    <p key={idx} className="mb-4" dangerouslySetInnerHTML={{__html: paragraph.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}} />
-                  );
-                })}
+                <Markdown content={post.content} />
               </div>
 
               {relatedJobs.length > 0 && (

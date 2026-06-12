@@ -33,10 +33,10 @@ class TestTelegramBot(unittest.TestCase):
             # Verificar que se imprimió la búsqueda y envío
             mock_print.assert_any_call("📢 Iniciando difusión GENERAL (Sin filtros de usuario)...")
             mock_print.assert_any_call("🚀 Encontradas 2 ofertas. Enviando al canal público...")
-            mock_print.assert_any_call("\n🎉 Telegram: 2 enviados, 0 fallidos.")
+            mock_print.assert_any_call("✅ Mensaje agrupado enviado con éxito a Telegram.")
 
-        # Debe haber hecho 3 llamadas a requests.post: 2 para ofertas + 1 de resumen final
-        self.assertEqual(mock_post.call_count, 3)
+        # Debe haber hecho 1 llamada a requests.post para el mensaje unificado
+        self.assertEqual(mock_post.call_count, 1)
 
     @patch('telegram_bot.psycopg2.connect')
     @patch.dict('os.environ', {

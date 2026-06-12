@@ -93,13 +93,29 @@ function slugify(text: string) {
     .replace(/-+$/, '');            // Quita guión final
 }
 
+function detectExperienceForSitemap(title: string, snippet: string | null): string[] {
+  const matched: string[] = [];
+  const text = `${title} ${snippet || ''}`.toLowerCase();
+  
+  if (text.includes('junior') || text.includes(' jr ') || text.includes('trainee') || text.includes('becario') || text.includes('prácticas') || text.includes('sin experiencia')) {
+    matched.push('junior');
+    matched.push('sin-experiencia');
+  }
+  
+  if (text.includes('senior') || text.includes(' sr ') || text.includes('lead') || text.includes('principal') || text.includes('staff')) {
+    matched.push('senior');
+  }
+  
+  return Array.from(new Set(matched));
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let jobs: any[] = [];
   let companies: any[] = [];
 
   try {
     // 1. Cogemos las últimas 2000 ofertas para no sobrecargar (con más campos para detectar tecnologías/ciudades activas)
-    const jobsRes = await pool.query("SELECT id, title, category, location, created_at FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 2000");
+    const jobsRes = await pool.query("SELECT id, title, category, location, description_snippet, created_at FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 2000");
     jobs = jobsRes.rows;
     // 2. Extraemos marcas únicas
     const compRes = await pool.query("SELECT DISTINCT company FROM jobs WHERE company IS NOT NULL AND company != 'Desconocida'");
@@ -114,6 +130,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const job of jobs) {
     const techs = detectTechForSitemap(job.title || '', job.category || null);
     const city = detectCityForSitemap(job.location);
+    const exps = detectExperienceForSitemap(job.title || '', job.description_snippet || null);
     
     for (const tech of techs) {
       // 1. Añadir la página principal de la tecnología (ej: /trabajos/react)
@@ -125,6 +142,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           activeProgrammaticPages.add(`/trabajos/${tech}-remoto`);
         } else {
           activeProgrammaticPages.add(`/trabajos/${tech}-en-${city}`);
+        }
+      }
+      
+      // 3. Añadir permutaciones de experiencia
+      for (const exp of exps) {
+        activeProgrammaticPages.add(`/trabajos/${tech}-${exp}`);
+        if (city) {
+          if (city === 'remoto') {
+            activeProgrammaticPages.add(`/trabajos/${tech}-${exp}-remoto`);
+          } else {
+            activeProgrammaticPages.add(`/trabajos/${tech}-${exp}-en-${city}`);
+          }
         }
       }
     }

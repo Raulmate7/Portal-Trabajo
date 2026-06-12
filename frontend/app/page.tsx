@@ -3,6 +3,7 @@ import pool from "@/lib/db";
 import SearchFilters from "./components/SearchFilters";
 import AdBanner from "@/components/AdBanner";
 import FeaturedJobCard from "@/components/FeaturedJobCard";
+import PushSubscribe from "@/components/PushSubscribe";
 import { Suspense } from "react";
 
 // Caching ISR (Incremental Static Regeneration) de 5 minutos para maximizar rendimiento y Core Web Vitals
@@ -103,8 +104,42 @@ export default async function Home({ searchParams }: Props) {
     getJobsCount()
   ]);
 
+  const websiteJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    'name': 'Portal Trabajo IT',
+    'url': 'https://portal-trabajo.vercel.app',
+    'potentialAction': {
+      '@type': 'SearchAction',
+      'target': {
+        '@type': 'EntryPoint',
+        'urlTemplate': 'https://portal-trabajo.vercel.app/?q={search_term_string}'
+      },
+      'query-input': 'required name=search_term_string'
+    }
+  };
+
+  const organizationJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    'name': 'Portal Trabajo IT',
+    'url': 'https://portal-trabajo.vercel.app',
+    'logo': 'https://portal-trabajo.vercel.app/favicon.ico',
+    'sameAs': [
+      'https://t.me/PortalDeTrabajo'
+    ]
+  };
+
   return (
     <main className="min-h-screen bg-gray-50">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
       {/* Hero Section Premium con Degradado y Estadísticas en Vivo */}
       <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-850 text-white relative overflow-hidden py-16">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.15),transparent_45%)]"></div>
@@ -134,6 +169,12 @@ export default async function Home({ searchParams }: Props) {
             <Link href="/publicar-oferta" className="bg-gradient-to-r from-green-400 to-emerald-500 text-gray-900 font-extrabold py-2.5 px-6 rounded-xl hover:from-green-300 hover:to-emerald-400 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-green-500/25 flex items-center gap-2">
               <span>🏢</span> Publicar Oferta
             </Link>
+          </div>
+
+          <div className="mt-8 flex justify-center">
+            <div className="w-full max-w-md text-left">
+              <PushSubscribe />
+            </div>
           </div>
         </div>
       </div>
