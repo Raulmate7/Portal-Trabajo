@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: 'Talento Premium — Accede a oportunidades exclusivas | Portal Trabajo IT',
   description:
     'Regístrate como desarrollador Mid/Senior y recibe ofertas de empleo exclusivas con salarios de +45K. Empresas top buscan tu perfil.',
+  alternates: {
+    canonical: '/talento-premium',
+  },
   openGraph: {
     title: 'Talento Premium — Oportunidades exclusivas para Senior Devs',
     description:

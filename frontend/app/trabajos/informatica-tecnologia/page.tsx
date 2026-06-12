@@ -7,8 +7,23 @@ import SubscribeForm from '@/components/SubscribeForm';
 import AdBanner from '@/components/AdBanner';
 import PushSubscribe from '@/components/PushSubscribe';
 import Link from 'next/link';
+import { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'Ofertas de Empleo Informática y Tecnología en España [2026] | Portal Trabajo IT',
+  description:
+    'Encuentra las mejores ofertas de trabajo en informática y tecnología en España. Vacantes de programación, desarrollo de software, DevOps, Data Science, Cloud y más. Actualizado cada 6 horas.',
+  alternates: {
+    canonical: '/trabajos/informatica-tecnologia',
+  },
+  openGraph: {
+    title: 'Ofertas de Empleo IT en España — Vacantes Actualizadas',
+    description:
+      'Listado actualizado de ofertas de trabajo para programadores y profesionales IT en España. Java, Python, React, DevOps y más.',
+  },
+};
 
 type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>

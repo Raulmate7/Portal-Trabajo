@@ -7,6 +7,9 @@ export const metadata: Metadata = {
   title: 'Publicar Oferta de Empleo IT — Llega a miles de desarrolladores',
   description:
     'Publica tu oferta de trabajo en Portal Trabajo IT y llega a miles de programadores activos en España. Planes desde 0€. Ofertas destacadas con máxima visibilidad.',
+  alternates: {
+    canonical: '/publicar-oferta',
+  },
   openGraph: {
     title: 'Publicar Oferta de Empleo IT — Portal Trabajo IT',
     description:

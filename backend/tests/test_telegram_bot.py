@@ -16,8 +16,8 @@ class TestTelegramBot(unittest.TestCase):
         mock_conn = MagicMock()
         mock_cursor = MagicMock()
         mock_cursor.fetchall.return_value = [
-            ('id-1', 'Senior Backend Developer', 'Google', 'Remoto (Mundial)', '60,000 - 80,000 EUR'),
-            ('id-2', 'Frontend Developer React', 'Meta', 'Madrid, España', 'Consultar')
+            ('id-1', 'Senior Backend Developer', 'Google', 'Remoto (Mundial)', '60,000 - 80,000 EUR', 'Backend'),
+            ('id-2', 'Frontend Developer React', 'Meta', 'Madrid, España', 'Consultar', 'Frontend')
         ]
         mock_conn.cursor.return_value = mock_cursor
         mock_db_connect.return_value = mock_conn

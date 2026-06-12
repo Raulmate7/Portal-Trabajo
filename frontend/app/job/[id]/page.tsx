@@ -62,6 +62,23 @@ function slugify(text: string) {
     .replace(/-+$/, '');            // Quita guión final
 }
 
+function textToHtml(text: string | null | undefined): string {
+  if (!text) return '';
+  return text
+    .split('\n')
+    .map(para => {
+      const trimmed = para.trim();
+      if (!trimmed) return '';
+      if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
+        return `<li>${trimmed.substring(1).trim()}</li>`;
+      }
+      return `<p>${trimmed}</p>`;
+    })
+    .filter(Boolean)
+    .join('')
+    .replace(/(<li>.*?<\/li>)+/g, '<ul>$&</ul>');
+}
+
 function detectTechnology(title: string, desc: string): string | null {
   const text = `${title} ${desc}`.toLowerCase();
   for (const tec of TECNOLOGIAS) {
@@ -109,6 +126,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return {
       title: `${titulo} | Portal Empleo`,
       description: desc,
+      alternates: {
+        canonical: `/job/${id}`,
+      },
       robots: {
         index: !isExpired,
         follow: true,
@@ -120,11 +140,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         siteName: 'Agregador de Empleo Tech',
         locale: 'es_ES',
         type: 'website',
+        images: [
+          {
+            url: `${BASE_URL}/job/${id}/opengraph-image`,
+            width: 1200,
+            height: 630,
+            alt: `Oferta de empleo: ${titulo}`,
+          },
+        ],
       },
       twitter: {
-        card: 'summary',
+        card: 'summary_large_image',
         title: titulo,
         description: desc,
+        images: [`${BASE_URL}/job/${id}/opengraph-image`],
       },
     };
   } catch (e) {
@@ -339,11 +368,25 @@ export default async function JobPage({ params }: Props) {
 
   const isWorldwide = cleanLocationForLd.includes('worldwide') || cleanLocationForLd.includes('global') || cleanLocationForLd.includes('anywhere') || cleanLocationForLd.includes('todo el mundo');
 
+  const titleLower = job.title.toLowerCase();
+  let expRequirements = undefined;
+  if (titleLower.includes('junior') || titleLower.includes('jr') || titleLower.includes('sin experiencia')) {
+    expRequirements = {
+      "@type": "OccupationalExperienceRequirements",
+      "monthsOfExperience": 12
+    };
+  } else if (titleLower.includes('senior') || titleLower.includes('sr') || titleLower.includes('lead')) {
+    expRequirements = {
+      "@type": "OccupationalExperienceRequirements",
+      "monthsOfExperience": 36
+    };
+  }
+
   const jsonLd: any = {
     '@context': 'https://schema.org',
     '@type': 'JobPosting',
     title: job.title,
-    description: job.description_snippet || `Oferta de empleo para ${job.title} en ${job.company}`,
+    description: textToHtml(displayDesc) || `Oferta de empleo para ${job.title} en ${job.company}`,
     datePosted: datePosted.toISOString(),
     validThrough: validThroughDate.toISOString(),
     hiringOrganization: { 
@@ -359,7 +402,16 @@ export default async function JobPage({ params }: Props) {
       },
     },
     employmentType: employmentTypes,
+    directApply: true,
   };
+
+  if (tecLabel) {
+    jsonLd.skills = [tecLabel];
+  }
+
+  if (expRequirements) {
+    jsonLd.experienceRequirements = expRequirements;
+  }
 
   if (isRemote) {
     jsonLd.jobLocationType = "TELECOMMUTE";

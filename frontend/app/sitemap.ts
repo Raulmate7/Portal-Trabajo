@@ -13,6 +13,7 @@ const BASE_PAGES = [
   '/trabajos/data',
   '/trabajos/cloud',
   '/trabajos/mobile',
+  '/empresas',
   '/publicar-oferta',
   '/talento-premium',
   '/blog',
@@ -97,15 +98,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let companies: any[] = [];
 
   try {
-    // Intentamos conectar con la base de datos
-    const client = await pool.connect();
     // 1. Cogemos las últimas 2000 ofertas para no sobrecargar (con más campos para detectar tecnologías/ciudades activas)
-    const jobsRes = await client.query("SELECT id, title, category, location, created_at FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 2000");
+    const jobsRes = await pool.query("SELECT id, title, category, location, created_at FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 2000");
     jobs = jobsRes.rows;
     // 2. Extraemos marcas únicas
-    const compRes = await client.query("SELECT DISTINCT company FROM jobs WHERE company IS NOT NULL AND company != 'Desconocida'");
+    const compRes = await pool.query("SELECT DISTINCT company FROM jobs WHERE company IS NOT NULL AND company != 'Desconocida'");
     companies = compRes.rows;
-    client.release();
   } catch (error) {
     console.error("⚠️ Error generando sitemap desde la BD:", error);
     // Dejamos arrays vacíos para que el resto del sitemap se genere correctamente
@@ -116,8 +114,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const job of jobs) {
     const techs = detectTechForSitemap(job.title || '', job.category || null);
     const city = detectCityForSitemap(job.location);
-    if (city) {
-      for (const tech of techs) {
+    
+    for (const tech of techs) {
+      // 1. Añadir la página principal de la tecnología (ej: /trabajos/react)
+      activeProgrammaticPages.add(`/trabajos/${tech}`);
+      
+      // 2. Si tiene ciudad o remoto, añadir la combinación (ej: /trabajos/react-remoto)
+      if (city) {
         if (city === 'remoto') {
           activeProgrammaticPages.add(`/trabajos/${tech}-remoto`);
         } else {

@@ -5,6 +5,9 @@ import { BLOG_POSTS } from '@/lib/blog';
 export const metadata: Metadata = {
   title: 'Blog de Empleo Tech | Portal Trabajo',
   description: 'Consejos, guías salariales y recursos para encontrar trabajo como programador en España.',
+  alternates: {
+    canonical: '/blog',
+  },
 };
 
 export default function BlogPage() {

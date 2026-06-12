@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Calculadora de Salarios IT en España [2025] | Portal Trabajo',
+  title: 'Calculadora de Salarios IT en España [2026] | Portal Trabajo',
   description: 'Descubre cuánto cobra un programador en España. Salarios reales de React, Python, Java, Node.js, DevOps y más. Datos de miles de ofertas de empleo actualizadas.',
   openGraph: {
     title: 'Calculadora de Salarios IT — ¿Cuánto cobran los programadores en España?',
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     url: 'https://portal-trabajo.vercel.app/salarios',
   },
   alternates: {
-    canonical: 'https://portal-trabajo.vercel.app/salarios',
+    canonical: '/salarios',
   },
 };
 

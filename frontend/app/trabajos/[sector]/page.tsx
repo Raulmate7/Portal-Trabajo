@@ -153,6 +153,9 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   return {
     title: `${tituloSeo} | Portal Trabajo`,
     description: `${descBase} actualizadas hoy. ${jobCount > 0 ? `${jobCount} vacantes disponibles ahora.` : 'Recopilamos ofertas de las mejores empresas tecnológicas.'}`,
+    alternates: {
+      canonical: `/trabajos/${sectorSlug}`,
+    },
     openGraph: {
       title: `${tituloBase} — ${jobCount > 0 ? `${jobCount} Vacantes Disponibles` : 'Vacantes Urgentes'}`,
       description: `Listado actualizado de ${descBase.toLowerCase()}.`,

@@ -112,6 +112,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: `Trabajar en ${companyName} | Ofertas de Empleo IT en España`,
     description: `Encuentra ofertas de trabajo activas en ${companyName}. Vacantes de programación, desarrollo de software, salarios estimados y modalidad teletrabajo.`,
+    alternates: {
+      canonical: `/empresas/${slug}`,
+    },
     openGraph: {
       title: `Ofertas de Empleo en ${companyName} - Vacantes Recientes`,
       description: `Listado actualizado de ofertas de trabajo en ${companyName}.`,

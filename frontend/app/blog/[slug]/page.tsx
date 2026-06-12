@@ -23,6 +23,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `${post.title} | Blog Portal Empleo`,
     description: post.excerpt,
+    alternates: {
+      canonical: `/blog/${resolvedParams.slug}`,
+    },
     openGraph: {
       title: post.title,
       description: post.excerpt,

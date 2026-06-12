@@ -104,6 +104,23 @@ def send_newsletter():
                             Registrarme en Talento Premium
                         </a>
                     </div>
+
+                    <!-- Artículo del Blog de la Semana -->
+                    <div style="margin: 24px 0; padding: 20px; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 12px;">
+                        <p style="color: #6366f1; font-size: 10px; text-transform: uppercase; letter-spacing: 2px; margin: 0 0 8px; font-weight: bold;">📖 Artículo de la semana</p>
+                        <h3 style="margin: 0 0 8px; color: #312e81; font-size: 16px;">Guía de salarios para programadores en España (2026)</h3>
+                        <p style="color: #4338ca; font-size: 13px; margin: 0 0 12px;">¿Cuánto deberías cobrar? Analizamos las tendencias salariales para perfiles Junior, Mid y Senior en las principales ciudades.</p>
+                        <a href="{base_url}/blog/guia-salarios-programadores-espana-2026?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal" style="color: #4f46e5; font-size: 13px; font-weight: bold; text-decoration: none;">Leer artículo completo →</a>
+                    </div>
+
+                    <!-- Calculadora de Salarios CTA -->
+                    <div style="margin: 16px 0; padding: 16px; background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 10px; text-align: center;">
+                        <h4 style="margin: 0 0 4px; color: #581c87; font-size: 14px;">💰 ¿Cuánto cobran los programadores en España?</h4>
+                        <p style="margin: 0 0 10px; color: #7c3aed; font-size: 12px;">Usa nuestra calculadora con datos reales de miles de ofertas.</p>
+                        <a href="{base_url}/salarios?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal" style="display: inline-block; background: #7c3aed; color: white; padding: 8px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 13px;">
+                            Calcular mi salario →
+                        </a>
+                    </div>
                 </div>
 
                 <!-- Footer -->
