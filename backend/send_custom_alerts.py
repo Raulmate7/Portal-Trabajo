@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-BASE_URL = os.getenv("FRONTEND_URL", "https://portalempleoit.es")
+BASE_URL = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 

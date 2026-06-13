@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 load_dotenv()
 
 # URL base de tu web — todos los enlaces apuntan aquí para generar tráfico
-BASE_URL = os.getenv("FRONTEND_URL", "https://portalempleoit.es")
+BASE_URL = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
 
 
 def send_to_telegram():

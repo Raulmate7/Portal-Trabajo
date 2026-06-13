@@ -97,7 +97,7 @@ def send_newsletter():
         
         for job in jobs:
             job_id, title, company, location, url_source, _ = job
-            base_url = os.getenv("FRONTEND_URL", "https://portalempleoit.es")
+            base_url = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
             job_link = f"{base_url}/job/{job_id}?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
 
             jobs_html += f"""

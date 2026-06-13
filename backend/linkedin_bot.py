@@ -14,7 +14,7 @@ def run_linkedin_bot():
     access_token = os.getenv("LINKEDIN_ACCESS_TOKEN")
     urn = os.getenv("LINKEDIN_URN") # ej: urn:li:organization:123456 o urn:li:person:abcdef
     db_url = os.getenv("DATABASE_URL")
-    frontend_url = os.getenv("FRONTEND_URL", "https://portalempleoit.es")
+    frontend_url = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
 
     if not access_token or not urn:
         print("⚠️  Faltan credenciales de LinkedIn (LINKEDIN_ACCESS_TOKEN o LINKEDIN_URN) en las variables de entorno.")

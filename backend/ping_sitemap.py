@@ -4,7 +4,7 @@ import urllib.parse
 import os
 
 def ping_google_sitemap():
-    frontend_url = os.getenv("FRONTEND_URL", "https://portalempleoit.es")
+    frontend_url = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
     sitemap_url = f"{frontend_url}/sitemap.xml"
     google_ping_url = f"https://www.google.com/ping?sitemap={urllib.parse.quote(sitemap_url)}"
     

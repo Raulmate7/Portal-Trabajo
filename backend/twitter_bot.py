@@ -13,7 +13,7 @@ TWITTER_API_SECRET = os.getenv("TWITTER_API_SECRET")
 TWITTER_ACCESS_TOKEN = os.getenv("TWITTER_ACCESS_TOKEN")
 TWITTER_ACCESS_SECRET = os.getenv("TWITTER_ACCESS_SECRET")
 DB_URL = os.getenv("DATABASE_URL")
-BASE_URL = os.getenv("FRONTEND_URL", "https://portalempleoit.es")
+BASE_URL = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
 
 if not all([TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET]):
     print("⚠️  Faltan credenciales de Twitter en las variables de entorno. Omitiendo publicación.")
