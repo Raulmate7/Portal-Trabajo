@@ -1,5 +1,5 @@
 import re
-import requests
+from deep_translator import GoogleTranslator
 
 def translate_text(text: str, target_lang: str = 'es') -> str:
     """
@@ -28,35 +28,14 @@ def translate_text(text: str, target_lang: str = 'es') -> str:
         temp_text = text
     
     try:
-        url = "https://translate.googleapis.com/translate_a/single"
-        params = {
-            "client": "gtx",
-            "sl": "auto",
-            "tl": target_lang,
-            "dt": "t",
-            "q": temp_text
-        }
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-        }
-        
-        response = requests.get(url, params=params, headers=headers, timeout=10)
-        if response.status_code == 200:
-            data = response.json()
-            translated_segments = []
-            if data and isinstance(data, list) and len(data) > 0 and data[0]:
-                for segment in data[0]:
-                    if segment and isinstance(segment, list) and len(segment) > 0:
-                        translated_segments.append(segment[0])
-            
-            if translated_segments:
-                translated = "".join(translated_segments)
-                # Restaurar palabras protegidas con su caso original
-                for placeholder, original_word in replacements.items():
-                    translated = re.sub(re.escape(placeholder), original_word, translated, flags=re.IGNORECASE)
-                return translated
+        translated = GoogleTranslator(source='auto', target=target_lang).translate(temp_text)
+        if translated:
+            # Restaurar palabras protegidas con su caso original
+            for placeholder, original_word in replacements.items():
+                translated = re.sub(re.escape(placeholder), original_word, translated, flags=re.IGNORECASE)
+            return translated
     except Exception as e:
-        print(f"⚠️ Error en traducción automática: {e}")
+        print(f"⚠️ Error en traducción automática con deep-translator: {e}")
         
     return text
 

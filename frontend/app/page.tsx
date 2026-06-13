@@ -83,7 +83,7 @@ async function getFeaturedJobs(query: string, location: string) {
 async function getJobsCount() {
   const client = await pool.connect();
   try {
-    const result = await client.query("SELECT COUNT(*) FROM jobs WHERE is_active = TRUE");
+    const result = await client.query("SELECT COUNT(*) FROM jobs WHERE is_active = TRUE AND (is_featured = FALSE OR is_featured IS NULL)");
     return parseInt(result.rows[0].count, 10);
   } catch (error) {
     console.error("Error counting jobs:", error);

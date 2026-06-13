@@ -5,6 +5,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+from logic.slug import get_job_slug
 
 load_dotenv()
 
@@ -37,7 +38,7 @@ def build_welcome_email(email, tech_keywords, jobs):
     if jobs:
         for job in jobs:
             job_id, title, company, location, salary = job
-            job_link = f"{BASE_URL}/job/{job_id}?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_1"
+            job_link = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_1"
             sal_text = f" | 💰 {salary}" if salary and salary not in ("Consultar", "") else ""
             jobs_html += f"""
             <div style="margin-bottom: 12px; padding: 12px; background: #f8faff; border-left: 4px solid #4f46e5; border-radius: 4px;">

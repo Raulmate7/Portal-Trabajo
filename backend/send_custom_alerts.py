@@ -5,6 +5,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+from logic.slug import get_job_slug
 
 load_dotenv()
 
@@ -49,7 +50,7 @@ def build_job_html(jobs):
     html = ""
     for job in jobs:
         job_id, title, company, location, url_source, salary = job
-        job_link = f"{BASE_URL}/job/{job_id}?utm_source=alert&utm_medium=email&utm_campaign=custom_alert"
+        job_link = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=alert&utm_medium=email&utm_campaign=custom_alert"
         salary_text = f"💰 {salary}" if salary and salary not in ("Consultar", None) else ""
 
         html += f"""

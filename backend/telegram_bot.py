@@ -2,6 +2,7 @@ import os
 import time
 import requests
 import psycopg2
+from logic.slug import get_job_slug
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from collections import defaultdict
@@ -104,7 +105,7 @@ def send_to_telegram():
             message += f"📁 <b>{cat}</b>\n"
             for job in cat_jobs:
                 job_id, title, company, location, salary, _ = job
-                job_url = f"{BASE_URL}/job/{job_id}"
+                job_url = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}"
                 title_clean = title.replace('<', '').replace('>', '')
                 company_clean = company.replace('<', '').replace('>', '') if company else "Desconocida"
                 message += f"▪️ <a href='{job_url}'>{title_clean}</a> en {company_clean}\n"
@@ -150,7 +151,7 @@ def send_to_telegram():
         
         for job in cat_jobs:
             job_id, title, company, location, salary, _ = job
-            job_url = f"{BASE_URL}/job/{job_id}"
+            job_url = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}"
             title_clean = title.replace('<', '').replace('>', '')
             company_clean = company.replace('<', '').replace('>', '') if company else "Desconocida"
             salary_text = f" | 💰 {salary}" if salary and salary != "Consultar" else ""
@@ -167,7 +168,7 @@ def send_to_telegram():
         
         for job in remote_jobs:
             job_id, title, company, location, salary, _ = job
-            job_url = f"{BASE_URL}/job/{job_id}"
+            job_url = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}"
             title_clean = title.replace('<', '').replace('>', '')
             company_clean = company.replace('<', '').replace('>', '') if company else "Desconocida"
             salary_text = f" | 💰 {salary}" if salary and salary != "Consultar" else ""

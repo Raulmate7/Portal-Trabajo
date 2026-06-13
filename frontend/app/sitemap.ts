@@ -157,7 +157,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     // 1. Cogemos las últimas 25000 ofertas para no sobrecargar (con más campos para detectar tecnologías/ciudades activas)
-    const jobsRes = await pool.query("SELECT id, title, title_es, company, category, location, description_snippet, created_at FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 25000");
+    const jobsRes = await pool.query("SELECT id, title, title_es, company, category, location, LEFT(description_snippet, 300) AS description_snippet, created_at FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 25000");
     jobs = jobsRes.rows;
     // 2. Extraemos marcas únicas
     const compRes = await pool.query("SELECT DISTINCT company FROM jobs WHERE company IS NOT NULL AND company != 'Desconocida'");

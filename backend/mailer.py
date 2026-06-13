@@ -5,6 +5,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+from logic.slug import get_job_slug
 
 load_dotenv()
 
@@ -101,7 +102,7 @@ def send_newsletter():
         for job in jobs:
             job_id, title, company, location, url_source, _ = job
             base_url = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
-            job_link = f"{base_url}/job/{job_id}?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
+            job_link = f"{base_url}/job/{get_job_slug(job_id, title, location, company)}?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
 
             standard_jobs_html += f"""
                 <div style="margin-bottom: 16px; padding: 12px 16px; background-color: #f9fafb; border-left: 4px solid {color}; border-radius: 0 8px 8px 0; border-top: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6; border-bottom: 1px solid #f3f4f6;">
@@ -170,7 +171,7 @@ def send_newsletter():
                 """
                 for job in recommended_jobs:
                     job_id, title, company, location, url_source, _ = job
-                    job_link = f"{base_url}/job/{job_id}?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
+                    job_link = f"{base_url}/job/{get_job_slug(job_id, title, location, company)}?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
                     
                     recommended_html += f"""
                         <div style="margin-bottom: 16px; padding: 12px 16px; background-color: #fffbeb; border-left: 4px solid #fbbf24; border-radius: 0 8px 8px 0; border-top: 1px solid #fef3c7; border-right: 1px solid #fef3c7; border-bottom: 1px solid #fef3c7;">

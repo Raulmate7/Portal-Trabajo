@@ -5,6 +5,7 @@ import random
 from datetime import datetime
 import time
 from logic.image_generator import generate_job_card
+from logic.slug import get_job_slug
 
 def upload_image_to_linkedin(access_token, urn, image_path, job_title):
     """
@@ -174,7 +175,7 @@ def run_linkedin_bot():
 
     for idx, job in enumerate(jobs_to_post):
         job_id, title, company, location, salary = job
-        job_link = f"{frontend_url}/job/{job_id}"
+        job_link = f"{frontend_url}/job/{get_job_slug(job_id, title, location, company)}"
         
         # Formatear el contenido del post individual
         post_text = f"💼 ¡NUEVA OFERTA DE EMPLEO IT DESTACADA! 🚀\n\n"

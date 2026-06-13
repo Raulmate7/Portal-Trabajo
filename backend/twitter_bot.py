@@ -5,6 +5,7 @@ import tweepy
 from datetime import datetime, timedelta
 import time
 from logic.image_generator import generate_job_card
+from logic.slug import get_job_slug
 
 print("===============================================")
 print("🤖 INICIANDO BOT DE TWITTER")
@@ -128,7 +129,7 @@ for idx, job in enumerate(jobs_to_tweet):
     if "flutter" in title_lower: tags.append("#Flutter")
     
     hashtags_str = " ".join(tags) + " #Programacion"
-    job_url = f"{BASE_URL}/job/{job_id}"
+    job_url = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}"
     
     # Formatear el Tweet usando una plantilla aleatoria
     template = random.choice(TEMPLATES)

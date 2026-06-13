@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import pool from '@/lib/db';
 import Link from 'next/link';
+import { cache } from 'react';
 import ShareButton from '@/components/ShareButton';
 import CourseAffiliate from '@/components/CourseAffiliate';
 import SubscribeForm from '@/components/SubscribeForm';
@@ -230,7 +231,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   }
 }
 
-async function getJob(id: string) {
+const getJob = cache(async (id: string) => {
   if (!process.env.DATABASE_URL) return null;
   const client = await pool.connect();
   try {
@@ -242,13 +243,13 @@ async function getJob(id: string) {
   } finally {
     client.release();
   }
-}
+});
 
 async function getSimilarJobs(currentId: string, category: string | null, title: string, limit: number = 3) {
   if (!process.env.DATABASE_URL) return [];
   const client = await pool.connect();
   try {
-    let sql = "SELECT id, title, title_es, company, location, salary, created_at FROM jobs WHERE id != $1";
+    let sql = "SELECT id, title, title_es, company, location, salary, created_at FROM jobs WHERE id != $1 AND is_active = TRUE";
     const params: (string | number)[] = [currentId];
     let paramIndex = 2;
 
