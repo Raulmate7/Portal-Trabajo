@@ -36,10 +36,22 @@ if exit_code != 0:
     print("⚠️ Advertencia: Telegram bot terminó con errores.")
 
 # 4.5. Publicar en LinkedIn
-print("\n[4.5/5] 💼 Publicando ofertas en LinkedIn (linkedin_bot.py)...")
+print("\n[4.5/7] 💼 Publicando ofertas en LinkedIn (linkedin_bot.py)...")
 exit_code = os.system(f"{python_bin} linkedin_bot.py")
 if exit_code != 0:
     print("⚠️ Advertencia: LinkedIn bot terminó con errores.")
+
+# 4.6. Publicar en Twitter (X)
+print("\n[4.6/7] 🐦 Publicando ofertas en Twitter/X (twitter_bot.py)...")
+exit_code = os.system(f"{python_bin} twitter_bot.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: Twitter bot terminó con errores.")
+
+# 4.7. Publicar en Mastodon
+print("\n[4.7/7] 🐘 Publicando ofertas en Mastodon (mastodon_bot.py)...")
+exit_code = os.system(f"{python_bin} mastodon_bot.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: Mastodon bot terminó con errores.")
 
 # 5. Indexar en Google
 print("\n[5/7] 🔍 Enviando nuevas ofertas a Google Indexing API (index_new_jobs.py)...")

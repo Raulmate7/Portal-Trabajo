@@ -3,6 +3,8 @@ import random
 import psycopg2
 import tweepy
 from datetime import datetime, timedelta
+import time
+from logic.image_generator import generate_job_card
 
 print("===============================================")
 print("🤖 INICIANDO BOT DE TWITTER")
@@ -43,46 +45,75 @@ try:
         access_token=TWITTER_ACCESS_TOKEN,
         access_token_secret=TWITTER_ACCESS_SECRET
     )
-    print("✅ Conectado a la API de Twitter (X).")
+    print("✅ Conectado a la API de Twitter (X) v2.")
 except Exception as e:
     print(f"❌ Error al conectar con Twitter: {e}")
     exit(1)
 
-# 3. Conectar a BD y extraer 1 oferta reciente
+# Lista de artículos recomendados para publicar cuando no hay ofertas nuevas
+BLOG_ARTICLES = [
+    {"title": "Portal Trabajo IT vs InfoJobs y LinkedIn: ¿Cuál elegir en 2026?", "slug": "portal-trabajo-it-vs-infojobs-linkedin"},
+    {"title": "Cómo conseguir tu primer empleo de programador sin experiencia (2026)", "slug": "como-conseguir-primer-empleo-programador-junior-2026"},
+    {"title": "Cómo crear un perfil de GitHub que atraiga a reclutadores IT", "slug": "github-portfolio-guia-definitiva-desarrolladores"},
+    {"title": "Guía de salarios para programadores en España (2026)", "slug": "guia-salarios-programadores-espana-2026"},
+    {"title": "Cómo optimizar tu CV para superar filtros ATS", "slug": "como-optimizar-cv-programador-filtros-ats"},
+    {"title": "Cómo superar una entrevista técnica de React", "slug": "como-superar-entrevista-tecnica-react"}
+]
+
+# 3. Conectar a BD y extraer ofertas no tuiteadas
 try:
     conn = psycopg2.connect(DB_URL)
     cur = conn.cursor()
     
-    # Buscamos ofertas añadidas en las últimas 12 horas
-    time_threshold = datetime.now() - timedelta(hours=12)
+    # Buscamos ofertas activas que no hayan sido tuiteadas
     query = """
-        SELECT id, title, company, location 
+        SELECT id, title, company, location, salary 
         FROM jobs 
-        WHERE created_at >= %s
+        WHERE is_active = TRUE AND last_tweeted_at IS NULL
         ORDER BY created_at DESC 
-        LIMIT 20
+        LIMIT 10
     """
-    cur.execute(query, (time_threshold,))
+    cur.execute(query)
     recent_jobs = cur.fetchall()
     
-    cur.close()
-    conn.close()
 except Exception as e:
     print(f"❌ Error al consultar PostgreSQL: {e}")
     exit(1)
 
+# Fallback si no hay ofertas nuevas: publicamos un artículo del blog
 if not recent_jobs:
-    print("🤷‍♂️ No hay ofertas nuevas en las últimas 12h. No se publicará nada.")
+    print("🤷‍♂️ No hay ofertas nuevas sin tuitear. Publicando contenido educativo del blog...")
+    article = random.choice(BLOG_ARTICLES)
+    tweet_text = (
+        f"📚 ¡Artículo recomendado del blog!\n\n"
+        f"💡 {article['title']}\n\n"
+        f"👉 Lee el artículo completo aquí: {BASE_URL}/blog/{article['slug']}\n\n"
+        f"#BlogIT #DesarrolloSoftware #Programacion #EmpleoIT #Frontend #Backend"
+    )
+    try:
+        response = client.create_tweet(text=tweet_text)
+        print(f"✅ Tweet de blog publicado con éxito! ID: {response.data['id']}")
+    except Exception as e:
+        print(f"❌ Error al publicar tweet de blog: {e}")
+    
+    cur.close()
+    conn.close()
     exit(0)
 
-import time
-
-# Seleccionar hasta 3 ofertas para publicar (las más recientes)
+# Seleccionar hasta 3 ofertas para publicar
 jobs_to_tweet = recent_jobs[:3]
-print(f"📣 Seleccionadas {len(jobs_to_tweet)} ofertas para publicar en Twitter.")
+print(f"📣 Seleccionadas {len(jobs_to_tweet)} ofertas nuevas para publicar en Twitter (X).")
+
+# Plantillas aleatorias para evitar patrones repetitivos detectados por bots de spam
+TEMPLATES = [
+    "🚀 ¡Nueva oferta de empleo en tecnología!\n\n💼 {title}\n🏢 {company}\n📍 {location}\n\n👉 Detalles y postulación aquí: {url}\n\n{hashtags}",
+    "🔥 ¿Buscas un nuevo reto IT? Te traemos esta vacante recién publicada:\n\n💼 {title}\n🏢 {company}\n📍 {location}\n\n👉 Toda la información en: {url}\n\n{hashtags}",
+    "💻 ¡Oportunidad laboral tech disponible!\n\n💼 {title}\n🏢 {company}\n📍 {location}\n\n👉 Inscríbete ahora: {url}\n\n{hashtags}",
+    "🌟 Únete al equipo. Se busca talento especializado:\n\n💼 {title}\n🏢 {company}\n📍 {location}\n\n👉 Mira los requisitos y aplica en: {url}\n\n{hashtags}"
+]
 
 for idx, job in enumerate(jobs_to_tweet):
-    job_id, title, company, location = job
+    job_id, title, company, location, salary = job
     
     # Extraer tecnología para hashtags
     title_lower = title.lower()
@@ -92,23 +123,64 @@ for idx, job in enumerate(jobs_to_tweet):
     if "java" in title_lower and "javascript" not in title_lower: tags.append("#Java")
     if "node" in title_lower: tags.append("#NodeJS")
     if "devops" in title_lower or "aws" in title_lower: tags.append("#DevOps")
+    if "angular" in title_lower: tags.append("#Angular")
+    if "vue" in title_lower: tags.append("#VueJS")
+    if "flutter" in title_lower: tags.append("#Flutter")
     
-    hashtags_str = " ".join(tags)
+    hashtags_str = " ".join(tags) + " #Programacion"
+    job_url = f"{BASE_URL}/job/{job_id}"
     
-    # 4. Formatear el Tweet
-    tweet_text = f"🚀 ¡Nueva oferta de empleo! ({idx+1}/{len(jobs_to_tweet)})\n\n"
-    tweet_text += f"💼 {title}\n"
-    tweet_text += f"🏢 {company}\n"
-    tweet_text += f"📍 {location}\n\n"
-    tweet_text += f"👉 Aplica o mira los detalles aquí: {BASE_URL}/job/{job_id}\n\n"
-    tweet_text += f"{hashtags_str} #Programacion"
+    # Formatear el Tweet usando una plantilla aleatoria
+    template = random.choice(TEMPLATES)
+    tweet_text = template.format(
+        title=title,
+        company=company,
+        location=location,
+        url=job_url,
+        hashtags=hashtags_str
+    )
     
-    print(f"\n📝 Preparando Tweet {idx+1}:\n{tweet_text}\n")
+    print(f"\n📝 Preparando Tweet {idx+1}/{len(jobs_to_tweet)}:\n{tweet_text}\n")
     
-    # 5. Enviar el Tweet
+    # Generar la imagen para adjuntar
+    image_path = f"temp_card_{job_id}.png"
+    has_image = False
     try:
-        response = client.create_tweet(text=tweet_text)
-        print(f"✅ ¡Tweet {idx+1} publicado con éxito! ID: {response.data['id']}")
+        generate_job_card(
+            title=title,
+            company=company,
+            location=location,
+            salary=salary,
+            output_path=image_path
+        )
+        has_image = os.path.exists(image_path)
+    except Exception as img_err:
+        print(f"⚠️ No se pudo generar la tarjeta de imagen para el tweet: {img_err}")
+    
+    # Enviar el Tweet (con imagen si es posible, fallback a texto)
+    published = False
+    try:
+        # Intentamos subir la imagen con API v1.1
+        if has_image:
+            try:
+                auth = tweepy.OAuth1UserHandler(
+                    TWITTER_API_KEY, TWITTER_API_SECRET,
+                    TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET
+                )
+                api = tweepy.API(auth)
+                media = api.media_upload(filename=image_path)
+                response = client.create_tweet(text=tweet_text, media_ids=[media.media_id])
+                print(f"✅ ¡Tweet {idx+1} publicado con imagen! ID: {response.data['id']}")
+                published = True
+            except Exception as media_err:
+                print(f"⚠️ Falló la subida de imagen a Twitter ({media_err}). Reintentando solo texto...")
+        
+        # Fallback a tweet de solo texto
+        if not published:
+            response = client.create_tweet(text=tweet_text)
+            print(f"✅ ¡Tweet {idx+1} publicado (solo texto)! ID: {response.data['id']}")
+            published = True
+            
     except Exception as e:
         print(f"❌ Error al enviar el Tweet {idx+1}: {e}")
         # Enviar error a Telegram para depuración
@@ -125,10 +197,33 @@ for idx, job in enumerate(jobs_to_tweet):
             except:
                 pass
                 
+    # Limpiar archivo temporal si existe
+    if has_image and os.path.exists(image_path):
+        try:
+            os.remove(image_path)
+        except:
+            pass
+            
+    # Si se publicó con éxito, actualizamos la base de datos
+    if published:
+        try:
+            cur.execute("UPDATE jobs SET last_tweeted_at = %s WHERE id = %s", (datetime.now(), job_id))
+            conn.commit()
+            print(f"💾 BD actualizada para oferta {job_id}.")
+        except Exception as db_err:
+            print(f"⚠️ Error al actualizar last_tweeted_at en BD: {db_err}")
+            
     # Esperar 60 segundos antes de enviar el siguiente tweet
     if idx < len(jobs_to_tweet) - 1:
         print("💤 Esperando 60 segundos antes de enviar el siguiente tweet...")
         time.sleep(60)
+
+# Cerrar conexiones
+try:
+    cur.close()
+    conn.close()
+except:
+    pass
 
 print("===============================================")
 import sys

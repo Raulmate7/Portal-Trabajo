@@ -31,9 +31,9 @@ class TestTelegramBot(unittest.TestCase):
             send_to_telegram()
 
             # Verificar que se imprimió la búsqueda y envío
-            mock_print.assert_any_call("📢 Iniciando difusión GENERAL (Sin filtros de usuario)...")
-            mock_print.assert_any_call("🚀 Encontradas 2 ofertas. Enviando al canal público...")
-            mock_print.assert_any_call("✅ Mensaje agrupado enviado con éxito a Telegram.")
+            mock_print.assert_any_call("🤖 INICIANDO BOT DE TELEGRAM")
+            mock_print.assert_any_call("🚀 Encontradas 2 ofertas nuevas. Iniciando difusión...")
+            mock_print.assert_any_call("✅ Mensaje enviado con éxito al canal @TestChannel.")
 
         # Debe haber hecho 1 llamada a requests.post para el mensaje unificado
         self.assertEqual(mock_post.call_count, 1)
