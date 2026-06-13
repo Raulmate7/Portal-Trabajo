@@ -24,6 +24,7 @@ export default function BlogPage() {
       'description': post.excerpt,
       'datePublished': new Date(post.date).toISOString(),
       'url': `${BASE_URL}/blog/${post.slug}`,
+      'image': `${BASE_URL}/blog/${post.slug}/opengraph-image`,
       'author': {
         '@type': 'Person',
         'name': post.author

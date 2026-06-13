@@ -8,6 +8,7 @@ import Link from "next/link";
 import { Metadata } from "next";
 import { cache } from "react";
 import { BASE_URL } from "@/lib/constants";
+import { getJobSlug, slugify } from "@/lib/slug";
 
 export const revalidate = 300;
 
@@ -21,6 +22,8 @@ interface Job {
   description_snippet?: string | null;
   category?: string | null;
   created_at: string;
+  salary?: string | null;
+  title_es?: string | null;
 }
 
 const categoryMap: Record<string, string> = {
@@ -73,6 +76,46 @@ const displayNameMap: Record<string, string> = {
   'informatica-tecnologia': 'Informática y Tecnología'
 };
 
+const displayNameMapEn: Record<string, string> = {
+  'react': 'React',
+  'angular': 'Angular',
+  'vue': 'Vue',
+  'node': 'Node.js',
+  'python': 'Python',
+  'java': 'Java',
+  'php': 'PHP',
+  'csharp': 'C#',
+  'ruby': 'Ruby',
+  'go': 'Go',
+  'javascript': 'JavaScript',
+  'typescript': 'TypeScript',
+  'aws': 'AWS',
+  'docker': 'Docker',
+  'kubernetes': 'Kubernetes',
+  'nextjs': 'Next.js',
+  'flutter': 'Flutter',
+  'kotlin': 'Kotlin',
+  'swift': 'Swift',
+  'sql': 'SQL',
+  'salesforce': 'Salesforce',
+  'cybersecurity': 'Cybersecurity',
+  'ciberseguridad': 'Cybersecurity',
+  'backend': 'Backend',
+  'frontend': 'Frontend',
+  'data': 'Data',
+  'cloud': 'Cloud',
+  'mobile': 'Mobile',
+  'desarrollador-fullstack': 'Full Stack Developer',
+  'fullstack': 'Full Stack Developer',
+  'devops-engineer': 'DevOps Engineer',
+  'scrum-master': 'Scrum Master',
+  'product-manager': 'Product Manager',
+  'data-analyst': 'Data Analyst',
+  'qa-engineer': 'QA Engineer',
+  'ux-designer': 'UX Designer',
+  'informatica-tecnologia': 'IT and Technology'
+};
+
 const adMap: Record<string, { title: string, text: string, link: string }> = {
   'backend': { 
     title: '¿Quieres ser experto en Java/Spring?', 
@@ -88,18 +131,21 @@ const adMap: Record<string, { title: string, text: string, link: string }> = {
 
 type Params = Promise<{ sector: string }>;
 
-const EXPERIENCE_SUFFIXES: Record<string, { keywords: string[]; label: string }> = {
+const EXPERIENCE_SUFFIXES: Record<string, { keywords: string[]; label: string; labelEn: string }> = {
   'junior': {
     keywords: ['junior', 'jr', 'junior developer', 'trainee', 'becario', 'prácticas', 'entry level', 'sin experiencia'],
-    label: 'Junior'
+    label: 'Junior',
+    labelEn: 'Junior'
   },
   'senior': {
     keywords: ['senior', 'sr', 'lead', 'principal', 'tech lead', 'staff'],
-    label: 'Senior'
+    label: 'Senior',
+    labelEn: 'Senior'
   },
   'sin-experiencia': {
     keywords: ['sin experiencia', 'entry level', 'trainee', 'becario', 'prácticas', 'junior'],
-    label: 'Sin Experiencia'
+    label: 'Sin Experiencia',
+    labelEn: 'No Experience Required'
   },
 };
 
@@ -108,7 +154,6 @@ function parseSector(sectorSlug: string) {
   let ciudad = '';
   let experiencia = '';
 
-  // Detectar nivel de experiencia como sufijo
   for (const suffix of Object.keys(EXPERIENCE_SUFFIXES)) {
     if (tec.endsWith(`-${suffix}`)) {
       experiencia = suffix;
@@ -117,7 +162,6 @@ function parseSector(sectorSlug: string) {
     }
   }
 
-  // Detectar ciudad (con experiencia ya removida)
   const enIndex = tec.indexOf('-en-');
   if (enIndex !== -1) {
     const afterEn = tec.substring(enIndex + 4);
@@ -138,6 +182,8 @@ export async function generateMetadata({ params, searchParams }: { params: Param
   const resolvedSearchParams = await searchParams;
   const page = typeof resolvedSearchParams.page === 'string' ? parseInt(resolvedSearchParams.page, 10) : 1;
   const isPaged = !isNaN(page) && page > 1;
+  const lang = resolvedSearchParams.lang === 'en' ? 'en' : 'es';
+  const isEnglish = lang === 'en';
   
   const { tec, ciudad, experiencia, dbCategory } = parseSector(sectorSlug);
   
@@ -145,25 +191,41 @@ export async function generateMetadata({ params, searchParams }: { params: Param
   const isThinPage = jobs.length === 0;
   const jobCount = jobs.length;
 
-  const categoriaBonita = displayNameMap[tec] || dbCategory || tec.replace(/-/g, ' ');
-  const expLabel = experiencia ? ` ${EXPERIENCE_SUFFIXES[experiencia]?.label || ''}` : '';
+  const displayNameMapUsed = isEnglish ? displayNameMapEn : displayNameMap;
+  const categoriaBonita = displayNameMapUsed[tec] || dbCategory || tec.replace(/-/g, ' ');
+  
+  const expLabelObj = EXPERIENCE_SUFFIXES[experiencia];
+  const expLabel = experiencia ? ` ${isEnglish ? expLabelObj?.labelEn : expLabelObj?.label}` : '';
   const now = new Date();
-  const mes = now.toLocaleDateString('es-ES', { month: 'long' });
-  const anio = now.getFullYear();
   
-  let tituloBase = `Trabajo${expLabel} de ${categoriaBonita}`;
-  let descBase = `Ofertas de trabajo${expLabel ? ` para ${expLabel.trim()}` : ''} de ${categoriaBonita}`;
-  
-  if (ciudad) {
-    const ciudadBonita = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
-    tituloBase += ` en ${ciudadBonita}`;
-    descBase += ` en ${ciudadBonita}`;
+  let tituloBase = "";
+  let descBase = "";
+
+  if (isEnglish) {
+    tituloBase = `${categoriaBonita}${expLabel} Jobs`;
+    descBase = `Active ${categoriaBonita}${expLabel ? ` (${expLabel.trim()})` : ''} job vacancies`;
+    if (ciudad) {
+      const ciudadBonita = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
+      tituloBase += ` in ${ciudadBonita}`;
+      descBase += ` in ${ciudadBonita}`;
+    }
+  } else {
+    const mes = now.toLocaleDateString('es-ES', { month: 'long' });
+    const anio = now.getFullYear();
+    tituloBase = `Trabajo${expLabel} de ${categoriaBonita}`;
+    descBase = `Ofertas de trabajo${expLabel ? ` para ${expLabel.trim()}` : ''} de ${categoriaBonita}`;
+    if (ciudad) {
+      const ciudadBonita = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
+      tituloBase += ` en ${ciudadBonita}`;
+      descBase += ` en ${ciudadBonita}`;
+    }
+    const countText = jobCount > 0 ? `${jobCount} ` : '';
+    tituloBase = `${countText}${tituloBase} [${mes.charAt(0).toUpperCase() + mes.slice(1)} ${anio}]`;
   }
 
-  const countText = jobCount > 0 ? `${jobCount} ` : '';
-  let tituloSeo = `${countText}${tituloBase} [${mes.charAt(0).toUpperCase() + mes.slice(1)} ${anio}]`;
+  let tituloSeo = tituloBase;
   if (isPaged) {
-    tituloSeo += ` - Página ${page}`;
+    tituloSeo += isEnglish ? ` - Page ${page}` : ` - Página ${page}`;
   }
   
   const rssParams = new URLSearchParams();
@@ -184,19 +246,29 @@ export async function generateMetadata({ params, searchParams }: { params: Param
     ? { index: false, follow: true } 
     : { index: !isThinPage, follow: true };
 
+  const queryParam = isEnglish ? '?lang=en' : '';
+  const canonicalUrl = `${BASE_URL}/trabajos/${sectorSlug}${queryParam}`;
+
   return {
-    title: `${tituloSeo} | Portal Trabajo`,
-    description: `${descBase} actualizadas hoy. ${jobCount > 0 ? `${jobCount} vacantes disponibles ahora.` : 'Recopilamos ofertas de las mejores empresas tecnológicas.'}${isPaged ? ` (Página ${page})` : ''}`,
+    title: isEnglish ? `${tituloSeo} | IT Job Portal` : `${tituloSeo} | Portal Trabajo`,
+    description: isEnglish
+      ? `${descBase} updated today. ${jobCount > 0 ? `${jobCount} vacancies available now.` : 'We aggregate offers from top tech companies.'}${isPaged ? ` (Page ${page})` : ''}`
+      : `${descBase} actualizadas hoy. ${jobCount > 0 ? `${jobCount} vacantes disponibles ahora.` : 'Recopilamos ofertas de las mejores empresas tecnológicas.'}${isPaged ? ` (Página ${page})` : ''}`,
     alternates: {
-      canonical: `${BASE_URL}/trabajos/${sectorSlug}`,
+      canonical: canonicalUrl,
+      languages: {
+        'es-ES': `${BASE_URL}/trabajos/${sectorSlug}`,
+        'en': `${BASE_URL}/trabajos/${sectorSlug}?lang=en`,
+        'x-default': `${BASE_URL}/trabajos/${sectorSlug}`,
+      },
       types: {
         'application/rss+xml': rssUrl,
       },
     },
     openGraph: {
-      title: `${tituloBase} — ${jobCount > 0 ? `${jobCount} Vacantes Disponibles` : 'Vacantes Urgentes'}${isPaged ? ` (Página ${page})` : ''}`,
-      description: `Listado actualizado de ${descBase.toLowerCase()}.`,
-      url: `${BASE_URL}/trabajos/${sectorSlug}`,
+      title: isEnglish ? `${tituloBase} — ${jobCount} Vacancies` : `${tituloBase} — ${jobCount > 0 ? `${jobCount} Vacantes Disponibles` : 'Vacantes Urgentes'}${isPaged ? ` (Página ${page})` : ''}`,
+      description: isEnglish ? `Updated list of ${descBase.toLowerCase()}.` : `Listado actualizado de ${descBase.toLowerCase()}.`,
+      url: canonicalUrl,
       images: [
         {
           url: `${BASE_URL}/trabajos/${sectorSlug}/opengraph-image`,
@@ -208,8 +280,8 @@ export async function generateMetadata({ params, searchParams }: { params: Param
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${tituloBase} — ${jobCount > 0 ? `${jobCount} Vacantes Disponibles` : 'Vacantes Urgentes'}${isPaged ? ` (Página ${page})` : ''}`,
-      description: `Listado de ${descBase.toLowerCase()}.`,
+      title: isEnglish ? `${tituloBase} — ${jobCount} Vacancies` : `${tituloBase} — ${jobCount > 0 ? `${jobCount} Vacantes Disponibles` : 'Vacantes Urgentes'}${isPaged ? ` (Página ${page})` : ''}`,
+      description: isEnglish ? `List of ${descBase.toLowerCase()}.` : `Listado de ${descBase.toLowerCase()}.`,
       images: [`${BASE_URL}/trabajos/${sectorSlug}/opengraph-image`],
     },
     robots: metaRobots
@@ -289,7 +361,6 @@ const getJobs = cache(async (tec: string, ciudad: string, dbCategory: string | u
       }
     }
 
-    // Filtro de nivel de experiencia: busca keywords en título y description_snippet
     if (experiencia && EXPERIENCE_SUFFIXES[experiencia]) {
       const expKeywords = EXPERIENCE_SUFFIXES[experiencia].keywords;
       const expConditions = expKeywords.map(() => {
@@ -314,9 +385,7 @@ const getJobs = cache(async (tec: string, ciudad: string, dbCategory: string | u
   }
 });
 
-
 async function getFallbackJobs(tec: string, ciudad: string, dbCategory: string | undefined, page: number = 1) {
-  // 1. Si buscó en una ciudad, probar en remoto
   if (ciudad && ciudad !== 'remoto') {
     const remoteJobs = await getJobs(tec, 'remoto', dbCategory, '', page);
     if (remoteJobs.length > 0) {
@@ -324,7 +393,6 @@ async function getFallbackJobs(tec: string, ciudad: string, dbCategory: string |
     }
   }
 
-  // 2. Probar a nivel nacional (sin restricción de ciudad)
   if (ciudad) {
     const nationalJobs = await getJobs(tec, '', dbCategory, '', page);
     if (nationalJobs.length > 0) {
@@ -332,7 +400,6 @@ async function getFallbackJobs(tec: string, ciudad: string, dbCategory: string |
     }
   }
 
-  // 3. Probar ofertas recientes generales de la misma categoría o tecnología
   if (tec !== 'informatica-tecnologia') {
     const generalJobs = await getJobs('informatica-tecnologia', '', undefined, '', page);
     if (generalJobs.length > 0) {
@@ -391,7 +458,9 @@ export default async function SectorPage({
   const resolvedSearchParams = await searchParams;
   const page = typeof resolvedSearchParams.page === 'string' ? parseInt(resolvedSearchParams.page, 10) : 1;
   const validPage = isNaN(page) || page < 1 ? 1 : page;
-  
+  const lang = resolvedSearchParams.lang === 'en' ? 'en' : 'es';
+  const isEnglish = lang === 'en';
+
   const { tec, ciudad, experiencia, dbCategory } = parseSector(sectorSlug);
   
   let jobs = await getJobs(tec, ciudad, dbCategory, experiencia, validPage);
@@ -407,15 +476,19 @@ export default async function SectorPage({
   
   const ad = adMap[tec];
   
-  const categoriaBonita = displayNameMap[tec] || dbCategory || tec.replace(/-/g, ' ');
-  const expLabel = experiencia ? ` ${EXPERIENCE_SUFFIXES[experiencia]?.label || ''}` : '';
+  const displayNameMapUsed = isEnglish ? displayNameMapEn : displayNameMap;
+  const categoriaBonita = displayNameMapUsed[tec] || dbCategory || tec.replace(/-/g, ' ');
+  const expLabelObj = EXPERIENCE_SUFFIXES[experiencia];
+  const expLabel = experiencia ? ` ${isEnglish ? expLabelObj?.labelEn : expLabelObj?.label}` : '';
   const tituloMostrado = ciudad 
-    ? `${categoriaBonita}${expLabel} en ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}` 
+    ? (isEnglish ? `${categoriaBonita}${expLabel} in ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}` : `${categoriaBonita}${expLabel} en ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}`)
     : `${categoriaBonita}${expLabel}`;
 
+  const queryParam = isEnglish ? '?lang=en' : '';
+
   const breadcrumbItems = [
-    { label: 'Inicio', href: '/' },
-    { label: 'Trabajos', href: '/trabajos/informatica-tecnologia' },
+    { label: isEnglish ? 'Home' : 'Inicio', href: isEnglish ? '/?lang=en' : '/' },
+    { label: isEnglish ? 'Jobs' : 'Trabajos', href: `/trabajos/informatica-tecnologia${queryParam}` },
     { label: tituloMostrado }
   ];
 
@@ -428,21 +501,21 @@ export default async function SectorPage({
   if (ciudad) {
     for (const t of TECNOLOGIAS_POPULARES) {
       if (t !== tec) {
-        const tLabel = t.charAt(0).toUpperCase() + t.slice(1);
+        const tLabel = displayNameMapUsed[t] || t.charAt(0).toUpperCase() + t.slice(1);
         const cLabel = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
         relatedLinks.push({
-          label: `${tLabel} en ${cLabel}`,
-          href: ciudad === 'remoto' ? `/trabajos/${t}-remoto` : `/trabajos/${t}-en-${ciudad.replace(/\s+/g, '-')}`
+          label: isEnglish ? `${tLabel} in ${cLabel}` : `${tLabel} en ${cLabel}`,
+          href: ciudad === 'remoto' ? `/trabajos/${t}-remoto${queryParam}` : `/trabajos/${t}-en-${ciudad.replace(/\s+/g, '-')}${queryParam}`
         });
       }
     }
   } else {
     for (const c of CIUDADES_POPULARES) {
-      const tLabel = tec.charAt(0).toUpperCase() + tec.slice(1);
+      const tLabel = displayNameMapUsed[tec] || tec.charAt(0).toUpperCase() + tec.slice(1);
       const cLabel = c.charAt(0).toUpperCase() + c.slice(1);
       relatedLinks.push({
-        label: `${tLabel} en ${cLabel}`,
-        href: c === 'remoto' ? `/trabajos/${tec}-remoto` : `/trabajos/${tec}-en-${c}`
+        label: isEnglish ? `${tLabel} in ${cLabel}` : `${tLabel} en ${cLabel}`,
+        href: c === 'remoto' ? `/trabajos/${tec}-remoto${queryParam}` : `/trabajos/${tec}-en-${c}${queryParam}`
       });
     }
   }
@@ -461,38 +534,68 @@ export default async function SectorPage({
   const itemListJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
-    name: `Ofertas de empleo de ${tituloMostrado}`,
-    description: `Listado de ofertas de trabajo para ${tituloMostrado} en España`,
+    name: isEnglish ? `${tituloMostrado} Vacancies` : `Ofertas de empleo de ${tituloMostrado}`,
+    description: isEnglish ? `List of tech job offers for ${tituloMostrado} in Spain` : `Listado de ofertas de trabajo para ${tituloMostrado} en España`,
     numberOfItems: jobs.length,
     itemListElement: jobs.map((job, idx) => ({
       '@type': 'ListItem',
       position: idx + 1,
-      url: `${BASE_URL}/job/${job.id}`,
+      url: `${BASE_URL}/job/${getJobSlug(job)}`,
       name: `${job.title} - ${job.company}`
     }))
   };
 
+  const uniqueCompanies = Array.from(new Set(jobs.map(j => j.company).filter(c => c && c !== 'Desconocida'))).slice(0, 3);
+  const companyListText = uniqueCompanies.length > 0 
+    ? uniqueCompanies.join(', ') 
+    : (isEnglish ? 'various tech companies' : 'diversas empresas del sector');
+
+  const faqItems = [
+    {
+      question: isEnglish 
+        ? `Are there active job offers for ${tituloMostrado} currently?` 
+        : `¿Hay ofertas de empleo de ${tituloMostrado} actualmente?`,
+      answer: isEnglish 
+        ? `Yes, currently we have ${jobs.length} active job offers for ${tituloMostrado} on our technology portal. You can search by city or remote preference.` 
+        : `Sí, actualmente contamos con ${jobs.length} ofertas de trabajo activas de ${tituloMostrado} en nuestro portal tecnológico. Puedes filtrar por localidad presencial o en remoto.`
+    },
+    stats.averageSalary ? {
+      question: isEnglish 
+        ? `What is the average salary for a ${categoriaBonita} profile?` 
+        : `¿Cuál es el salario medio de un perfil de ${categoriaBonita}?`,
+      answer: isEnglish 
+        ? `The estimated average salary for a ${categoriaBonita} professional is approximately ${stats.averageSalary.toLocaleString('es-ES')}€ gross per year, calculated based on active offers that specify a salary.` 
+        : `El salario medio estimado para un profesional de la categoría ${categoriaBonita} es de aproximadamente ${stats.averageSalary.toLocaleString('es-ES')}€ brutos anuales, calculado sobre ofertas con salario visible.`
+    } : null,
+    {
+      question: isEnglish 
+        ? `Which companies are hiring for ${tituloMostrado}?` 
+        : `¿Qué empresas buscan activamente perfiles de ${tituloMostrado}?`,
+      answer: isEnglish 
+        ? `Some of the companies posting ${tituloMostrado} jobs on our portal recently include: ${companyListText}.` 
+        : `Entre las empresas que más vacantes de ${tituloMostrado} publican actualmente en nuestro portal se encuentran: ${companyListText}.`
+    },
+    {
+      question: isEnglish 
+        ? `Are remote options available for ${tituloMostrado}?` 
+        : `¿Hay opciones de teletrabajo para ${tituloMostrado}?`,
+      answer: isEnglish 
+        ? `Yes, remote work is a highly demanded option. A significant portion of the vacancies for ${categoriaBonita} offer full remote work or hybrid models.` 
+        : `Sí, el teletrabajo es una opción muy común y demandada. Una parte importante de las vacantes de ${categoriaBonita} se publican en modalidad 100% remota o híbrida.`
+    }
+  ].filter(Boolean) as { question: string; answer: string }[];
+
   const faqJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    'mainEntity': [
-      {
-        '@type': 'Question',
-        'name': `¿Hay ofertas de empleo de ${tituloMostrado} actualmente?`,
-        'acceptedAnswer': {
-          '@type': 'Answer',
-          'text': `Sí, actualmente contamos con ${jobs.length} ofertas de trabajo activas de ${tituloMostrado} en nuestro portal tecnológico.`
-        }
-      },
-      stats.averageSalary ? {
-        '@type': 'Question',
-        'name': `¿Cuál es el salario medio de un perfil de ${categoriaBonita}?`,
-        'acceptedAnswer': {
-          '@type': 'Answer',
-          'text': `El salario medio estimado para un profesional de la categoría ${categoriaBonita} es de aproximadamente ${stats.averageSalary.toLocaleString('es-ES')}€ brutos anuales, calculado sobre ofertas con salario visible.`
-        }
-      } : null
-    ].filter(Boolean)
+    'mainEntity': faqItems.map(item => ({
+      '@type': 'Question',
+      'name': item.question,
+      'acceptedAnswer': {
+        '@type': 'Answer',
+        'text': item.answer
+      }
+    }))
   };
 
   return (
@@ -513,25 +616,42 @@ export default async function SectorPage({
       <Breadcrumbs items={breadcrumbItems} />
       
       <h1 className="text-3xl font-bold mb-4 capitalize text-gray-900">
-        Ofertas de {tituloMostrado}
+        {isEnglish ? `${tituloMostrado} Job Openings` : `Ofertas de ${tituloMostrado}`}
       </h1>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch mb-8 bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
         <div className="md:col-span-2 flex flex-col justify-center">
           <p className="text-gray-700 leading-relaxed m-0">
-            Si buscas empleo de <strong>{categoriaBonita}</strong>{ciudad ? ` en ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}` : ' en España'}, estás en el lugar indicado. 
-            Actualmente contamos con <strong>{jobs.length} ofertas activas</strong>. 
-            El perfil de {categoriaBonita} es uno de los más demandados en el sector tecnológico actual.
-            Explora las vacantes a continuación, que incluyen opciones tanto presenciales en oficina como en formato híbrido o 100% remoto.
+            {isEnglish ? (
+              <>
+                If you are looking for a <strong>{categoriaBonita}</strong> job{ciudad ? ` in ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}` : ' in Spain'}, you are in the right place. 
+                Currently we have <strong>{jobs.length} active offers</strong>. 
+                The {categoriaBonita} profile is one of the most demanded in the current tech sector.
+                Explore the vacancies below, including on-site, hybrid, and 100% remote options.
+              </>
+            ) : (
+              <>
+                Si buscas empleo de <strong>{categoriaBonita}</strong>{ciudad ? ` en ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}` : ' en España'}, estás en el lugar indicado. 
+                Actualmente contamos con <strong>{jobs.length} ofertas activas</strong>. 
+                El perfil de {categoriaBonita} es uno de los más demandados en el sector tecnológico actual.
+                Explora las vacantes a continuación, que incluyen opciones tanto presenciales en oficina como en formato híbrido o 100% remoto.
+              </>
+            )}
           </p>
         </div>
         <div className="bg-indigo-50/70 p-5 rounded-xl border border-indigo-100 flex flex-col justify-center items-center text-center">
-          <h3 className="text-xs font-bold text-indigo-900 uppercase tracking-wider m-0 mb-1">Estadísticas de la categoría</h3>
+          <h3 className="text-xs font-bold text-indigo-900 uppercase tracking-wider m-0 mb-1">
+            {isEnglish ? 'Category Stats' : 'Estadísticas de la categoría'}
+          </h3>
           <p className="text-3xl font-extrabold text-indigo-700 m-0">
             {stats.averageSalary ? `${stats.averageSalary.toLocaleString('es-ES')}€` : 'N/A'}
           </p>
-          <span className="text-xs text-gray-500 mt-1">Salario medio anual estimado</span>
-          <span className="text-[10px] text-gray-400 mt-2">Basado en ofertas actuales con sueldo visible</span>
+          <span className="text-xs text-gray-500 mt-1">
+            {isEnglish ? 'Estimated average annual salary' : 'Salario medio anual estimado'}
+          </span>
+          <span className="text-[10px] text-gray-400 mt-2">
+            {isEnglish ? 'Based on active offers with visible salary' : 'Basado en ofertas actuales con sueldo visible'}
+          </span>
         </div>
       </div>
 
@@ -540,7 +660,7 @@ export default async function SectorPage({
           <h3 className="text-lg font-bold text-indigo-900">{ad.title}</h3>
           <p className="text-indigo-700 mb-3">{ad.text}</p>
           <a href={ad.link} target="_blank" rel="noopener noreferrer" className="inline-block bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition">
-            Ver Curso Recomendado →
+            {isEnglish ? 'View Recommended Course →' : 'Ver Curso Recomendado →'}
           </a>
         </div>
       )}
@@ -551,11 +671,15 @@ export default async function SectorPage({
             <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-sm flex items-start gap-3 shadow-sm">
               <span className="text-xl">⚠️</span>
               <div>
-                <p className="font-semibold m-0">No encontramos ofertas de {categoriaBonita} en {ciudad === 'remoto' ? 'remoto' : ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}.</p>
+                <p className="font-semibold m-0">
+                  {isEnglish 
+                    ? `No vacancies found for ${categoriaBonita} in ${ciudad === 'remoto' ? 'remote' : ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}.`
+                    : `No encontramos ofertas de ${categoriaBonita} en ${ciudad === 'remoto' ? 'remoto' : ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}.`}
+                </p>
                 <p className="text-amber-800 text-xs mt-1 mb-0 leading-relaxed">
-                  {fallbackType === 'remote' && `Te mostramos ofertas para ${categoriaBonita} 100% en remoto como alternativa:`}
-                  {fallbackType === 'national' && `Te mostramos ofertas para ${categoriaBonita} en otras ciudades de España:`}
-                  {fallbackType === 'general' && `No hay ofertas activas de esta categoría. Te sugerimos las ofertas de empleo IT generales más recientes:`}
+                  {fallbackType === 'remote' && (isEnglish ? 'Showing 100% remote job offers instead:' : 'Te mostramos ofertas 100% en remoto como alternativa:')}
+                  {fallbackType === 'national' && (isEnglish ? 'Showing job offers in other cities in Spain:' : 'Te mostramos ofertas en otras ciudades de España:')}
+                  {fallbackType === 'general' && (isEnglish ? 'No active offers in this category. Here are general recent IT jobs:' : 'No hay ofertas activas de esta categoría. Te sugerimos las ofertas de empleo IT generales más recientes:')}
                 </p>
               </div>
             </div>
@@ -564,7 +688,7 @@ export default async function SectorPage({
             {jobs && jobs.length > 0 ? (
               <>
                 {jobs.flatMap((job, index) => {
-                  const card = <JobCard key={job.id} job={job as Job} />;
+                  const card = <JobCard key={job.id} job={job as Job} lang={lang} />;
                   if (index === 3) {
                     return [
                       <div key={`ad-inline-1-${job.id}`} className="col-span-full my-2">
@@ -587,21 +711,23 @@ export default async function SectorPage({
                 <div className="col-span-full flex justify-between items-center pt-6">
                   {validPage > 1 ? (
                     <Link
-                      href={`/trabajos/${sector}?page=${validPage - 1}`}
+                      href={`/trabajos/${sector}?page=${validPage - 1}${queryParam ? `&lang=en` : ''}`}
                       className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
                     >
-                      ← Anterior
+                      {isEnglish ? '← Previous' : '← Anterior'}
                     </Link>
                   ) : (
                     <div />
                   )}
-                  <span className="text-sm text-gray-600">Página {validPage}</span>
+                  <span className="text-sm text-gray-600">
+                    {isEnglish ? `Page ${validPage}` : `Página ${validPage}`}
+                  </span>
                   {jobs.length === 50 ? (
                     <Link
-                      href={`/trabajos/${sector}?page=${validPage + 1}`}
+                      href={`/trabajos/${sector}?page=${validPage + 1}${queryParam ? `&lang=en` : ''}`}
                       className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
                     >
-                      Siguiente →
+                      {isEnglish ? 'Next →' : 'Siguiente →'}
                     </Link>
                   ) : (
                     <div />
@@ -610,8 +736,12 @@ export default async function SectorPage({
               </>
             ) : (
               <div className="col-span-full text-center py-20 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                <p className="text-gray-500">No hay ofertas de {tituloMostrado} ahora mismo.</p>
-                <p className="text-sm text-gray-400 mt-2">Vuelve mañana a las 08:00.</p>
+                <p className="text-gray-500">
+                  {isEnglish ? `No offers for ${tituloMostrado} right now.` : `No hay ofertas de ${tituloMostrado} ahora mismo.`}
+                </p>
+                <p className="text-sm text-gray-400 mt-2">
+                  {isEnglish ? 'Check back tomorrow at 08:00.' : 'Vuelve mañana a las 08:00.'}
+                </p>
               </div>
             )}
             {jobs && jobs.length > 0 && (
@@ -631,9 +761,28 @@ export default async function SectorPage({
         </div>
       </div>
 
+      {/* FAQ Visual para SEO y E-E-A-T (Oportunidad 1.6) */}
+      {faqItems.length > 0 && (
+        <div className="mt-12 bg-white p-6 rounded-xl border border-gray-100 shadow-sm max-w-4xl">
+          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <span>❓</span> {isEnglish ? `FAQ about ${tituloMostrado} Jobs` : `Preguntas Frecuentes sobre Empleo de ${tituloMostrado}`}
+          </h2>
+          <div className="space-y-6 divide-y divide-gray-100">
+            {faqItems.map((item, idx) => (
+              <div key={idx} className={idx > 0 ? "pt-4" : ""}>
+                <h3 className="text-base font-bold text-gray-800 mb-2">{item.question}</h3>
+                <p className="text-sm text-gray-600 leading-relaxed m-0">{item.answer}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {relatedLinks.length > 0 && (
         <div className="mt-12 pt-8 border-t border-gray-200">
-          <h2 className="text-lg font-bold text-gray-800 mb-4">Búsquedas populares relacionadas</h2>
+          <h2 className="text-lg font-bold text-gray-800 mb-4">
+            {isEnglish ? 'Popular Related Searches' : 'Búsquedas populares relacionadas'}
+          </h2>
           <div className="flex flex-wrap gap-2">
             {relatedLinks.map((link, idx) => (
               <Link 
@@ -641,7 +790,7 @@ export default async function SectorPage({
                 href={link.href}
                 className="text-xs bg-gray-100 hover:bg-indigo-50 hover:text-indigo-600 text-gray-600 px-3 py-2 rounded-lg font-medium transition-colors border border-gray-200"
               >
-                🔍 Ofertas de {link.label}
+                🔍 {isEnglish ? `Jobs for ${link.label}` : `Ofertas de ${link.label}`}
               </Link>
             ))}
           </div>

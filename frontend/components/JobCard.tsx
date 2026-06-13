@@ -1,26 +1,28 @@
 import React from 'react';
 import Link from 'next/link';
+import { getJobSlug } from '@/lib/slug';
 
-// CORRECCIÓN FINAL: Permitimos 'null' en los campos opcionales
 interface Job {
   id?: string | number; 
   title: string;
   company: string;
   location: string;
   url_source: string;
-  description_snippet?: string | null; // Aceptamos texto o NULL
-  category?: string | null;            // Aceptamos texto o NULL
+  description_snippet?: string | null;
+  category?: string | null;
   created_at?: string;
+  title_es?: string | null;
 }
 
 interface JobCardProps {
   job: Job;
+  lang?: string;
 }
 
-export default function JobCard({ job }: JobCardProps) {
-  
+export default function JobCard({ job, lang }: JobCardProps) {
+  const isEnglish = lang === 'en';
+
   const getCategoryColor = (cat: string | null | undefined) => {
-    // Si es null o undefined, usamos 'otros'
     const category = cat ? cat.toLowerCase() : 'otros';
 
     if (category.includes('frontend')) return 'bg-green-100 text-green-800 border-green-200';
@@ -35,34 +37,39 @@ export default function JobCard({ job }: JobCardProps) {
   const createdDate = job.created_at ? new Date(job.created_at) : new Date();
   const diffTime = Math.abs(new Date().getTime() - createdDate.getTime());
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  const isRecent = diffDays <= 1; // 24 horas o menos
-  const isExpiringSoon = diffDays >= 25; // 25 días o más
+  const isRecent = diffDays <= 1; 
+  const isExpiringSoon = diffDays >= 25; 
+
+  const jobSlug = job.id ? getJobSlug({ ...job, id: job.id }) : '';
+  const queryParam = isEnglish ? '?lang=en' : '';
+  const detailUrl = job.id ? `/job/${jobSlug}${queryParam}` : job.url_source;
+
+  const displayTitle = isEnglish ? job.title : (job.title_es || job.title);
 
   return (
     <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-100 overflow-hidden flex flex-col h-full">
-      
       <div className="p-6 flex-grow">
         <div className="flex justify-between items-start gap-4 mb-3">
           <div className="flex flex-col gap-1.5">
             <h3 className="text-lg font-bold text-gray-900 leading-tight">
-              {job.title}
+              {displayTitle}
             </h3>
             <div className="flex flex-wrap gap-1.5">
               {isRecent && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 uppercase tracking-wider shrink-0">
-                  🆕 Reciente
+                  {isEnglish ? '🆕 Recent' : '🆕 Reciente'}
                 </span>
               )}
               {isExpiringSoon && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider shrink-0">
-                  ⚠️ Caduca pronto
+                  {isEnglish ? '⚠️ Expiring soon' : '⚠️ Caduca pronto'}
                 </span>
               )}
             </div>
           </div>
           
           <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${getCategoryColor(job.category)}`}>
-            {job.category || 'General'}
+            {job.category || (isEnglish ? 'General' : 'General')}
           </span>
         </div>
 
@@ -84,10 +91,10 @@ export default function JobCard({ job }: JobCardProps) {
 
       <div className="px-6 pb-6 mt-auto">
         <Link 
-          href={job.id ? `/job/${job.id}` : job.url_source} 
+          href={detailUrl} 
           className="block w-full text-center bg-gray-900 hover:bg-black text-white font-medium py-2.5 px-4 rounded-lg transition-colors duration-200"
         >
-          Ver Oferta
+          {isEnglish ? 'View Job' : 'Ver Oferta'}
         </Link>
       </div>
     </div>

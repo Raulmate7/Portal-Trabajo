@@ -2,6 +2,7 @@ import { MetadataRoute } from 'next'
 import pool from '@/lib/db';
 import { BLOG_POSTS } from '@/lib/blog';
 import { BASE_URL } from '@/lib/constants';
+import { getJobSlug } from '@/lib/slug';
 
 export const dynamic = 'force-dynamic';
 
@@ -145,7 +146,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     // 1. Cogemos las últimas 25000 ofertas para no sobrecargar (con más campos para detectar tecnologías/ciudades activas)
-    const jobsRes = await pool.query("SELECT id, title, category, location, description_snippet, created_at FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 25000");
+    const jobsRes = await pool.query("SELECT id, title, title_es, company, category, location, description_snippet, created_at FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 25000");
     jobs = jobsRes.rows;
     // 2. Extraemos marcas únicas
     const compRes = await pool.query("SELECT DISTINCT company FROM jobs WHERE company IS NOT NULL AND company != 'Desconocida'");
@@ -197,8 +198,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const jobUrls = jobs.map((job) => {
     const jobDate = new Date(job.created_at);
     const isOld = jobDate < thirtyDaysAgo;
+    const jobSlug = getJobSlug(job);
     return {
-      url: `${BASE_URL}/job/${job.id}`,
+      url: `${BASE_URL}/job/${jobSlug}`,
       lastModified: jobDate,
       changeFrequency: (isOld ? 'never' : 'monthly') as 'never' | 'monthly',
       priority: isOld ? 0.4 : 0.8,
@@ -227,6 +229,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const SALARIOS_TECNOLOGIAS = ['react', 'node', 'python', 'java', 'typescript', 'aws', 'docker', 'flutter', 'csharp', 'php', 'sql'];
+  const SALARIOS_CIUDADES = ['madrid', 'barcelona', 'valencia', 'remoto'];
 
   const salaryUrls = [
     {
@@ -240,7 +243,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.8,
-    }))
+    })),
+    ...SALARIOS_TECNOLOGIAS.flatMap(tech => 
+      SALARIOS_CIUDADES.map(city => ({
+        url: `${BASE_URL}/salarios/${tech}/${city}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.8,
+      }))
+    )
   ];
 
   return [

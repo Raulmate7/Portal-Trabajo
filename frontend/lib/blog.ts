@@ -453,6 +453,110 @@ Si quieres ver el rango exacto de sueldos ofertados en tiempo real para perfiles
     `,
     date: '2026-06-13',
     author: 'Equipo Portal Empleo',
+  },
+  {
+    slug: 'portal-trabajo-it-vs-infojobs-linkedin',
+    title: 'Portal Trabajo IT vs InfoJobs y LinkedIn: ¿Cuál elegir en 2026?',
+    excerpt: 'Comparamos las diferencias clave entre un agregador especializado como el nuestro y los gigantes generalistas para tu búsqueda de empleo tecnológico.',
+    content: `
+Encontrar trabajo en el sector tecnológico requiere una estrategia muy distinta a la de otras industrias. Aunque plataformas gigantescas como InfoJobs o LinkedIn son las más populares por volumen bruto de usuarios, a menudo se convierten en un pozo de frustración para los desarrolladores debido a descripciones ambiguas, procesos lentos y falta de transparencia salarial.
+
+En esta guía analizamos por qué un agregador especializado en IT como **Portal Trabajo IT** ofrece ventajas competitivas sustanciales frente a las opciones tradicionales.
+
+## 1. Filtros Específicos vs Búsquedas Genéricas
+Los portales generalistas agrupan todas las profesiones bajo el mismo paraguas. Si buscas "React" en InfoJobs, es común encontrar ofertas que simplemente mencionan la palabra de pasada o incluso ofertas de otros sectores mezcladas.
+* **InfoJobs / LinkedIn:** Se basan en texto plano. Los reclutadores suelen escribir descripciones muy amplias donde se confunden lenguajes (como Java y JavaScript).
+* **Portal Trabajo IT:** Clasifica las ofertas de forma semántica y limpia. Puedes filtrar directamente por tecnología exacta (ej: [React](/trabajos/react), [DevOps](/trabajos/cloud)) y ubicación (ej: [Remoto](/trabajos/react-remoto)).
+
+## 2. Transparencia Salarial
+La falta de salario visible en las ofertas de empleo tradicionales es uno de los mayores problemas del sector:
+1. **Pérdida de tiempo:** Aplicas a un proceso largo para acabar descubriendo que la oferta económica está por debajo de tus expectativas.
+2. **Falta de datos:** No sabes si estás pidiendo mucho o poco durante las entrevistas.
+
+**Nuestra solución:** Aunque no todas las ofertas scraped traen sueldo de origen, en Portal Trabajo IT contamos con una [Calculadora de Salarios IT](/salarios) integrada que analiza miles de ofertas activas en tiempo real. Te ofrecemos la mediana, percentiles P25 y P75 por tecnología y ciudad para que puedas negociar con datos reales y objetivos del mercado actual.
+
+## 3. Frecuencia de Actualización
+En LinkedIn o portales tradicionales, muchas ofertas permanecen abiertas semanas después de haber cubierto la vacante para seguir captando currículums.
+* En **Portal Trabajo IT**, nuestros scrapers actualizan las ofertas **cada 6 horas**, purgando automáticamente aquellas que han sido retiradas de los portales de origen o que tienen más de 30 días de inactividad. Esto te garantiza aplicar solo a vacantes calientes y con procesos de selección activos en este preciso instante.
+
+## Resumen de Diferencias Clave
+
+| Característica | Portal Trabajo IT | InfoJobs | LinkedIn Jobs |
+|---|---|---|---|
+| **Foco Tecnológico** | 100% Especializado IT | Generalista | Generalista |
+| **Actualización** | Cada 6 horas | Diario / Semanal | Continuo (sin purgar) |
+| **Calculadora de Salario** | Integrada y Gratuita | Estimaciones muy amplias | Solo con suscripción Premium |
+| **Ruido / Spam** | Muy bajo (solo ofertas tech) | Alto | Muy alto |
+
+Si eres desarrollador, DevOps o analista de datos, optimizar tu tiempo de búsqueda es el primer paso para conseguir un mejor puesto. Te recomendamos explorar las vacantes de tu stack directamente en nuestro [Buscador General](/trabajos/informatica-tecnologia) para ver la diferencia por ti mismo.
+`,
+    date: '2026-06-13',
+    author: 'Equipo Portal Empleo',
+  },
+  {
+    slug: 'como-conseguir-primer-empleo-programador-junior-2026',
+    title: 'Cómo conseguir tu primer empleo de programador sin experiencia (2026)',
+    excerpt: '¿Acabas de terminar un bootcamp o carrera y no sabes por dónde empezar? Descubre la estrategia paso a paso para abrirte paso en la industria.',
+    content: `
+El mercado laboral para desarrolladores Junior ha cambiado drásticamente. En 2026, con la irrupción de herramientas de IA que generan código simple de forma instantánea, las empresas ya no buscan juniors que solo sepan escribir sintaxis básica. Buscan personas que entiendan la lógica del desarrollo, que sepan trabajar en equipo y que tengan capacidad de aprendizaje autónomo demostrada.
+
+Si acabas de terminar tus estudios (Universidad, FP o Bootcamp) y te enfrentas a la clásica barrera de "se requiere experiencia", sigue este plan de acción de 4 pasos para destacar y conseguir tu primera oportunidad.
+
+## Step 1: Crea un Proyecto Completo (No copies tutoriales)
+El mayor error de los juniors es llenar su GitHub con proyectos clonados de tutoriales de YouTube (como un clon de Netflix o una Todo App). Los reclutadores técnicos ven decenas de estos portafolios idénticos cada día y los descartan de inmediato.
+* **Crea algo original:** Diseña una aplicación que resuelva un problema real, por pequeño que sea. Por ejemplo, una app para gestionar reservas de una tienda local o un agregador de datos de una API de nicho.
+* **Despliega tu app:** Usa plataformas gratuitas (como Vercel, Netlify o Render) para subir tu proyecto. Un reclutador no se descargará tu código para ejecutarlo localmente; quiere ver una URL funcionando.
+
+## Step 2: Optimiza tu Marca Técnica
+Antes de enviar currículums, asegúrate de que tu presencia digital está optimizada:
+1. **GitHub Ordenado:** El archivo \`README.md\` de tus proyectos principales debe explicar qué hace la app, qué tecnologías usaste, qué retos técnicos superaste y cómo se ejecuta localmente.
+2. **LinkedIn Profesional:** Usa un titular descriptivo (ej: *"Desarrollador Frontend Junior | Especializado en React & TypeScript"*). No pongas "Buscando oportunidades" o "En paro". Describe la tecnología con la que has trabajado en tus proyectos.
+
+## Step 3: Domina las Soft Skills del Entorno Remoto
+Dado que muchas empresas tecnológicas operan en remoto o híbrido, la capacidad de comunicarse por escrito es vital.
+* Demuestra que eres ordenado escribiendo documentación limpia.
+* Sé proactivo en tus comunicaciones: cuando apliques a una oferta en plataformas como nuestro [Listado de Trabajo Remoto](/trabajos/informatica-tecnologia-remoto), intenta localizar al lead de ingeniería en LinkedIn y escríbele un mensaje corto y personalizado explicando por qué te interesa su proyecto concreto.
+
+## Step 4: Filtra y Aplica con Inteligencia
+No envíes 200 currículums al día con "autocandidatura" sin leer. Es mucho mejor aplicar a 5 ofertas al día adaptando tu carta de presentación o CV para que coincida exactamente con lo solicitado.
+* En nuestro portal, disponemos de listados pre-filtrados específicos para perfiles que están empezando. Echa un vistazo periódicamente a las ofertas de [React Junior](/trabajos/react-junior) o busca directamente empleos en la categoría [Sin Experiencia](/trabajos/react-sin-experiencia) para competir con perfiles de tu mismo nivel.
+
+El primer empleo es el más difícil de conseguir, pero una vez cruzas esa puerta y sumas tus primeros 12 meses de experiencia real, tu empleabilidad y tus opciones de crecimiento salarial se disparan.
+`,
+    date: '2026-06-13',
+    author: 'Equipo Portal Empleo',
+  },
+  {
+    slug: 'github-portfolio-guia-definitiva-desarrolladores',
+    title: 'Cómo crear un perfil de GitHub que atraiga a reclutadores IT',
+    excerpt: 'Aprende los errores comunes y las mejores prácticas para estructurar tus repositorios de forma que destaquen en los procesos de selección.',
+    content: `
+Para un programador, GitHub es el equivalente al portafolio de un diseñador o arquitecto. Es la prueba física de que sabes escribir código, documentar procesos y estructurar proyectos. De hecho, en muchos procesos de selección técnica de nivel medio y junior en España, un buen perfil de GitHub puede eximirte de realizar pruebas de código iniciales.
+
+A continuación, detallamos la guía definitiva para estructurar tu perfil de GitHub de forma profesional para impresionar a cualquier reclutador o líder técnico.
+
+## 1. Crea un GitHub Profile README Destacado
+GitHub te permite crear un repositorio especial con el mismo nombre que tu usuario para mostrar un perfil de presentación personalizado:
+* **Qué incluir:** Un breve resumen de tu perfil, tus tecnologías preferidas representadas de forma visual, en qué proyectos estás trabajando actualmente y enlaces directos a tus mejores repositorios.
+* **Herramientas recomendadas:** Puedes usar generadores online como *github-profile-readme-generator* para estructurar el markdown inicial de forma atractiva.
+
+## 2. Calidad sobre Cantidad: Fija tus 3 Mejores Repositorios
+No muestres repositorios vacíos o con prácticas de clase desorganizadas. Utiliza la función **"Pins"** de GitHub para anclar un máximo de 3 a 4 proyectos principales que demuestren tu máximo nivel actual.
+Cada uno de estos proyectos debe cumplir con los siguientes requisitos:
+1. **Un README.md Impecable:** Debe incluir una descripción del proyecto, tecnologías del stack, capturas de pantalla o GIF animado demostrando el funcionamiento, instrucciones de instalación local y enlace a la demo en producción.
+2. **Código Limpio:** Deja comentarios útiles, evita dejar código muerto o variables sin usar, y mantén una nomenclatura de archivos consistente.
+3. **Historial de Commits Real:** Un repositorio con un único commit llamado "init" o "final commit" da muy mala impresión. Los entrevistadores quieren ver tu flujo de trabajo: commits pequeños, mensajes claros (ej: *"feat: add database client connection"*) y cómo resolviste los problemas progresivamente.
+
+## 3. Demuestra que entiendes el Control de Versiones
+Los desarrolladores senior no trabajan solos en local. Demuestra que sabes colaborar:
+* Crea ramas separadas para tus funcionalidades (\`feature/login-system\`).
+* Realiza Pull Requests para integrar el código, incluso si estás trabajando solo en un proyecto personal. Esto muestra que conoces los flujos de integración del mundo laboral real.
+* Configura tests automáticos (ej: con GitHub Actions) para que se ejecuten con cada push. Esto añade un nivel enorme de profesionalidad a tu portafolio.
+
+Optimizar tu perfil de GitHub te garantiza que cuando un reclutador reciba tu CV y haga clic en tu enlace de proyectos, vea a un profesional preparado. Si quieres ver qué tecnologías se demandan hoy en el mercado para actualizar tus proyectos personales con stack real, explora nuestras ofertas en el [Buscador IT](/trabajos/informatica-tecnologia).
+`,
+    date: '2026-06-13',
+    author: 'Equipo Portal Empleo',
   }
 ];
 

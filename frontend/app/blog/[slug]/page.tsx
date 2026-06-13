@@ -6,6 +6,7 @@ import AdBanner from '@/components/AdBanner';
 import SubscribeForm from '@/components/SubscribeForm';
 import pool from '@/lib/db';
 import { Markdown } from '@/lib/markdown';
+import { BASE_URL } from '@/lib/constants';
 
 export const revalidate = 3600;
 
@@ -97,16 +98,45 @@ export default async function BlogPostPage({ params }: Props) {
 
   const relatedJobs = await getRelatedJobs(resolvedParams.slug);
 
+  const imageUrl = `${BASE_URL}/blog/${resolvedParams.slug}/opengraph-image`;
+
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'Article',
+    '@type': 'BlogPosting',
     headline: post.title,
     description: post.excerpt,
+    image: {
+      '@type': 'ImageObject',
+      url: imageUrl,
+      width: 1200,
+      height: 630
+    },
     author: {
-      '@type': 'Organization',
+      '@type': 'Person',
       name: post.author,
+      image: {
+        '@type': 'ImageObject',
+        url: `${BASE_URL}/favicon.ico`,
+        width: 60,
+        height: 60
+      }
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Portal Trabajo IT',
+      logo: {
+        '@type': 'ImageObject',
+        url: `${BASE_URL}/favicon.ico`,
+        width: 60,
+        height: 60
+      }
     },
     datePublished: new Date(post.date).toISOString(),
+    dateModified: new Date(post.date).toISOString(),
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': `${BASE_URL}/blog/${resolvedParams.slug}`
+    }
   };
 
   return (
