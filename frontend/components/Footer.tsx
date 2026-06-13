@@ -36,11 +36,21 @@ export default function Footer() {
     { label: 'Backend Senior Madrid', href: '/trabajos/backend-en-madrid-senior' },
     { label: 'Fullstack Remoto', href: '/trabajos/fullstack-remoto' },
     { label: 'Kotlin en Madrid', href: '/trabajos/kotlin-en-madrid' },
+    { label: 'QA Engineer Remoto', href: '/trabajos/qa-engineer-remoto' },
+    { label: 'Data Analyst Barcelona', href: '/trabajos/data-analyst-en-barcelona' },
+    { label: 'Product Manager Remoto', href: '/trabajos/product-manager-remoto' },
+    { label: 'Empleo IT en Madrid', href: '/trabajos/informatica-tecnologia-en-madrid' },
+    { label: 'Empleo IT en Barcelona', href: '/trabajos/informatica-tecnologia-en-barcelona' },
+    { label: 'Empleo IT en Valencia', href: '/trabajos/informatica-tecnologia-en-valencia' },
+    { label: 'Empleo IT en Bilbao', href: '/trabajos/informatica-tecnologia-en-bilbao' },
+    { label: 'Empleo IT en Sevilla', href: '/trabajos/informatica-tecnologia-en-sevilla' },
+    { label: 'Empleo IT Remoto', href: '/trabajos/informatica-tecnologia-remoto' },
   ];
 
   const navigation = [
     { label: 'Inicio', href: '/' },
     { label: 'Buscador de Empleo', href: '/trabajos/informatica-tecnologia' },
+    { label: '💻 Trabajo Remoto', href: '/trabajo-remoto' },
     { label: '💰 Calculadora de Salarios', href: '/salarios' },
     { label: '🏢 Directorio de Empresas', href: '/empresas' },
     { label: 'Talento Premium', href: '/talento-premium' },

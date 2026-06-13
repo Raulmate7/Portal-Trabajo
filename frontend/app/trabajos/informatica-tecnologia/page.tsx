@@ -8,25 +8,37 @@ import AdBanner from '@/components/AdBanner';
 import PushSubscribe from '@/components/PushSubscribe';
 import Link from 'next/link';
 import { Metadata } from 'next';
+import { BASE_URL } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'Ofertas de Empleo Informática y Tecnología en España [2026] | Portal Trabajo IT',
-  description:
-    'Encuentra las mejores ofertas de trabajo en informática y tecnología en España. Vacantes de programación, desarrollo de software, DevOps, Data Science, Cloud y más. Actualizado cada 6 horas.',
-  alternates: {
-    canonical: '/trabajos/informatica-tecnologia',
-  },
-  openGraph: {
-    title: 'Ofertas de Empleo IT en España — Vacantes Actualizadas',
-    description:
-      'Listado actualizado de ofertas de trabajo para programadores y profesionales IT en España. Java, Python, React, DevOps y más.',
-  },
-};
-
 type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}
+
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const resolvedSearchParams = await searchParams;
+  const page = typeof resolvedSearchParams.page === 'string' ? parseInt(resolvedSearchParams.page, 10) : 1;
+  const isPaged = !isNaN(page) && page > 1;
+
+  const metadata: Metadata = {
+    title: `Ofertas de Empleo Informática y Tecnología en España${isPaged ? ` - Página ${page}` : ''} [2026] | Portal Trabajo IT`,
+    description: `Encuentra las mejores ofertas de trabajo en informática y tecnología en España. Vacantes de programación, desarrollo de software, DevOps, Data Science, Cloud y más.${isPaged ? ` (Página ${page})` : ''}`,
+    alternates: {
+      canonical: `${BASE_URL}/trabajos/informatica-tecnologia`,
+    },
+    openGraph: {
+      title: `Ofertas de Empleo IT en España — Vacantes Actualizadas${isPaged ? ` (Página ${page})` : ''}`,
+      description: 'Listado actualizado de ofertas de trabajo para programadores y profesionales IT en España. Java, Python, React, DevOps y más.',
+      url: `${BASE_URL}/trabajos/informatica-tecnologia`,
+    },
+  };
+
+  if (isPaged) {
+    metadata.robots = { index: false, follow: true };
+  }
+
+  return metadata;
 }
 
 async function getJobs(scopeFilter: string, locationFilter?: string, queryFilter?: string, page: number = 1) {

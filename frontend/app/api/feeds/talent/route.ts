@@ -1,4 +1,5 @@
 import pool from '@/lib/db';
+import { BASE_URL } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +34,7 @@ export async function GET() {
     <title><![CDATA[${job.title}]]></title>
     <date><![CDATA[${formattedDate}]]></date>
     <referencenumber><![CDATA[${job.id}]]></referencenumber>
-    <url><![CDATA[https://portal-trabajo.vercel.app/job/${job.id}]]></url>
+    <url><![CDATA[${BASE_URL}/job/${job.id}]]></url>
     <company><![CDATA[${job.company || 'Desconocida'}]]></company>
     <city><![CDATA[${job.location || 'Remoto'}]]></city>
     <country><![CDATA[${country}]]></country>

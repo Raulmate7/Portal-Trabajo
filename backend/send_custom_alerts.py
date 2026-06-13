@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-BASE_URL = os.getenv("FRONTEND_URL", "https://portal-trabajo.vercel.app")
+BASE_URL = os.getenv("FRONTEND_URL", "https://portalempleoit.es")
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
@@ -133,11 +133,18 @@ def send_custom_alerts():
         print(f"❌ Error conectando a BD: {e}")
         return
 
-    # 2. Obtener suscriptores con sus preferencias
+    # 2. Obtener suscriptores con sus preferencias (filtrando por frecuencia y último envío)
     cur.execute("""
         SELECT email, tech_keywords, location_pref, frequency
         FROM subscribers
         WHERE email IS NOT NULL
+          AND (
+            (frequency = 'daily' AND (last_sent_at IS NULL OR last_sent_at < NOW() - INTERVAL '23 hours'))
+            OR
+            (frequency = 'weekly' AND (last_sent_at IS NULL OR last_sent_at < NOW() - INTERVAL '6 days'))
+            OR
+            (frequency IS NULL OR frequency = '' OR (frequency != 'daily' AND frequency != 'weekly' AND (last_sent_at IS NULL OR last_sent_at < NOW() - INTERVAL '6 days')))
+          )
     """)
     subscribers = cur.fetchall()
 
@@ -193,6 +200,15 @@ def send_custom_alerts():
             msg.attach(MIMEText(html_body, 'html'))
 
             server.send_message(msg)
+            
+            # Actualizar last_sent_at
+            cur.execute("""
+                UPDATE subscribers
+                SET last_sent_at = %s
+                WHERE email = %s
+            """, (datetime.now(), email))
+            conn.commit()
+            
             success_count += 1
             print(f"  ✅ Enviado a: {email} ({job_count} ofertas)")
 

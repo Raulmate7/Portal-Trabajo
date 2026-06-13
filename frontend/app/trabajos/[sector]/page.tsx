@@ -7,8 +7,9 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 import Link from "next/link";
 import { Metadata } from "next";
 import { cache } from "react";
+import { BASE_URL } from "@/lib/constants";
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 // Tipos
 interface Job {
@@ -60,7 +61,16 @@ const displayNameMap: Record<string, string> = {
   'frontend': 'Frontend',
   'data': 'Data',
   'cloud': 'Cloud',
-  'mobile': 'Mobile'
+  'mobile': 'Mobile',
+  'desarrollador-fullstack': 'Desarrollador Full Stack',
+  'fullstack': 'Desarrollador Full Stack',
+  'devops-engineer': 'DevOps Engineer',
+  'scrum-master': 'Scrum Master',
+  'product-manager': 'Product Manager',
+  'data-analyst': 'Data Analyst',
+  'qa-engineer': 'QA Engineer',
+  'ux-designer': 'UX Designer',
+  'informatica-tecnologia': 'Informática y Tecnología'
 };
 
 const adMap: Record<string, { title: string, text: string, link: string }> = {
@@ -122,13 +132,16 @@ function parseSector(sectorSlug: string) {
   return { tec, ciudad, experiencia, dbCategory };
 }
 
-export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: { params: Params, searchParams: Promise<{ [key: string]: string | string[] | undefined }> }): Promise<Metadata> {
   const { sector } = await params;
   const sectorSlug = sector.toLowerCase();
+  const resolvedSearchParams = await searchParams;
+  const page = typeof resolvedSearchParams.page === 'string' ? parseInt(resolvedSearchParams.page, 10) : 1;
+  const isPaged = !isNaN(page) && page > 1;
   
   const { tec, ciudad, experiencia, dbCategory } = parseSector(sectorSlug);
   
-  const jobs = await getJobs(tec, ciudad, dbCategory, experiencia, 1);
+  const jobs = await getJobs(tec, ciudad, dbCategory, experiencia, page);
   const isThinPage = jobs.length === 0;
   const jobCount = jobs.length;
 
@@ -148,7 +161,10 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   }
 
   const countText = jobCount > 0 ? `${jobCount} ` : '';
-  const tituloSeo = `${countText}${tituloBase} [${mes.charAt(0).toUpperCase() + mes.slice(1)} ${anio}]`;
+  let tituloSeo = `${countText}${tituloBase} [${mes.charAt(0).toUpperCase() + mes.slice(1)} ${anio}]`;
+  if (isPaged) {
+    tituloSeo += ` - Página ${page}`;
+  }
   
   const rssParams = new URLSearchParams();
   if (dbCategory) {
@@ -161,25 +177,29 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   }
   const rssQueryString = rssParams.toString();
   const rssUrl = rssQueryString 
-    ? `https://portal-trabajo.vercel.app/feed.xml?${rssQueryString}`
-    : 'https://portal-trabajo.vercel.app/feed.xml';
+    ? `${BASE_URL}/feed.xml?${rssQueryString}`
+    : `${BASE_URL}/feed.xml`;
+
+  const metaRobots = isPaged 
+    ? { index: false, follow: true } 
+    : { index: !isThinPage, follow: true };
 
   return {
     title: `${tituloSeo} | Portal Trabajo`,
-    description: `${descBase} actualizadas hoy. ${jobCount > 0 ? `${jobCount} vacantes disponibles ahora.` : 'Recopilamos ofertas de las mejores empresas tecnológicas.'}`,
+    description: `${descBase} actualizadas hoy. ${jobCount > 0 ? `${jobCount} vacantes disponibles ahora.` : 'Recopilamos ofertas de las mejores empresas tecnológicas.'}${isPaged ? ` (Página ${page})` : ''}`,
     alternates: {
-      canonical: `/trabajos/${sectorSlug}`,
+      canonical: `${BASE_URL}/trabajos/${sectorSlug}`,
       types: {
         'application/rss+xml': rssUrl,
       },
     },
     openGraph: {
-      title: `${tituloBase} — ${jobCount > 0 ? `${jobCount} Vacantes Disponibles` : 'Vacantes Urgentes'}`,
+      title: `${tituloBase} — ${jobCount > 0 ? `${jobCount} Vacantes Disponibles` : 'Vacantes Urgentes'}${isPaged ? ` (Página ${page})` : ''}`,
       description: `Listado actualizado de ${descBase.toLowerCase()}.`,
-      url: `https://portal-trabajo.vercel.app/trabajos/${sectorSlug}`,
+      url: `${BASE_URL}/trabajos/${sectorSlug}`,
       images: [
         {
-          url: `https://portal-trabajo.vercel.app/trabajos/${sectorSlug}/opengraph-image`,
+          url: `${BASE_URL}/trabajos/${sectorSlug}/opengraph-image`,
           width: 1200,
           height: 630,
           alt: `${tituloBase}`,
@@ -188,14 +208,11 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${tituloBase} — ${jobCount > 0 ? `${jobCount} Vacantes Disponibles` : 'Vacantes Urgentes'}`,
+      title: `${tituloBase} — ${jobCount > 0 ? `${jobCount} Vacantes Disponibles` : 'Vacantes Urgentes'}${isPaged ? ` (Página ${page})` : ''}`,
       description: `Listado de ${descBase.toLowerCase()}.`,
-      images: [`https://portal-trabajo.vercel.app/trabajos/${sectorSlug}/opengraph-image`],
+      images: [`${BASE_URL}/trabajos/${sectorSlug}/opengraph-image`],
     },
-    robots: {
-      index: !isThinPage,
-      follow: true,
-    }
+    robots: metaRobots
   };
 }
 
@@ -224,6 +241,34 @@ const getJobs = cache(async (tec: string, ciudad: string, dbCategory: string | u
       } else if (tec === 'cybersecurity' || tec === 'ciberseguridad') {
         sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1} OR title ILIKE $${paramIndex + 2})`;
         paramsQuery.push('%cybersecurity%', '%ciberseguridad%', '%seguridad%');
+        paramIndex += 3;
+      } else if (tec === 'desarrollador-fullstack' || tec === 'fullstack') {
+        sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1})`;
+        paramsQuery.push('%fullstack%', '%full stack%');
+        paramIndex += 2;
+      } else if (tec === 'devops-engineer' || tec === 'devops') {
+        sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1} OR title ILIKE $${paramIndex + 2})`;
+        paramsQuery.push('%devops%', '%dev ops%', '%site reliability%');
+        paramIndex += 3;
+      } else if (tec === 'data-analyst' || tec === 'analista-datos') {
+        sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1})`;
+        paramsQuery.push('%data analyst%', '%analista de datos%');
+        paramIndex += 2;
+      } else if (tec === 'scrum-master') {
+        sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1})`;
+        paramsQuery.push('%scrum master%', '%scrum%');
+        paramIndex += 2;
+      } else if (tec === 'product-manager') {
+        sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1})`;
+        paramsQuery.push('%product manager%', '%gestor de producto%');
+        paramIndex += 2;
+      } else if (tec === 'qa-engineer') {
+        sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1} OR title ILIKE $${paramIndex + 2} OR title ILIKE $${paramIndex + 3})`;
+        paramsQuery.push('%qa%', '%tester%', '%calidad%', '%test engineer%');
+        paramIndex += 4;
+      } else if (tec === 'ux-designer') {
+        sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1} OR title ILIKE $${paramIndex + 2})`;
+        paramsQuery.push('%ux%', '%diseñador%ux%', '%diseño%ux%');
         paramIndex += 3;
       } else {
         sql += ` AND title ILIKE $${paramIndex}`;
@@ -297,8 +342,6 @@ async function getFallbackJobs(tec: string, ciudad: string, dbCategory: string |
 
   return { jobs: [], type: 'none' };
 }
-
-const BASE_URL = 'https://portal-trabajo.vercel.app';
 
 function calculateStats(jobs: any[]) {
   let countWithSalary = 0;

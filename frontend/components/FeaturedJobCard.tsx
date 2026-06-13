@@ -15,6 +15,12 @@ interface FeaturedJob {
  * Las empresas pagarán por este espacio cuando haya tráfico suficiente.
  */
 export default function FeaturedJobCard({ job }: { job: FeaturedJob }) {
+  const createdDate = job.created_at ? new Date(job.created_at) : new Date();
+  const diffTime = Math.abs(new Date().getTime() - createdDate.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const isRecent = diffDays <= 1; // 24 horas o menos
+  const isExpiringSoon = diffDays >= 25; // 25 días o más
+
   return (
     <div className="relative bg-gradient-to-br from-amber-50 via-white to-yellow-50 p-6 rounded-2xl border-2 border-amber-300/70 shadow-lg shadow-amber-100/50 hover:shadow-xl hover:shadow-amber-200/50 transition-all duration-300 group">
       {/* Badge Destacada */}
@@ -34,7 +40,19 @@ export default function FeaturedJobCard({ job }: { job: FeaturedJob }) {
               {job.title}
             </h2>
           </Link>
-          <p className="text-gray-600 font-medium mt-1">{job.company}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-gray-600 font-medium">{job.company}</p>
+            {isRecent && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 uppercase tracking-wider shrink-0 animate-pulse">
+                🆕 Reciente
+              </span>
+            )}
+            {isExpiringSoon && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider shrink-0">
+                ⚠️ Caduca pronto
+              </span>
+            )}
+          </div>
 
           <div className="flex flex-wrap gap-3 mt-3 text-sm text-gray-500">
             <span className="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded border border-amber-200 text-amber-800 font-medium">

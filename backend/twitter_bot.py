@@ -13,6 +13,7 @@ TWITTER_API_SECRET = os.getenv("TWITTER_API_SECRET")
 TWITTER_ACCESS_TOKEN = os.getenv("TWITTER_ACCESS_TOKEN")
 TWITTER_ACCESS_SECRET = os.getenv("TWITTER_ACCESS_SECRET")
 DB_URL = os.getenv("DATABASE_URL")
+BASE_URL = os.getenv("FRONTEND_URL", "https://portalempleoit.es")
 
 if not all([TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET]):
     print("⚠️  Faltan credenciales de Twitter en las variables de entorno. Omitiendo publicación.")
@@ -74,50 +75,60 @@ if not recent_jobs:
     print("🤷‍♂️ No hay ofertas nuevas en las últimas 12h. No se publicará nada.")
     exit(0)
 
-# Elegimos 1 oferta al azar para no hacer spam (o 2 si se quiere ampliar)
-selected_job = random.choice(recent_jobs)
-job_id, title, company, location = selected_job
+import time
 
-# Extraer tecnología para hashtags
-title_lower = title.lower()
-tags = ["#TrabajoRemoto" if "remoto" in location.lower() or "remote" in location.lower() else "#EmpleoIT"]
-if "react" in title_lower: tags.append("#ReactJS")
-if "python" in title_lower: tags.append("#Python")
-if "java" in title_lower and "javascript" not in title_lower: tags.append("#Java")
-if "node" in title_lower: tags.append("#NodeJS")
-if "devops" in title_lower or "aws" in title_lower: tags.append("#DevOps")
+# Seleccionar hasta 3 ofertas para publicar (las más recientes)
+jobs_to_tweet = recent_jobs[:3]
+print(f"📣 Seleccionadas {len(jobs_to_tweet)} ofertas para publicar en Twitter.")
 
-hashtags_str = " ".join(tags)
-
-# 4. Formatear el Tweet
-tweet_text = f"🚀 ¡Nueva oferta de empleo!\n\n"
-tweet_text += f"💼 {title}\n"
-tweet_text += f"🏢 {company}\n"
-tweet_text += f"📍 {location}\n\n"
-tweet_text += f"👉 Aplica o mira los detalles aquí: https://portal-trabajo.vercel.app/job/{job_id}\n\n"
-tweet_text += f"{hashtags_str} #Programacion"
-
-print(f"\n📝 Preparando Tweet:\n{tweet_text}\n")
-
-# 5. Enviar el Tweet
-try:
-    response = client.create_tweet(text=tweet_text)
-    print(f"✅ ¡Tweet publicado con éxito! ID: {response.data['id']}")
-except Exception as e:
-    print(f"❌ Error al enviar el Tweet: {e}")
-    # Enviar error a Telegram para depuración
-    telegram_token = os.getenv("TELEGRAM_TOKEN")
-    admin_id = os.getenv("TELEGRAM_CHANNEL")
-    if telegram_token and admin_id:
-        import requests
-        try:
-            requests.post(f"https://api.telegram.org/bot{telegram_token}/sendMessage", json={
-                "chat_id": admin_id,
-                "text": f"❌ *Error en Twitter Bot:*\n{e}",
-                "parse_mode": "Markdown"
-            })
-        except:
-            pass
+for idx, job in enumerate(jobs_to_tweet):
+    job_id, title, company, location = job
+    
+    # Extraer tecnología para hashtags
+    title_lower = title.lower()
+    tags = ["#TrabajoRemoto" if "remoto" in location.lower() or "remote" in location.lower() else "#EmpleoIT"]
+    if "react" in title_lower: tags.append("#ReactJS")
+    if "python" in title_lower: tags.append("#Python")
+    if "java" in title_lower and "javascript" not in title_lower: tags.append("#Java")
+    if "node" in title_lower: tags.append("#NodeJS")
+    if "devops" in title_lower or "aws" in title_lower: tags.append("#DevOps")
+    
+    hashtags_str = " ".join(tags)
+    
+    # 4. Formatear el Tweet
+    tweet_text = f"🚀 ¡Nueva oferta de empleo! ({idx+1}/{len(jobs_to_tweet)})\n\n"
+    tweet_text += f"💼 {title}\n"
+    tweet_text += f"🏢 {company}\n"
+    tweet_text += f"📍 {location}\n\n"
+    tweet_text += f"👉 Aplica o mira los detalles aquí: {BASE_URL}/job/{job_id}\n\n"
+    tweet_text += f"{hashtags_str} #Programacion"
+    
+    print(f"\n📝 Preparando Tweet {idx+1}:\n{tweet_text}\n")
+    
+    # 5. Enviar el Tweet
+    try:
+        response = client.create_tweet(text=tweet_text)
+        print(f"✅ ¡Tweet {idx+1} publicado con éxito! ID: {response.data['id']}")
+    except Exception as e:
+        print(f"❌ Error al enviar el Tweet {idx+1}: {e}")
+        # Enviar error a Telegram para depuración
+        telegram_token = os.getenv("TELEGRAM_TOKEN")
+        admin_id = os.getenv("TELEGRAM_CHANNEL")
+        if telegram_token and admin_id:
+            import requests
+            try:
+                requests.post(f"https://api.telegram.org/bot{telegram_token}/sendMessage", json={
+                    "chat_id": admin_id,
+                    "text": f"❌ *Error en Twitter Bot (Tweet {idx+1}):*\n{e}",
+                    "parse_mode": "Markdown"
+                })
+            except:
+                pass
+                
+    # Esperar 60 segundos antes de enviar el siguiente tweet
+    if idx < len(jobs_to_tweet) - 1:
+        print("💤 Esperando 60 segundos antes de enviar el siguiente tweet...")
+        time.sleep(60)
 
 print("===============================================")
 import sys

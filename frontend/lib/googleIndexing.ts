@@ -9,7 +9,7 @@ interface IndexingResponse {
  * Envía una notificación a la Google Indexing API para indexar o desindexar una URL en minutos.
  * Requiere la variable de entorno GOOGLE_INDEXING_CREDENTIALS con el JSON de la cuenta de servicio de Google.
  * 
- * @param url - La URL completa a indexar (ej: https://portal-trabajo.vercel.app/job/123)
+ * @param url - La URL completa a indexar (ej: https://portalempleoit.es/job/123)
  * @param type - Tipo de notificación: 'URL_UPDATED' (añadir/actualizar) o 'URL_DELETED' (eliminar)
  */
 export async function requestGoogleIndexing(

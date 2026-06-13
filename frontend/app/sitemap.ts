@@ -1,10 +1,9 @@
 import { MetadataRoute } from 'next'
 import pool from '@/lib/db';
 import { BLOG_POSTS } from '@/lib/blog';
+import { BASE_URL } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
-
-const BASE_URL = 'https://portal-trabajo.vercel.app';
 
 const BASE_PAGES = [
   '/trabajos/informatica-tecnologia',
@@ -17,13 +16,16 @@ const BASE_PAGES = [
   '/publicar-oferta',
   '/talento-premium',
   '/blog',
+  '/trabajo-remoto',
 ];
 
 const TECNOLOGIAS = [
   'react', 'angular', 'vue', 'node', 'python', 'java', 'php', 'csharp', 'ruby', 'go', 
   'javascript', 'typescript', 'aws', 'docker', 'kubernetes', 'backend', 'frontend', 
   'data', 'cloud', 'mobile', 'nextjs', 'flutter', 'kotlin', 'swift', 'sql', 'salesforce', 
-  'cybersecurity', 'ciberseguridad'
+  'cybersecurity', 'ciberseguridad',
+  'desarrollador-fullstack', 'fullstack', 'devops-engineer', 'scrum-master', 
+  'product-manager', 'data-analyst', 'qa-engineer', 'ux-designer'
 ];
 
 const CIUDADES = [
@@ -43,6 +45,34 @@ function detectTechForSitemap(title: string, category: string | null): string[] 
     }
     if (tec === 'nextjs' && (text.includes('next.js') || text.includes('nextjs') || text.includes('next-js'))) {
       matched.push('nextjs');
+      continue;
+    }
+    if ((tec === 'desarrollador-fullstack' || tec === 'fullstack') && (text.includes('fullstack') || text.includes('full stack') || text.includes('full-stack'))) {
+      matched.push(tec);
+      continue;
+    }
+    if ((tec === 'devops-engineer' || tec === 'devops') && (text.includes('devops') || text.includes('dev ops') || text.includes('dev-ops') || text.includes('site reliability'))) {
+      matched.push(tec);
+      continue;
+    }
+    if ((tec === 'data-analyst' || tec === 'analista-datos') && (text.includes('data analyst') || text.includes('analista de datos') || text.includes('data-analyst'))) {
+      matched.push(tec);
+      continue;
+    }
+    if (tec === 'scrum-master' && (text.includes('scrum master') || text.includes('scrum-master'))) {
+      matched.push('scrum-master');
+      continue;
+    }
+    if (tec === 'product-manager' && (text.includes('product manager') || text.includes('product-manager'))) {
+      matched.push('product-manager');
+      continue;
+    }
+    if (tec === 'qa-engineer' && (text.includes('qa') || text.includes('tester') || text.includes('calidad') || text.includes('test engineer'))) {
+      matched.push('qa-engineer');
+      continue;
+    }
+    if (tec === 'ux-designer' && (text.includes('ux') || text.includes('diseñador ux') || text.includes('diseño ux') || text.includes('ux-designer'))) {
+      matched.push('ux-designer');
       continue;
     }
     if (category && category.toLowerCase().includes(tec)) {
@@ -114,8 +144,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let companies: any[] = [];
 
   try {
-    // 1. Cogemos las últimas 2000 ofertas para no sobrecargar (con más campos para detectar tecnologías/ciudades activas)
-    const jobsRes = await pool.query("SELECT id, title, category, location, description_snippet, created_at FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 2000");
+    // 1. Cogemos las últimas 25000 ofertas para no sobrecargar (con más campos para detectar tecnologías/ciudades activas)
+    const jobsRes = await pool.query("SELECT id, title, category, location, description_snippet, created_at FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 25000");
     jobs = jobsRes.rows;
     // 2. Extraemos marcas únicas
     const compRes = await pool.query("SELECT DISTINCT company FROM jobs WHERE company IS NOT NULL AND company != 'Desconocida'");
@@ -161,12 +191,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const sectorPages = [...BASE_PAGES, ...Array.from(activeProgrammaticPages)];
 
-  const jobUrls = jobs.map((job) => ({
-    url: `${BASE_URL}/job/${job.id}`,
-    lastModified: new Date(job.created_at),
-    changeFrequency: 'weekly' as const,
-    priority: 0.8,
-  }));
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const jobUrls = jobs.map((job) => {
+    const jobDate = new Date(job.created_at);
+    const isOld = jobDate < thirtyDaysAgo;
+    return {
+      url: `${BASE_URL}/job/${job.id}`,
+      lastModified: jobDate,
+      changeFrequency: (isOld ? 'never' : 'monthly') as 'never' | 'monthly',
+      priority: isOld ? 0.4 : 0.8,
+    };
+  });
 
   const sectorUrls = sectorPages.map((path) => ({
     url: `${BASE_URL}${path}`,
@@ -189,6 +226,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
+  const SALARIOS_TECNOLOGIAS = ['react', 'node', 'python', 'java', 'typescript', 'aws', 'docker', 'flutter', 'csharp', 'php', 'sql'];
+
+  const salaryUrls = [
+    {
+      url: `${BASE_URL}/salarios`,
+      lastModified: new Date(),
+      changeFrequency: 'daily' as const,
+      priority: 0.9,
+    },
+    ...SALARIOS_TECNOLOGIAS.map(tech => ({
+      url: `${BASE_URL}/salarios/${tech}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    }))
+  ];
+
   return [
     {
       url: BASE_URL,
@@ -200,5 +254,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...jobUrls,
     ...companyUrls,
     ...blogUrls,
+    ...salaryUrls,
   ]
 }

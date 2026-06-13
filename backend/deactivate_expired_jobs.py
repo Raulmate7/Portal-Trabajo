@@ -11,7 +11,7 @@ def deactivate_expired_jobs():
 
     # 1. Verificar variables de entorno
     cron_secret = os.getenv("CRON_SECRET")
-    frontend_url = os.getenv("FRONTEND_URL", "https://portal-trabajo.vercel.app")
+    frontend_url = os.getenv("FRONTEND_URL", "https://portalempleoit.es")
     db_url = os.getenv("DATABASE_URL")
 
     if not cron_secret:

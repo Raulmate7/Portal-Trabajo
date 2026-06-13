@@ -19,7 +19,7 @@ class TestMailer(unittest.TestCase):
         # 1. Retornar ofertas recientes para el boletín
         # Columns: id, title, company, location, url_source
         mock_cursor.fetchall.side_effect = [
-            [('job-1', 'Python Dev', 'Acme', 'Madrid', 'https://job-1.com')], # Primer fetchall (ofertas)
+            [('job-1', 'Python Dev', 'Acme', 'Madrid', 'https://job-1.com', 'Backend')], # Primer fetchall (ofertas)
             [('sub-1@gmail.com',), ('sub-2@gmail.com',)]                       # Segundo fetchall (suscriptores)
         ]
         mock_conn.cursor.return_value = mock_cursor

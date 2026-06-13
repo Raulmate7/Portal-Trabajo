@@ -1,4 +1,5 @@
 import pool from '@/lib/db';
+import { BASE_URL } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,7 +47,7 @@ export async function GET(request: Request) {
       : 'Agregador de ofertas de empleo para programadores en España. Vacantes de Java, Python, React, DevOps y más.';
 
     // Construir la URL canónica del feed con sus params
-    const selfUrl = new URL('/feed.xml', 'https://portal-trabajo.vercel.app');
+    const selfUrl = new URL('/feed.xml', BASE_URL);
     if (q) selfUrl.searchParams.set('q', q);
     if (category) selfUrl.searchParams.set('category', category);
     if (location) selfUrl.searchParams.set('location', location);
@@ -60,12 +61,12 @@ export async function GET(request: Request) {
       return `
     <item>
       <title><![CDATA[${job.title} — ${job.company}${salaryText}]]></title>
-      <link>https://portal-trabajo.vercel.app/job/${job.id}</link>
-      <guid isPermaLink="true">https://portal-trabajo.vercel.app/job/${job.id}</guid>
+      <link>${BASE_URL}/job/${job.id}</link>
+      <guid isPermaLink="true">${BASE_URL}/job/${job.id}</guid>
       <description><![CDATA[📍 ${job.location} · ${desc}]]></description>
       <pubDate>${new Date(job.created_at).toUTCString()}</pubDate>
       <category><![CDATA[${job.location}]]></category>
-      <source url="https://portal-trabajo.vercel.app">Portal Trabajo IT</source>
+      <source url="${BASE_URL}">Portal Trabajo IT</source>
     </item>`;
     }).join('');
 
@@ -73,15 +74,15 @@ export async function GET(request: Request) {
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>${feedTitle}</title>
-    <link>https://portal-trabajo.vercel.app</link>
+    <link>${BASE_URL}</link>
     <description>${feedDescription}</description>
     <language>es-ES</language>
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
     <atom:link href="${selfUrl.toString()}" rel="self" type="application/rss+xml" />
     <image>
-      <url>https://portal-trabajo.vercel.app/og-image.png</url>
+      <url>${BASE_URL}/og-image.png</url>
       <title>${feedTitle}</title>
-      <link>https://portal-trabajo.vercel.app</link>
+      <link>${BASE_URL}</link>
     </image>
     ${feedItems}
   </channel>

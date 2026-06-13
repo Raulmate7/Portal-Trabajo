@@ -1,13 +1,16 @@
-import { MetadataRoute } from 'next'
+import type { MetadataRoute } from 'next';
+import { BASE_URL } from '@/lib/constants';
  
 export default function robots(): MetadataRoute.Robots {
-  const BASE_URL = 'https://portal-trabajo.vercel.app'; 
 
   return {
     rules: {
       userAgent: '*',
       allow: '/',
     },
-    sitemap: `${BASE_URL}/sitemap.xml`,
+    sitemap: [
+      `${BASE_URL}/sitemap.xml`,
+      `${BASE_URL}/sitemap-images.xml`
+    ],
   }
 }

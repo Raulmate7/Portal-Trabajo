@@ -36,6 +36,8 @@ jobs:
           TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
           TWITTER_ACCESS_SECRET: ${{ secrets.TWITTER_ACCESS_SECRET }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_URN: ${{ secrets.LINKEDIN_URN }}
         run: |
           cd backend
           python run_all.py

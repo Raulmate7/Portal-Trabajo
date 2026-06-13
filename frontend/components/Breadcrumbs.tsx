@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { BASE_URL } from '@/lib/constants';
 
 interface BreadcrumbItem {
   label: string;
@@ -17,7 +18,7 @@ export default function Breadcrumbs({ items }: Props) {
       '@type': 'ListItem',
       position: index + 1,
       name: item.label,
-      ...(item.href ? { item: `https://portal-trabajo.vercel.app${item.href}` } : {}),
+      ...(item.href ? { item: `${BASE_URL}${item.href}` } : {}),
     })),
   };
 

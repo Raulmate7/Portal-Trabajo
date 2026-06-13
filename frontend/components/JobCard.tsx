@@ -32,14 +32,34 @@ export default function JobCard({ job }: JobCardProps) {
     return 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
+  const createdDate = job.created_at ? new Date(job.created_at) : new Date();
+  const diffTime = Math.abs(new Date().getTime() - createdDate.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const isRecent = diffDays <= 1; // 24 horas o menos
+  const isExpiringSoon = diffDays >= 25; // 25 días o más
+
   return (
     <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-100 overflow-hidden flex flex-col h-full">
       
       <div className="p-6 flex-grow">
         <div className="flex justify-between items-start gap-4 mb-3">
-          <h3 className="text-lg font-bold text-gray-900 leading-tight">
-            {job.title}
-          </h3>
+          <div className="flex flex-col gap-1.5">
+            <h3 className="text-lg font-bold text-gray-900 leading-tight">
+              {job.title}
+            </h3>
+            <div className="flex flex-wrap gap-1.5">
+              {isRecent && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 uppercase tracking-wider shrink-0">
+                  🆕 Reciente
+                </span>
+              )}
+              {isExpiringSoon && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider shrink-0">
+                  ⚠️ Caduca pronto
+                </span>
+              )}
+            </div>
+          </div>
           
           <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${getCategoryColor(job.category)}`}>
             {job.category || 'General'}

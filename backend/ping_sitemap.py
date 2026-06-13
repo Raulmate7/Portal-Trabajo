@@ -1,8 +1,11 @@
 import urllib.request
 import urllib.parse
 
+import os
+
 def ping_google_sitemap():
-    sitemap_url = "https://portal-trabajo.vercel.app/sitemap.xml"
+    frontend_url = os.getenv("FRONTEND_URL", "https://portalempleoit.es")
+    sitemap_url = f"{frontend_url}/sitemap.xml"
     google_ping_url = f"https://www.google.com/ping?sitemap={urllib.parse.quote(sitemap_url)}"
     
     print(f"📡 Enviando ping del sitemap a Google: {sitemap_url}")

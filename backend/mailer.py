@@ -20,44 +20,95 @@ def send_newsletter():
         return
 
     # 2. BUSCAR OFERTAS (Últimos 7 días para el resumen semanal)
-    # MODIFICADO: Antes era hours=24, ahora days=7
     search_window = datetime.now() - timedelta(days=7)
     
     cur.execute("""
-        SELECT id, title, company, location, url_source 
+        SELECT id, title, company, location, url_source, category 
         FROM jobs 
-        WHERE created_at > %s 
-        ORDER BY created_at DESC 
-        LIMIT 10
+        WHERE created_at > %s AND is_active = TRUE
+        ORDER BY created_at DESC
     """, (search_window,))
     
-    new_jobs = cur.fetchall()
+    all_jobs = cur.fetchall()
 
-    if not new_jobs:
+    if not all_jobs:
         print("💤 No hay ofertas nuevas esta semana. Fin del proceso.")
         conn.close()
         return
 
-    # 3. PREPARAR HTML
-    jobs_html = ""
-    for job in new_jobs:
-        job_id, title, company, location, url_source = job
-        
-        # URL base (asegúrate de que coincida con tu despliegue)
-        base_url = "https://portal-trabajo.vercel.app"
-        job_link = f"{base_url}/job/{job_id}?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
+    # Clasificar ofertas por categorías (máximo 6 por categoría)
+    jobs_by_cat = {
+        'Backend': [],
+        'Frontend': [],
+        'Data & AI': [],
+        'Cloud & DevOps': [],
+        'Mobile': [],
+        'Otros': []
+    }
+    
+    for job in all_jobs:
+        cat = job[5] or 'Otros'
+        if cat not in jobs_by_cat:
+            cat = 'Otros'
+        if len(jobs_by_cat[cat]) < 6:
+            jobs_by_cat[cat].append(job)
 
+    # Contar total de ofertas a incluir
+    total_included = sum(len(jobs) for jobs in jobs_by_cat.values())
+    if total_included == 0:
+        print("💤 No hay ofertas en las categorías principales. Fin del proceso.")
+        conn.close()
+        return
+
+    # Mapeo de emojis para cada categoría
+    cat_emojis = {
+        'Backend': '💻',
+        'Frontend': '🎨',
+        'Data & AI': '📊',
+        'Cloud & DevOps': '☁️',
+        'Mobile': '📱',
+        'Otros': '💼'
+    }
+
+    # Mapeo de colores para las líneas de categoría
+    cat_colors = {
+        'Backend': '#3b82f6', # Azul
+        'Frontend': '#10b981', # Esmeralda
+        'Data & AI': '#8b5cf6', # Violeta
+        'Cloud & DevOps': '#f97316', # Naranja
+        'Mobile': '#ec4899', # Rosa
+        'Otros': '#6b7280' # Gris
+    }
+
+    # 3. PREPARAR HTML SEGMENTADO
+    jobs_html = ""
+    for cat, jobs in jobs_by_cat.items():
+        if not jobs:
+            continue
+            
+        emoji = cat_emojis.get(cat, '💼')
+        color = cat_colors.get(cat, '#4F46E5')
+        
         jobs_html += f"""
-            <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #ddd;">
-                <h3 style="color: #4F46E5; margin: 0;">{title}</h3>
-                <p style="margin: 5px 0;">🏢 {company} | 📍 {location}</p>
-                <div style="margin-top: 10px;">
-                    <a href="{job_link}" style="background-color: #4F46E5; color: white; padding: 8px 12px; text-decoration: none; border-radius: 5px; font-size: 14px; font-weight: bold;">
-                        Ver Oferta en la Web
+            <h2 style="color: #1f2937; border-bottom: 2px solid {color}30; padding-bottom: 6px; margin-top: 28px; margin-bottom: 14px; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
+                {emoji} {cat}
+            </h2>
+        """
+        
+        for job in jobs:
+            job_id, title, company, location, url_source, _ = job
+            base_url = os.getenv("FRONTEND_URL", "https://portalempleoit.es")
+            job_link = f"{base_url}/job/{job_id}?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
+
+            jobs_html += f"""
+                <div style="margin-bottom: 16px; padding: 12px 16px; background-color: #f9fafb; border-left: 4px solid {color}; border-radius: 0 8px 8px 0; border-top: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6; border-bottom: 1px solid #f3f4f6;">
+                    <h3 style="color: #1e1b4b; margin: 0 0 4px; font-size: 14px; font-weight: bold; line-height: 1.4;">{title}</h3>
+                    <p style="margin: 0 0 10px; color: #4b5563; font-size: 12px;">🏢 {company} &nbsp;|&nbsp; 📍 {location}</p>
+                    <a href="{job_link}" style="display: inline-block; background-color: {color}; color: white; padding: 6px 14px; text-decoration: none; border-radius: 6px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                        Ver Oferta →
                     </a>
                 </div>
-            </div>
-        """
+            """
 
     # Enlace de afiliado (reemplaza por tu link real)
     BOOTCAMP_LINK = "https://trk.udemy.com/9VMAEj"
@@ -166,7 +217,7 @@ def send_newsletter():
             msg['From'] = f"Portal Trabajo IT <{os.getenv('EMAIL_USER')}>"
             msg['To'] = email
             # MODIFICADO: Asunto actualizado para reflejar que es semanal
-            msg['Subject'] = f"📅 Resumen Semanal: {len(new_jobs)} Ofertas de Programación"
+            msg['Subject'] = f"📅 Resumen Semanal: {total_included} Ofertas de Programación"
             msg.attach(MIMEText(email_body, 'html'))
             
             server.send_message(msg)

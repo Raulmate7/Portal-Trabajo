@@ -35,6 +35,12 @@ exit_code = os.system(f"{python_bin} telegram_bot.py")
 if exit_code != 0:
     print("⚠️ Advertencia: Telegram bot terminó con errores.")
 
+# 4.5. Publicar en LinkedIn
+print("\n[4.5/5] 💼 Publicando ofertas en LinkedIn (linkedin_bot.py)...")
+exit_code = os.system(f"{python_bin} linkedin_bot.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: LinkedIn bot terminó con errores.")
+
 # 5. Indexar en Google
 print("\n[5/7] 🔍 Enviando nuevas ofertas a Google Indexing API (index_new_jobs.py)...")
 exit_code = os.system(f"{python_bin} index_new_jobs.py")

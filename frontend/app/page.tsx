@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { BASE_URL } from "@/lib/constants";
 import Link from "next/link";
 import pool from "@/lib/db";
 import SearchFilters from "./components/SearchFilters";
@@ -95,8 +96,21 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const resolvedParams = await searchParams;
   const q = typeof resolvedParams.q === 'string' ? resolvedParams.q.trim() : '';
   const loc = typeof resolvedParams.location === 'string' ? resolvedParams.location.trim() : '';
+  const page = typeof resolvedParams.page === 'string' ? parseInt(resolvedParams.page, 10) : 1;
+  const isPaged = !isNaN(page) && page > 1;
+
+  const metadata: Metadata = {};
+
+  if (isPaged) {
+    metadata.robots = { index: false, follow: true };
+  }
 
   if (!q && !loc) {
+    if (isPaged) {
+      metadata.title = `Página ${page} | Portal Trabajo IT`;
+      metadata.alternates = { canonical: BASE_URL };
+      return metadata;
+    }
     return {}; // Usa metadatos globales por defecto de layout.tsx
   }
 
@@ -108,27 +122,30 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     const formattedLoc = loc.charAt(0).toUpperCase() + loc.slice(1);
     titleText += ` en ${formattedLoc}`;
   }
+  if (isPaged) {
+    titleText += ` - Página ${page}`;
+  }
 
-  const descText = `Encuentra las mejores ofertas de trabajo y vacantes${q ? ` de ${q}` : ''}${loc ? ` en ${loc}` : ''} en España actualizadas hoy.`;
-  const canonicalUrl = `https://portal-trabajo.vercel.app/?q=${encodeURIComponent(q)}&location=${encodeURIComponent(loc)}`;
+  const descText = `Encuentra las mejores ofertas de trabajo y vacantes${q ? ` de ${q}` : ''}${loc ? ` en ${loc}` : ''} en España actualizadas hoy.${isPaged ? ` (Página ${page})` : ''}`;
+  const canonicalUrl = `${BASE_URL}/?q=${encodeURIComponent(q)}&location=${encodeURIComponent(loc)}`;
 
-  return {
+  metadata.title = `${titleText} | Portal Trabajo IT`;
+  metadata.description = descText;
+  metadata.alternates = {
+    canonical: canonicalUrl,
+  };
+  metadata.openGraph = {
     title: `${titleText} | Portal Trabajo IT`,
     description: descText,
-    alternates: {
-      canonical: canonicalUrl,
-    },
-    openGraph: {
-      title: `${titleText} | Portal Trabajo IT`,
-      description: descText,
-      url: canonicalUrl,
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: `${titleText} | Portal Trabajo IT`,
-      description: descText,
-    }
+    url: canonicalUrl,
   };
+  metadata.twitter = {
+    card: 'summary_large_image',
+    title: `${titleText} | Portal Trabajo IT`,
+    description: descText,
+  };
+
+  return metadata;
 }
 
 export default async function Home({ searchParams }: Props) {
@@ -149,12 +166,12 @@ export default async function Home({ searchParams }: Props) {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     'name': 'Portal Trabajo IT',
-    'url': 'https://portal-trabajo.vercel.app',
+    'url': BASE_URL,
     'potentialAction': {
       '@type': 'SearchAction',
       'target': {
         '@type': 'EntryPoint',
-        'urlTemplate': 'https://portal-trabajo.vercel.app/?q={search_term_string}'
+        'urlTemplate': `${BASE_URL}/?q={search_term_string}`
       },
       'query-input': 'required name=search_term_string'
     }
@@ -164,8 +181,8 @@ export default async function Home({ searchParams }: Props) {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     'name': 'Portal Trabajo IT',
-    'url': 'https://portal-trabajo.vercel.app',
-    'logo': 'https://portal-trabajo.vercel.app/favicon.ico',
+    'url': BASE_URL,
+    'logo': `${BASE_URL}/favicon.ico`,
     'sameAs': [
       'https://t.me/PortalDeTrabajo'
     ]

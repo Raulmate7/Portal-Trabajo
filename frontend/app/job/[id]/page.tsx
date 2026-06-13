@@ -8,10 +8,9 @@ import SubscribeForm from '@/components/SubscribeForm';
 import AdBanner from '@/components/AdBanner';
 import PushSubscribe from '@/components/PushSubscribe';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import { BASE_URL } from '@/lib/constants';
 
 export const revalidate = 60;
-
-const BASE_URL = 'https://portal-trabajo.vercel.app';
 
 const TECNOLOGIAS = [
   'react', 'angular', 'vue', 'node', 'python', 'java', 'php', 'csharp', 'ruby', 'go', 
@@ -436,16 +435,25 @@ export default async function JobPage({ params }: Props) {
     };
   }
 
+  const hiringOrgName = (job.company && job.company !== 'Desconocida') 
+    ? job.company 
+    : (sourceLabel && sourceLabel !== 'Internet' ? sourceLabel : 'Portal Trabajo IT');
+
   const jsonLd: any = {
     '@context': 'https://schema.org',
     '@type': 'JobPosting',
     title: job.title,
-    description: textToHtml(displayDesc) || `Oferta de empleo para ${job.title} en ${job.company}`,
+    description: textToHtml(displayDesc) || `Oferta de empleo para ${job.title} en ${hiringOrgName}`,
     datePosted: datePosted.toISOString(),
     validThrough: validThroughDate.toISOString(),
     hiringOrganization: { 
       '@type': 'Organization', 
-      name: (job.company && job.company !== 'Desconocida') ? job.company : (sourceLabel !== 'Internet' ? sourceLabel : 'Portal Trabajo IT')
+      name: hiringOrgName
+    },
+    identifier: {
+      '@type': 'PropertyValue',
+      name: hiringOrgName,
+      value: `job-${job.id}`
     },
     jobLocation: {
       '@type': 'Place',

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ShareButton from "@/components/ShareButton";
+import { BASE_URL } from "@/lib/constants";
 
 export const revalidate = 60;
 
@@ -96,11 +97,13 @@ function calculateCompanyStats(jobs: Job[]) {
   };
 }
 
-const BASE_URL = 'https://portal-trabajo.vercel.app';
-
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: { params: Promise<{ slug: string }>, searchParams: Promise<{ [key: string]: string | string[] | undefined }> }): Promise<Metadata> {
   const { slug } = await params;
-  const jobs = await getJobsByCompany(slug, 1);
+  const resolvedSearchParams = await searchParams;
+  const page = typeof resolvedSearchParams.page === 'string' ? parseInt(resolvedSearchParams.page, 10) : 1;
+  const isPaged = !isNaN(page) && page > 1;
+
+  const jobs = await getJobsByCompany(slug, page);
   
   if (!jobs || jobs.length === 0) {
     return {
@@ -109,20 +112,24 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 
   const companyName = jobs[0].company;
+  let titleSeo = `Trabajar en ${companyName} | Ofertas de Empleo IT en España`;
+  if (isPaged) {
+    titleSeo += ` - Página ${page}`;
+  }
 
-  return {
-    title: `Trabajar en ${companyName} | Ofertas de Empleo IT en España`,
-    description: `Encuentra ofertas de trabajo activas en ${companyName}. Vacantes de programación, desarrollo de software, salarios estimados y modalidad teletrabajo.`,
+  const metadata: Metadata = {
+    title: titleSeo,
+    description: `Encuentra ofertas de trabajo activas en ${companyName}. Vacantes de programación, desarrollo de software, salarios estimados y modalidad teletrabajo.${isPaged ? ` (Página ${page})` : ''}`,
     alternates: {
-      canonical: `/empresas/${slug}`,
+      canonical: `${BASE_URL}/empresas/${slug}`,
     },
     openGraph: {
-      title: `Ofertas de Empleo en ${companyName} - Vacantes Recientes`,
+      title: `Ofertas de Empleo en ${companyName} - Vacantes Recientes${isPaged ? ` (Página ${page})` : ''}`,
       description: `Listado actualizado de ofertas de trabajo en ${companyName}.`,
-      url: `https://portal-trabajo.vercel.app/empresas/${slug}`,
+      url: `${BASE_URL}/empresas/${slug}`,
       images: [
         {
-          url: `https://portal-trabajo.vercel.app/empresas/${slug}/opengraph-image`,
+          url: `${BASE_URL}/empresas/${slug}/opengraph-image`,
           width: 1200,
           height: 630,
           alt: `Ofertas de empleo en ${companyName}`,
@@ -131,11 +138,17 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     },
     twitter: {
       card: 'summary_large_image',
-      title: `Ofertas de Empleo en ${companyName} - Vacantes Recientes`,
+      title: `Ofertas de Empleo en ${companyName} - Vacantes Recientes${isPaged ? ` (Página ${page})` : ''}`,
       description: `Listado actualizado de ofertas de trabajo en ${companyName}.`,
-      images: [`https://portal-trabajo.vercel.app/empresas/${slug}/opengraph-image`],
+      images: [`${BASE_URL}/empresas/${slug}/opengraph-image`],
     },
   };
+
+  if (isPaged) {
+    metadata.robots = { index: false, follow: true };
+  }
+
+  return metadata;
 }
 
 export default async function CompanyPage({ params, searchParams }: Props) {
@@ -180,6 +193,20 @@ export default async function CompanyPage({ params, searchParams }: Props) {
     description: `Ofertas de trabajo del sector tecnológico en la empresa ${companyName}.`
   };
 
+  const itemListJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: `Ofertas de empleo IT en ${companyName}`,
+    description: `Últimas vacantes de empleo tecnológicas en ${companyName}.`,
+    numberOfItems: jobs.length,
+    itemListElement: jobs.map((job, idx) => ({
+      '@type': 'ListItem',
+      position: idx + 1,
+      url: `${BASE_URL}/job/${job.id}`,
+      name: job.title
+    }))
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <script 
@@ -189,6 +216,10 @@ export default async function CompanyPage({ params, searchParams }: Props) {
       <script 
         type="application/ld+json" 
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} 
+      />
+      <script 
+        type="application/ld+json" 
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} 
       />
 
       <Breadcrumbs items={breadcrumbItems} />

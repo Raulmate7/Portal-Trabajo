@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { BLOG_POSTS } from '@/lib/blog';
+import { BASE_URL } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'Blog de Empleo Tech | Portal Trabajo',
@@ -16,13 +17,13 @@ export default function BlogPage() {
     '@type': 'Blog',
     'name': 'Blog de Empleo Tech | Portal Trabajo',
     'description': 'Consejos, guías salariales y recursos para encontrar trabajo como programador en España.',
-    'url': 'https://portal-trabajo.vercel.app/blog',
+    'url': `${BASE_URL}/blog`,
     'blogPost': BLOG_POSTS.map(post => ({
       '@type': 'BlogPosting',
       'headline': post.title,
       'description': post.excerpt,
       'datePublished': new Date(post.date).toISOString(),
-      'url': `https://portal-trabajo.vercel.app/blog/${post.slug}`,
+      'url': `${BASE_URL}/blog/${post.slug}`,
       'author': {
         '@type': 'Person',
         'name': post.author

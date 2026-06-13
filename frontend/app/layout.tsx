@@ -4,10 +4,9 @@ import "./globals.css";
 import CookieBanner from "@/components/CookieBanner";
 import Footer from "@/components/Footer";
 import { Analytics } from "@vercel/analytics/react";
+import { BASE_URL } from "@/lib/constants";
 
 const inter = Inter({ subsets: ["latin"] });
-
-const BASE_URL = "https://portal-trabajo.vercel.app";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
@@ -27,6 +26,11 @@ export const metadata: Metadata = {
     "trabajo frontend backend madrid barcelona",
     "vacantes IT españa",
     "empleo informatica",
+    "empleo programador 2026",
+    "trabajo informatica sin experiencia",
+    "bolsa empleo tech España",
+    "vacantes IT España 2026",
+    "salarios programadores españa"
   ],
   authors: [{ name: "Portal Trabajo IT" }],
   creator: "Portal Trabajo IT",
@@ -64,6 +68,10 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: BASE_URL,
+    languages: {
+      'es-ES': BASE_URL,
+      'x-default': BASE_URL,
+    },
     types: {
       'application/rss+xml': `${BASE_URL}/feed.xml`,
     },
@@ -124,7 +132,7 @@ export default function RootLayout({
                           appId: onesignalId,
                           safari_web_id: "web.onesignal.auto.portaltrabajo",
                           notifyButton: {
-                            enable: false,
+                            enable: true,
                           },
                         });
                       });

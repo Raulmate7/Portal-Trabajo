@@ -4,6 +4,7 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 import AdBanner from "@/components/AdBanner";
 import SubscribeForm from "@/components/SubscribeForm";
 import { Metadata } from "next";
+import { BASE_URL } from "@/lib/constants";
 
 export const revalidate = 300; // Cache 5 min
 
@@ -16,10 +17,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Directorio de Empresas IT en España | Portal Trabajo',
     description: 'Explora las principales empresas que contratan programadores y profesionales de informática en España.',
-    url: 'https://portal-trabajo.vercel.app/empresas',
+    url: `${BASE_URL}/empresas`,
     images: [
       {
-        url: 'https://portal-trabajo.vercel.app/og-image.png',
+        url: `${BASE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: 'Directorio de Empresas IT en España',
@@ -30,7 +31,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Directorio de Empresas IT en España | Portal Trabajo',
     description: 'Explora las principales empresas que contratan programadores en España.',
-    images: ['https://portal-trabajo.vercel.app/og-image.png'],
+    images: [`${BASE_URL}/og-image.png`],
   },
 };
 
@@ -151,7 +152,7 @@ export default async function EmpresasDirectoryPage() {
     { label: 'Empresas' }
   ];
 
-  const BASE_URL = 'https://portal-trabajo.vercel.app';
+
   
   const itemListJsonLd = {
     '@context': 'https://schema.org',
