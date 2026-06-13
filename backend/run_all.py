@@ -75,5 +75,17 @@ exit_code = os.system(f"{python_bin} send_custom_alerts.py")
 if exit_code != 0:
     print("⚠️ Advertencia: Las alertas personalizadas terminaron con errores.")
 
+# 7.1. Procesar Onboarding de Email (2 pasos)
+print("\n[7.1/7] 📧 Procesando Onboarding de Email (send_welcome_onboarding.py)...")
+exit_code = os.system(f"{python_bin} send_welcome_onboarding.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: El script de onboarding terminó con errores.")
+
+# 7.2. Enviar Alertas de Ofertas Destacadas al Instante
+print("\n[7.2/7] 🚨 Enviando alertas de ofertas destacadas (send_instant_featured_alerts.py)...")
+exit_code = os.system(f"{python_bin} send_instant_featured_alerts.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: El script de alertas destacadas terminó con errores.")
+
 print("\n===============================================")
 print("✅ PROCESO COMPLETADO. El sistema descansa.")

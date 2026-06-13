@@ -20,7 +20,7 @@ class TestMailer(unittest.TestCase):
         # Columns: id, title, company, location, url_source
         mock_cursor.fetchall.side_effect = [
             [('job-1', 'Python Dev', 'Acme', 'Madrid', 'https://job-1.com', 'Backend')], # Primer fetchall (ofertas)
-            [('sub-1@gmail.com',), ('sub-2@gmail.com',)]                       # Segundo fetchall (suscriptores)
+            [('sub-1@gmail.com', 'python'), ('sub-2@gmail.com', None)]                       # Segundo fetchall (suscriptores)
         ]
         mock_conn.cursor.return_value = mock_cursor
         mock_db_connect.return_value = mock_conn
@@ -32,11 +32,11 @@ class TestMailer(unittest.TestCase):
         with patch('mailer.print') as mock_print:
             send_newsletter()
 
-            mock_print.assert_any_call("🚀 Preparando envío de Newsletter Semanal...")
-            mock_print.assert_any_call("✅ Login correcto en Gmail.")
-            mock_print.assert_any_call("✅ Enviado a: sub-1@gmail.com")
-            mock_print.assert_any_call("✅ Enviado a: sub-2@gmail.com")
-            mock_print.assert_any_call("\n🎉 Resumen: 2 enviados, 0 fallidos.")
+            mock_print.assert_any_call("🚀 PREPARANDO ENVÍO DE NEWSLETTER SEMANAL...")
+            mock_print.assert_any_call("✅ Login correcto en Gmail SMTP.")
+            mock_print.assert_any_call("  ✅ Enviado resumen semanal a: sub-1@gmail.com")
+            mock_print.assert_any_call("  ✅ Enviado resumen semanal a: sub-2@gmail.com")
+            mock_print.assert_any_call("🎉 Envío completado: 2 enviados, 0 fallidos.")
 
         # Verificar login e interacciones SMTP
         mock_smtp_instance.login.assert_called_once_with('test@gmail.com', 'testpassword')

@@ -4,6 +4,7 @@ import Link from "next/link";
 import pool from "@/lib/db";
 import SearchFilters from "./components/SearchFilters";
 import AdBanner from "@/components/AdBanner";
+import SubscribeForm from "@/components/SubscribeForm";
 import FeaturedJobCard from "@/components/FeaturedJobCard";
 import PushSubscribe from "@/components/PushSubscribe";
 import { Suspense } from "react";
@@ -309,6 +310,12 @@ export default async function Home({ searchParams }: Props) {
                 const displayJobTitle = isEnglish ? job.title : (job.title_es || job.title);
                 return (
                   <div key={job.id}>
+                    {/* Formulario de suscripción después de la 3ª oferta (index === 2) */}
+                    {index === 2 && (
+                      <div className="my-6">
+                        <SubscribeForm location="España" />
+                      </div>
+                    )}
                     {/* Banner de afiliado entre las ofertas (después de la 5ª oferta) */}
                     {index === 4 && (
                       <div className="my-4">
