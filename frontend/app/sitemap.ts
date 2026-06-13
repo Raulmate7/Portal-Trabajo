@@ -20,6 +20,9 @@ const BASE_PAGES = [
   '/trabajo-remoto',
   '/trabajos/empresas-internacionales',
   '/trabajos/ingles-requerido',
+  '/sobre-nosotros',
+  '/orientacion-profesional',
+  '/ofertas-guardadas',
 ];
 
 const TECNOLOGIAS = [

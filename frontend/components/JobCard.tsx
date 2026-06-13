@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { getJobSlug } from '@/lib/slug';
+import SaveJobButton from './SaveJobButton';
 
 interface Job {
   id?: string | number; 
@@ -40,6 +41,9 @@ export default function JobCard({ job, lang }: JobCardProps) {
   const isRecent = diffDays <= 1; 
   const isExpiringSoon = diffDays >= 25; 
 
+  const textToLower = `${job.title} ${job.description_snippet || ''}`.toLowerCase();
+  const isUrgent = textToLower.includes('urgente') || textToLower.includes('incorporación inmediata') || textToLower.includes('incorporacion inmediata') || textToLower.includes('urgent');
+
   const jobSlug = job.id ? getJobSlug({ ...job, id: job.id }) : '';
   const queryParam = isEnglish ? '?lang=en' : '';
   const detailUrl = job.id ? `/job/${jobSlug}${queryParam}` : job.url_source;
@@ -60,6 +64,11 @@ export default function JobCard({ job, lang }: JobCardProps) {
                   {isEnglish ? '🆕 Recent' : '🆕 Reciente'}
                 </span>
               )}
+              {isUrgent && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200 uppercase tracking-wider shrink-0">
+                  {isEnglish ? '🔥 Urgent' : '🔥 Urgente'}
+                </span>
+              )}
               {isExpiringSoon && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider shrink-0">
                   {isEnglish ? '⚠️ Expiring soon' : '⚠️ Caduca pronto'}
@@ -68,9 +77,12 @@ export default function JobCard({ job, lang }: JobCardProps) {
             </div>
           </div>
           
-          <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${getCategoryColor(job.category)}`}>
-            {job.category || (isEnglish ? 'General' : 'General')}
-          </span>
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${getCategoryColor(job.category)}`}>
+              {job.category || (isEnglish ? 'General' : 'General')}
+            </span>
+            <SaveJobButton job={job} />
+          </div>
         </div>
 
         <div className="flex items-center text-sm text-gray-500 mb-4">

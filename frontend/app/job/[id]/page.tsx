@@ -10,6 +10,7 @@ import PushSubscribe from '@/components/PushSubscribe';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { BASE_URL } from '@/lib/constants';
 import { getJobSlug, getNumericId } from '@/lib/slug';
+import SaveJobButton from '@/components/SaveJobButton';
 
 export const revalidate = 60;
 
@@ -696,14 +697,17 @@ export default async function JobPage({ params, searchParams }: Props) {
                       <>Esta oferta fue encontrada en <strong>{sourceLabel}</strong></>
                     )}
                   </p>
-                  <a
-                    href={job.url_source}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex w-full md:w-auto justify-center items-center bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-indigo-700 shadow-md hover:shadow-lg transition-all"
-                  >
-                    {isEnglish ? '👉 Apply on original website' : '👉 Aplicar en la web original'}
-                  </a>
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                    <a
+                      href={job.url_source}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex w-full sm:w-auto justify-center items-center bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-indigo-700 shadow-md hover:shadow-lg transition-all"
+                    >
+                      {isEnglish ? '👉 Apply on original website' : '👉 Aplicar en la web original'}
+                    </a>
+                    <SaveJobButton job={job} variant="detail" />
+                  </div>
                 </div>
 
                 <AdBanner variant="multiplex" />
