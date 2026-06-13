@@ -1,0 +1,58 @@
+# =====================================================================
+# Plantilla de Configuración de Nginx para Portal Trabajo IT
+# Ruta sugerida en servidor: /etc/nginx/sites-available/portalempleoit
+# =====================================================================
+
+# Configuración de compresión Gzip para mejorar la velocidad (SEO)
+gzip on;
+gzip_proxied any;
+gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml;
+gzip_vary on;
+gzip_comp_level 6;
+gzip_buffers 16 8k;
+gzip_min_length 256;
+
+# Servidor principal (HTTPS y HTTP provisional)
+server {
+    listen 80;
+    listen [::]:80;
+    server_name portalempleoit.com www.portalempleoit.com;
+
+    # Tamaño máximo de subida (por si se suben CVs grandes en el futuro)
+    client_max_body_size 10M;
+
+    # Configuración del proxy inverso para Next.js
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        
+        # Cabeceras de IP real para logs correctos en Next.js
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Caché agresiva para los archivos estáticos generados por Next.js (Mejora Core Web Vitals)
+    location /_next/static/ {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    # Caché para los recursos estáticos en la carpeta public
+    location /static/ {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        add_header Cache-Control "public, max-age=86400, must-revalidate";
+    }
+
+    # Configuración de logs
+    access_log /var/log/nginx/portalempleoit_access.log;
+    error_log /var/log/nginx/portalempleoit_error.log;
+}
