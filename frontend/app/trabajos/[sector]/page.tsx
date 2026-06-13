@@ -73,7 +73,14 @@ const displayNameMap: Record<string, string> = {
   'data-analyst': 'Data Analyst',
   'qa-engineer': 'QA Engineer',
   'ux-designer': 'UX Designer',
-  'informatica-tecnologia': 'Informática y Tecnología'
+  'informatica-tecnologia': 'Informática y Tecnología',
+  'rust': 'Rust',
+  'scala': 'Scala',
+  'elixir': 'Elixir',
+  'terraform': 'Terraform',
+  'haskell': 'Haskell',
+  'erlang': 'Erlang',
+  'cobol': 'COBOL'
 };
 
 const displayNameMapEn: Record<string, string> = {
@@ -113,7 +120,14 @@ const displayNameMapEn: Record<string, string> = {
   'data-analyst': 'Data Analyst',
   'qa-engineer': 'QA Engineer',
   'ux-designer': 'UX Designer',
-  'informatica-tecnologia': 'IT and Technology'
+  'informatica-tecnologia': 'IT and Technology',
+  'rust': 'Rust',
+  'scala': 'Scala',
+  'elixir': 'Elixir',
+  'terraform': 'Terraform',
+  'haskell': 'Haskell',
+  'erlang': 'Erlang',
+  'cobol': 'COBOL'
 };
 
 const adMap: Record<string, { title: string, text: string, link: string }> = {
@@ -153,6 +167,22 @@ function parseSector(sectorSlug: string) {
   let tec = sectorSlug;
   let ciudad = '';
   let experiencia = '';
+  let modalidad = '';
+
+  if (tec.includes('-hibrido')) {
+    modalidad = 'hibrido';
+    tec = tec.replace('-hibrido', '');
+  }
+
+  const enIndex = tec.indexOf('-en-');
+  if (enIndex !== -1) {
+    const afterEn = tec.substring(enIndex + 4);
+    tec = tec.substring(0, enIndex);
+    ciudad = afterEn.replace(/-/g, ' ');
+  } else if (tec.endsWith('-remoto')) {
+    tec = tec.slice(0, -7);
+    ciudad = 'remoto';
+  }
 
   for (const suffix of Object.keys(EXPERIENCE_SUFFIXES)) {
     if (tec.endsWith(`-${suffix}`)) {
@@ -162,18 +192,8 @@ function parseSector(sectorSlug: string) {
     }
   }
 
-  const enIndex = tec.indexOf('-en-');
-  if (enIndex !== -1) {
-    const afterEn = tec.substring(enIndex + 4);
-    tec = tec.substring(0, enIndex);
-    ciudad = afterEn.replace(/-/g, ' ');
-  } else if (tec.endsWith('-remoto')) {
-    tec = tec.replace('-remoto', '');
-    ciudad = 'remoto';
-  }
-
   const dbCategory = categoryMap[tec];
-  return { tec, ciudad, experiencia, dbCategory };
+  return { tec, ciudad, experiencia, modalidad, dbCategory };
 }
 
 export async function generateMetadata({ params, searchParams }: { params: Params, searchParams: Promise<{ [key: string]: string | string[] | undefined }> }): Promise<Metadata> {
@@ -185,9 +205,9 @@ export async function generateMetadata({ params, searchParams }: { params: Param
   const lang = resolvedSearchParams.lang === 'en' ? 'en' : 'es';
   const isEnglish = lang === 'en';
   
-  const { tec, ciudad, experiencia, dbCategory } = parseSector(sectorSlug);
+  const { tec, ciudad, experiencia, modalidad, dbCategory } = parseSector(sectorSlug);
   
-  const jobs = await getJobs(tec, ciudad, dbCategory, experiencia, page);
+  const jobs = await getJobs(tec, ciudad, dbCategory, experiencia, modalidad, page);
   const isThinPage = jobs.length === 0;
   const jobCount = jobs.length;
 
@@ -196,14 +216,16 @@ export async function generateMetadata({ params, searchParams }: { params: Param
   
   const expLabelObj = EXPERIENCE_SUFFIXES[experiencia];
   const expLabel = experiencia ? ` ${isEnglish ? expLabelObj?.labelEn : expLabelObj?.label}` : '';
+  const modLabel = modalidad === 'hibrido' ? ' híbrido' : '';
+  const modLabelEn = modalidad === 'hibrido' ? ' Hybrid' : '';
   const now = new Date();
   
   let tituloBase = "";
   let descBase = "";
 
   if (isEnglish) {
-    tituloBase = `${categoriaBonita}${expLabel} Jobs`;
-    descBase = `Active ${categoriaBonita}${expLabel ? ` (${expLabel.trim()})` : ''} job vacancies`;
+    tituloBase = `${categoriaBonita}${modLabelEn}${expLabel} Jobs`;
+    descBase = `Active ${categoriaBonita}${modLabelEn}${expLabel ? ` (${expLabel.trim()})` : ''} job vacancies`;
     if (ciudad) {
       const ciudadBonita = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
       tituloBase += ` in ${ciudadBonita}`;
@@ -212,8 +234,8 @@ export async function generateMetadata({ params, searchParams }: { params: Param
   } else {
     const mes = now.toLocaleDateString('es-ES', { month: 'long' });
     const anio = now.getFullYear();
-    tituloBase = `Trabajo${expLabel} de ${categoriaBonita}`;
-    descBase = `Ofertas de trabajo${expLabel ? ` para ${expLabel.trim()}` : ''} de ${categoriaBonita}`;
+    tituloBase = `Trabajo${modLabel}${expLabel} de ${categoriaBonita}`;
+    descBase = `Ofertas de trabajo${modLabel}${expLabel ? ` para ${expLabel.trim()}` : ''} de ${categoriaBonita}`;
     if (ciudad) {
       const ciudadBonita = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
       tituloBase += ` en ${ciudadBonita}`;
@@ -288,7 +310,7 @@ export async function generateMetadata({ params, searchParams }: { params: Param
   };
 }
 
-const getJobs = cache(async (tec: string, ciudad: string, dbCategory: string | undefined, experiencia: string = '', page: number = 1) => {
+const getJobs = cache(async (tec: string, ciudad: string, dbCategory: string | undefined, experiencia: string = '', modalidad: string = '', page: number = 1) => {
   const limit = 50;
   const offset = (page - 1) * limit;
   const client = await pool.connect();
@@ -361,6 +383,12 @@ const getJobs = cache(async (tec: string, ciudad: string, dbCategory: string | u
       }
     }
 
+    if (modalidad === 'hibrido') {
+      sql += ` AND (location ILIKE $${paramIndex} OR location ILIKE $${paramIndex + 1} OR location ILIKE $${paramIndex + 2} OR description_snippet ILIKE $${paramIndex + 3})`;
+      paramsQuery.push('%híbrido%', '%hibrido%', '%hybrid%', '%semipresencial%');
+      paramIndex += 4;
+    }
+
     if (experiencia && EXPERIENCE_SUFFIXES[experiencia]) {
       const expKeywords = EXPERIENCE_SUFFIXES[experiencia].keywords;
       const expConditions = expKeywords.map(() => {
@@ -387,21 +415,21 @@ const getJobs = cache(async (tec: string, ciudad: string, dbCategory: string | u
 
 async function getFallbackJobs(tec: string, ciudad: string, dbCategory: string | undefined, page: number = 1) {
   if (ciudad && ciudad !== 'remoto') {
-    const remoteJobs = await getJobs(tec, 'remoto', dbCategory, '', page);
+    const remoteJobs = await getJobs(tec, 'remoto', dbCategory, '', '', page);
     if (remoteJobs.length > 0) {
       return { jobs: remoteJobs, type: 'remote' };
     }
   }
 
   if (ciudad) {
-    const nationalJobs = await getJobs(tec, '', dbCategory, '', page);
+    const nationalJobs = await getJobs(tec, '', dbCategory, '', '', page);
     if (nationalJobs.length > 0) {
       return { jobs: nationalJobs, type: 'national' };
     }
   }
 
   if (tec !== 'informatica-tecnologia') {
-    const generalJobs = await getJobs('informatica-tecnologia', '', undefined, '', page);
+    const generalJobs = await getJobs('informatica-tecnologia', '', undefined, '', '', page);
     if (generalJobs.length > 0) {
       return { jobs: generalJobs, type: 'general' };
     }
@@ -461,9 +489,9 @@ export default async function SectorPage({
   const lang = resolvedSearchParams.lang === 'en' ? 'en' : 'es';
   const isEnglish = lang === 'en';
 
-  const { tec, ciudad, experiencia, dbCategory } = parseSector(sectorSlug);
+  const { tec, ciudad, experiencia, modalidad, dbCategory } = parseSector(sectorSlug);
   
-  let jobs = await getJobs(tec, ciudad, dbCategory, experiencia, validPage);
+  let jobs = await getJobs(tec, ciudad, dbCategory, experiencia, modalidad, validPage);
   let isFallback = false;
   let fallbackType = '';
 
@@ -480,9 +508,10 @@ export default async function SectorPage({
   const categoriaBonita = displayNameMapUsed[tec] || dbCategory || tec.replace(/-/g, ' ');
   const expLabelObj = EXPERIENCE_SUFFIXES[experiencia];
   const expLabel = experiencia ? ` ${isEnglish ? expLabelObj?.labelEn : expLabelObj?.label}` : '';
+  const modLabel = modalidad === 'hibrido' ? (isEnglish ? ' Hybrid' : ' híbrido') : '';
   const tituloMostrado = ciudad 
-    ? (isEnglish ? `${categoriaBonita}${expLabel} in ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}` : `${categoriaBonita}${expLabel} en ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}`)
-    : `${categoriaBonita}${expLabel}`;
+    ? (isEnglish ? `${categoriaBonita}${modLabel}${expLabel} in ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}` : `${categoriaBonita}${modLabel}${expLabel} en ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}`)
+    : `${categoriaBonita}${modLabel}${expLabel}`;
 
   const queryParam = isEnglish ? '?lang=en' : '';
 

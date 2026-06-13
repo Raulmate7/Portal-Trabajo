@@ -18,6 +18,8 @@ const BASE_PAGES = [
   '/talento-premium',
   '/blog',
   '/trabajo-remoto',
+  '/trabajos/empresas-internacionales',
+  '/trabajos/ingles-requerido',
 ];
 
 const TECNOLOGIAS = [
@@ -26,7 +28,8 @@ const TECNOLOGIAS = [
   'data', 'cloud', 'mobile', 'nextjs', 'flutter', 'kotlin', 'swift', 'sql', 'salesforce', 
   'cybersecurity', 'ciberseguridad',
   'desarrollador-fullstack', 'fullstack', 'devops-engineer', 'scrum-master', 
-  'product-manager', 'data-analyst', 'qa-engineer', 'ux-designer'
+  'product-manager', 'data-analyst', 'qa-engineer', 'ux-designer',
+  'rust', 'scala', 'elixir', 'terraform', 'haskell', 'erlang', 'cobol'
 ];
 
 const CIUDADES = [
@@ -140,6 +143,11 @@ function detectExperienceForSitemap(title: string, snippet: string | null): stri
   return Array.from(new Set(matched));
 }
 
+function isHybridJob(title: string, descriptionSnippet: string | null, location: string | null): boolean {
+  const text = `${title} ${descriptionSnippet || ''} ${location || ''}`.toLowerCase();
+  return text.includes('híbrido') || text.includes('hibrido') || text.includes('hybrid') || text.includes('semipresencial') || text.includes('semi-presencial');
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let jobs: any[] = [];
   let companies: any[] = [];
@@ -162,6 +170,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const techs = detectTechForSitemap(job.title || '', job.category || null);
     const city = detectCityForSitemap(job.location);
     const exps = detectExperienceForSitemap(job.title || '', job.description_snippet || null);
+    const isHybrid = isHybridJob(job.title || '', job.description_snippet || null, job.location);
     
     for (const tech of techs) {
       // 1. Añadir la página principal de la tecnología (ej: /trabajos/react)
@@ -185,6 +194,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           } else {
             activeProgrammaticPages.add(`/trabajos/${tech}-${exp}-en-${city}`);
           }
+        }
+      }
+
+      // 4. Añadir permutaciones de modalidad híbrida
+      if (isHybrid) {
+        activeProgrammaticPages.add(`/trabajos/${tech}-hibrido`);
+        if (city && city !== 'remoto') {
+          activeProgrammaticPages.add(`/trabajos/${tech}-hibrido-en-${city}`);
         }
       }
     }
@@ -230,6 +247,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const SALARIOS_TECNOLOGIAS = ['react', 'node', 'python', 'java', 'typescript', 'aws', 'docker', 'flutter', 'csharp', 'php', 'sql'];
   const SALARIOS_CIUDADES = ['madrid', 'barcelona', 'valencia', 'remoto'];
+  const SALARIOS_NIVELES = ['junior', 'mid', 'senior'];
 
   const salaryUrls = [
     {
@@ -251,6 +269,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency: 'weekly' as const,
         priority: 0.8,
       }))
+    ),
+    ...SALARIOS_TECNOLOGIAS.flatMap(tech => 
+      SALARIOS_CIUDADES.flatMap(city =>
+        SALARIOS_NIVELES.map(level => ({
+          url: `${BASE_URL}/salarios/${tech}/${city}/${level}`,
+          lastModified: new Date(),
+          changeFrequency: 'weekly' as const,
+          priority: 0.75,
+        }))
+      )
     )
   ];
 
