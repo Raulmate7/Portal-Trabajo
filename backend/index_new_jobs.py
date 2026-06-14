@@ -1,8 +1,8 @@
 import os
 import requests
-import psycopg2
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
+from db_helper import get_db_connection
 
 load_dotenv()
 
@@ -12,19 +12,14 @@ def index_new_jobs():
     # 1. Verificar variables de entorno
     cron_secret = os.getenv("CRON_SECRET")
     frontend_url = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
-    db_url = os.getenv("DATABASE_URL")
 
     if not cron_secret:
-        print("❌ Error: Falta la variable CRON_SECRET en .env")
-        return
-
-    if not db_url:
-        print("❌ Error: Falta la variable DATABASE_URL en .env")
+        print("❌ Error: Falta la variable CRON_SECRET en el entorno.")
         return
 
     # 2. Conectar a Base de Datos
     try:
-        conn = psycopg2.connect(db_url)
+        conn = get_db_connection()
         cur = conn.cursor()
     except Exception as e:
         print(f"❌ Error conectando a BD: {e}")
@@ -33,15 +28,20 @@ def index_new_jobs():
     # 3. Buscar ofertas NUEVAS (Últimas 7 horas)
     time_window = datetime.now() - timedelta(hours=7)
 
-    cur.execute("""
-        SELECT id, title
-        FROM jobs
-        WHERE created_at > %s
-        ORDER BY created_at DESC
-    """, (time_window,))
-
-    jobs = cur.fetchall()
-    conn.close()
+    try:
+        cur.execute("""
+            SELECT id, title
+            FROM jobs
+            WHERE created_at > %s
+            ORDER BY created_at DESC
+        """, (time_window,))
+        jobs = cur.fetchall()
+    except Exception as e:
+        print(f"❌ Error ejecutando consulta SQL en base de datos: {e}")
+        conn.close()
+        return
+    finally:
+        conn.close()
 
     if not jobs:
         print("💤 No hay ofertas nuevas en las últimas 7 horas para indexar.")

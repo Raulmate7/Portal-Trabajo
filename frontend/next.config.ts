@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Le decimos a Next.js que 'pg' es una librería de servidor y no debe empaquetarla
-  serverExternalPackages: ['pg'],
+  // Le decimos a Next.js que 'mysql2' es una librería de servidor y no debe empaquetarla
+  serverExternalPackages: ['mysql2'],
   async redirects() {
     return [
       {

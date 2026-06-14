@@ -12,7 +12,12 @@ class TestDatabase(unittest.TestCase):
     def test_database_url_configured(self):
         # Comprobar que DATABASE_URL está configurado en el entorno
         self.assertIsNotNone(self.db_url, "DATABASE_URL no está configurada en las variables de entorno / .env")
-        self.assertTrue(self.db_url.startswith("postgresql://") or self.db_url.startswith("postgres://"), "DATABASE_URL no tiene un formato válido de PostgreSQL")
+        self.assertTrue(
+            self.db_url.startswith("postgresql://") or 
+            self.db_url.startswith("postgres://") or 
+            self.db_url.startswith("mysql://"), 
+            "DATABASE_URL no tiene un formato válido (postgresql://, postgres:// o mysql://)"
+        )
 
     def test_database_connection_and_schema(self):
         # Comprobar conexión real y que existan las tablas necesarias del esquema

@@ -1,126 +1,142 @@
 import os
 import requests
-import psycopg2
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
+from db_helper import get_db_connection
 
 load_dotenv()
 
 def deactivate_expired_jobs():
-    print("🧹 Iniciando LIMPIEZA y DESINDEXACIÓN de ofertas expiradas (>30 días)...")
+    print("🧹 Iniciando LIMPIEZA, DESINDEXACIÓN y PURGA de ofertas antiguas...")
 
     # 1. Verificar variables de entorno
     cron_secret = os.getenv("CRON_SECRET")
     frontend_url = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
-    db_url = os.getenv("DATABASE_URL")
 
     if not cron_secret:
-        print("❌ Error: Falta la variable CRON_SECRET en .env")
-        return
-
-    if not db_url:
-        print("❌ Error: Falta la variable DATABASE_URL en .env")
+        print("❌ Error: Falta la variable CRON_SECRET en el entorno.")
         return
 
     # 2. Conectar a Base de Datos
     try:
-        conn = psycopg2.connect(db_url)
+        conn = get_db_connection()
         cur = conn.cursor()
     except Exception as e:
-        print(f"❌ Error conectando a BD: {e}")
+        print(f"❌ Error conectando a la base de datos: {e}")
         return
 
     # 3. Buscar ofertas que llevan activas más de 30 días
     expiration_limit = datetime.now() - timedelta(days=30)
 
-    cur.execute("""
-        SELECT id, title
-        FROM jobs
-        WHERE is_active = TRUE AND created_at < %s
-    """, (expiration_limit,))
-
-    expired_jobs = cur.fetchall()
-
-    if not expired_jobs:
-        print("💤 No hay ofertas expiradas para procesar.")
+    try:
+        cur.execute("""
+            SELECT id, title
+            FROM jobs
+            WHERE is_active = 1 AND created_at < %s
+        """, (expiration_limit,))
+        expired_jobs = cur.fetchall()
+    except Exception as e:
+        print(f"❌ Error consultando ofertas expiradas: {e}")
         conn.close()
         return
 
-    print(f"📦 Encontradas {len(expired_jobs)} ofertas expiradas para desactivar y desindexar.")
+    if not expired_jobs:
+        print("💤 No hay ofertas expiradas para procesar.")
+    else:
+        print(f"📦 Encontradas {len(expired_jobs)} ofertas expiradas para desactivar y desindexar.")
 
-    headers = {
-        "Authorization": f"Bearer {cron_secret}",
-        "Content-Type": "application/json"
-    }
-
-    success_count = 0
-    error_count = 0
-    url_list = []
-
-    # 4. Enviar desindexación a Google
-    for job in expired_jobs:
-        job_id, title = job
-        job_url = f"{frontend_url}/job/{job_id}"
-        url_list.append(job_url)
-        
-        payload = {
-            "url": job_url,
-            "type": "URL_DELETED"
+        headers = {
+            "Authorization": f"Bearer {cron_secret}",
+            "Content-Type": "application/json"
         }
 
-        try:
-            # Enviamos el tipo URL_DELETED para que la API de Google desindexe la oferta
-            response = requests.post(f"{frontend_url}/api/index-job", json=payload, headers=headers, timeout=10)
-            if response.status_code == 200:
-                success_count += 1
-                print(f"✅ Google De-indexada con éxito: {title} ({job_url})")
-            else:
-                error_count += 1
-                print(f"⚠️ Google De-indexing falló para {job_url}: {response.status_code} - {response.text}")
-        except Exception as e:
-            error_count += 1
-            print(f"❌ Error de red desindexando {job_url}: {e}")
+        success_count = 0
+        error_count = 0
+        url_list = []
 
-    # 5. Marcar como inactivas en la base de datos
-    expired_ids = [job[0] for job in expired_jobs]
+        # 4. Enviar desindexación a Google
+        for job in expired_jobs:
+            job_id, title = job
+            job_url = f"{frontend_url}/job/{job_id}"
+            url_list.append(job_url)
+            
+            payload = {
+                "url": job_url,
+                "type": "URL_DELETED"
+            }
+
+            try:
+                # Enviamos el tipo URL_DELETED para que la API de Google desindexe la oferta
+                response = requests.post(f"{frontend_url}/api/index-job", json=payload, headers=headers, timeout=10)
+                if response.status_code == 200:
+                    success_count += 1
+                    print(f"✅ Google De-indexada con éxito: {title} ({job_url})")
+                else:
+                    error_count += 1
+                    print(f"⚠️ Google De-indexing falló para {job_url}: {response.status_code} - {response.text}")
+            except Exception as e:
+                error_count += 1
+                print(f"❌ Error de red desindexando {job_url}: {e}")
+
+        # 5. Marcar como inactivas en la base de datos
+        expired_ids = [job[0] for job in expired_jobs]
+        try:
+            placeholders = ', '.join(['%s'] * len(expired_ids))
+            cur.execute(f"""
+                UPDATE jobs
+                SET is_active = 0
+                WHERE id IN ({placeholders})
+            """, tuple(expired_ids))
+            conn.commit()
+            print(f"💾 Base de Datos: {len(expired_ids)} ofertas marcadas como is_active = 0 (inactivas).")
+        except Exception as e:
+            print(f"❌ Error inactivando ofertas en base de datos: {e}")
+            conn.rollback()
+
+        # 6. Enviar a IndexNow (Bing/Yandex) para desindexar en lote
+        if url_list:
+            print(f"\n🚀 Enviando {len(url_list)} URLs inactivas a IndexNow para de-indexación...")
+            from urllib.parse import urlparse
+            host = urlparse(frontend_url).netloc
+            key = "85ae2b8a7c644d6a9a7a974b789128f6"
+            
+            indexnow_payload = {
+                "host": host,
+                "key": key,
+                "keyLocation": f"{frontend_url}/{key}.txt",
+                "urlList": url_list
+            }
+            
+            try:
+                indexnow_resp = requests.post("https://api.indexnow.org/IndexNow", json=indexnow_payload, headers={"Content-Type": "application/json; charset=utf-8"}, timeout=10)
+                if indexnow_resp.status_code == 200:
+                    print("✅ URLs enviadas con éxito a IndexNow para de-indexación!")
+                else:
+                    print(f"⚠️ IndexNow de-indexing falló: {indexnow_resp.status_code} - {indexnow_resp.text}")
+            except Exception as e:
+                print(f"❌ Error de red enviando a IndexNow: {e}")
+
+    # 7. PURGA: Eliminar ofertas inactivas con más de 90 días de antigüedad
+    # Esto asegura que el almacenamiento total de la BD nunca se sature y se mantenga óptimo.
     try:
+        purge_limit = datetime.now() - timedelta(days=90)
         cur.execute("""
-            UPDATE jobs
-            SET is_active = FALSE
-            WHERE id = ANY(%s)
-        """, (expired_ids,))
+            DELETE FROM jobs
+            WHERE is_active = 0 AND created_at < %s
+        """, (purge_limit,))
         conn.commit()
-        print(f"💾 Base de Datos: {len(expired_ids)} ofertas marcadas como is_active = FALSE.")
+        deleted_rows = cur.rowcount
+        if deleted_rows > 0:
+            print(f"🗑️ Purga BD: Se eliminaron {deleted_rows} ofertas inactivas antiguas (>90 días) para liberar espacio.")
+        else:
+            print("🗑️ Purga BD: No se encontraron ofertas inactivas antiguas (>90 días) para eliminar.")
     except Exception as e:
-        print(f"❌ Error actualizando base de datos: {e}")
+        print(f"❌ Error purgando ofertas antiguas de la base de datos: {e}")
         conn.rollback()
     finally:
         conn.close()
 
-    # 6. Enviar a IndexNow (Bing/Yandex) para desindexar en lote
-    if url_list:
-        print(f"\n🚀 Enviando {len(url_list)} URLs inactivas a IndexNow para de-indexación...")
-        from urllib.parse import urlparse
-        host = urlparse(frontend_url).netloc
-        key = "85ae2b8a7c644d6a9a7a974b789128f6"
-        
-        indexnow_payload = {
-            "host": host,
-            "key": key,
-            "keyLocation": f"{frontend_url}/{key}.txt",
-            "urlList": url_list
-        }
-        
-        try:
-            indexnow_resp = requests.post("https://api.indexnow.org/IndexNow", json=indexnow_payload, headers={"Content-Type": "application/json; charset=utf-8"}, timeout=10)
-            if indexnow_resp.status_code == 200:
-                print("✅ URLs enviadas con éxito a IndexNow para de-indexación!")
-            else:
-                print(f"⚠️ IndexNow de-indexing falló: {indexnow_resp.status_code} - {indexnow_resp.text}")
-        except Exception as e:
-            print(f"❌ Error de red enviando a IndexNow: {e}")
-
-    print(f"\n🎉 Limpieza completada: {success_count} desindexadas de Google, {len(expired_ids)} inactivadas en BD.")
+    print("\n🎉 Limpieza y purga completadas.")
 
 if __name__ == "__main__":
     deactivate_expired_jobs()
