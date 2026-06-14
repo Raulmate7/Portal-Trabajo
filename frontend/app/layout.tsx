@@ -3,7 +3,6 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import CookieBanner from "@/components/CookieBanner";
 import Footer from "@/components/Footer";
-import { Analytics } from "@vercel/analytics/react";
 import { BASE_URL } from "@/lib/constants";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -161,7 +160,6 @@ export default function RootLayout({
         </div>
         <Footer />
         <CookieBanner />
-        <Analytics />
       </body>
     </html>
   );
