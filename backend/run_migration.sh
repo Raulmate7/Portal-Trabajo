@@ -22,22 +22,45 @@ fi
 $PYTHON_CMD --version >> "$LOG_FILE" 2>&1
 
 # 2. Crear entorno virtual si no existe
-if [ ! -d "venv" ]; then
+# Comprobamos la existencia del ejecutable pip dentro del venv
+if [ ! -f "venv/bin/pip" ]; then
     echo "📦 Creando entorno virtual (venv)..." >> "$LOG_FILE"
+    rm -rf venv
     $PYTHON_CMD -m venv venv >> "$LOG_FILE" 2>&1
-    if [ $? -ne 0 ]; then
-        echo "⚠️ Advertencia: Falló 'venv'. Intentando con 'virtualenv'..." >> "$LOG_FILE"
+    
+    # Fallback si venv no crea bin/pip (común en instalaciones reducidas de Python en CentOS)
+    if [ ! -f "venv/bin/pip" ]; then
+        echo "⚠️ Advertencia: 'venv' falló o no instaló pip. Intentando con 'virtualenv'..." >> "$LOG_FILE"
+        rm -rf venv
         virtualenv venv >> "$LOG_FILE" 2>&1
     fi
 fi
 
-# 3. Instalar librerías necesarias en el venv
-echo "📥 Instalando pip y paquetes requeridos (pymysql, cryptography, psycopg2-binary, dotenv)..." >> "$LOG_FILE"
-venv/bin/pip install --upgrade pip >> "$LOG_FILE" 2>&1
-venv/bin/pip install pymysql cryptography psycopg2-binary python-dotenv >> "$LOG_FILE" 2>&1
+# 3. Instalar librerías necesarias
+if [ -f "venv/bin/pip" ]; then
+    echo "📥 Instalando pip y paquetes requeridos en venv..." >> "$LOG_FILE"
+    venv/bin/pip install --upgrade pip >> "$LOG_FILE" 2>&1
+    venv/bin/pip install pymysql cryptography psycopg2-binary python-dotenv >> "$LOG_FILE" 2>&1
+    PYTHON_EXEC="venv/bin/python"
+else
+    echo "⚠️ venv/virtualenv no disponible. Intentando instalación con --user..." >> "$LOG_FILE"
+    PYTHON_EXEC=$PYTHON_CMD
+    
+    # Comprobar comandos de pip disponibles
+    if command -v pip3 &>/dev/null; then
+        PIP_CMD="pip3"
+    elif command -v pip &>/dev/null; then
+        PIP_CMD="pip"
+    else
+        PIP_CMD="$PYTHON_CMD -m pip"
+    fi
+    
+    echo "Usando comando de pip: $PIP_CMD" >> "$LOG_FILE"
+    $PIP_CMD install --user pymysql cryptography psycopg2-binary python-dotenv >> "$LOG_FILE" 2>&1
+fi
 
 # 4. Ejecutar el script de migración
-echo "🚀 Ejecutando script migrate_to_mysql.py..." >> "$LOG_FILE"
-venv/bin/python migrate_to_mysql.py >> "$LOG_FILE" 2>&1
+echo "🚀 Ejecutando script migrate_to_mysql.py con $PYTHON_EXEC..." >> "$LOG_FILE"
+$PYTHON_EXEC migrate_to_mysql.py >> "$LOG_FILE" 2>&1
 
 echo "=== PROCESO DE MIGRACIÓN FINALIZADO ===" >> "$LOG_FILE"
