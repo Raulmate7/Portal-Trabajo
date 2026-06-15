@@ -39,6 +39,27 @@ except Exception as e:
     print(f"❌ Error conectando a MySQL: {e}")
     sys.exit(1)
 
+def format_mysql_datetime(val):
+    if not val:
+        return None
+    if isinstance(val, str):
+        # Reemplazar 'T' por espacio
+        val = val.replace('T', ' ')
+        # Quitar el offset de zona horaria si existe (ej: +00:00)
+        if '+' in val:
+            val = val.split('+')[0]
+        elif '-' in val and len(val.split('-')) > 3:
+            parts = val.rsplit('-', 1)
+            if len(parts) == 2 and ' ' in parts[0]:
+                val = parts[0]
+        if val.endswith('Z'):
+            val = val[:-1]
+        # Quitar microsegundos para máxima compatibilidad
+        if '.' in val:
+            val = val.split('.')[0]
+        return val
+    return val
+
 # Carpeta de origen
 input_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "migration_data")
 
@@ -178,7 +199,9 @@ for table in TABLES:
             val = record[col]
             
             # Conversiones especiales
-            if table == 'sectors' and col == 'keywords':
+            if col.endswith('_at'):
+                val = format_mysql_datetime(val)
+            elif table == 'sectors' and col == 'keywords':
                 # Convertir array a JSON string
                 val = json.dumps(val)
             elif table == 'jobs' and col in ['is_featured', 'is_active']:
