@@ -43,6 +43,12 @@ jobs:
           cp frontend/next.config.ts deploy_dist/
           mkdir -p deploy_dist/tmp
           touch deploy_dist/tmp/restart.txt
+          
+          # Copiar backend excluyendo carpetas pesadas y .env local
+          cp -r backend deploy_dist/
+          rm -rf deploy_dist/backend/venv
+          rm -rf deploy_dist/backend/node_modules
+          rm -f deploy_dist/backend/.env
 
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
