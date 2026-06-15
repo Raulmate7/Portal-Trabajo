@@ -6,6 +6,7 @@ __pycache__/
 .next/
 *.pyc
 *.json
+!backend/migration_data/*.json
 
 # Logs
 *_log.txt

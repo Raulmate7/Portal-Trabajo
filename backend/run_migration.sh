@@ -59,8 +59,8 @@ else
     $PIP_CMD install --user pymysql cryptography psycopg2-binary python-dotenv >> "$LOG_FILE" 2>&1
 fi
 
-# 4. Ejecutar el script de migración
-echo "🚀 Ejecutando script migrate_to_mysql.py con $PYTHON_EXEC..." >> "$LOG_FILE"
-$PYTHON_EXEC migrate_to_mysql.py >> "$LOG_FILE" 2>&1
+# 4. Ejecutar el script de migración leyendo desde JSON
+echo "🚀 Ejecutando script import_json_to_mysql.py con $PYTHON_EXEC..." >> "$LOG_FILE"
+$PYTHON_EXEC import_json_to_mysql.py >> "$LOG_FILE" 2>&1
 
 echo "=== PROCESO DE MIGRACIÓN FINALIZADO ===" >> "$LOG_FILE"

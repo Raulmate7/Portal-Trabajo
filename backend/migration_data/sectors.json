@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "name": "Informática y Tecnología",
+    "slug": "informatica-tecnologia",
+    "keywords": [
+      "python",
+      "javascript",
+      "react",
+      "java",
+      "devops",
+      "backend",
+      "frontend",
+      "fullstack",
+      "cloud",
+      "aws",
+      "azure",
+      "gcp",
+      "software",
+      "ingeniero"
+    ]
+  }
+]
