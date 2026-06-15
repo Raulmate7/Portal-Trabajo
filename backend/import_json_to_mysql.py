@@ -90,7 +90,7 @@ DDL_TABLES = {
             description_snippet_es TEXT,
             title TEXT NOT NULL,
             company VARCHAR(255) NOT NULL,
-            location VARCHAR(255) DEFAULT 'España',
+            location VARCHAR(1000) DEFAULT 'España',
             salary VARCHAR(255),
             description_snippet TEXT,
             url_source VARCHAR(700) UNIQUE NOT NULL,
