@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 
 // Banners de afiliado internos (no AdSense) — rápidos, sin JS externo, sin ad-blockers.
 const UDEMY_LINK = "https://trk.udemy.com/9VMAEj";
@@ -12,7 +13,7 @@ const ADS = [
     title: 'Domina las tecnologías más demandadas',
     desc: 'Cursos de programación con certificado. Aprende a tu ritmo.',
     cta: 'Ver Cursos →',
-    href: UDEMY_LINK,
+    href: `${UDEMY_LINK}?subid=bootcamp`,
     colors: 'from-emerald-50 to-teal-50 border-emerald-200',
     ctaColors: 'bg-emerald-600 hover:bg-emerald-700 text-white',
   },
@@ -22,7 +23,7 @@ const ADS = [
     title: 'Conviértete en Fullstack Developer',
     desc: 'React, Node.js, bases de datos y despliegue. Todo en un curso.',
     cta: 'Empezar ahora →',
-    href: UDEMY_LINK,
+    href: `${UDEMY_LINK}?subid=fullstack`,
     colors: 'from-blue-50 to-indigo-50 border-blue-200',
     ctaColors: 'bg-blue-600 hover:bg-blue-700 text-white',
   },
@@ -32,9 +33,39 @@ const ADS = [
     title: 'Aprende Data Science y Machine Learning',
     desc: 'El perfil más demandado de 2026. Python, SQL y más.',
     cta: 'Ver formación →',
-    href: UDEMY_LINK,
+    href: `${UDEMY_LINK}?subid=data`,
     colors: 'from-violet-50 to-purple-50 border-violet-200',
     ctaColors: 'bg-violet-600 hover:bg-violet-700 text-white',
+  },
+  {
+    id: 'books',
+    emoji: '📚',
+    title: 'Los mejores libros para programadores',
+    desc: 'Diseño de sistemas, Clean Code y arquitectura recomendada.',
+    cta: 'Ver Libros →',
+    href: 'https://amzn.to/3XQyY7Z',
+    colors: 'from-amber-50 to-yellow-50 border-amber-200',
+    ctaColors: 'bg-amber-600 hover:bg-amber-700 text-white',
+  },
+  {
+    id: 'cloud-cert',
+    emoji: '☁️',
+    title: 'Certificaciones Cloud oficiales (AWS, GCP, Azure)',
+    desc: 'Consigue tu certificado en la nube con cursos de Coursera.',
+    cta: 'Ver Cursos →',
+    href: 'https://coursera.pxf.io/c/123456/1164968/14726',
+    colors: 'from-sky-50 to-cyan-50 border-sky-200',
+    ctaColors: 'bg-sky-600 hover:bg-sky-700 text-white',
+  },
+  {
+    id: 'jetbrains',
+    emoji: '💻',
+    title: 'Licencias JetBrains (WebStorm, PyCharm, IntelliJ)',
+    desc: 'Optimiza tu productividad con los IDEs preferidos.',
+    cta: 'Obtener IDE →',
+    href: 'https://www.jetbrains.com/store/#affiliate=123456',
+    colors: 'from-pink-50 to-rose-50 border-pink-200',
+    ctaColors: 'bg-pink-600 hover:bg-pink-700 text-white',
   },
 ];
 
@@ -84,47 +115,66 @@ export default function AdBanner({
 
     let timer: NodeJS.Timeout;
     let observer: MutationObserver;
+    let intersectionObserver: IntersectionObserver;
 
     try {
-      if (!initializedRef.current) {
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-        initializedRef.current = true;
-      }
+      const initializeAd = () => {
+        if (!initializedRef.current) {
+          (window.adsbygoogle = window.adsbygoogle || []).push({});
+          initializedRef.current = true;
+        }
 
-      // 1. MutationObserver para detectar de inmediato cuando AdSense carga exitosamente (filled) o falla (unfilled)
-      if (insRef.current) {
-        observer = new MutationObserver((mutations) => {
-          mutations.forEach((mutation) => {
-            if (mutation.type === 'attributes' && mutation.attributeName === 'data-ad-status') {
-              const status = insRef.current?.getAttribute('data-ad-status');
-              if (status === 'filled') {
-                setIsLoading(false);
-              } else if (status === 'unfilled') {
-                setAdError(true);
-                setIsLoading(false);
+        // 1. MutationObserver para detectar de inmediato cuando AdSense carga exitosamente (filled) o falla (unfilled)
+        if (insRef.current) {
+          observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+              if (mutation.type === 'attributes' && mutation.attributeName === 'data-ad-status') {
+                const status = insRef.current?.getAttribute('data-ad-status');
+                if (status === 'filled') {
+                  setIsLoading(false);
+                } else if (status === 'unfilled') {
+                  setAdError(true);
+                  setIsLoading(false);
+                }
               }
+            });
+          });
+
+          observer.observe(insRef.current, { attributes: true });
+        }
+
+        // 2. Timer de salvaguarda de 3.5 segundos (útil para adblockers agresivos o bloqueos totales de red)
+        timer = setTimeout(() => {
+          if (insRef.current) {
+            const hasIframe = insRef.current.getElementsByTagName('iframe').length > 0;
+            const status = insRef.current.getAttribute('data-ad-status');
+
+            if (status === 'filled' || hasIframe) {
+              setIsLoading(false);
+            } else {
+              console.warn("⚠️ AdSense no cargó el anuncio (adblocker o error). Mostrando banner de fallback.");
+              setAdError(true);
+              setIsLoading(false);
+            }
+          }
+        }, 3500);
+      };
+
+      if (insRef.current && typeof IntersectionObserver !== 'undefined') {
+        intersectionObserver = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              initializeAd();
+              intersectionObserver.disconnect();
             }
           });
-        });
+        }, { rootMargin: '200px' });
 
-        observer.observe(insRef.current, { attributes: true });
+        intersectionObserver.observe(insRef.current);
+      } else {
+        // Fallback si no hay soporte para IntersectionObserver o no hay ref
+        initializeAd();
       }
-
-      // 2. Timer de salvaguarda de 3.5 segundos (útil para adblockers agresivos o bloqueos totales de red)
-      timer = setTimeout(() => {
-        if (insRef.current) {
-          const hasIframe = insRef.current.getElementsByTagName('iframe').length > 0;
-          const status = insRef.current.getAttribute('data-ad-status');
-
-          if (status === 'filled' || hasIframe) {
-            setIsLoading(false);
-          } else {
-            console.warn("⚠️ AdSense no cargó el anuncio (adblocker o error). Mostrando banner de fallback.");
-            setAdError(true);
-            setIsLoading(false);
-          }
-        }
-      }, 3500);
 
     } catch (err) {
       console.error("⚠️ Error inicializando AdSense:", err);
@@ -135,11 +185,78 @@ export default function AdBanner({
     return () => {
       if (timer) clearTimeout(timer);
       if (observer) observer.disconnect();
+      if (intersectionObserver) intersectionObserver.disconnect();
     };
   }, [shouldTryAdsense, adError]);
 
-  // Seleccionar un anuncio de afiliados basado en la hora actual
-  const ad = ADS[new Date().getHours() % ADS.length];
+  const pathname = usePathname() || '';
+
+  // Seleccionar un anuncio de afiliados basado en la ruta / tecnología actual
+  let adIndex = 0;
+  const pathLower = pathname.toLowerCase();
+  if (
+    pathLower.includes('cloud') ||
+    pathLower.includes('devops') ||
+    pathLower.includes('aws') ||
+    pathLower.includes('docker') ||
+    pathLower.includes('kubernetes') ||
+    pathLower.includes('azure') ||
+    pathLower.includes('gcp') ||
+    pathLower.includes('system') ||
+    pathLower.includes('admin')
+  ) {
+    adIndex = 4; // cloud-cert
+  } else if (
+    pathLower.includes('java') ||
+    pathLower.includes('php') ||
+    pathLower.includes('csharp') ||
+    pathLower.includes('intellij') ||
+    pathLower.includes('pycharm') ||
+    pathLower.includes('webstorm') ||
+    pathLower.includes('ide') ||
+    pathLower.includes('productivity')
+  ) {
+    adIndex = 5; // jetbrains
+  } else if (
+    pathLower.includes('blog') ||
+    pathLower.includes('orientacion') ||
+    pathLower.includes('cv') ||
+    pathLower.includes('entrevista') ||
+    pathLower.includes('libro') ||
+    pathLower.includes('book')
+  ) {
+    adIndex = 3; // books
+  } else if (
+    pathLower.includes('react') ||
+    pathLower.includes('javascript') ||
+    pathLower.includes('typescript') ||
+    pathLower.includes('nextjs') ||
+    pathLower.includes('vue') ||
+    pathLower.includes('angular') ||
+    pathLower.includes('frontend') ||
+    pathLower.includes('node') ||
+    pathLower.includes('backend') ||
+    pathLower.includes('fullstack') ||
+    pathLower.includes('web')
+  ) {
+    adIndex = 1; // fullstack
+  } else if (
+    pathLower.includes('python') ||
+    pathLower.includes('data') ||
+    pathLower.includes('science') ||
+    pathLower.includes('machine') ||
+    pathLower.includes('learning') ||
+    pathLower.includes('sql') ||
+    pathLower.includes('mysql') ||
+    pathLower.includes('postgres') ||
+    pathLower.includes('analytics')
+  ) {
+    adIndex = 2; // data
+  } else {
+    adIndex = new Date().getHours() % ADS.length;
+  }
+
+  const ad = ADS[adIndex];
 
   // Si no está configurada la variable de entorno o hay un error de carga, usar afiliación Udemy
   if (!adsenseClientId || adError) {

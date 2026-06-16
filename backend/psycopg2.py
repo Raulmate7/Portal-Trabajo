@@ -63,6 +63,7 @@ def connect(dsn=None, **kwargs):
         if os.getenv("MYSQL_PASSWORD"): password = os.getenv("MYSQL_PASSWORD")
 
     try:
+        connect_timeout = kwargs.get('connect_timeout') or kwargs.get('timeout') or 5
         conn = pymysql.connect(
             host=host,
             user=user,
@@ -70,7 +71,10 @@ def connect(dsn=None, **kwargs):
             database=database,
             port=port,
             charset='utf8mb4',
-            autocommit=False  # Mantener control de transacciones con commit/rollback
+            autocommit=False,  # Mantener control de transacciones con commit/rollback
+            connect_timeout=connect_timeout,
+            read_timeout=connect_timeout,
+            write_timeout=connect_timeout
         )
         return ConnectionWrapper(conn)
     except Exception as e:

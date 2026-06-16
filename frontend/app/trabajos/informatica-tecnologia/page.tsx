@@ -42,7 +42,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 }
 
 async function getJobs(scopeFilter: string, locationFilter?: string, queryFilter?: string, page: number = 1) {
-  const limit = 50;
+  const limit = 20;
   const offset = (page - 1) * limit;
   const client = await pool.connect();
   try {
@@ -165,7 +165,7 @@ export default async function JobsPage(props: Props) {
                       <div />
                     )}
                     <span className="text-sm text-gray-600">Página {validPage}</span>
-                    {jobs.length === 50 ? (
+                    {jobs.length === 20 ? (
                       <Link
                         href={`/trabajos/informatica-tecnologia?scope=${scopeFilter}&ubicacion=${encodeURIComponent(locationFilter || '')}&q=${encodeURIComponent(queryFilter || '')}&page=${validPage + 1}`}
                         className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"

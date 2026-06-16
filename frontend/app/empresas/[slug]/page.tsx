@@ -31,7 +31,7 @@ type Props = {
 };
 
 async function getJobsByCompany(companySlug: string, page: number = 1) {
-  const limit = 50;
+  const limit = 20;
   const offset = (page - 1) * limit;
   const client = await pool.connect();
   try {
@@ -269,6 +269,36 @@ export default async function CompanyPage({ params, searchParams }: Props) {
     }))
   };
 
+  const top3Jobs = jobs.slice(0, 3);
+  const jobPostingSchemas = top3Jobs.map((job) => {
+    const isRemote = job.location.toLowerCase().includes('remoto') || job.location.toLowerCase().includes('teletrabajo') || job.location.toLowerCase().includes('remote');
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'JobPosting',
+      title: job.title_es || job.title,
+      description: job.description_snippet || `Oferta de empleo para ${job.title_es || job.title} en ${job.company}`,
+      datePosted: new Date(job.created_at).toISOString(),
+      hiringOrganization: {
+        '@type': 'Organization',
+        name: job.company
+      },
+      identifier: {
+        '@type': 'PropertyValue',
+        name: job.company,
+        value: `job-${job.id}`
+      },
+      jobLocation: {
+        '@type': 'Place',
+        address: {
+          '@type': 'PostalAddress',
+          addressLocality: job.location,
+          addressCountry: 'ES'
+        }
+      },
+      jobLocationType: isRemote ? 'TELECOMMUTE' : undefined
+    };
+  });
+
   return (
     <div className="container mx-auto px-4 py-8">
       <script 
@@ -283,6 +313,13 @@ export default async function CompanyPage({ params, searchParams }: Props) {
         type="application/ld+json" 
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} 
       />
+      {jobPostingSchemas.map((schema, idx) => (
+        <script 
+          key={`job-schema-${idx}`}
+          type="application/ld+json" 
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} 
+        />
+      ))}
 
       <Breadcrumbs items={breadcrumbItems} />
       
@@ -381,7 +418,7 @@ export default async function CompanyPage({ params, searchParams }: Props) {
                 <div />
               )}
               <span className="text-sm text-gray-600">Página {validPage}</span>
-              {jobs.length === 50 ? (
+              {jobs.length === 20 ? (
                 <Link
                   href={`/empresas/${slug}?page=${validPage + 1}`}
                   className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"

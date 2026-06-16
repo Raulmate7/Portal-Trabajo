@@ -235,6 +235,32 @@ function parseSector(sectorSlug: string) {
   let ciudad = '';
   let experiencia = '';
   let modalidad = '';
+  let salaryMin: number | null = null;
+  let salaryMax: number | null = null;
+
+  // Buscar coincidencia de salario y limpiarlo de tec
+  const salaryMatch1 = tec.match(/salario-mas-de-(\d+)k?/i);
+  const salaryMatch2 = tec.match(/salario-mas-de-(\d+)/i);
+  const salaryMatch3 = tec.match(/salario-(\d+)k-(\d+)k/i);
+  const salaryMatch4 = tec.match(/salario-(\d+)-(\d+)/i);
+
+  if (salaryMatch1) {
+    salaryMin = parseInt(salaryMatch1[1]) * 1000;
+    tec = tec.replace(salaryMatch1[0], '').replace(/--+/g, '-').replace(/^-|-$/g, '');
+  } else if (salaryMatch2) {
+    let val = parseInt(salaryMatch2[1]);
+    if (val < 1000) val = val * 1000;
+    salaryMin = val;
+    tec = tec.replace(salaryMatch2[0], '').replace(/--+/g, '-').replace(/^-|-$/g, '');
+  } else if (salaryMatch3) {
+    salaryMin = parseInt(salaryMatch3[1]) * 1000;
+    salaryMax = parseInt(salaryMatch3[2]) * 1000;
+    tec = tec.replace(salaryMatch3[0], '').replace(/--+/g, '-').replace(/^-|-$/g, '');
+  } else if (salaryMatch4) {
+    salaryMin = parseInt(salaryMatch4[1]);
+    salaryMax = parseInt(salaryMatch4[2]);
+    tec = tec.replace(salaryMatch4[0], '').replace(/--+/g, '-').replace(/^-|-$/g, '');
+  }
 
   if (tec.includes('-hibrido')) {
     modalidad = 'hibrido';
@@ -259,8 +285,12 @@ function parseSector(sectorSlug: string) {
     }
   }
 
+  if (tec === '') {
+    tec = 'informatica-tecnologia';
+  }
+
   const dbCategory = categoryMap[tec];
-  return { tec, ciudad, experiencia, modalidad, dbCategory };
+  return { tec, ciudad, experiencia, modalidad, dbCategory, salaryMin, salaryMax };
 }
 
 export async function generateMetadata({ params, searchParams }: { params: Params, searchParams: Promise<{ [key: string]: string | string[] | undefined }> }): Promise<Metadata> {
@@ -268,13 +298,14 @@ export async function generateMetadata({ params, searchParams }: { params: Param
   const sectorSlug = sector.toLowerCase();
   const resolvedSearchParams = await searchParams;
   const page = typeof resolvedSearchParams.page === 'string' ? parseInt(resolvedSearchParams.page, 10) : 1;
+  const validPage = isNaN(page) || page < 1 ? 1 : page;
   const isPaged = !isNaN(page) && page > 1;
   const lang = resolvedSearchParams.lang === 'en' ? 'en' : 'es';
   const isEnglish = lang === 'en';
   
-  const { tec, ciudad, experiencia, modalidad, dbCategory } = parseSector(sectorSlug);
+  const { tec, ciudad, experiencia, modalidad, dbCategory, salaryMin, salaryMax } = parseSector(sectorSlug);
   
-  const jobs = await getJobs(tec, ciudad, dbCategory, experiencia, modalidad, page);
+  const jobs = await getJobs(tec, ciudad, dbCategory, experiencia, modalidad, validPage, salaryMin, salaryMax);
   const isThinPage = jobs.length === 0;
   const jobCount = jobs.length;
 
@@ -286,13 +317,20 @@ export async function generateMetadata({ params, searchParams }: { params: Param
   const modLabel = modalidad === 'hibrido' ? ' híbrido' : '';
   const modLabelEn = modalidad === 'hibrido' ? ' Hybrid' : '';
   const now = new Date();
+
+  let salaryLabel = '';
+  if (salaryMin && salaryMax) {
+    salaryLabel = isEnglish ? ` with salary ${salaryMin / 1000}k-${salaryMax / 1000}k` : ` con salario de ${salaryMin.toLocaleString('es-ES')}€ a ${salaryMax.toLocaleString('es-ES')}€`;
+  } else if (salaryMin) {
+    salaryLabel = isEnglish ? ` with salary over ${salaryMin / 1000}k` : ` con salario de más de ${salaryMin.toLocaleString('es-ES')}€`;
+  }
   
   let tituloBase = "";
   let descBase = "";
 
   if (isEnglish) {
-    tituloBase = `${categoriaBonita}${modLabelEn}${expLabel} Jobs`;
-    descBase = `Active ${categoriaBonita}${modLabelEn}${expLabel ? ` (${expLabel.trim()})` : ''} job vacancies`;
+    tituloBase = `${categoriaBonita}${modLabelEn}${expLabel}${salaryLabel} Jobs`;
+    descBase = `Active ${categoriaBonita}${modLabelEn}${expLabel ? ` (${expLabel.trim()})` : ''}${salaryLabel} job vacancies`;
     if (ciudad) {
       const ciudadBonita = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
       tituloBase += ` in ${ciudadBonita}`;
@@ -301,8 +339,8 @@ export async function generateMetadata({ params, searchParams }: { params: Param
   } else {
     const mes = now.toLocaleDateString('es-ES', { month: 'long' });
     const anio = now.getFullYear();
-    tituloBase = `Trabajo${modLabel}${expLabel} de ${categoriaBonita}`;
-    descBase = `Ofertas de trabajo${modLabel}${expLabel ? ` para ${expLabel.trim()}` : ''} de ${categoriaBonita}`;
+    tituloBase = `Trabajo${modLabel}${expLabel} de ${categoriaBonita}${salaryLabel}`;
+    descBase = `Ofertas de trabajo${modLabel}${expLabel ? ` para ${expLabel.trim()}` : ''} de ${categoriaBonita}${salaryLabel}`;
     if (ciudad) {
       const ciudadBonita = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
       tituloBase += ` en ${ciudadBonita}`;
@@ -314,7 +352,7 @@ export async function generateMetadata({ params, searchParams }: { params: Param
 
   let tituloSeo = tituloBase;
   if (isPaged) {
-    tituloSeo += isEnglish ? ` - Page ${page}` : ` - Página ${page}`;
+    tituloSeo += isEnglish ? ` - Page ${validPage}` : ` - Página ${validPage}`;
   }
   
   const rssParams = new URLSearchParams();
@@ -341,10 +379,12 @@ export async function generateMetadata({ params, searchParams }: { params: Param
   return {
     title: isEnglish ? `${tituloSeo} | IT Job Portal` : `${tituloSeo} | Portal Trabajo`,
     description: isEnglish
-      ? `${descBase} updated today. ${jobCount > 0 ? `${jobCount} vacancies available now.` : 'We aggregate offers from top tech companies.'}${isPaged ? ` (Page ${page})` : ''}`
-      : `${descBase} actualizadas hoy. ${jobCount > 0 ? `${jobCount} vacantes disponibles ahora.` : 'Recopilamos ofertas de las mejores empresas tecnológicas.'}${isPaged ? ` (Página ${page})` : ''}`,
+      ? `${descBase} updated today. ${jobCount > 0 ? `${jobCount} vacancies available now.` : 'We aggregate offers from top tech companies.'}${isPaged ? ` (Page ${validPage})` : ''}`
+      : `${descBase} actualizadas hoy. ${jobCount > 0 ? `${jobCount} vacantes disponibles ahora.` : 'Recopilamos ofertas de las mejores empresas tecnológicas.'}${isPaged ? ` (Página ${validPage})` : ''}`,
     alternates: {
       canonical: canonicalUrl,
+      prev: isPaged ? `${BASE_URL}/trabajos/${sectorSlug}${validPage > 2 ? `?page=${validPage - 1}` : ''}${isEnglish ? (validPage > 2 ? '&lang=en' : '?lang=en') : ''}` : undefined,
+      next: jobs.length === 20 ? `${BASE_URL}/trabajos/${sectorSlug}?page=${validPage + 1}${isEnglish ? '&lang=en' : ''}` : undefined,
       languages: {
         'es-ES': `${BASE_URL}/trabajos/${sectorSlug}`,
         'en': `${BASE_URL}/trabajos/${sectorSlug}?lang=en`,
@@ -377,8 +417,17 @@ export async function generateMetadata({ params, searchParams }: { params: Param
   };
 }
 
-const getJobs = cache(async (tec: string, ciudad: string, dbCategory: string | undefined, experiencia: string = '', modalidad: string = '', page: number = 1) => {
-  const limit = 50;
+const getJobs = cache(async (
+  tec: string, 
+  ciudad: string, 
+  dbCategory: string | undefined, 
+  experiencia: string = '', 
+  modalidad: string = '', 
+  page: number = 1,
+  salaryMin?: number | null,
+  salaryMax?: number | null
+) => {
+  const limit = 20;
   const offset = (page - 1) * limit;
   const client = await pool.connect();
   try {
@@ -465,6 +514,17 @@ const getJobs = cache(async (tec: string, ciudad: string, dbCategory: string | u
       }).join(' OR ');
       sql += ` AND (${expConditions})`;
       paramsQuery.push(...expKeywords.map(k => `%${k}%`));
+    }
+
+    if (salaryMin) {
+      sql += ` AND (salary_min >= $${paramIndex} OR salary_max >= $${paramIndex})`;
+      paramsQuery.push(salaryMin);
+      paramIndex++;
+    }
+    if (salaryMax) {
+      sql += ` AND (salary_min <= $${paramIndex} OR salary_max <= $${paramIndex})`;
+      paramsQuery.push(salaryMax);
+      paramIndex++;
     }
 
     sql += ` ORDER BY created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
@@ -556,9 +616,9 @@ export default async function SectorPage({
   const lang = resolvedSearchParams.lang === 'en' ? 'en' : 'es';
   const isEnglish = lang === 'en';
 
-  const { tec, ciudad, experiencia, modalidad, dbCategory } = parseSector(sectorSlug);
+  const { tec, ciudad, experiencia, modalidad, dbCategory, salaryMin, salaryMax } = parseSector(sectorSlug);
   
-  let jobs = await getJobs(tec, ciudad, dbCategory, experiencia, modalidad, validPage);
+  let jobs = await getJobs(tec, ciudad, dbCategory, experiencia, modalidad, validPage, salaryMin, salaryMax);
   let isFallback = false;
   let fallbackType = '';
 
@@ -576,9 +636,17 @@ export default async function SectorPage({
   const expLabelObj = EXPERIENCE_SUFFIXES[experiencia];
   const expLabel = experiencia ? ` ${isEnglish ? expLabelObj?.labelEn : expLabelObj?.label}` : '';
   const modLabel = modalidad === 'hibrido' ? (isEnglish ? ' Hybrid' : ' híbrido') : '';
+
+  let salaryLabel = '';
+  if (salaryMin && salaryMax) {
+    salaryLabel = isEnglish ? ` with salary ${salaryMin / 1000}k-${salaryMax / 1000}k` : ` con salario de ${salaryMin.toLocaleString('es-ES')}€ a ${salaryMax.toLocaleString('es-ES')}€`;
+  } else if (salaryMin) {
+    salaryLabel = isEnglish ? ` with salary over ${salaryMin / 1000}k` : ` con salario de más de ${salaryMin.toLocaleString('es-ES')}€`;
+  }
+
   const tituloMostrado = ciudad 
-    ? (isEnglish ? `${categoriaBonita}${modLabel}${expLabel} in ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}` : `${categoriaBonita}${modLabel}${expLabel} en ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}`)
-    : `${categoriaBonita}${modLabel}${expLabel}`;
+    ? (isEnglish ? `${categoriaBonita}${modLabel}${expLabel}${salaryLabel} in ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}` : `${categoriaBonita}${modLabel}${expLabel}${salaryLabel} en ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}`)
+    : `${categoriaBonita}${modLabel}${expLabel}${salaryLabel}`;
 
   const queryParam = isEnglish ? '?lang=en' : '';
 
@@ -590,28 +658,87 @@ export default async function SectorPage({
 
   const stats = calculateStats(jobs);
 
-  const CIUDADES_POPULARES = ['madrid', 'barcelona', 'valencia', 'remoto'];
-  const TECNOLOGIAS_POPULARES = ['react', 'node', 'python', 'java', 'backend', 'frontend', 'data', 'cloud', 'mobile'];
-
   const relatedLinks: { label: string, href: string }[] = [];
+  const tLabel = displayNameMapUsed[tec] || tec.charAt(0).toUpperCase() + tec.slice(1);
+
   if (ciudad) {
-    for (const t of TECNOLOGIAS_POPULARES) {
-      if (t !== tec) {
-        const tLabel = displayNameMapUsed[t] || t.charAt(0).toUpperCase() + t.slice(1);
-        const cLabel = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
-        relatedLinks.push({
-          label: isEnglish ? `${tLabel} in ${cLabel}` : `${tLabel} en ${cLabel}`,
-          href: ciudad === 'remoto' ? `/trabajos/${t}-remoto${queryParam}` : `/trabajos/${t}-en-${ciudad.replace(/\s+/g, '-')}${queryParam}`
-        });
-      }
+    const cLabel = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
+    
+    // 1. Otras tecnologías en esta misma ciudad (5 enlaces)
+    const tecsToUse = ['react', 'node', 'python', 'java', 'backend', 'frontend', 'data', 'cloud', 'mobile'].filter(t => t !== tec).slice(0, 5);
+    for (const t of tecsToUse) {
+      const otherTLabel = displayNameMapUsed[t] || t.charAt(0).toUpperCase() + t.slice(1);
+      relatedLinks.push({
+        label: isEnglish ? `${otherTLabel} in ${cLabel}` : `${otherTLabel} en ${cLabel}`,
+        href: ciudad === 'remoto' ? `/trabajos/${t}-remoto${queryParam}` : `/trabajos/${t}-en-${ciudad.replace(/\s+/g, '-')}${queryParam}`
+      });
+    }
+
+    // 2. Experiencia en esta misma ciudad (2 enlaces)
+    relatedLinks.push({
+      label: isEnglish ? `Junior ${tLabel} in ${cLabel}` : `${tLabel} Junior en ${cLabel}`,
+      href: `/trabajos/${tec}-junior-en-${ciudad.replace(/\s+/g, '-')}${queryParam}`
+    });
+    relatedLinks.push({
+      label: isEnglish ? `Senior ${tLabel} in ${cLabel}` : `${tLabel} Senior en ${cLabel}`,
+      href: `/trabajos/${tec}-senior-en-${ciudad.replace(/\s+/g, '-')}${queryParam}`
+    });
+
+    // 3. Modalidad en esta misma ciudad (1 enlace)
+    relatedLinks.push({
+      label: isEnglish ? `Hybrid ${tLabel} in ${cLabel}` : `${tLabel} Híbrido en ${cLabel}`,
+      href: `/trabajos/${tec}-hibrido-en-${ciudad.replace(/\s+/g, '-')}${queryParam}`
+    });
+
+    // 4. Esta misma tecnología en otras ciudades principales (4 enlaces)
+    const citiesToUse = ['madrid', 'barcelona', 'valencia', 'sevilla', 'malaga'].filter(c => c !== ciudad.toLowerCase()).slice(0, 4);
+    for (const c of citiesToUse) {
+      const otherCLabel = c.charAt(0).toUpperCase() + c.slice(1);
+      relatedLinks.push({
+        label: isEnglish ? `${tLabel} in ${otherCLabel}` : `${tLabel} en ${otherCLabel}`,
+        href: `/trabajos/${tec}-en-${c}${queryParam}`
+      });
     }
   } else {
-    for (const c of CIUDADES_POPULARES) {
-      const tLabel = displayNameMapUsed[tec] || tec.charAt(0).toUpperCase() + tec.slice(1);
-      const cLabel = c.charAt(0).toUpperCase() + c.slice(1);
+    // Si NO hay ciudad, es una landing de tecnología general (ej: /trabajos/react)
+    // 1. Por ciudad principal (incluyendo Remoto - 6 enlaces)
+    const citiesToUse = ['remoto', 'madrid', 'barcelona', 'valencia', 'sevilla', 'malaga'];
+    for (const c of citiesToUse) {
+      const otherCLabel = c.charAt(0).toUpperCase() + c.slice(1);
       relatedLinks.push({
-        label: isEnglish ? `${tLabel} in ${cLabel}` : `${tLabel} en ${cLabel}`,
+        label: isEnglish ? `${tLabel} in ${otherCLabel}` : `${tLabel} en ${otherCLabel}`,
         href: c === 'remoto' ? `/trabajos/${tec}-remoto${queryParam}` : `/trabajos/${tec}-en-${c}${queryParam}`
+      });
+    }
+
+    // 2. Por experiencia (2 enlaces)
+    relatedLinks.push({
+      label: isEnglish ? `Junior ${tLabel}` : `${tLabel} Junior`,
+      href: `/trabajos/${tec}-junior${queryParam}`
+    });
+    relatedLinks.push({
+      label: isEnglish ? `Senior ${tLabel}` : `${tLabel} Senior`,
+      href: `/trabajos/${tec}-senior${queryParam}`
+    });
+
+    // 3. Por modalidad híbrida (1 enlace)
+    relatedLinks.push({
+      label: isEnglish ? `Hybrid ${tLabel}` : `${tLabel} Híbrido`,
+      href: `/trabajos/${tec}-hibrido${queryParam}`
+    });
+
+    // 4. Otras tecnologías relacionadas (3 enlaces)
+    const relatedTecs = tec === 'backend' 
+      ? ['node', 'python', 'java']
+      : tec === 'frontend'
+      ? ['react', 'angular', 'vue']
+      : ['backend', 'frontend', 'fullstack'];
+    
+    for (const t of relatedTecs) {
+      const otherTLabel = displayNameMapUsed[t] || t.charAt(0).toUpperCase() + t.slice(1);
+      relatedLinks.push({
+        label: isEnglish ? `${otherTLabel} Jobs` : `Trabajo de ${otherTLabel}`,
+        href: `/trabajos/${t}${queryParam}`
       });
     }
   }
@@ -755,6 +882,16 @@ export default async function SectorPage({
           <span className="text-[10px] text-gray-400 mt-2">
             {isEnglish ? 'Based on active offers with visible salary' : 'Basado en ofertas actuales con sueldo visible'}
           </span>
+          <Link
+            href={
+              ['react', 'node', 'python', 'java', 'typescript', 'aws', 'docker', 'flutter', 'csharp', 'php', 'sql'].includes(tec.toLowerCase()) 
+                ? `/salarios/${tec.toLowerCase()}` 
+                : '/salarios'
+            }
+            className="text-[11px] font-extrabold text-indigo-650 hover:text-indigo-800 hover:underline mt-3"
+          >
+            {isEnglish ? 'View detailed report →' : 'Ver informe de salarios →'}
+          </Link>
         </div>
       </div>
 
@@ -825,7 +962,7 @@ export default async function SectorPage({
                   <span className="text-sm text-gray-600">
                     {isEnglish ? `Page ${validPage}` : `Página ${validPage}`}
                   </span>
-                  {jobs.length === 50 ? (
+                  {jobs.length === 20 ? (
                     <Link
                       href={`/trabajos/${sector}?page=${validPage + 1}${queryParam ? `&lang=en` : ''}`}
                       className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -886,14 +1023,15 @@ export default async function SectorPage({
           <h2 className="text-lg font-bold text-gray-800 mb-4">
             {isEnglish ? 'Popular Related Searches' : 'Búsquedas populares relacionadas'}
           </h2>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {relatedLinks.map((link, idx) => (
               <Link 
                 key={idx}
                 href={link.href}
-                className="text-xs bg-gray-100 hover:bg-indigo-50 hover:text-indigo-600 text-gray-600 px-3 py-2 rounded-lg font-medium transition-colors border border-gray-200"
+                className="text-sm bg-white hover:bg-indigo-50/50 hover:text-indigo-600 hover:border-indigo-300 text-gray-700 p-3.5 rounded-xl font-medium transition-all border border-gray-200 shadow-sm flex items-center gap-2.5"
               >
-                🔍 {isEnglish ? `Jobs for ${link.label}` : `Ofertas de ${link.label}`}
+                <span className="text-indigo-500">🔍</span>
+                <span className="truncate">{link.label}</span>
               </Link>
             ))}
           </div>

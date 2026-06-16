@@ -557,6 +557,201 @@ Optimizar tu perfil de GitHub te garantiza que cuando un reclutador reciba tu CV
 `,
     date: '2026-06-13',
     author: 'Equipo Portal Empleo',
+  },
+  {
+    slug: 'mejores-empresas-tech-trabajo-remoto-espana-2026',
+    title: 'Las 10 mejores empresas tech para trabajar en remoto en España (2026)',
+    excerpt: 'Descubre cuáles son las compañías tecnológicas que ofrecen las mejores condiciones, cultura y salarios para trabajar en modalidad 100% remota desde España.',
+    content: `
+El trabajo en remoto se ha consolidado en España como el beneficio laboral más valorado por los desarrolladores y profesionales del sector IT. Aunque algunas organizaciones han intentado forzar la vuelta a las oficinas, muchas compañías tecnológicas de primer nivel han comprendido que la flexibilidad, la conciliación y la atracción del mejor talento nacional e internacional solo son posibles a través del teletrabajo puro o modelos remotos de altísima confianza.
+
+Si estás buscando cambiar de empleo o postularte a proyectos donde trabajar desde tu casa, desde un coworking o desde tu rincón favorito de España sea la norma y no la excepción, aquí tienes un análisis detallado de las 10 mejores empresas tecnológicas para trabajar en remoto en España en 2026.
+
+## ¿Qué define a una "Gran Empresa" para trabajar en remoto?
+No todos los esquemas de teletrabajo son iguales. Para elaborar este ranking, hemos evaluado criterios fundamentales de cultura remota:
+* **Asincronía real:** Empresas que no miden tu valor por el número de horas sentadas frente a la cámara, sino por los objetivos cumplidos y la documentación de procesos.
+* **Compensación de gastos:** Cobertura de internet, luz, y provisión de equipamiento de oficina ergonómico (silla, monitor, ordenador de gama alta).
+* **Salarios competitivos:** Salarios que no se ven penalizados por vivir fuera de las grandes capitales (deslocalización salarial).
+* **Beneficios de bienestar:** Presupuesto de formación, seguro médico y facilidades de coworking.
+
+---
+
+## Las 10 Mejores Empresas Tech para Teletrabajar
+
+### 1. Cabify
+Cabify se mantiene a la vanguardia como una de las mejores empresas de movilidad en España con un fuerte departamento de ingeniería. Su cultura de teletrabajo es madura y consolidada, con procesos ágiles excelentes.
+* **Stack principal:** Ruby on Rails, Go, React, Swift, Kotlin, PostgreSQL.
+* **Modalidad:** Remoto en España con reuniones puntuales opcionales. Ofrecen oficinas premium en Madrid si prefieres alternar.
+* **Beneficios:** Equipamiento completo, presupuesto anual para formación, clases de idiomas gratuitas y descuentos en viajes Cabify.
+
+### 2. Factorial
+Esta start-up consolidada (unicornio español) de software de recursos humanos (HR Tech) destaca por su rápido crecimiento y su política de flexibilidad horaria extrema.
+* **Stack principal:** Ruby on Rails, React, TypeScript, AWS.
+* **Modalidad:** 100% remoto en España o híbrido. Cuentan con unas espectaculares oficinas en Barcelona.
+* **Beneficios:** Seguro de salud, presupuesto para cursos, gimnasio bonificado y un gran ambiente multicultural.
+
+### 3. Manfred
+Manfred es la plataforma de reclutamiento y gestión de carreras para desarrolladores que nació con el ADN remoto en su núcleo. Son conocidos por su transparencia absoluta (salarios públicos en todas sus ofertas) y su defensa del bienestar del programador.
+* **Stack principal:** Next.js, Node.js, TypeScript, Python.
+* **Modalidad:** Remoto nativo desde cualquier parte de España.
+* **Beneficios:** Libertad de horarios, presupuesto de aprendizaje auto-gestionado y equipamiento ergonómico completo a tu elección.
+
+### 4. RavenPack
+RavenPack es una compañía multinacional de analítica de datos financieros con sede física en Marbella, pero con una sólida opción de teletrabajo a nivel nacional. Es ideal para programadores senior y científicos de datos que buscan proyectos de alto rendimiento.
+* **Stack principal:** Python, C++, AWS, Spark, React.
+* **Modalidad:** Remoto flexible (100% teletrabajo en toda España).
+* **Beneficios:** Salarios muy por encima de la media del mercado, seguro médico privado completo y planes de pensiones corporativos.
+
+### 5. Singular (Sngular)
+Singular es una consultora y proveedora de soluciones de tecnología que rompe con el esquema tradicional de la consultoría española. Tienen un fuerte enfoque en el desarrollo ágil de software y en el respeto por los tiempos del profesional.
+* **Stack principal:** Java, Spring Boot, React, Angular, Node.js, Python, Kubernetes.
+* **Modalidad:** 100% remoto de mutuo acuerdo.
+* **Beneficios:** Acceso a certificaciones oficiales (AWS, GCP), seguro médico y planes de retribución flexible.
+
+### 6. Seedtag
+Seedtag es la empresa líder en publicidad contextual de Europa y América (AdTech). Su equipo de ingeniería ha crecido exponencialmente gracias a sus buenas prácticas de desarrollo en la nube y su ambiente diverso.
+* **Stack principal:** Node.js, Angular, Python, Kubernetes, AWS.
+* **Modalidad:** Remoto primero (Remote-First) con oficinas en Madrid si el empleado lo requiere.
+* **Beneficios:** Flexibilidad total de horarios, clases de inglés y un presupuesto generoso para configurar tu oficina en casa.
+
+### 7. Holaluz
+La energética digital Holaluz destaca por su compromiso ecológico y una cultura corporativa muy avanzada centrada en las personas. Su departamento de tecnología trabaja de forma completamente distribuida.
+* **Stack principal:** Python, Django, React, AWS, Docker.
+* **Modalidad:** 100% remoto en territorio nacional.
+* **Beneficios:** Horario flexible, viernes por la tarde libres todo el año, seguro médico y guardería/ayudas familiares.
+
+### 8. Mercadona IT (Mercadona Tech)
+Mercadona Tech es la división tecnológica de Mercadona responsable de revolucionar sus canales online y de logística. Ofrece salarios muy atractivos para retener talento senior frente a empresas extranjeras.
+* **Stack principal:** Python, Django, React, Kotlin, Swift, Postgres.
+* **Modalidad:** Remoto híbrido de alta confianza (2-3 días de remoto a la semana) u opciones 100% remotas según el rol.
+* **Beneficios:** Sueldos competitivos desde perfiles Mid, incrementos salariales anuales fijos y formación continua de alto nivel.
+
+### 9. Glovo
+Glovo cuenta con un hub de ingeniería gigante que da soporte a operaciones en decenas de países. Su estructura permite un aprendizaje acelerado en sistemas a gran escala y alta disponibilidad.
+* **Stack principal:** Java, Spring Boot, Node.js, React, AWS, Redis.
+* **Modalidad:** Remoto flexible o híbrido. Oficinas en Barcelona y Madrid.
+* **Beneficios:** Seguro médico, retribución flexible, créditos mensuales de Glovo gratis y presupuesto de aprendizaje.
+
+### 10. Jobandtalent
+Plataforma líder en empleo temporal digital con presencia internacional. Su equipo técnico está muy enfocado en arquitecturas basadas en eventos y optimización de algoritmos de emparejamiento (matching).
+* **Stack principal:** Ruby on Rails, Python, Go, React, AWS.
+* **Modalidad:** 100% remoto dentro de la geografía española.
+* **Beneficios:** Flexibilidad total de conciliación, seguro de salud premium y suscripciones a plataformas de bienestar.
+
+---
+
+## Consejos para Conseguir un Trabajo Remoto en 2026
+La competencia para puestos 100% remotos es feroz, ya que compites con candidatos de toda España. Si quieres destacar en los procesos:
+1. **Domina la Comunicación Escrita:** En remoto, documentar tus decisiones es vital. Explica tus proyectos con diagramas claros y escribe READMEs detallados.
+2. **Prepara tu Portafolio de GitHub:** Sube código ordenado, con control de versiones realista e historial de commits limpio.
+3. **Optimiza tu Búsqueda:** Utiliza plataformas especializadas. En nuestro portal agrupamos todas las vacantes de teletrabajo en un listado exclusivo. Puedes ver ofertas diarias en nuestro [Buscador de Trabajo Remoto IT](/trabajo-remoto).
+
+El trabajo remoto en España está al alcance de tu mano si te enfocas en empresas con cultura madura y preparas tu candidatura para destacar en entornos distribuidos.
+`,
+    date: '2026-06-16',
+    author: 'Equipo Portal Empleo',
+  },
+  {
+    slug: 'preparar-entrevista-tecnica-nodejs-typescript-2026',
+    title: 'Cómo preparar la entrevista técnica de Node.js y TypeScript en 2026',
+    excerpt: 'Guía completa para afrontar con éxito tu próximo proceso de selección backend. Preguntas de teoría, live coding, diseño de sistemas y arquitectura.',
+    content: `
+El desarrollo backend con Node.js y TypeScript se ha convertido en el stack favorito para startups de rápido crecimiento y arquitectura de microservicios. Con la popularidad de frameworks como NestJS y herramientas modernas como Prisma u ORMs asíncronos, los procesos de selección técnica para desarrolladores Node.js en 2026 exigen un entendimiento profundo de la asincronía, optimización del Event Loop y diseño de sistemas escalables.
+
+Si estás preparando tu próximo proceso de selección, aquí tienes una guía exhaustiva con los bloques que te vas a encontrar y cómo resolverlos con solidez.
+
+## 1. Conceptos Avanzados de Node.js (Teoría de Sistemas)
+No basta con saber levantar un servidor Express. Un entrevistador senior evaluará cómo funciona el runtime por debajo:
+
+* **El Event Loop y sus Fases:** Prepárate para explicar en detalle las fases del loop de eventos (Timers, Pending Callbacks, Poll, Check, Close Callbacks). Te preguntarán sobre la diferencia entre \`process.nextTick()\` (que se ejecuta inmediatamente después de la operación actual, antes del loop) y \`setImmediate()\` (que se ejecuta en la fase Check del loop).
+* **Asincronía y Concurrencia:** Node.js es single-threaded para el código de usuario, pero multithreaded para operaciones del sistema de archivos o red a través de la librería libuv. Si necesitas ejecutar tareas pesadas de CPU (criptografía, procesamiento de imágenes), debes explicar el uso de **Worker Threads** para no bloquear el Event Loop.
+* **Streams y Buffers:** Es la pregunta clásica para ver si sabes escribir código eficiente. ¿Cómo procesarías un archivo CSV de 5GB en un servidor con 512MB de RAM?
+  * *Respuesta:* No cargando el archivo en memoria con \`fs.readFile\`. En su lugar, usarías **Streams de lectura (Readable Streams)** para procesar el archivo en pequeños fragmentos (chunks) y conectarlos mediante \`pipeline\` o \`pipe\` a un Stream de escritura.
+
+---
+
+## 2. TypeScript Avanzado y Buenas Prácticas
+TypeScript ya no es opcional en backend. Debes dominar tipos complejos para crear sistemas tipados y seguros:
+
+* **Utility Types:** Demuestra que sabes usar \`Pick\`, \`Omit\`, \`Partial\` o \`ReturnType\` para no duplicar interfaces ni cometer redundancias de código.
+* **Type Guards y Generics:** Explicar cómo escribir guardias de tipo personalizados (\`parameter is Type\`) para verificar datos en tiempo de ejecución de forma segura y cómo escribir funciones genéricas reutilizables.
+* **Decoradores:** Crucial si la empresa trabaja con NestJS. Entiende qué hacen los decoradores bajo el capó (metadatos de reflexión usando \`reflect-metadata\`).
+
+---
+
+## 3. Ejercicio Práctico Común: Implementar un Rate Limiter
+En los retos de código interactivo (Live Coding), un ejercicio clásico es construir un limitador de peticiones para proteger un endpoint frente a ataques de fuerza bruta o saturación.
+
+A continuación, tienes un ejemplo de cómo estructurar una respuesta elegante utilizando un almacén en memoria en TypeScript:
+
+\`\`\`typescript
+import { Request, Response, NextFunction } from 'express';
+
+interface RateLimitStore {
+  [ip: string]: {
+    count: number;
+    resetTime: number;
+  };
+}
+
+const store: RateLimitStore = {};
+
+export function rateLimiter(limit: number, windowMs: number) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const ip = req.ip || 'unknown';
+    const now = Date.now();
+
+    if (!store[ip]) {
+      store[ip] = {
+        count: 1,
+        resetTime: now + windowMs
+      };
+      return next();
+    }
+
+    const client = store[ip];
+
+    // Si ha pasado el tiempo límite de la ventana, reiniciamos el contador
+    if (now > client.resetTime) {
+      client.count = 1;
+      client.resetTime = now + windowMs;
+      return next();
+    }
+
+    // Incrementamos peticiones
+    client.count++;
+
+    if (client.count > limit) {
+      return res.status(429).json({
+        error: 'Too Many Requests',
+        message: 'Has superado el límite de peticiones permitido. Inténtalo más tarde.'
+      });
+    }
+
+    next();
+  };
+}
+\`\`\`
+*Nota: En entornos reales de producción, destaca ante tu entrevistador que usarías un almacén distribuido como **Redis** para evitar pérdida de estado si el servidor se reinicia o si se opera en un entorno multi-instancia detrás de un balanceador de carga.*
+
+---
+
+## 4. Diseño de Bases de Datos y el Problema de N+1
+Una gran parte de los problemas de rendimiento backend radican en las consultas a la base de datos.
+* **El problema de N+1:** Te darán un modelo de base de datos (ej: Post y Comentarios) y te preguntarán cómo evitar hacer una consulta a los comentarios por cada post recuperado. Explica cómo solucionarlo mediante consultas preparadas con \`JOIN\`, precarga de relaciones (\`include\` en Prisma, \`relations\` en TypeORM) o técnicas de data loaders.
+
+---
+
+## 5. Salarios para Desarrolladores Node.js/TypeScript en España (2026)
+El backend moderno con Node.js y TypeScript es una de las especialidades más demandadas y competitivas. Los rangos salariales medios en España según las ofertas de nuestro portal son:
+* **Junior (0-2 años):** 24.000€ - 30.000€ brutos anuales.
+* **Mid-Level (2-5 años):** 32.000€ - 46.000€ brutos anuales.
+* **Senior (5+ años):** De 48.000€ hasta superar los 70.000€ anuales (con opciones de remoto para mercados internacionales que superan los 85.000€).
+
+Si deseas comparar el salario medio real de desarrolladores Backend por tecnologías y ciudades, puedes consultar de forma gratuita nuestra [Calculadora de Salarios IT](/salarios) en tiempo real.
+`,
+    date: '2026-06-16',
+    author: 'Equipo Portal Empleo',
   }
 ];
 

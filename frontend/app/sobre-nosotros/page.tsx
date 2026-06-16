@@ -17,9 +17,16 @@ async function getPortalStats(): Promise<Stats> {
     const totalJobsRes = await client.query("SELECT COUNT(*) FROM jobs WHERE is_active = TRUE");
     const totalCompaniesRes = await client.query("SELECT COUNT(DISTINCT company) FROM jobs WHERE company IS NOT NULL AND company != 'Desconocida'");
     
+    const totalJobsRow = totalJobsRes.rows[0];
+    const totalCompaniesRow = totalCompaniesRes.rows[0];
+
+    if (!totalJobsRow || !totalCompaniesRow) {
+      throw new Error("No se obtuvieron resultados de la base de datos");
+    }
+
     return {
-      totalJobs: parseInt(totalJobsRes.rows[0].count, 10),
-      totalCompanies: parseInt(totalCompaniesRes.rows[0].count, 10)
+      totalJobs: parseInt(totalJobsRow.count, 10),
+      totalCompanies: parseInt(totalCompaniesRow.count, 10)
     };
   } catch (error) {
     console.error("Error cargando estadísticas sobre-nosotros:", error);

@@ -1,5 +1,6 @@
 import { ImageResponse } from 'next/og';
 import pool from '@/lib/db';
+import { getNumericId } from '@/lib/slug';
 
 export const alt = 'Oferta de Empleo IT';
 export const size = {
@@ -10,13 +11,14 @@ export const contentType = 'image/png';
 
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const numericId = getNumericId(id);
 
   let job = null;
   const client = await pool.connect();
   try {
     const res = await client.query(
       "SELECT title, company, location, salary FROM jobs WHERE id = $1",
-      [id]
+      [numericId]
     );
     job = res.rows[0];
   } catch (error) {

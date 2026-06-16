@@ -12,6 +12,8 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import { BASE_URL } from '@/lib/constants';
 import { getJobSlug, getNumericId } from '@/lib/slug';
 import SaveJobButton from '@/components/SaveJobButton';
+import ReactionButton from '@/components/ReactionButton';
+import { getJobReactions } from '@/app/actions';
 
 export const revalidate = 60;
 
@@ -379,6 +381,7 @@ export default async function JobPage({ params, searchParams }: Props) {
   }
 
   const similarJobs = await getSimilarJobs(numericId, job.category, job.title, 3);
+  const reactions = await getJobReactions(job.id);
 
   const isOld = (new Date().getTime() - new Date(job.created_at).getTime()) > 30 * 24 * 60 * 60 * 1000;
   const isExpired = job.is_active === false || isOld;
@@ -709,12 +712,20 @@ export default async function JobPage({ params, searchParams }: Props) {
                     >
                       {isEnglish ? '👉 Apply on original website' : '👉 Aplicar en la web original'}
                     </a>
-                    <SaveJobButton job={job} variant="detail" />
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-center">
+                      <SaveJobButton job={job} variant="detail" />
+                      <ReactionButton jobId={job.id} initialLikes={reactions.likes} initialDislikes={reactions.dislikes} />
+                    </div>
                   </div>
                 </div>
 
                 <AdBanner variant="multiplex" />
               </div>
+            </div>
+
+            {/* Banner publicitario inline adicional antes de recomendados */}
+            <div className="my-6">
+              <AdBanner variant="inline" />
             </div>
 
             {/* Ofertas Recomendadas */}

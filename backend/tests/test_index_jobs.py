@@ -5,7 +5,7 @@ from index_new_jobs import index_new_jobs
 class TestIndexJobs(unittest.TestCase):
 
     @patch('index_new_jobs.requests.post')
-    @patch('index_new_jobs.psycopg2.connect')
+    @patch('index_new_jobs.get_db_connection')
     @patch.dict('os.environ', {
         'CRON_SECRET': 'test-cron-secret-123',
         'DATABASE_URL': 'postgresql://test_user:test_pass@localhost:5432/test_db',
@@ -40,7 +40,7 @@ class TestIndexJobs(unittest.TestCase):
         # Debe hacer 3 peticiones POST a la API (2 para Google Indexing, 1 para IndexNow)
         self.assertEqual(mock_post.call_count, 3)
 
-    @patch('index_new_jobs.psycopg2.connect')
+    @patch('index_new_jobs.get_db_connection')
     @patch.dict('os.environ', {
         'CRON_SECRET': 'test-cron-secret-123',
         'DATABASE_URL': 'postgresql://test_user:test_pass@localhost:5432/test_db'

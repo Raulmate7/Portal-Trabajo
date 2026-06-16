@@ -1,6 +1,7 @@
 import os
 import smtplib
 import psycopg2
+import base64
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
@@ -101,8 +102,10 @@ def send_newsletter():
         
         for job in jobs:
             job_id, title, company, location, url_source, _ = job
+            import urllib.parse
             base_url = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
-            job_link = f"{base_url}/job/{get_job_slug(job_id, title, location, company)}?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
+            original_job_link = f"{base_url}/job/{get_job_slug(job_id, title, location, company)}?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
+            job_link = f"{base_url}/api/track-click?email=##EMAIL##&campaign=##CAMPAIGN##&redirect={urllib.parse.quote(original_job_link)}"
 
             standard_jobs_html += f"""
                 <div style="margin-bottom: 16px; padding: 12px 16px; background-color: #f9fafb; border-left: 4px solid {color}; border-radius: 0 8px 8px 0; border-top: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6; border-bottom: 1px solid #f3f4f6;">
@@ -149,6 +152,7 @@ def send_newsletter():
 
     for (email, tech_keywords) in subscribers:
         try:
+            base64_email = base64.b64encode(email.encode('utf-8')).decode('utf-8')
             # 6.1. Buscar ofertas personalizadas (en memoria) para este suscriptor
             recommended_jobs = []
             recommended_html = ""
@@ -171,7 +175,9 @@ def send_newsletter():
                 """
                 for job in recommended_jobs:
                     job_id, title, company, location, url_source, _ = job
-                    job_link = f"{base_url}/job/{get_job_slug(job_id, title, location, company)}?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
+                    import urllib.parse
+                    original_job_link = f"{base_url}/job/{get_job_slug(job_id, title, location, company)}?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
+                    job_link = f"{base_url}/api/track-click?email=##EMAIL##&campaign=##CAMPAIGN##&redirect={urllib.parse.quote(original_job_link)}"
                     
                     recommended_html += f"""
                         <div style="margin-bottom: 16px; padding: 12px 16px; background-color: #fffbeb; border-left: 4px solid #fbbf24; border-radius: 0 8px 8px 0; border-top: 1px solid #fef3c7; border-right: 1px solid #fef3c7; border-bottom: 1px solid #fef3c7;">
@@ -182,10 +188,26 @@ def send_newsletter():
                             </a>
                         </div>
                     """
+            # 6.2. Combinar el HTML personalizado con el estándar y reemplazar placeholders de tracking
+            final_jobs_html = (recommended_html + standard_jobs_html).replace("##EMAIL##", email).replace("##CAMPAIGN##", campaign_name)
             
-            # 6.2. Combinar el HTML personalizado con el estándar
-            final_jobs_html = recommended_html + standard_jobs_html
+            # Generar enlaces con tracking para los CTAs generales del correo
+            import urllib.parse
+            bootcamp_track = f"{base_url}/api/track-click?email={email}&campaign={campaign_name}&redirect={urllib.parse.quote(BOOTCAMP_LINK)}"
+            cv_track = f"{base_url}/api/track-click?email={email}&campaign={campaign_name}&redirect={urllib.parse.quote(CV_LINK)}"
             
+            talento_premium_orig = f"{base_url}/talento-premium?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
+            talento_premium_track = f"{base_url}/api/track-click?email={email}&campaign={campaign_name}&redirect={urllib.parse.quote(talento_premium_orig)}"
+            
+            blog_orig = f"{base_url}/blog/guia-salarios-programadores-espana-2026?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
+            blog_track = f"{base_url}/api/track-click?email={email}&campaign={campaign_name}&redirect={urllib.parse.quote(blog_orig)}"
+            
+            salarios_orig = f"{base_url}/salarios?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
+            salarios_track = f"{base_url}/api/track-click?email={email}&campaign={campaign_name}&redirect={urllib.parse.quote(salarios_orig)}"
+            
+            visit_web_orig = f"{base_url}?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
+            visit_web_track = f"{base_url}/api/track-click?email={email}&campaign={campaign_name}&redirect={urllib.parse.quote(visit_web_orig)}"
+
             # 6.3. Generar cuerpo HTML con pixel de tracking
             email_body = f"""
             <html>
@@ -206,7 +228,7 @@ def send_newsletter():
                                 <p style="color: #c7d2fe; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; margin: 0 0 8px;">Recomendación Premium</p>
                                 <h3 style="color: white; margin: 0 0 8px; font-size: 18px;">🚀 Bootcamp Fullstack Developer</h3>
                                 <p style="color: #c7d2fe; font-size: 13px; margin: 0 0 16px;">Acelera tu carrera tech. Aprende haciendo proyectos reales.</p>
-                                <a href="{BOOTCAMP_LINK}" style="display: inline-block; background: linear-gradient(90deg, #fbbf24, #f59e0b); color: #1f2937; padding: 10px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">
+                                <a href="{bootcamp_track}" style="display: inline-block; background: linear-gradient(90deg, #fbbf24, #f59e0b); color: #1f2937; padding: 10px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">
                                     Ver Bootcamp Completo →
                                 </a>
                             </div>
@@ -216,7 +238,7 @@ def send_newsletter():
                                 <div>
                                     <h4 style="margin: 0 0 4px; color: #166534; font-size: 14px;">📄 ¿Tu CV no pasa los filtros ATS?</h4>
                                     <p style="margin: 0; color: #15803d; font-size: 12px;">Usa plantillas profesionales optimizadas para recruiters.</p>
-                                    <a href="{CV_LINK}" style="color: #4f46e5; font-size: 13px; font-weight: bold; text-decoration: none;">Mejorar mi CV →</a>
+                                    <a href="{cv_track}" style="color: #4f46e5; font-size: 13px; font-weight: bold; text-decoration: none;">Mejorar mi CV →</a>
                                 </div>
                             </div>
 
@@ -224,7 +246,7 @@ def send_newsletter():
                             <div style="margin: 24px 0; padding: 20px; background: #fffbeb; border: 2px solid #fbbf24; border-radius: 12px; text-align: center;">
                                 <h3 style="margin: 0 0 8px; color: #92400e;">⭐ ¿Eres Senior (+3 años)?</h3>
                                 <p style="color: #78350f; font-size: 13px; margin: 0 0 12px;">Accede a ofertas exclusivas con salarios +45K de forma confidencial.</p>
-                                <a href="{base_url}/talento-premium?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal" style="display: inline-block; background: linear-gradient(90deg, #fbbf24, #f59e0b); color: #1f2937; padding: 10px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">
+                                <a href="{talento_premium_track}" style="display: inline-block; background: linear-gradient(90deg, #fbbf24, #f59e0b); color: #1f2937; padding: 10px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">
                                     Registrarme en Talento Premium
                                 </a>
                             </div>
@@ -234,24 +256,30 @@ def send_newsletter():
                                 <p style="color: #6366f1; font-size: 10px; text-transform: uppercase; letter-spacing: 2px; margin: 0 0 8px; font-weight: bold;">📖 Artículo de la semana</p>
                                 <h3 style="margin: 0 0 8px; color: #312e81; font-size: 16px;">Guía de salarios para programadores en España (2026)</h3>
                                 <p style="color: #4338ca; font-size: 13px; margin: 0 0 12px;">¿Cuánto deberías cobrar? Analizamos las tendencias salariales para perfiles Junior, Mid y Senior en las principales ciudades.</p>
-                                <a href="{base_url}/blog/guia-salarios-programadores-espana-2026?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal" style="color: #4f46e5; font-size: 13px; font-weight: bold; text-decoration: none;">Leer artículo completo →</a>
+                                <a href="{blog_track}" style="color: #4f46e5; font-size: 13px; font-weight: bold; text-decoration: none;">Leer artículo completo →</a>
                             </div>
 
                             <!-- Calculadora de Salarios CTA -->
                             <div style="margin: 16px 0; padding: 16px; background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 10px; text-align: center;">
                                 <h4 style="margin: 0 0 4px; color: #581c87; font-size: 14px;">💰 ¿Cuánto cobran los programadores en España?</h4>
                                 <p style="margin: 0 0 10px; color: #7c3aed; font-size: 12px;">Usa nuestra calculadora con datos reales de miles de ofertas.</p>
-                                <a href="{base_url}/salarios?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal" style="display: inline-block; background: #7c3aed; color: white; padding: 8px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 13px;">
+                                <a href="{salarios_track}" style="display: inline-block; background: #7c3aed; color: white; padding: 8px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 13px;">
                                     Calcular mi salario →
                                 </a>
                             </div>
                         </div>
 
                         <!-- Footer -->
-                        <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
+                        <div style="background: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+                            <p style="color: #4b5563; font-size: 12px; margin: 0 0 12px 0; font-weight: 500; line-height: 1.5;">
+                                📢 ¿Te gusta este newsletter? Invita a tus compañeros de profesión usando tu enlace personal:<br>
+                                <a href="{base_url}/ref/{base64_email}" style="color: #4f46e5; text-decoration: underline; font-weight: bold;">{base_url}/ref/{base64_email}</a><br>
+                                ¡Si se suscriben 3 amigos, obtendréis beneficios premium!
+                            </p>
                             <p style="color: #9ca3af; font-size: 11px; margin: 0;">
                                 Enviado automáticamente cada lunes por Portal Trabajo IT.<br>
-                                <a href="{base_url}?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal" style="color: #6366f1;">Visitar la web</a>
+                                <a href="{visit_web_track}" style="color: #6366f1;">Visitar la web</a> · 
+                                <a href="{base_url}/api/unsubscribe?email={email}" style="color: #9ca3af; text-decoration: underline;">Cancelar suscripción</a>
                             </p>
                         </div>
                     </div>

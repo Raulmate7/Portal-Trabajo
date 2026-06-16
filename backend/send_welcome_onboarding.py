@@ -34,11 +34,13 @@ def build_welcome_email(email, tech_keywords, jobs):
     """Construye el primer email de bienvenida con ofertas recomendadas."""
     tech_label = tech_keywords.replace(',', ', ').title() if tech_keywords else "Tecnología general"
     jobs_html = ""
+    import urllib.parse
     
     if jobs:
         for job in jobs:
             job_id, title, company, location, salary = job
-            job_link = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_1"
+            original_link = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_1"
+            job_link = f"{BASE_URL}/api/track-click?email={email}&campaign=welcome_email_1&redirect={urllib.parse.quote(original_link)}"
             sal_text = f" | 💰 {salary}" if salary and salary not in ("Consultar", "") else ""
             jobs_html += f"""
             <div style="margin-bottom: 12px; padding: 12px; background: #f8faff; border-left: 4px solid #4f46e5; border-radius: 4px;">
@@ -49,6 +51,9 @@ def build_welcome_email(email, tech_keywords, jobs):
             """
     else:
         jobs_html = f"<p style='color: #6b7280; font-size: 13px; text-align: center;'>Visita nuestra web para ver las últimas ofertas del día.</p>"
+
+    original_explore_link = f"{BASE_URL}?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_1"
+    explore_link = f"{BASE_URL}/api/track-click?email={email}&campaign=welcome_email_1&redirect={urllib.parse.quote(original_explore_link)}"
 
     return f"""
     <html>
@@ -68,7 +73,7 @@ def build_welcome_email(email, tech_keywords, jobs):
                 {jobs_html}
                 
                 <div style="margin: 24px 0; text-align: center;">
-                    <a href="{BASE_URL}?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_1" style="display: inline-block; background: #4f46e5; color: white; padding: 10px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">
+                    <a href="{explore_link}" style="display: inline-block; background: #4f46e5; color: white; padding: 10px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">
                         Explorar Todas las Ofertas →
                     </a>
                 </div>
@@ -92,6 +97,13 @@ def build_resources_email(email):
     """Construye el segundo email de onboarding con recursos de calculadora salarial y CV."""
     BOOTCAMP_LINK = "https://trk.udemy.com/9VMAEj"
     CV_LINK = "https://ejemplo.com/afiliado-cv"
+    import urllib.parse
+    
+    bootcamp_track = f"{BASE_URL}/api/track-click?email={email}&campaign=welcome_email_2&redirect={urllib.parse.quote(BOOTCAMP_LINK)}"
+    cv_track = f"{BASE_URL}/api/track-click?email={email}&campaign=welcome_email_2&redirect={urllib.parse.quote(CV_LINK)}"
+    
+    original_salarios_link = f"{BASE_URL}/salarios?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_2"
+    salarios_track = f"{BASE_URL}/api/track-click?email={email}&campaign=welcome_email_2&redirect={urllib.parse.quote(original_salarios_link)}"
     
     return f"""
     <html>
@@ -112,7 +124,7 @@ def build_resources_email(email):
                     Hemos procesado los datos de miles de ofertas publicadas para crear nuestra calculadora de salarios. Puedes consultar el sueldo medio por tecnología y ciudad (Madrid, Barcelona, Valencia, Remoto...).
                 </p>
                 <div style="text-align: center; margin: 16px 0;">
-                    <a href="{BASE_URL}/salarios?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_2" style="display: inline-block; background: #7c3aed; color: white; padding: 8px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px;">
+                    <a href="{salarios_track}" style="display: inline-block; background: #7c3aed; color: white; padding: 8px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px;">
                         Calcular mi salario →
                     </a>
                 </div>
@@ -122,7 +134,7 @@ def build_resources_email(email):
                     La mayoría de empresas tecnológicas filtran los currículums automáticamente con softwares ATS antes de que los lea un humano. Usa plantillas profesionales que pasen estos filtros para no quedar descartado al inicio.
                 </p>
                 <div style="text-align: center; margin: 16px 0;">
-                    <a href="{CV_LINK}" style="display: inline-block; background: #10b981; color: white; padding: 8px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px;">
+                    <a href="{cv_track}" style="display: inline-block; background: #10b981; color: white; padding: 8px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px;">
                         Ver Plantillas ATS →
                     </a>
                 </div>

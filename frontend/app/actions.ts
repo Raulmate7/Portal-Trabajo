@@ -2,6 +2,7 @@
 
 import pool from '@/lib/db';
 import { revalidatePath } from 'next/cache';
+import crypto from 'crypto';
 
 export async function subscribeUser(formData: FormData) {
   const email = formData.get('email') as string;
@@ -9,6 +10,7 @@ export async function subscribeUser(formData: FormData) {
   const techKeywords = (formData.get('tech_keywords') as string || '').trim();
   const locationPref = (formData.get('location_pref') as string || '').trim();
   const frequency = (formData.get('frequency') as string || 'weekly').trim();
+  const referredBy = (formData.get('referred_by') as string || '').trim().toLowerCase() || null;
 
   if (!email) {
     return { message: 'Por favor, escribe un email.', success: false };
@@ -17,13 +19,13 @@ export async function subscribeUser(formData: FormData) {
   const client = await pool.connect();
   try {
     await client.query(
-      `INSERT INTO subscribers (email, tech_keywords, location_pref, frequency, created_at)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO subscribers (email, tech_keywords, location_pref, frequency, referred_by, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6)
        ON DUPLICATE KEY UPDATE
          tech_keywords = VALUES(tech_keywords),
          location_pref = VALUES(location_pref),
          frequency = VALUES(frequency)`,
-      [email, techKeywords, locationPref, frequency, new Date().toISOString()]
+      [email, techKeywords, locationPref, frequency, referredBy, new Date().toISOString()]
     );
 
     revalidatePath(pathname);
@@ -117,16 +119,47 @@ export async function submitSponsoredJob(formData: FormData) {
   try {
     await client.query(
       `INSERT INTO sponsored_jobs (company_name, company_email, company_phone, job_title, job_location, job_salary, job_description, job_url, plan, status, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pendiente', $10)`,
-      [company_name, company_email, company_phone, job_title, job_location, job_salary, job_description, job_url, plan, new Date().toISOString()]
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      [
+        company_name,
+        company_email,
+        company_phone,
+        job_title,
+        job_location,
+        job_salary,
+        job_description,
+        job_url,
+        plan,
+        plan === 'basico' ? 'aprobado' : 'pendiente',
+        new Date().toISOString()
+      ]
     );
+
+    // Si es plan básico, insertar directamente en la tabla 'jobs' como activo
+    if (plan === 'basico') {
+      const jobId = crypto.randomUUID();
+      await client.query(
+        `INSERT INTO jobs (id, title, company, location, salary, description_snippet, url_source, category, is_active, is_featured, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE, FALSE, NOW())`,
+        [
+          jobId,
+          job_title,
+          company_name,
+          job_location || 'Remoto',
+          job_salary || 'Consultar',
+          job_description || '',
+          job_url,
+          'Otros'
+        ]
+      );
+    }
 
     // Notificar por Telegram (preferiblemente al admin privado para no exponer datos de empresa)
     const telegramToken = process.env.TELEGRAM_TOKEN;
     const telegramChannel = process.env.TELEGRAM_ADMIN_ID || process.env.TELEGRAM_CHANNEL;
 
     if (telegramToken && telegramChannel) {
-      const planLabel = plan === 'destacado' ? '⭐ DESTACADO (39€)' : '📋 Básico (Gratis)';
+      const planLabel = plan === 'destacado' ? '⭐ DESTACADO (39€)' : '📋 Básico (Gratis - Autoactivado)';
       const text = `💰 *NUEVA SOLICITUD DE OFERTA PATROCINADA* 💰\n\n` +
         `📋 *Plan:* ${planLabel}\n` +
         `🏢 *Empresa:* ${company_name}\n` +
@@ -152,10 +185,81 @@ export async function submitSponsoredJob(formData: FormData) {
       }
     }
 
-    return { message: '¡Solicitud enviada correctamente!', success: true };
+    return { 
+      message: plan === 'basico' 
+        ? '¡Tu oferta de empleo gratuita ha sido publicada con éxito!' 
+        : '¡Solicitud enviada correctamente!', 
+      success: true,
+      redirectUrl: plan === 'basico' ? '/publicar-oferta?success=true&free=true' : undefined
+    };
   } catch (error: any) {
     console.error('Error guardando oferta patrocinada:', error);
     return { message: 'Hubo un error interno. Inténtalo más tarde.', success: false };
+  } finally {
+    client.release();
+  }
+}
+
+export async function reactToJob(jobId: string, reactionType: 'like' | 'dislike') {
+  if (!jobId || !reactionType) {
+    return { success: false, error: 'Parámetros inválidos' };
+  }
+  const client = await pool.connect();
+  try {
+    await client.query(
+      "INSERT INTO job_reactions (job_id, reaction_type, created_at) VALUES ($1, $2, NOW())",
+      [jobId, reactionType]
+    );
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error guardando reacción:", error);
+    return { success: false, error: error.message };
+  } finally {
+    client.release();
+  }
+}
+
+export async function getJobReactions(jobId: string) {
+  if (!jobId) {
+    return { likes: 0, dislikes: 0 };
+  }
+  const client = await pool.connect();
+  try {
+    const res = await client.query(
+      `SELECT 
+         SUM(CASE WHEN reaction_type = 'like' THEN 1 ELSE 0 END) AS likes,
+         SUM(CASE WHEN reaction_type = 'dislike' THEN 1 ELSE 0 END) AS dislikes
+       FROM job_reactions WHERE job_id = $1`,
+      [jobId]
+    );
+    const row = res.rows[0];
+    return {
+      likes: parseInt(row?.likes || '0', 10),
+      dislikes: parseInt(row?.dislikes || '0', 10)
+    };
+  } catch (error) {
+    console.error("Error obteniendo reacciones:", error);
+    return { likes: 0, dislikes: 0 };
+  } finally {
+    client.release();
+  }
+}
+
+export async function getReferralStats(email: string) {
+  if (!email) {
+    return { count: 0, success: false };
+  }
+  const client = await pool.connect();
+  try {
+    const res = await client.query(
+      "SELECT COUNT(*) as count FROM subscribers WHERE referred_by = $1",
+      [email.trim().toLowerCase()]
+    );
+    const countValue = res.rows[0]?.count || 0;
+    return { count: parseInt(String(countValue), 10), success: true };
+  } catch (error) {
+    console.error("Error obteniendo estadísticas de referidos:", error);
+    return { count: 0, success: false };
   } finally {
     client.release();
   }

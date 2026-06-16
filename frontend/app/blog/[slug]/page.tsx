@@ -98,6 +98,15 @@ export default async function BlogPostPage({ params }: Props) {
 
   const relatedJobs = await getRelatedJobs(resolvedParams.slug);
 
+  // Dividir el contenido del post en el primer encabezado H2 para insertar publicidad contextual en medio del artículo
+  let intro = post.content;
+  let rest = '';
+  const match = post.content.match(/\n##\s+/);
+  if (match && match.index !== undefined) {
+    intro = post.content.substring(0, match.index);
+    rest = post.content.substring(match.index);
+  }
+
   const imageUrl = `${BASE_URL}/blog/${resolvedParams.slug}/opengraph-image`;
 
   const jsonLd = {
@@ -126,9 +135,9 @@ export default async function BlogPostPage({ params }: Props) {
       name: 'Portal Trabajo IT',
       logo: {
         '@type': 'ImageObject',
-        url: `${BASE_URL}/favicon.ico`,
-        width: 60,
-        height: 60
+        url: `${BASE_URL}/logo.png`,
+        width: 512,
+        height: 512
       }
     },
     datePublished: new Date(post.date).toISOString(),
@@ -165,7 +174,15 @@ export default async function BlogPostPage({ params }: Props) {
               </header>
 
               <div className="prose prose-indigo max-w-none text-gray-700 leading-relaxed text-lg mb-8">
-                <Markdown content={post.content} />
+                <Markdown content={intro} />
+                {rest && (
+                  <>
+                    <div className="my-8">
+                      <AdBanner variant="inline" />
+                    </div>
+                    <Markdown content={rest} />
+                  </>
+                )}
               </div>
 
               {/* Banner inline al final del artículo del blog */}

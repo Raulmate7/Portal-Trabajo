@@ -175,7 +175,12 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
       const jobsRes = await client.query("SELECT title, category, location, LEFT(description_snippet, 300) AS description_snippet FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 8000");
       const jobs = jobsRes.rows;
 
-      const activeProgrammaticPages = new Set<string>();
+      const pageCounts = new Map<string, number>();
+      
+      const incrementCount = (path: string) => {
+        pageCounts.set(path, (pageCounts.get(path) || 0) + 1);
+      };
+
       for (const job of jobs) {
         const techs = detectTechForSitemap(job.title || '', job.category || null);
         const city = detectCityForSitemap(job.location);
@@ -183,47 +188,68 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
         const isHybrid = isHybridJob(job.title || '', job.description_snippet || null, job.location);
         
         for (const tech of techs) {
-          // 1. Añadir la página principal de la tecnología (ej: /trabajos/react)
-          activeProgrammaticPages.add(`/trabajos/${tech}`);
+          // 1. Página principal de la tecnología (ej: /trabajos/react)
+          incrementCount(`/trabajos/${tech}`);
           
-          // 2. Si tiene ciudad o remoto, añadir la combinación (ej: /trabajos/react-remoto)
+          // 2. Combinación de tecnología y ciudad/remoto (ej: /trabajos/react-remoto)
           if (city) {
             if (city === 'remoto') {
-              activeProgrammaticPages.add(`/trabajos/${tech}-remoto`);
+              incrementCount(`/trabajos/${tech}-remoto`);
             } else {
-              activeProgrammaticPages.add(`/trabajos/${tech}-en-${city}`);
+              incrementCount(`/trabajos/${tech}-en-${city}`);
             }
           }
           
-          // 3. Añadir permutaciones de experiencia
+          // 3. Permutaciones de experiencia
           for (const exp of exps) {
-            activeProgrammaticPages.add(`/trabajos/${tech}-${exp}`);
+            incrementCount(`/trabajos/${tech}-${exp}`);
             if (city) {
               if (city === 'remoto') {
-                activeProgrammaticPages.add(`/trabajos/${tech}-${exp}-remoto`);
+                incrementCount(`/trabajos/${tech}-${exp}-remoto`);
               } else {
-                activeProgrammaticPages.add(`/trabajos/${tech}-${exp}-en-${city}`);
+                incrementCount(`/trabajos/${tech}-${exp}-en-${city}`);
               }
             }
           }
 
-          // 4. Añadir permutaciones de modalidad híbrida
+          // 4. Permutaciones de modalidad híbrida
           if (isHybrid) {
-            activeProgrammaticPages.add(`/trabajos/${tech}-hibrido`);
+            incrementCount(`/trabajos/${tech}-hibrido`);
             if (city && city !== 'remoto') {
-              activeProgrammaticPages.add(`/trabajos/${tech}-hibrido-en-${city}`);
+              incrementCount(`/trabajos/${tech}-hibrido-en-${city}`);
             }
           }
         }
       }
 
-      const sectorPages = [...BASE_PAGES, ...Array.from(activeProgrammaticPages)];
-      const sectorUrls = sectorPages.map((path) => ({
-        url: `${BASE_URL}${path}`,
-        lastModified: new Date(),
-        changeFrequency: 'daily' as const,
-        priority: 0.9,
-      }));
+      // Excluir del sitemap combinaciones dinámicas con menos de 2 ofertas de empleo (evita thin content)
+      const activeProgrammaticPages = Array.from(pageCounts.keys()).filter((path) => {
+        const count = pageCounts.get(path) || 0;
+        return count >= 2;
+      });
+
+      const sectorPages = [...BASE_PAGES, ...activeProgrammaticPages];
+      const sectorUrls = sectorPages.map((path) => {
+        // Páginas estáticas base del portal
+        if (BASE_PAGES.includes(path)) {
+          return {
+            url: `${BASE_URL}${path}`,
+            lastModified: new Date(),
+            changeFrequency: 'daily' as const,
+            priority: 0.9,
+          };
+        }
+
+        const count = pageCounts.get(path) || 0;
+        const isConsolidated = count >= 5;
+
+        return {
+          url: `${BASE_URL}${path}`,
+          lastModified: new Date(),
+          changeFrequency: (isConsolidated ? 'daily' : 'weekly') as 'daily' | 'weekly',
+          priority: isConsolidated ? 0.85 : 0.6,
+        };
+      });
 
       const blogUrls = BLOG_POSTS.map((post) => ({
         url: `${BASE_URL}/blog/${post.slug}`,

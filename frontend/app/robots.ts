@@ -9,7 +9,8 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: [
         '/api/',
-        '/ofertas-guardadas'
+        '/ofertas-guardadas',
+        '/*?page='
       ]
     },
     sitemap: [

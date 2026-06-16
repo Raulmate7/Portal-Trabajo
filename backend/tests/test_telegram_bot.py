@@ -9,7 +9,13 @@ class TestTelegramBot(unittest.TestCase):
     @patch.dict('os.environ', {
         'TELEGRAM_TOKEN': '123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ',
         'TELEGRAM_CHANNEL': '@TestChannel',
-        'DATABASE_URL': 'postgresql://test_user:test_pass@localhost:5432/test_db'
+        'DATABASE_URL': 'postgresql://test_user:test_pass@localhost:5432/test_db',
+        'TELEGRAM_CHANNEL_FRONTEND': '',
+        'TELEGRAM_CHANNEL_BACKEND': '',
+        'TELEGRAM_CHANNEL_DATA_AI': '',
+        'TELEGRAM_CHANNEL_CLOUD_DEVOPS': '',
+        'TELEGRAM_CHANNEL_MOBILE': '',
+        'TELEGRAM_CHANNEL_REMOTO': ''
     })
     def test_send_to_telegram_with_new_jobs(self, mock_db_connect, mock_post):
         # Mock de ofertas en la base de datos (últimas 7 horas)
@@ -42,7 +48,13 @@ class TestTelegramBot(unittest.TestCase):
     @patch.dict('os.environ', {
         'TELEGRAM_TOKEN': '123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ',
         'TELEGRAM_CHANNEL': '@TestChannel',
-        'DATABASE_URL': 'postgresql://test_user:test_pass@localhost:5432/test_db'
+        'DATABASE_URL': 'postgresql://test_user:test_pass@localhost:5432/test_db',
+        'TELEGRAM_CHANNEL_FRONTEND': '',
+        'TELEGRAM_CHANNEL_BACKEND': '',
+        'TELEGRAM_CHANNEL_DATA_AI': '',
+        'TELEGRAM_CHANNEL_CLOUD_DEVOPS': '',
+        'TELEGRAM_CHANNEL_MOBILE': '',
+        'TELEGRAM_CHANNEL_REMOTO': ''
     })
     def test_send_to_telegram_no_new_jobs(self, mock_db_connect):
         # Simular que no hay ofertas nuevas

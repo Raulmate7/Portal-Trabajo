@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { subscribeUser } from '@/app/actions';
 
@@ -18,17 +18,32 @@ export default function SubscribeForm({ location }: { location: string }) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [showOptions, setShowOptions] = useState(false);
-  const [selectedTech, setSelectedTech] = useState('');
+  const [selectedTech, setSelectedTech] = useState<string[]>([]);
   const [remoteOnly, setRemoteOnly] = useState(false);
   const [frequency, setFrequency] = useState<'daily' | 'weekly'>('weekly');
+  const [referredBy, setReferredBy] = useState<string>('');
   const emailRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      const cookies = document.cookie.split(';');
+      const refCookie = cookies.find(c => c.trim().startsWith('referrer_email='));
+      if (refCookie) {
+        const val = refCookie.split('=')[1];
+        if (val) {
+          setReferredBy(decodeURIComponent(val));
+        }
+      }
+    }
+  }, []);
 
   async function handleSubmit(formData: FormData) {
     setStatus('loading');
     formData.append('pathname', pathname);
-    formData.append('tech_keywords', selectedTech);
+    formData.append('tech_keywords', selectedTech.join(','));
     formData.append('location_pref', remoteOnly ? 'remoto' : '');
     formData.append('frequency', frequency);
+    formData.append('referred_by', referredBy);
 
     const result = await subscribeUser(formData);
 
@@ -93,9 +108,15 @@ export default function SubscribeForm({ location }: { location: string }) {
                     <button
                       key={tech.value}
                       type="button"
-                      onClick={() => setSelectedTech(selectedTech === tech.value ? '' : tech.value)}
+                      onClick={() => {
+                        setSelectedTech(prev =>
+                          prev.includes(tech.value)
+                            ? prev.filter((v) => v !== tech.value)
+                            : [...prev, tech.value]
+                        );
+                      }}
                       className={`text-[10px] px-2 py-1 rounded-full border font-medium transition-all ${
-                        selectedTech === tech.value
+                        selectedTech.includes(tech.value)
                           ? 'bg-indigo-600 border-indigo-500 text-white'
                           : 'bg-gray-700 border-gray-600 text-gray-300 hover:border-indigo-500'
                       }`}

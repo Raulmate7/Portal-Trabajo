@@ -41,19 +41,34 @@ async function getRemoteStats() {
   const client = await pool.connect();
   try {
     const totalRes = await client.query(`
-      SELECT COUNT(*) 
+      SELECT COUNT(*) as count
       FROM jobs 
       WHERE is_active = TRUE 
         AND (location ILIKE '%remoto%' OR location ILIKE '%remote%' OR location ILIKE '%teletrabajo%')
     `);
     
-    const count = parseInt(totalRes.rows[0].count, 10);
+    // Calcular salario medio en remoto
+    const salaryRes = await client.query(`
+      SELECT AVG((salary_min + salary_max) / 2) as avg_sal
+      FROM jobs
+      WHERE is_active = TRUE
+        AND (location ILIKE '%remoto%' OR location ILIKE '%remote%' OR location ILIKE '%teletrabajo%')
+        AND salary_min IS NOT NULL
+        AND salary_max IS NOT NULL
+        AND salary_min >= 15000
+        AND salary_max <= 150000
+    `);
+    
+    const count = parseInt(totalRes.rows[0].count || '0', 10);
+    const avgSalary = salaryRes.rows[0].avg_sal ? Math.round(parseFloat(salaryRes.rows[0].avg_sal)) : null;
+
     return {
       total: count,
+      avgSalary: avgSalary
     };
   } catch (error) {
     console.error("Error fetching remote stats:", error);
-    return { total: 0 };
+    return { total: 0, avgSalary: null };
   } finally {
     client.release();
   }
@@ -65,11 +80,16 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const page = typeof resolvedSearchParams.page === 'string' ? parseInt(resolvedSearchParams.page, 10) : 1;
   const isPaged = !isNaN(page) && page > 1;
 
+  const stats = await getRemoteStats();
+  const hasNextPage = page * 30 < stats.total;
+
   const metadata: Metadata = {
     title: `Trabajo Remoto IT y Programación en España${isPaged ? ` - Página ${page}` : ''} [2026] | Portal Trabajo IT`,
     description: `Encuentra las mejores ofertas de empleo 100% remoto para desarrolladores y profesionales tech. Trabaja desde casa en React, Python, Java, DevOps y más.${isPaged ? ` (Página ${page})` : ''}`,
     alternates: {
       canonical: `${BASE_URL}/trabajo-remoto`,
+      prev: isPaged ? `${BASE_URL}/trabajo-remoto${page > 2 ? `?page=${page - 1}` : ''}` : undefined,
+      next: hasNextPage ? `${BASE_URL}/trabajo-remoto?page=${page + 1}` : undefined,
     },
     openGraph: {
       title: `Empleo IT 100% Remoto — Trabaja desde Casa${isPaged ? ` (Página ${page})` : ''}`,
@@ -149,14 +169,49 @@ export default async function RemoteLandingPage({ searchParams }: Props) {
               <p className="text-xs text-indigo-200 mt-1.5 font-medium uppercase tracking-wider">Vacantes Remotas Activas</p>
             </div>
             <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-5 shadow-sm hover:border-white/20 transition-colors">
-              <p className="text-3xl font-extrabold text-white">100%</p>
-              <p className="text-xs text-indigo-200 mt-1.5 font-medium uppercase tracking-wider">Sin Presencialidad Obligatoria</p>
+              <p className="text-3xl font-extrabold text-white">
+                {stats.avgSalary ? `${stats.avgSalary.toLocaleString('es-ES')}€` : '42.000€'}
+              </p>
+              <p className="text-xs text-indigo-200 mt-1.5 font-medium uppercase tracking-wider">Salario Medio Remoto Anual</p>
             </div>
             <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-5 shadow-sm hover:border-white/20 transition-colors col-span-1 sm:col-span-2 md:col-span-1">
               <p className="text-3xl font-extrabold text-white">Cada 6h</p>
               <p className="text-xs text-indigo-200 mt-1.5 font-medium uppercase tracking-wider">Actualización de Listado</p>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Sección de Tecnologías Populares en Remoto (Interlinking SEO) */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-4">
+        <div className="text-center max-w-3xl mx-auto mb-8">
+          <h3 className="text-2xl font-extrabold text-gray-900">Buscar Empleo por Tecnología en Remoto 🌍</h3>
+          <p className="text-sm text-gray-500 mt-2">
+            Accede de forma directa a las ofertas de teletrabajo de las principales especialidades y tecnologías del sector tecnológico.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-5xl mx-auto">
+          {[
+            { name: 'React Remoto', href: '/trabajos/react-remoto', emoji: '⚛️' },
+            { name: 'Node.js Remoto', href: '/trabajos/node-remoto', emoji: '🟢' },
+            { name: 'Python Remoto', href: '/trabajos/python-remoto', emoji: '🐍' },
+            { name: 'TypeScript Remoto', href: '/trabajos/typescript-remoto', emoji: '🟦' },
+            { name: 'Java Remoto', href: '/trabajos/java-remoto', emoji: '☕' },
+            { name: 'DevOps Remoto', href: '/trabajos/devops-engineer-remoto', emoji: '☁️' },
+            { name: 'Backend Remoto', href: '/trabajos/backend-remoto', emoji: '⚙️' },
+            { name: 'Frontend Remoto', href: '/trabajos/frontend-remoto', emoji: '🎨' },
+          ].map((tech) => (
+            <Link
+              key={tech.name}
+              href={tech.href}
+              className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-xl hover:shadow-md hover:border-indigo-200 transition-all group"
+            >
+              <span className="text-2xl group-hover:scale-110 transition-transform">{tech.emoji}</span>
+              <span className="text-xs font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
+                {tech.name}
+              </span>
+            </Link>
+          ))}
         </div>
       </section>
 

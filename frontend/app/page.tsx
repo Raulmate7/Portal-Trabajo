@@ -17,7 +17,7 @@ type Props = {
 }
 
 async function getJobs(query: string, location: string, page: number = 1) {
-  const limit = 50;
+  const limit = 20;
   const offset = (page - 1) * limit;
   const client = await pool.connect();
   try {
@@ -102,6 +102,36 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const lang = resolvedParams.lang === 'en' ? 'en' : 'es';
   const isEnglish = lang === 'en';
 
+  let totalJobs = 0;
+  if (!q && !loc) {
+    totalJobs = await getJobsCount();
+  } else {
+    const client = await pool.connect();
+    try {
+      let countSql = "SELECT COUNT(*) FROM jobs WHERE is_active = TRUE AND (is_featured = FALSE OR is_featured IS NULL)";
+      const countParams: any[] = [];
+      let paramIdx = 1;
+      if (q) {
+        countSql += ` AND (title ILIKE $${paramIdx} OR company ILIKE $${paramIdx} OR description_snippet ILIKE $${paramIdx})`;
+        countParams.push(`%${q}%`);
+        paramIdx++;
+      }
+      if (loc) {
+        countSql += ` AND location ILIKE $${paramIdx}`;
+        countParams.push(`%${loc}%`);
+      }
+      const countRes = await client.query(countSql, countParams);
+      totalJobs = parseInt(countRes.rows[0].count || '0', 10);
+    } catch {
+      totalJobs = 500;
+    } finally {
+      client.release();
+    }
+  }
+
+  const limit = 20;
+  const hasNextPage = page * limit < totalJobs;
+
   const metadata: Metadata = {};
 
   if (isPaged) {
@@ -120,8 +150,19 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     ? `${BASE_URL}/?q=${encodeURIComponent(q)}&location=${encodeURIComponent(loc)}` 
     : `${BASE_URL}/`;
 
+  const paginationQuery = (p: number) => {
+    const queryParts: string[] = [];
+    if (q) queryParts.push(`q=${encodeURIComponent(q)}`);
+    if (loc) queryParts.push(`location=${encodeURIComponent(loc)}`);
+    if (p > 1) queryParts.push(`page=${p}`);
+    if (isEnglish) queryParts.push(`lang=en`);
+    return queryParts.length > 0 ? `?${queryParts.join('&')}` : '';
+  };
+
   metadata.alternates = {
     canonical: canonicalUrl,
+    prev: isPaged ? `${BASE_URL}/${paginationQuery(page - 1)}` : undefined,
+    next: hasNextPage ? `${BASE_URL}/${paginationQuery(page + 1)}` : undefined,
     languages: {
       'es-ES': baseLangUrl,
       'en': `${baseLangUrl}${q || loc ? '&' : '?'}lang=en`,
@@ -204,7 +245,7 @@ export default async function Home({ searchParams }: Props) {
     '@type': 'Organization',
     'name': 'Portal Trabajo IT',
     'url': BASE_URL,
-    'logo': `${BASE_URL}/favicon.ico`,
+    'logo': `${BASE_URL}/logo.png`,
     'sameAs': [
       'https://t.me/PortalDeTrabajo'
     ]
@@ -294,6 +335,11 @@ export default async function Home({ searchParams }: Props) {
             </div>
           )}
 
+          {/* Banner publicitario entre destacadas y recientes */}
+          <div className="my-4">
+            <AdBanner variant="inline" />
+          </div>
+
           <div className="flex justify-between items-center pt-2">
             <h2 className="text-xl font-bold text-gray-800">
               {jobs.length === 0 
@@ -379,7 +425,7 @@ export default async function Home({ searchParams }: Props) {
                 <span className="text-sm text-gray-600">
                   {isEnglish ? `Page ${validPage}` : `Página ${validPage}`}
                 </span>
-                {jobs.length === 50 ? (
+                {jobs.length === 20 ? (
                   <Link
                     href={`/?q=${encodeURIComponent(q)}&location=${encodeURIComponent(loc)}&page=${validPage + 1}${queryParamAmp}`}
                     className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"

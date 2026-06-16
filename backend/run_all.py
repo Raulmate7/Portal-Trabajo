@@ -9,6 +9,11 @@ print("===============================================")
 python_bin = "venv/bin/python3" if os.path.exists("venv/bin/python3") else "python3"
 print(f"⚙️ Usando ejecutable: {python_bin}")
 
+# 0. Ejecutar Migraciones de Base de Datos
+print("\n[0/5] 🛠️ Ejecutando Migraciones de Base de Datos...")
+os.system(f"{python_bin} add_referred_by_column.py")
+os.system(f"{python_bin} add_reactions_table.py")
+
 # 1. Ejecutar el Scraper Internacional (WWR, Remotive, JobFluent, RemoteOK, WorkingNomads, Himalayas, Python.org)
 print("\n[1/5] 🌎 Ejecutando Scrapers Internacionales (main.py)...")
 exit_code = os.system(f"{python_bin} main.py")
@@ -81,11 +86,23 @@ exit_code = os.system(f"{python_bin} send_welcome_onboarding.py")
 if exit_code != 0:
     print("⚠️ Advertencia: El script de onboarding terminó con errores.")
 
+# 7.1.1. Procesar Reactivación y Limpieza de Email (Suscriptores Inactivos)
+print("\n[7.1.1/7] 📧 Procesando Reactivación y Limpieza (send_reactivation.py)...")
+exit_code = os.system(f"{python_bin} send_reactivation.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: El script de reactivación terminó con errores.")
+
 # 7.2. Enviar Alertas de Ofertas Destacadas al Instante
 print("\n[7.2/7] 🚨 Enviando alertas de ofertas destacadas (send_instant_featured_alerts.py)...")
 exit_code = os.system(f"{python_bin} send_instant_featured_alerts.py")
 if exit_code != 0:
     print("⚠️ Advertencia: El script de alertas destacadas terminó con errores.")
+
+# 7.3. Enviar Notificaciones Push
+print("\n[7.3/7] 🔔 Enviando notificaciones push (send_push_notifications.py)...")
+exit_code = os.system(f"{python_bin} send_push_notifications.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: El script de notificaciones push terminó con errores.")
 
 print("\n===============================================")
 print("✅ PROCESO COMPLETADO. El sistema descansa.")

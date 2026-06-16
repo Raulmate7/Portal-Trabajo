@@ -147,8 +147,8 @@ export default function RootLayout({
                 window.addEventListener('touchstart', loadThirdParty, { passive: true });
                 window.addEventListener('keydown', loadThirdParty, { passive: true });
 
-                // Carga diferida en 4 segundos como salvaguarda
-                setTimeout(loadThirdParty, 4000);
+                // Carga diferida en 7 segundos como salvaguarda
+                setTimeout(loadThirdParty, 7000);
               })();
             `
           }}

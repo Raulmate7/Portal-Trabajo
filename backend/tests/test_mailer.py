@@ -43,6 +43,22 @@ class TestMailer(unittest.TestCase):
         self.assertEqual(mock_smtp_instance.send_message.call_count, 2)
         mock_smtp_instance.quit.assert_called_once()
 
+        # Verificar que el cuerpo de los correos contiene el enlace de referido base64 y el de desuscripción
+        msg1 = mock_smtp_instance.send_message.call_args_list[0][0][0]
+        msg2 = mock_smtp_instance.send_message.call_args_list[1][0][0]
+        
+        body1 = msg1.get_payload(0).get_payload(decode=True).decode('utf-8')
+        body2 = msg2.get_payload(0).get_payload(decode=True).decode('utf-8')
+
+        import base64
+        ref1 = base64.b64encode(b"sub-1@gmail.com").decode("utf-8")
+        ref2 = base64.b64encode(b"sub-2@gmail.com").decode("utf-8")
+
+        self.assertIn(f"/ref/{ref1}", body1)
+        self.assertIn(f"/ref/{ref2}", body2)
+        self.assertIn("/api/unsubscribe?email=sub-1@gmail.com", body1)
+        self.assertIn("/api/unsubscribe?email=sub-2@gmail.com", body2)
+
     @patch('mailer.psycopg2.connect')
     @patch.dict('os.environ', {
         'DATABASE_URL': 'postgresql://test_user:test_pass@localhost:5432/test_db'

@@ -9,6 +9,7 @@ export default function PublishForm() {
   const searchParams = useSearchParams();
   const success = searchParams.get("success") === "true";
   const canceled = searchParams.get("canceled") === "true";
+  const free = searchParams.get("free") === "true";
 
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -24,8 +25,12 @@ export default function PublishForm() {
 
     if (selectedPlan === "basico") {
       const result = await submitSponsoredJob(formData);
-      setStatus(result.success ? "success" : "error");
-      setMessage(result.message);
+      if (result.success && result.redirectUrl) {
+        window.location.href = result.redirectUrl;
+      } else {
+        setStatus(result.success ? "success" : "error");
+        setMessage(result.message);
+      }
     } else {
       // Flujo de Stripe para Plan Destacado
       try {
@@ -61,6 +66,28 @@ export default function PublishForm() {
   };
 
   if (success) {
+    if (free) {
+      return (
+        <div className="p-8 md:p-12 rounded-3xl bg-gradient-to-br from-gray-900 to-gray-950 border border-green-500/50 shadow-2xl text-center shadow-green-500/10">
+          <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">
+            🚀
+          </div>
+          <h2 className="text-2xl md:text-3xl font-black mb-4">
+            ¡Oferta publicada con éxito!
+          </h2>
+          <p className="text-gray-300 mb-4 max-w-md mx-auto">
+            Tu oferta de empleo ya está activa y visible para miles de desarrolladores en nuestro listado regular del buscador.
+          </p>
+          <p className="text-gray-400 text-sm max-w-md mx-auto mb-8">
+            Si deseas darle el máximo alcance y colocarla arriba, puedes destacarla por 39€ en futuras ofertas.
+          </p>
+          <Link href="/" className="inline-block px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all">
+            Ir al Buscador
+          </Link>
+        </div>
+      );
+    }
+
     return (
       <div className="p-8 md:p-12 rounded-3xl bg-gradient-to-br from-gray-900 to-gray-950 border border-green-500/50 shadow-2xl text-center shadow-green-500/10">
         <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">

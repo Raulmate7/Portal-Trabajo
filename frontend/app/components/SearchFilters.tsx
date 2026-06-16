@@ -36,6 +36,7 @@ export default function SearchFilters() {
             <input
               type="text"
               placeholder="Ej: Python..."
+              list="tech-suggestions"
               className="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -59,6 +60,7 @@ export default function SearchFilters() {
             <input
               type="text"
               placeholder="Ej: Madrid..."
+              list="location-suggestions"
               className="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
@@ -119,6 +121,40 @@ export default function SearchFilters() {
           );
         })}
       </div>
+
+      {/* Sugerencias de Autocompletado */}
+      <datalist id="tech-suggestions">
+        <option value="React" />
+        <option value="Node.js" />
+        <option value="Python" />
+        <option value="Java" />
+        <option value="DevOps" />
+        <option value="TypeScript" />
+        <option value="JavaScript" />
+        <option value="Flutter" />
+        <option value="Angular" />
+        <option value="Vue" />
+        <option value="AWS" />
+        <option value="Docker" />
+        <option value="Kubernetes" />
+        <option value="PHP" />
+        <option value="C#" />
+        <option value="SQL" />
+        <option value="Android" />
+        <option value="iOS" />
+      </datalist>
+
+      <datalist id="location-suggestions">
+        <option value="Remoto" />
+        <option value="Híbrido" />
+        <option value="Madrid" />
+        <option value="Barcelona" />
+        <option value="Valencia" />
+        <option value="Sevilla" />
+        <option value="Málaga" />
+        <option value="Zaragoza" />
+        <option value="Bilbao" />
+      </datalist>
     </div>
   );
 }
