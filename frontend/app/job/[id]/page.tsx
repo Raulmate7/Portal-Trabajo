@@ -232,7 +232,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 }
 
 const getJob = cache(async (id: string) => {
-  if (!process.env.DATABASE_URL) return null;
+  if (!process.env.DATABASE_URL && !process.env.DB_PROXY_URL && !process.env.MYSQL_USER) return null;
   const client = await pool.connect();
   try {
     const res = await client.query("SELECT * FROM jobs WHERE id = $1", [id]);
@@ -246,7 +246,7 @@ const getJob = cache(async (id: string) => {
 });
 
 async function getSimilarJobs(currentId: string, category: string | null, title: string, limit: number = 3) {
-  if (!process.env.DATABASE_URL) return [];
+  if (!process.env.DATABASE_URL && !process.env.DB_PROXY_URL && !process.env.MYSQL_USER) return [];
   const client = await pool.connect();
   try {
     let sql = "SELECT id, title, title_es, company, location, salary, created_at FROM jobs WHERE id != $1 AND is_active = TRUE";
