@@ -58,7 +58,6 @@ export default function AdBanner({
   variant?: 'sidebar' | 'inline' | 'multiplex';
   slot?: string;
 }) {
-  const [adError, setAdError] = useState(false);
   const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
 
   // Slot ID por defecto si no se especifica uno personalizado, intentando leer de variables de entorno públicas
@@ -70,20 +69,74 @@ export default function AdBanner({
 
   const adSlot = slot || defaultSlot;
 
+  // Detección de Slots placeholders/dummies para evitar peticiones AdSense inservibles en producción
+  const isDummySlot = adSlot === '9876543210' || adSlot === '1122334455' || adSlot === '1234567890';
+  const shouldTryAdsense = !!adsenseClientId && !isDummySlot;
+
+  const [adError, setAdError] = useState(!shouldTryAdsense);
+  const [isLoading, setIsLoading] = useState(shouldTryAdsense);
+  
+  const insRef = useRef<HTMLModElement>(null);
   const initializedRef = useRef(false);
 
   useEffect(() => {
-    if (adsenseClientId && !adError && !initializedRef.current) {
-      try {
-        // Ejecutar el push de adsbygoogle en el cliente
+    if (!shouldTryAdsense || adError) return;
+
+    let timer: NodeJS.Timeout;
+    let observer: MutationObserver;
+
+    try {
+      if (!initializedRef.current) {
         (window.adsbygoogle = window.adsbygoogle || []).push({});
         initializedRef.current = true;
-      } catch (err) {
-        console.error("⚠️ Error cargando anuncio de AdSense:", err);
-        setAdError(true);
       }
+
+      // 1. MutationObserver para detectar de inmediato cuando AdSense carga exitosamente (filled) o falla (unfilled)
+      if (insRef.current) {
+        observer = new MutationObserver((mutations) => {
+          mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'data-ad-status') {
+              const status = insRef.current?.getAttribute('data-ad-status');
+              if (status === 'filled') {
+                setIsLoading(false);
+              } else if (status === 'unfilled') {
+                setAdError(true);
+                setIsLoading(false);
+              }
+            }
+          });
+        });
+
+        observer.observe(insRef.current, { attributes: true });
+      }
+
+      // 2. Timer de salvaguarda de 3.5 segundos (útil para adblockers agresivos o bloqueos totales de red)
+      timer = setTimeout(() => {
+        if (insRef.current) {
+          const hasIframe = insRef.current.getElementsByTagName('iframe').length > 0;
+          const status = insRef.current.getAttribute('data-ad-status');
+
+          if (status === 'filled' || hasIframe) {
+            setIsLoading(false);
+          } else {
+            console.warn("⚠️ AdSense no cargó el anuncio (adblocker o error). Mostrando banner de fallback.");
+            setAdError(true);
+            setIsLoading(false);
+          }
+        }
+      }, 3500);
+
+    } catch (err) {
+      console.error("⚠️ Error inicializando AdSense:", err);
+      setAdError(true);
+      setIsLoading(false);
     }
-  }, [adsenseClientId, adError]);
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      if (observer) observer.disconnect();
+    };
+  }, [shouldTryAdsense, adError]);
 
   // Seleccionar un anuncio de afiliados basado en la hora actual
   const ad = ADS[new Date().getHours() % ADS.length];
@@ -167,13 +220,16 @@ export default function AdBanner({
     return (
       <div className="w-full overflow-hidden bg-white border border-gray-100 rounded-xl shadow-sm p-4 mt-8 flex flex-col items-center">
         <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mb-2 block text-center">Contenido Patrocinado</span>
-        <div className="w-full flex justify-center items-center overflow-hidden min-h-[250px] relative bg-gradient-to-r from-gray-50 via-gray-100 to-gray-50 animate-pulse rounded-lg border border-gray-100/50">
+        <div className={`w-full flex justify-center items-center overflow-hidden min-h-[250px] relative bg-gradient-to-r from-gray-50 via-gray-100 to-gray-50 rounded-lg border border-gray-100/50 ${isLoading ? 'animate-pulse' : ''}`}>
           {/* Fondo elegante del placeholder que se tapará cuando cargue el anuncio */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-gray-300">
-            <span className="text-2xl mb-1">📰</span>
-            <span className="text-[10px] uppercase tracking-wider font-medium">Recomendados para ti</span>
-          </div>
+          {isLoading && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-gray-300">
+              <span className="text-2xl mb-1">📰</span>
+              <span className="text-[10px] uppercase tracking-wider font-medium">Recomendados para ti</span>
+            </div>
+          )}
           <ins
+            ref={insRef}
             className="adsbygoogle relative z-10"
             style={{ 
               display: 'block', 
@@ -197,18 +253,23 @@ export default function AdBanner({
     <div className="w-full overflow-hidden bg-white border border-gray-100 rounded-xl shadow-sm p-4 flex flex-col items-center">
       <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mb-2 block text-center">Anuncio</span>
       <div 
-        className={`w-full flex justify-center items-center overflow-hidden transition-all duration-300 relative bg-gradient-to-r from-gray-50 via-gray-100 to-gray-50 animate-pulse rounded-lg border border-gray-100/50 ${
+        className={`w-full flex justify-center items-center overflow-hidden transition-all duration-300 relative bg-gradient-to-r from-gray-50 via-gray-100 to-gray-50 rounded-lg border border-gray-100/50 ${
+          isLoading ? 'animate-pulse' : ''
+        } ${
           variant === 'inline' 
             ? 'min-h-[90px] md:min-h-[250px] max-h-[280px]' 
             : 'min-h-[250px] md:min-h-[300px]'
         }`}
       >
         {/* Fondo elegante del placeholder que se tapará cuando cargue el anuncio */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-gray-300">
-          <span className="text-xl mb-1">📢</span>
-          <span className="text-[9px] uppercase tracking-wider font-medium">Cargando anuncio...</span>
-        </div>
+        {isLoading && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-gray-300">
+            <span className="text-xl mb-1">📢</span>
+            <span className="text-[9px] uppercase tracking-wider font-medium">Cargando anuncio...</span>
+          </div>
+        )}
         <ins
+          ref={insRef}
           className="adsbygoogle relative z-10"
           style={{ 
             display: 'block', 

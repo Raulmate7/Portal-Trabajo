@@ -151,151 +151,211 @@ function isHybridJob(title: string, descriptionSnippet: string | null, location:
   return text.includes('híbrido') || text.includes('hibrido') || text.includes('hybrid') || text.includes('semipresencial') || text.includes('semi-presencial');
 }
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  let jobs: any[] = [];
-  let companies: any[] = [];
+// 1. Exportamos los IDs de los sitemaps disponibles dinámicamente
+export async function generateSitemaps() {
+  return [
+    { id: 0 }, // Sitemap Principal: Páginas base, categorías dinámicas, salarios y blog
+    { id: 1 }, // Sitemap Ofertas Recientes (Bloque 1: últimas 8.000 ofertas)
+    { id: 2 }, // Sitemap Ofertas Anteriores (Bloque 2: ofertas de la 8.001 a la 16.000)
+    { id: 3 }, // Sitemap de Empresas
+  ];
+}
+
+// 2. Función sitemap() que recibe el id específico
+export default async function sitemap({ id }: { id: number | string }): Promise<MetadataRoute.Sitemap> {
+  const sitemapId = typeof id === 'string' ? parseInt(id, 10) : id;
+  const client = await pool.connect();
 
   try {
-    // 1. Cogemos las últimas 25000 ofertas para no sobrecargar (con más campos para detectar tecnologías/ciudades activas)
-    const jobsRes = await pool.query("SELECT id, title, title_es, company, category, location, LEFT(description_snippet, 300) AS description_snippet, created_at FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 25000");
-    jobs = jobsRes.rows;
-    // 2. Extraemos marcas únicas
-    const compRes = await pool.query("SELECT DISTINCT company FROM jobs WHERE company IS NOT NULL AND company != 'Desconocida'");
-    companies = compRes.rows;
-  } catch (error) {
-    console.error("⚠️ Error generando sitemap desde la BD:", error);
-    // Dejamos arrays vacíos para que el resto del sitemap se genere correctamente
-  }
+    // ----------------------------------------------------
+    // SITEMAP 0: Páginas Base, Categorías Dinámicas, Salarios, Blog
+    // ----------------------------------------------------
+    if (sitemapId === 0) {
+      // Obtenemos solo las últimas 8.000 ofertas de empleo para detectar combinaciones dinámicas activas rápidamente
+      const jobsRes = await client.query("SELECT title, category, location, LEFT(description_snippet, 300) AS description_snippet FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 8000");
+      const jobs = jobsRes.rows;
 
-  // Detectar dinámicamente qué combinaciones de sector/ciudad tienen ofertas de empleo activas
-  const activeProgrammaticPages = new Set<string>();
-  for (const job of jobs) {
-    const techs = detectTechForSitemap(job.title || '', job.category || null);
-    const city = detectCityForSitemap(job.location);
-    const exps = detectExperienceForSitemap(job.title || '', job.description_snippet || null);
-    const isHybrid = isHybridJob(job.title || '', job.description_snippet || null, job.location);
-    
-    for (const tech of techs) {
-      // 1. Añadir la página principal de la tecnología (ej: /trabajos/react)
-      activeProgrammaticPages.add(`/trabajos/${tech}`);
-      
-      // 2. Si tiene ciudad o remoto, añadir la combinación (ej: /trabajos/react-remoto)
-      if (city) {
-        if (city === 'remoto') {
-          activeProgrammaticPages.add(`/trabajos/${tech}-remoto`);
-        } else {
-          activeProgrammaticPages.add(`/trabajos/${tech}-en-${city}`);
-        }
-      }
-      
-      // 3. Añadir permutaciones de experiencia
-      for (const exp of exps) {
-        activeProgrammaticPages.add(`/trabajos/${tech}-${exp}`);
-        if (city) {
-          if (city === 'remoto') {
-            activeProgrammaticPages.add(`/trabajos/${tech}-${exp}-remoto`);
-          } else {
-            activeProgrammaticPages.add(`/trabajos/${tech}-${exp}-en-${city}`);
+      const activeProgrammaticPages = new Set<string>();
+      for (const job of jobs) {
+        const techs = detectTechForSitemap(job.title || '', job.category || null);
+        const city = detectCityForSitemap(job.location);
+        const exps = detectExperienceForSitemap(job.title || '', job.description_snippet || null);
+        const isHybrid = isHybridJob(job.title || '', job.description_snippet || null, job.location);
+        
+        for (const tech of techs) {
+          // 1. Añadir la página principal de la tecnología (ej: /trabajos/react)
+          activeProgrammaticPages.add(`/trabajos/${tech}`);
+          
+          // 2. Si tiene ciudad o remoto, añadir la combinación (ej: /trabajos/react-remoto)
+          if (city) {
+            if (city === 'remoto') {
+              activeProgrammaticPages.add(`/trabajos/${tech}-remoto`);
+            } else {
+              activeProgrammaticPages.add(`/trabajos/${tech}-en-${city}`);
+            }
+          }
+          
+          // 3. Añadir permutaciones de experiencia
+          for (const exp of exps) {
+            activeProgrammaticPages.add(`/trabajos/${tech}-${exp}`);
+            if (city) {
+              if (city === 'remoto') {
+                activeProgrammaticPages.add(`/trabajos/${tech}-${exp}-remoto`);
+              } else {
+                activeProgrammaticPages.add(`/trabajos/${tech}-${exp}-en-${city}`);
+              }
+            }
+          }
+
+          // 4. Añadir permutaciones de modalidad híbrida
+          if (isHybrid) {
+            activeProgrammaticPages.add(`/trabajos/${tech}-hibrido`);
+            if (city && city !== 'remoto') {
+              activeProgrammaticPages.add(`/trabajos/${tech}-hibrido-en-${city}`);
+            }
           }
         }
       }
 
-      // 4. Añadir permutaciones de modalidad híbrida
-      if (isHybrid) {
-        activeProgrammaticPages.add(`/trabajos/${tech}-hibrido`);
-        if (city && city !== 'remoto') {
-          activeProgrammaticPages.add(`/trabajos/${tech}-hibrido-en-${city}`);
-        }
-      }
-    }
-  }
-
-  const sectorPages = [...BASE_PAGES, ...Array.from(activeProgrammaticPages)];
-
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-  const jobUrls = jobs.map((job: any) => {
-    const jobDate = new Date(job.created_at);
-    const isOld = jobDate < thirtyDaysAgo;
-    const jobSlug = getJobSlug(job);
-    return {
-      url: `${BASE_URL}/job/${jobSlug}`,
-      lastModified: jobDate,
-      changeFrequency: (isOld ? 'never' : 'monthly') as 'never' | 'monthly',
-      priority: isOld ? 0.4 : 0.8,
-    };
-  });
-
-  const sectorUrls = sectorPages.map((path) => ({
-    url: `${BASE_URL}${path}`,
-    lastModified: new Date(),
-    changeFrequency: 'daily' as const,
-    priority: 0.9,
-  }));
-
-  const companyUrls = companies.map((c) => ({
-    url: `${BASE_URL}/empresas/${slugify(c.company)}`,
-    lastModified: new Date(),
-    changeFrequency: 'weekly' as const,
-    priority: 0.85,
-  }));
-
-  const blogUrls = BLOG_POSTS.map((post) => ({
-    url: `${BASE_URL}/blog/${post.slug}`,
-    lastModified: new Date(post.date),
-    changeFrequency: 'monthly' as const,
-    priority: 0.7,
-  }));
-
-  const SALARIOS_TECNOLOGIAS = ['react', 'node', 'python', 'java', 'typescript', 'aws', 'docker', 'flutter', 'csharp', 'php', 'sql'];
-  const SALARIOS_CIUDADES = ['madrid', 'barcelona', 'valencia', 'remoto'];
-  const SALARIOS_NIVELES = ['junior', 'mid', 'senior'];
-
-  const salaryUrls = [
-    {
-      url: `${BASE_URL}/salarios`,
-      lastModified: new Date(),
-      changeFrequency: 'daily' as const,
-      priority: 0.9,
-    },
-    ...SALARIOS_TECNOLOGIAS.map(tech => ({
-      url: `${BASE_URL}/salarios/${tech}`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.8,
-    })),
-    ...SALARIOS_TECNOLOGIAS.flatMap(tech => 
-      SALARIOS_CIUDADES.map(city => ({
-        url: `${BASE_URL}/salarios/${tech}/${city}`,
+      const sectorPages = [...BASE_PAGES, ...Array.from(activeProgrammaticPages)];
+      const sectorUrls = sectorPages.map((path) => ({
+        url: `${BASE_URL}${path}`,
         lastModified: new Date(),
-        changeFrequency: 'weekly' as const,
-        priority: 0.8,
-      }))
-    ),
-    ...SALARIOS_TECNOLOGIAS.flatMap(tech => 
-      SALARIOS_CIUDADES.flatMap(city =>
-        SALARIOS_NIVELES.map(level => ({
-          url: `${BASE_URL}/salarios/${tech}/${city}/${level}`,
+        changeFrequency: 'daily' as const,
+        priority: 0.9,
+      }));
+
+      const blogUrls = BLOG_POSTS.map((post) => ({
+        url: `${BASE_URL}/blog/${post.slug}`,
+        lastModified: new Date(post.date),
+        changeFrequency: 'monthly' as const,
+        priority: 0.7,
+      }));
+
+      const SALARIOS_TECNOLOGIAS = ['react', 'node', 'python', 'java', 'typescript', 'aws', 'docker', 'flutter', 'csharp', 'php', 'sql'];
+      const SALARIOS_CIUDADES = ['madrid', 'barcelona', 'valencia', 'remoto'];
+      const SALARIOS_NIVELES = ['junior', 'mid', 'senior'];
+
+      const salaryUrls = [
+        {
+          url: `${BASE_URL}/salarios`,
+          lastModified: new Date(),
+          changeFrequency: 'daily' as const,
+          priority: 0.9,
+        },
+        ...SALARIOS_TECNOLOGIAS.map(tech => ({
+          url: `${BASE_URL}/salarios/${tech}`,
           lastModified: new Date(),
           changeFrequency: 'weekly' as const,
-          priority: 0.75,
-        }))
-      )
-    )
-  ];
+          priority: 0.8,
+        })),
+        ...SALARIOS_TECNOLOGIAS.flatMap(tech => 
+          SALARIOS_CIUDADES.map(city => ({
+            url: `${BASE_URL}/salarios/${tech}/${city}`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly' as const,
+            priority: 0.8,
+          }))
+        ),
+        ...SALARIOS_TECNOLOGIAS.flatMap(tech => 
+          SALARIOS_CIUDADES.flatMap(city =>
+            SALARIOS_NIVELES.map(level => ({
+              url: `${BASE_URL}/salarios/${tech}/${city}/${level}`,
+              lastModified: new Date(),
+              changeFrequency: 'weekly' as const,
+              priority: 0.75,
+            }))
+          )
+        )
+      ];
 
-  return [
-    {
-      url: BASE_URL,
-      lastModified: new Date(),
-      changeFrequency: 'daily' as const,
-      priority: 1,
-    },
-    ...sectorUrls,
-    ...jobUrls,
-    ...companyUrls,
-    ...blogUrls,
-    ...salaryUrls,
-  ]
+      return [
+        {
+          url: BASE_URL,
+          lastModified: new Date(),
+          changeFrequency: 'daily' as const,
+          priority: 1.0,
+        },
+        ...sectorUrls,
+        ...blogUrls,
+        ...salaryUrls,
+      ];
+    }
+
+    // ----------------------------------------------------
+    // SITEMAP 1: Ofertas Recientes (Bloque 1: 1 - 8000)
+    // ----------------------------------------------------
+    if (sitemapId === 1) {
+      const jobsRes = await client.query(
+        "SELECT id, title, company, location, created_at FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 8000 OFFSET 0"
+      );
+      const jobs = jobsRes.rows;
+
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      return jobs.map((job: any) => {
+        const jobDate = new Date(job.created_at);
+        const isOld = jobDate < thirtyDaysAgo;
+        const jobSlug = getJobSlug(job);
+        return {
+          url: `${BASE_URL}/job/${jobSlug}`,
+          lastModified: jobDate,
+          changeFrequency: (isOld ? 'never' : 'monthly') as 'never' | 'monthly',
+          priority: isOld ? 0.4 : 0.8,
+        };
+      });
+    }
+
+    // ----------------------------------------------------
+    // SITEMAP 2: Ofertas Anteriores (Bloque 2: 8001 - 16000)
+    // ----------------------------------------------------
+    if (sitemapId === 2) {
+      const jobsRes = await client.query(
+        "SELECT id, title, company, location, created_at FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 8000 OFFSET 8000"
+      );
+      const jobs = jobsRes.rows;
+
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      return jobs.map((job: any) => {
+        const jobDate = new Date(job.created_at);
+        const isOld = jobDate < thirtyDaysAgo;
+        const jobSlug = getJobSlug(job);
+        return {
+          url: `${BASE_URL}/job/${jobSlug}`,
+          lastModified: jobDate,
+          changeFrequency: (isOld ? 'never' : 'monthly') as 'never' | 'monthly',
+          priority: isOld ? 0.4 : 0.8,
+        };
+      });
+    }
+
+    // ----------------------------------------------------
+    // SITEMAP 3: Páginas de Empresas
+    // ----------------------------------------------------
+    if (sitemapId === 3) {
+      const compRes = await client.query(
+        "SELECT DISTINCT company FROM jobs WHERE company IS NOT NULL AND company != 'Desconocida'"
+      );
+      const companies = compRes.rows;
+
+      return companies.map((c: any) => ({
+        url: `${BASE_URL}/empresas/${slugify(c.company)}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.85,
+      }));
+    }
+
+    // Retornamos array vacío para IDs no válidos
+    return [];
+
+  } catch (error) {
+    console.error(`⚠️ Error generando sitemap id=${sitemapId} desde la BD:`, error);
+    return [];
+  } finally {
+    client.release();
+  }
 }

@@ -1,6 +1,24 @@
 // Enlaces de afiliado de alto valor (High-Ticket)
-const BOOTCAMP_LINK = "https://trk.udemy.com/9VMAEj"; // Enlace de afiliado de Udemy
 const CV_BUILDER_LINK = "https://trk.udemy.com/9VMAEj"; 
+
+const getUdemyLink = (techKey: string | null) => {
+  const defaultBase = "https://trk.udemy.com/9VMAEj";
+  if (!techKey) {
+    return `${defaultBase}?ulp=${encodeURIComponent("https://www.udemy.com/courses/search/?q=programacion")}`;
+  }
+  
+  // Mapear claves a términos de búsqueda más específicos y optimizados para Udemy
+  const terms: Record<string, string> = {
+    python: "python data science machine learning",
+    react: "react nodejs fullstack",
+    java: "java spring backend",
+    data: "data analytics sql",
+    devops: "devops kubernetes aws docker"
+  };
+
+  const searchQuery = terms[techKey] || techKey;
+  return `${defaultBase}?ulp=${encodeURIComponent(`https://www.udemy.com/courses/search/?q=${searchQuery}`)}`;
+};
 
 const COURSE_MAP: Record<string, { name: string; emoji: string; desc: string }> = {
   python:   { name: "Bootcamp Data Science & Machine Learning", emoji: "🤖", desc: "Domina Python y AI en 12 semanas. Pago a plazos disponible." },
@@ -24,6 +42,7 @@ export default function CourseAffiliate({ title }: { title: string }) {
   );
 
   const course = matchedKey ? COURSE_MAP[matchedKey] : DEFAULT_COURSE;
+  const bootcampLink = getUdemyLink(matchedKey || null);
 
   return (
     <div className="mt-8 space-y-4">
@@ -49,7 +68,7 @@ export default function CourseAffiliate({ title }: { title: string }) {
           </p>
           
           <a
-            href={BOOTCAMP_LINK}
+            href={bootcampLink}
             target="_blank"
             rel="noopener noreferrer sponsored"
             className="inline-flex justify-center items-center gap-2 bg-gradient-to-r from-green-400 to-emerald-500 text-gray-900 text-base font-bold py-3 px-8 rounded-xl hover:from-green-300 hover:to-emerald-400 hover:scale-105 transition-all shadow-[0_0_20px_rgba(52,211,153,0.3)]"

@@ -168,6 +168,11 @@ export default async function BlogPostPage({ params }: Props) {
                 <Markdown content={post.content} />
               </div>
 
+              {/* Banner inline al final del artículo del blog */}
+              <div className="my-8 border-t border-b border-gray-100 py-6">
+                <AdBanner variant="inline" />
+              </div>
+
               {relatedJobs.length > 0 && (
                 <div className="mt-12 pt-8 border-t border-gray-100">
                   <h3 className="text-xl font-bold text-gray-900 mb-4">💼 Ofertas de empleo relacionadas</h3>

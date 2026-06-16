@@ -11,3 +11,6 @@ __pycache__/
 # Logs
 *_log.txt
 log.txt
+
+# Antigravity artifacts
+brain/

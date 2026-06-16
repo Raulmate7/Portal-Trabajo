@@ -7,6 +7,10 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
+      disallow: [
+        '/api/',
+        '/ofertas-guardadas'
+      ]
     },
     sitemap: [
       `${BASE_URL}/sitemap.xml`,

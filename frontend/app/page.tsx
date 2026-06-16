@@ -322,6 +322,12 @@ export default async function Home({ searchParams }: Props) {
                         <AdBanner variant="inline" />
                       </div>
                     )}
+                    {/* Segundo banner de AdSense entre las ofertas (después de la 15ª oferta) */}
+                    {index === 14 && (
+                      <div className="my-4">
+                        <AdBanner variant="inline" />
+                      </div>
+                    )}
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                       <div className="flex flex-col md:flex-row justify-between md:items-start gap-4">
                         <div className="w-full">

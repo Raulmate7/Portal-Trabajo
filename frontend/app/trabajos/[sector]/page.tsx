@@ -143,6 +143,73 @@ const adMap: Record<string, { title: string, text: string, link: string }> = {
   }
 };
 
+const TECH_DESCRIPTIONS: Record<string, { es: string; en: string }> = {
+  react: {
+    es: "React es la biblioteca de JavaScript más demandada para el desarrollo de interfaces de usuario modernas. El dominio de su ecosistema (incluyendo Next.js, Redux, y Tailwind CSS) es clave para acceder a proyectos punteros.",
+    en: "React is the most sought-after JavaScript library for developing modern user interfaces. Mastering its ecosystem (including Next.js, Redux, and Tailwind CSS) is key to accessing cutting-edge projects."
+  },
+  node: {
+    es: "Node.js se ha consolidado como el entorno de ejecución backend preferido para construir servicios rápidos y escalables en JavaScript, facilitando la creación de APIs REST y arquitecturas de microservicios.",
+    en: "Node.js has consolidated as the preferred backend runtime for building fast and scalable services in JavaScript, facilitating the creation of REST APIs and microservice architectures."
+  },
+  python: {
+    es: "Python es el lenguaje de referencia en Inteligencia Artificial, Ciencia de Datos y automatización de procesos. Su ecosistema de frameworks como Django, FastAPI y Pandas goza de una inmensa oferta laboral.",
+    en: "Python is the language of choice for Artificial Intelligence, Data Science, and process automation. Its ecosystem of frameworks such as Django, FastAPI, and Pandas enjoys an immense job supply."
+  },
+  java: {
+    es: "Java sigue liderando el desarrollo de software a nivel empresarial y bancario en España. Las competencias en Spring Boot, Hibernate y servicios cloud son de las más cotizadas del mercado.",
+    en: "Java continues to lead software development at the enterprise and banking levels in Spain. Competences in Spring Boot, Hibernate, and cloud services are among the most valued in the market."
+  },
+  php: {
+    es: "PHP sustenta una gran parte de la web moderna. El conocimiento avanzado de Laravel o Symfony es altamente valorado por agencias y empresas de desarrollo para construir aplicaciones robustas.",
+    en: "PHP powers a massive portion of the modern web. Advanced knowledge of Laravel or Symfony is highly valued by development agencies and companies to build robust applications."
+  },
+  csharp: {
+    es: "C# y el ecosistema de .NET son pilares en el desarrollo de software empresarial, videojuegos (Unity) y soluciones en la nube de Microsoft Azure, con alta demanda de ingenieros de software.",
+    en: "C# and the .NET ecosystem are pillars in corporate software development, video games (Unity), and Microsoft Azure cloud solutions, with high demand for software engineers."
+  },
+  devops: {
+    es: "La cultura DevOps y la gestión de la nube son esenciales en el desarrollo moderno. El dominio de AWS, Docker, Kubernetes y CI/CD es la base de las posiciones mejor remuneradas del sector tech.",
+    en: "DevOps culture and cloud management are essential in modern development. Mastering AWS, Docker, Kubernetes, and CI/CD forms the basis of the highest-paying positions in the tech sector."
+  },
+  'devops-engineer': {
+    es: "Los ingenieros de DevOps optimizan el flujo de entrega de software mediante automatización de infraestructura, Kubernetes, Docker, Terraform e integración continua.",
+    en: "DevOps engineers optimize the software delivery workflow through infrastructure automation, Kubernetes, Docker, Terraform, and continuous integration."
+  },
+  cybersecurity: {
+    es: "La seguridad digital es una prioridad crítica para toda organización. Los especialistas en ciberseguridad, pentesting, análisis forense y cumplimiento de seguridad disfrutan de pleno empleo.",
+    en: "Digital security is a critical priority for every organization. Specialists in cybersecurity, pentesting, forensics, and compliance enjoy full employment."
+  },
+  ciberseguridad: {
+    es: "La seguridad digital es una prioridad crítica para toda organización. Los especialistas en ciberseguridad, pentesting, análisis forense y cumplimiento de seguridad disfrutan de pleno empleo.",
+    en: "Digital security is a critical priority for every organization. Specialists in cybersecurity, pentesting, forensics, and compliance enjoy full employment."
+  },
+  data: {
+    es: "El análisis de datos y la inteligencia de negocio guían las decisiones empresariales actuales. Perfiles hábiles en SQL, Python, Tableau y PowerBI son buscados diariamente por reclutadores.",
+    en: "Data analytics and business intelligence guide current corporate decisions. Profiles skilled in SQL, Python, Tableau, and PowerBI are sought daily by recruiters."
+  },
+  'data-analyst': {
+    es: "El analista de datos extrae conocimiento valioso a partir de conjuntos de información complejos usando herramientas como Python, SQL y visualizadores de BI.",
+    en: "The data analyst extracts valuable knowledge from complex datasets using tools like Python, SQL, and BI visualization software."
+  },
+  frontend: {
+    es: "Los desarrolladores frontend crean la interfaz visible y la experiencia de usuario del software. El conocimiento de HTML, CSS, JavaScript y frameworks como React, Angular o Vue es imprescindible.",
+    en: "Frontend developers create the visible interface and user experience of software. Knowledge of HTML, CSS, JavaScript, and frameworks like React, Angular, or Vue is essential."
+  },
+  backend: {
+    es: "El desarrollador backend diseña la lógica interna, bases de datos y seguridad que sostienen las aplicaciones web, requiriendo dominio de lenguajes como Java, Python, Node.js o PHP.",
+    en: "The backend developer designs the internal logic, databases, and security that sustain web applications, requiring mastery of languages like Java, Python, Node.js, or PHP."
+  },
+  fullstack: {
+    es: "Los programadores full stack dominan tanto el frontend como el backend, proporcionando una visión versátil y ágil muy apreciada en startups y equipos ágiles.",
+    en: "Full stack programmers master both the frontend and the backend, providing a versatile and agile vision highly appreciated in startups and agile teams."
+  },
+  'desarrollador-fullstack': {
+    es: "Los programadores full stack dominan tanto el frontend como el backend, proporcionando una visión versátil y ágil muy apreciada en startups y equipos ágiles.",
+    en: "Full stack programmers master both the frontend and the backend, providing a versatile and agile vision highly appreciated in startups and agile teams."
+  }
+};
+
 type Params = Promise<{ sector: string }>;
 
 const EXPERIENCE_SUFFIXES: Record<string, { keywords: string[]; label: string; labelEn: string }> = {
@@ -667,6 +734,13 @@ export default async function SectorPage({
               </>
             )}
           </p>
+          {TECH_DESCRIPTIONS[tec.toLowerCase()] && (
+            <p className="text-gray-500 text-xs md:text-sm mt-3 leading-relaxed border-t border-gray-100 pt-3">
+              {isEnglish 
+                ? TECH_DESCRIPTIONS[tec.toLowerCase()].en 
+                : TECH_DESCRIPTIONS[tec.toLowerCase()].es}
+            </p>
+          )}
         </div>
         <div className="bg-indigo-50/70 p-5 rounded-xl border border-indigo-100 flex flex-col justify-center items-center text-center">
           <h3 className="text-xs font-bold text-indigo-900 uppercase tracking-wider m-0 mb-1">

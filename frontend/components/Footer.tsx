@@ -55,6 +55,7 @@ export default function Footer() {
     { label: '🏢 Directorio de Empresas', href: '/empresas' },
     { label: 'Talento Premium', href: '/talento-premium' },
     { label: 'Publicar Oferta', href: '/publicar-oferta' },
+    { label: 'Tarifas y Precios', href: '/precios' },
     { label: 'Blog', href: '/blog' },
   ];
 
