@@ -40,6 +40,7 @@ jobs:
           cp frontend/package.json deploy_dist/
           cp frontend/package-lock.json deploy_dist/
           cp frontend/.htaccess deploy_dist/
+          cp frontend/.htaccess deploy_dist/public/
           cp frontend/server.js deploy_dist/
           cp frontend/next.config.ts deploy_dist/
           mkdir -p deploy_dist/tmp
