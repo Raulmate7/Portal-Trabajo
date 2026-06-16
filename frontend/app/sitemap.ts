@@ -215,7 +215,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const jobUrls = jobs.map((job) => {
+  const jobUrls = jobs.map((job: any) => {
     const jobDate = new Date(job.created_at);
     const isOld = jobDate < thirtyDaysAgo;
     const jobSlug = getJobSlug(job);
