@@ -15,6 +15,8 @@ jobs:
       - name: Prepare Deployment Directory
         run: |
           mkdir deploy_dist
+          # Copiar proxy de base de datos
+          cp db_proxy.php deploy_dist/
           # Copiar backend excluyendo carpetas pesadas y .env local
           cp -r backend deploy_dist/
           rm -rf deploy_dist/backend/venv

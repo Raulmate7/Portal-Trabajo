@@ -1,24 +1,29 @@
 import mysql from 'mysql2/promise';
 
 /**
- * Pool de conexiones MySQL con capa de traducción automática para compatibilidad
- * con sintaxis de consultas PostgreSQL y resiliencia ante fallos de conexión
- * durante la fase de compilación estática de Next.js (prerendering).
+ * Pool de conexiones MySQL con capa de traducción y soporte opcional de proxy HTTP
+ * para saltar cortafuegos y bloqueos de puertos externos (ej. puerto 3306 en Raiola).
  */
-const connectionString = process.env.DATABASE_URL;
+const useProxy = !!process.env.DB_PROXY_URL;
+const proxyUrl = process.env.DB_PROXY_URL || 'https://portalempleoit.com/db_proxy.php';
+const proxyToken = process.env.DB_PROXY_TOKEN || 'a6f021f1d19d675b8e998a44d187764d';
 
-const poolConnection = connectionString
-  ? mysql.createPool(connectionString)
-  : mysql.createPool({
-      host: process.env.MYSQL_HOST || 'localhost',
-      user: process.env.MYSQL_USER,
-      password: process.env.MYSQL_PASSWORD,
-      database: process.env.MYSQL_DATABASE,
-      port: Number(process.env.MYSQL_PORT) || 3306,
-      connectionLimit: 15,
-      idleTimeout: 30000,
-      connectTimeout: 10000,
-    });
+let poolConnection: mysql.Pool | null = null;
+if (!useProxy) {
+  const connectionString = process.env.DATABASE_URL;
+  poolConnection = connectionString
+    ? mysql.createPool(connectionString)
+    : mysql.createPool({
+        host: process.env.MYSQL_HOST || 'localhost',
+        user: process.env.MYSQL_USER,
+        password: process.env.MYSQL_PASSWORD,
+        database: process.env.MYSQL_DATABASE,
+        port: Number(process.env.MYSQL_PORT) || 3306,
+        connectionLimit: 15,
+        idleTimeout: 30000,
+        connectTimeout: 10000,
+      });
+}
 
 // Códigos de error típicos de fallos de conexión
 const CONNECTION_ERRORS = [
@@ -34,7 +39,7 @@ const CONNECTION_ERRORS = [
 /**
  * Helper interno para traducir y ejecutar consultas SQL de formato Postgres a MySQL.
  */
-async function executeQuery(conn: mysql.Pool | mysql.PoolConnection, sql: string, params: any[] = []) {
+async function executeQuery(conn: mysql.Pool | mysql.PoolConnection | null, sql: string, params: any[] = []) {
   let mysqlParams: any[] = [];
   
   // 1. Traducir marcadores de PostgreSQL ($1, $2, etc.) a marcadores de MySQL (?)
@@ -55,36 +60,61 @@ async function executeQuery(conn: mysql.Pool | mysql.PoolConnection, sql: string
   // 2. Traducir operador ILIKE a LIKE (MySQL es case-insensitive por defecto)
   mysqlSql = mysqlSql.replace(/\bILIKE\b/gi, 'LIKE');
 
-  // 3. Ejecutar consulta
-  try {
-    const [rows] = await conn.query(mysqlSql, mysqlParams);
-    return {
-      rows: rows as any[],
-    };
-  } catch (error: any) {
-    // Si es un fallo de conexión durante la compilación, degradamos graciosamente
-    if (CONNECTION_ERRORS.includes(error.code)) {
-      console.warn('⚠️ Fallo de conexión de base de datos en executeQuery(). Retornando vacío para compilación estática:', error.message);
+  if (useProxy) {
+    // 3. Ejecutar a través de Proxy HTTP (Raiola db_proxy.php)
+    try {
+      const response = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Proxy-Token': proxyToken,
+        },
+        body: JSON.stringify({ sql: mysqlSql, params: mysqlParams }),
+        next: { revalidate: 300 } // Caché de Next.js
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Proxy status ${response.status}: ${errText}`);
+      }
+
+      const resJson = await response.json();
+      if (!resJson.success) {
+        throw new Error(resJson.error || 'Unknown proxy error');
+      }
+
+      return {
+        rows: resJson.rows || [],
+      };
+    } catch (error: any) {
+      console.error('❌ Error de consulta en MySQL vía Proxy:', error);
       return { rows: [] };
     }
-    
-    console.error('❌ Error de consulta en MySQL Traducida:', {
-      originalSql: sql,
-      translatedSql: mysqlSql,
-      params: mysqlParams,
-      error
-    });
-    throw error;
+  } else if (conn) {
+    // Ejecución directa de mysql2
+    try {
+      const [rows] = await conn.query(mysqlSql, mysqlParams);
+      return {
+        rows: rows as any[],
+      };
+    } catch (error: any) {
+      if (CONNECTION_ERRORS.includes(error.code)) {
+        console.warn('⚠️ Fallo de conexión de base de datos en executeQuery(). Retornando vacío:', error.message);
+        return { rows: [] };
+      }
+      throw error;
+    }
   }
+  return { rows: [] };
 }
 
 const pool = {
-  // Método directo de consulta en el pool con tolerancia a caídas de conexión
+  // Método directo de consulta en el pool
   async query(sql: string, params: any[] = []) {
     try {
       return await executeQuery(poolConnection, sql, params);
     } catch (error: any) {
-      if (CONNECTION_ERRORS.includes(error.code)) {
+      if (CONNECTION_ERRORS.includes(error?.code)) {
         console.warn('⚠️ Base de datos inaccesible en query(). Devolviendo filas vacías:', error.message);
         return { rows: [] };
       }
@@ -92,10 +122,22 @@ const pool = {
     }
   },
 
-  // Método connect para adquirir un cliente del pool de forma compatible con PG
+  // Método connect para adquirir un cliente de forma compatible con PG
   async connect() {
+    if (useProxy) {
+      // Si usamos proxy, no hay "conexión física" real. Retornamos un cliente mock.
+      return {
+        async query(sql: string, params: any[] = []) {
+          return executeQuery(null, sql, params);
+        },
+        release() {
+          // No hace falta liberar nada
+        }
+      };
+    }
+    
     try {
-      const connection = await poolConnection.getConnection();
+      const connection = await poolConnection!.getConnection();
       return {
         async query(sql: string, params: any[] = []) {
           return executeQuery(connection, sql, params);
@@ -105,17 +147,13 @@ const pool = {
         }
       };
     } catch (error: any) {
-      // Si la conexión falla (ej: durante el "next build" en GitHub Actions),
-      // devolvemos un cliente mock para evitar abortar el proceso de prerendering.
       if (CONNECTION_ERRORS.includes(error.code)) {
-        console.warn('⚠️ Base de datos inaccesible en connect(). Creando cliente mock para Next.js build:', error.message);
+        console.warn('⚠️ Base de datos inaccesible en connect(). Creando cliente mock:', error.message);
         return {
           async query(sql: string, params: any[] = []) {
             return { rows: [] };
           },
-          release() {
-            // No hacer nada
-          }
+          release() {}
         };
       }
       throw error;
@@ -124,10 +162,10 @@ const pool = {
   
   // Método para cerrar el pool
   async end() {
-    try {
-      await poolConnection.end();
-    } catch (e) {
-      // Ignorar fallos al cerrar si no estaba conectado
+    if (poolConnection) {
+      try {
+        await poolConnection.end();
+      } catch (e) {}
     }
   }
 };
