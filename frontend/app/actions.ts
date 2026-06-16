@@ -19,10 +19,10 @@ export async function subscribeUser(formData: FormData) {
     await client.query(
       `INSERT INTO subscribers (email, tech_keywords, location_pref, frequency, created_at)
        VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (email) DO UPDATE SET
-         tech_keywords = EXCLUDED.tech_keywords,
-         location_pref = EXCLUDED.location_pref,
-         frequency = EXCLUDED.frequency`,
+       ON DUPLICATE KEY UPDATE
+         tech_keywords = VALUES(tech_keywords),
+         location_pref = VALUES(location_pref),
+         frequency = VALUES(frequency)`,
       [email, techKeywords, locationPref, frequency, new Date().toISOString()]
     );
 
@@ -79,7 +79,16 @@ export async function submitPremiumLead(formData: FormData) {
 
     return { message: '¡Gracias!', success: true };
   } catch (error: any) {
-    if (error?.code === '23505') {
+    const errorMsg = error?.message || '';
+    const errorCode = String(error?.code || '');
+    const isDuplicate = 
+      errorCode === '23505' || // Postgres
+      errorCode === '1062' || // MySQL numeric
+      errorCode === 'ER_DUP_ENTRY' || // MySQL string
+      errorMsg.includes('1062') || // Proxy PDO error code
+      errorMsg.includes('Duplicate entry'); // Proxy PDO message
+
+    if (isDuplicate) {
       return { message: 'Tu email ya estaba registrado en el programa.', success: false };
     }
     console.error('Error guardando lead premium:', error);

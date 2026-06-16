@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import pool from '@/lib/db';
+import crypto from 'crypto';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2023-10-16' as any,
@@ -16,15 +17,15 @@ export async function POST(request: Request) {
     }
 
     // 1. Insertar la oferta en la base de datos con is_active = FALSE y is_featured = FALSE (pendiente de pago)
+    const jobId = crypto.randomUUID();
     const client = await pool.connect();
-    let jobId: number;
     try {
       const query = `
-        INSERT INTO jobs (title, company, location, salary, description_snippet, url_source, category, is_active, is_featured, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, FALSE, FALSE, NOW())
-        RETURNING id
+        INSERT INTO jobs (id, title, company, location, salary, description_snippet, url_source, category, is_active, is_featured, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, FALSE, FALSE, NOW())
       `;
-      const result = await client.query(query, [
+      await client.query(query, [
+        jobId,
         title,
         company,
         location || 'Remoto',
@@ -33,7 +34,6 @@ export async function POST(request: Request) {
         url_source,
         category || 'Otros'
       ]);
-      jobId = result.rows[0].id;
     } finally {
       client.release();
     }

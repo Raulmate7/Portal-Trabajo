@@ -41,7 +41,7 @@ export async function POST(request: Request) {
           SET is_active = TRUE, is_featured = TRUE 
           WHERE id = $1
         `;
-        await client.query(query, [parseInt(jobId, 10)]);
+        await client.query(query, [jobId]);
         console.log(`✅ Oferta ID ${jobId} activada y destacada exitosamente.`);
       } catch (dbErr) {
         console.error(`❌ Error en la base de datos al activar oferta ID ${jobId}:`, dbErr);
