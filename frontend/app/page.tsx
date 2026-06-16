@@ -287,7 +287,7 @@ export default async function Home({ searchParams }: Props) {
                 ⭐ {isEnglish ? 'Featured Jobs' : 'Ofertas Destacadas'}
               </h2>
               <div className="grid grid-cols-1 gap-4">
-                {featuredJobs.map((job) => (
+                {featuredJobs.map((job: any) => (
                   <FeaturedJobCard key={job.id} job={job} lang={lang} />
                 ))}
               </div>
@@ -304,7 +304,7 @@ export default async function Home({ searchParams }: Props) {
 
           {jobs.length > 0 ? (
             <>
-              {jobs.map((job, index) => {
+              {jobs.map((job: any, index: number) => {
                 const jobSlug = getJobSlug(job);
                 const detailUrl = `/job/${jobSlug}${queryParam}`;
                 const displayJobTitle = isEnglish ? job.title : (job.title_es || job.title);
