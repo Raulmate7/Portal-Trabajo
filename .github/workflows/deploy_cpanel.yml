@@ -1,4 +1,4 @@
-name: Deploy Next.js to cPanel
+name: Deploy Backend to cPanel
 
 on:
   push:
@@ -6,46 +6,15 @@ on:
       - main
 
 jobs:
-  build-and-deploy:
+  deploy-backend:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: 'frontend/package-lock.json'
-
-      - name: Install dependencies
-        run: |
-          cd frontend
-          npm install
-
-      - name: Build Next.js app
-        env:
-          NEXT_PUBLIC_BASE_URL: https://portalempleoit.com
-          DATABASE_URL: mysql://ecosier2_UserPortal:&+{Tv*GbZw4~Ye2;@localhost:3306/ecosier2_PortalEmpleo
-        run: |
-          cd frontend
-          npm run build
-
       - name: Prepare Deployment Directory
         run: |
           mkdir deploy_dist
-          cp -r frontend/.next deploy_dist/
-          cp -r frontend/public deploy_dist/
-          cp frontend/package.json deploy_dist/
-          cp frontend/package-lock.json deploy_dist/
-          cp frontend/.htaccess deploy_dist/
-          cp frontend/.htaccess deploy_dist/public/
-          cp frontend/server.js deploy_dist/
-          cp frontend/next.config.ts deploy_dist/
-          mkdir -p deploy_dist/tmp
-          touch deploy_dist/tmp/restart.txt
-          
           # Copiar backend excluyendo carpetas pesadas y .env local
           cp -r backend deploy_dist/
           rm -rf deploy_dist/backend/venv
