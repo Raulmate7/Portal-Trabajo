@@ -5,7 +5,7 @@ import mysql from 'mysql2/promise';
  * para saltar cortafuegos y bloqueos de puertos externos (ej. puerto 3306 en Raiola).
  */
 const useProxy = !!process.env.DB_PROXY_URL;
-const proxyUrl = process.env.DB_PROXY_URL || 'https://portalempleoit.com/db_proxy.php';
+const proxyUrl = process.env.DB_PROXY_URL || 'https://mail.portalempleoit.com/db_proxy.php';
 const proxyToken = process.env.DB_PROXY_TOKEN || 'a6f021f1d19d675b8e998a44d187764d';
 
 let poolConnection: mysql.Pool | null = null;
