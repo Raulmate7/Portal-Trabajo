@@ -29,10 +29,13 @@ if not SUPABASE_URL or not SUPABASE_URL.startswith("postgres"):
 
 # Credenciales de MySQL
 MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
-MYSQL_USER = os.getenv("MYSQL_USER", "ecosier2_UserPortal")
-MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "&+{Tv*GbZw4~Ye2;")
-MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "ecosier2_PortalEmpleo")
+MYSQL_USER = os.getenv("MYSQL_USER")
+MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD")
+MYSQL_DATABASE = os.getenv("MYSQL_DATABASE")
 MYSQL_PORT = int(os.getenv("MYSQL_PORT", 3306))
+
+if not MYSQL_USER or not MYSQL_PASSWORD or not MYSQL_DATABASE:
+    raise ValueError("❌ Error: Faltan credenciales de base de datos MySQL en las variables de entorno.")
 
 print("🔌 Conectando a Supabase (PostgreSQL)...")
 try:
@@ -73,7 +76,7 @@ DDL_TABLES = {
     """,
     "jobs": """
         CREATE TABLE IF NOT EXISTS jobs (
-            id VARCHAR(36) PRIMARY KEY,
+            id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
             sector_id INT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             is_featured BOOLEAN DEFAULT FALSE,
@@ -99,7 +102,7 @@ DDL_TABLES = {
     """,
     "subscribers": """
         CREATE TABLE IF NOT EXISTS subscribers (
-            id VARCHAR(36) PRIMARY KEY,
+            id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
             email VARCHAR(255) UNIQUE NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             last_sent_at TIMESTAMP NULL,
@@ -112,7 +115,7 @@ DDL_TABLES = {
     """,
     "alerts": """
         CREATE TABLE IF NOT EXISTS alerts (
-            id VARCHAR(36) PRIMARY KEY,
+            id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
             email VARCHAR(255) NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

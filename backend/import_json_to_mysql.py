@@ -9,18 +9,13 @@ load_dotenv()
 
 # Credenciales de MySQL
 MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
-MYSQL_USER = os.getenv("MYSQL_USER", "ecosier2_UserPortal")
-MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "&+{Tv*GbZw4~Ye2;")
-MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "ecosier2_PortalEmpleo")
+MYSQL_USER = os.getenv("MYSQL_USER")
+MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD")
+MYSQL_DATABASE = os.getenv("MYSQL_DATABASE")
 MYSQL_PORT = int(os.getenv("MYSQL_PORT", 3306))
 
-# Si estamos en localhost y las variables individuales de cPanel están definidas, las priorizamos
-cpanel_user = os.getenv("MYSQL_USER")
-cpanel_db = os.getenv("MYSQL_DATABASE")
-if MYSQL_HOST == 'localhost' or MYSQL_HOST == '127.0.0.1':
-    if cpanel_user: MYSQL_USER = cpanel_user
-    if cpanel_db: MYSQL_DATABASE = cpanel_db
-    if os.getenv("MYSQL_PASSWORD"): MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD")
+if not MYSQL_USER or not MYSQL_PASSWORD or not MYSQL_DATABASE:
+    raise ValueError("❌ Error: Faltan credenciales de base de datos MySQL en las variables de entorno.")
 
 print("🔌 Conectando a Raiola (MySQL) para importación de datos...")
 try:
@@ -75,7 +70,7 @@ DDL_TABLES = {
     """,
     "jobs": """
         CREATE TABLE IF NOT EXISTS jobs (
-            id VARCHAR(36) PRIMARY KEY,
+            id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
             sector_id INT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             is_featured BOOLEAN DEFAULT FALSE,
@@ -101,7 +96,7 @@ DDL_TABLES = {
     """,
     "subscribers": """
         CREATE TABLE IF NOT EXISTS subscribers (
-            id VARCHAR(36) PRIMARY KEY,
+            id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
             email VARCHAR(255) UNIQUE NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             last_sent_at TIMESTAMP NULL,
@@ -114,7 +109,7 @@ DDL_TABLES = {
     """,
     "alerts": """
         CREATE TABLE IF NOT EXISTS alerts (
-            id VARCHAR(36) PRIMARY KEY,
+            id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
             email VARCHAR(255) NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

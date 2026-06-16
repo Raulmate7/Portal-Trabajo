@@ -21,9 +21,9 @@ def get_db_connection():
     else:
         # Fallback a variables individuales (típico en cPanel)
         host = os.getenv("MYSQL_HOST", "localhost")
-        user = os.getenv("MYSQL_USER", "ecosier2_UserPortal")
-        password = os.getenv("MYSQL_PASSWORD", "&+{Tv*GbZw4~Ye2;")
-        database = os.getenv("MYSQL_DATABASE", "ecosier2_PortalEmpleo")
+        user = os.getenv("MYSQL_USER")
+        password = os.getenv("MYSQL_PASSWORD")
+        database = os.getenv("MYSQL_DATABASE")
         port = int(os.getenv("MYSQL_PORT", 3306))
 
     if not user or not database:

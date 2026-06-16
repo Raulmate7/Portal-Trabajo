@@ -44,9 +44,42 @@ const STACK_TAGS = [
   'AWS', 'TypeScript', 'Scala', 'Rust', 'Flutter', 'DevOps',
 ];
 
-export default function TalentoPremiumPage() {
+type Props = {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export default async function TalentoPremiumPage({ searchParams }: Props) {
+  const resolvedSearchParams = await searchParams;
+  const lang = resolvedSearchParams.lang === 'en' ? 'en' : 'es';
+  const isEnglish = lang === 'en';
+  const queryParam = isEnglish ? '?lang=en' : '';
+
   return (
     <main className="min-h-screen bg-gray-950 text-white">
+      {/* Back to Portal Button */}
+      <div className="max-w-4xl mx-auto px-4 pt-6 flex justify-start relative z-20">
+        <Link
+          href={`/${queryParam}`}
+          className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm font-semibold py-2 px-4 rounded-xl bg-gray-900/60 border border-gray-800 hover:border-gray-700 backdrop-blur-sm"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2.5}
+            stroke="currentColor"
+            className="w-4 h-4"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"
+            />
+          </svg>
+          {isEnglish ? 'Back to Portal' : 'Volver al Portal'}
+        </Link>
+      </div>
+
       {/* Hero */}
       <section className="relative overflow-hidden">
         {/* Background blobs */}
