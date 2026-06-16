@@ -152,7 +152,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const idParam = resolvedParams.id;
   const numericId = getNumericId(idParam);
 
-  if (!/^\d+$/.test(numericId)) {
+  const isValidId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(numericId) || /^\d+$/.test(numericId);
+  if (!isValidId) {
     return { title: 'Oferta no encontrada' };
   }
 
@@ -356,7 +357,8 @@ export default async function JobPage({ params, searchParams }: Props) {
   const idParam = resolvedParams.id;
   const numericId = getNumericId(idParam);
 
-  if (!/^\d+$/.test(numericId)) {
+  const isValidId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(numericId) || /^\d+$/.test(numericId);
+  if (!isValidId) {
     notFound();
   }
 

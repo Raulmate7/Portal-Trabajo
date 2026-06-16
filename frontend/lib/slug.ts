@@ -26,6 +26,13 @@ export function getJobSlug(job: {
 }
 
 export function getNumericId(idParam: string): string {
-  const match = idParam.match(/-(\d+)$/);
-  return match ? match[1] : idParam;
+  // 1. Intentar emparejar UUID al final del slug (ej: nombre-empresa-6c11124d-1428-4ef3-9dbd-f6cd879097b0)
+  const uuidMatch = idParam.match(/-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i);
+  if (uuidMatch) return uuidMatch[1];
+  
+  // 2. Intentar emparejar ID numérico al final del slug (ej: nombre-empresa-123)
+  const numericMatch = idParam.match(/-(\d+)$/);
+  if (numericMatch) return numericMatch[1];
+  
+  return idParam;
 }
