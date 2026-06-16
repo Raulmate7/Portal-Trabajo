@@ -88,7 +88,20 @@ async function executeQuery(conn: mysql.Pool | mysql.PoolConnection | null, sql:
       };
     } catch (error: any) {
       console.error('❌ Error de consulta en MySQL vía Proxy:', error);
-      return { rows: [] };
+      
+      const isConnectionError = 
+        error.message.includes('fetch failed') ||
+        error.message.includes('status 502') ||
+        error.message.includes('status 503') ||
+        error.message.includes('status 504') ||
+        error.message.includes('Access denied') ||
+        error.message.includes('connection');
+        
+      if (isConnectionError) {
+        return { rows: [] };
+      }
+      
+      throw error;
     }
   } else if (conn) {
     // Ejecución directa de mysql2
