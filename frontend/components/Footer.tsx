@@ -59,8 +59,10 @@ export default function Footer() {
   ];
 
   const legal = [
+    { label: 'Aviso Legal', href: '/aviso-legal' },
     { label: 'Política de Privacidad', href: '/privacy' },
     { label: 'Política de Cookies', href: '/cookies' },
+    { label: 'Contacto', href: '/contacto' },
   ];
 
   return (
