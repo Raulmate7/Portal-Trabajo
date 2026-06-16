@@ -117,8 +117,8 @@ async function getCompanies(): Promise<CompanyItem[]> {
       SELECT 
         company,
         COUNT(*) as job_count,
-        ARRAY_AGG(salary) as salaries,
-        ARRAY_AGG(location) as locations
+        GROUP_CONCAT(salary SEPARATOR '||') as salaries,
+        GROUP_CONCAT(location SEPARATOR '||') as locations
       FROM jobs 
       WHERE is_active = TRUE AND company IS NOT NULL AND company != 'Desconocida' AND company != ''
       GROUP BY company
@@ -126,8 +126,15 @@ async function getCompanies(): Promise<CompanyItem[]> {
     `;
     const res = await client.query(sql);
     
-    return res.rows.map((row: CompanyRow) => {
-      const { averageSalary, remoteRatio } = parseCompanyStats(row.salaries, row.locations);
+    return res.rows.map((row: any) => {
+      const salariesArr = Array.isArray(row.salaries) 
+        ? row.salaries 
+        : (typeof row.salaries === 'string' ? row.salaries.split('||') : []);
+      const locationsArr = Array.isArray(row.locations) 
+        ? row.locations 
+        : (typeof row.locations === 'string' ? row.locations.split('||') : []);
+
+      const { averageSalary, remoteRatio } = parseCompanyStats(salariesArr, locationsArr);
       return {
         name: row.company,
         slug: slugify(row.company),

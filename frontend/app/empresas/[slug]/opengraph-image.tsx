@@ -17,8 +17,8 @@ async function getCompanyData(slug: string) {
   try {
     const sql = `
       SELECT company, salary, location FROM jobs 
-      WHERE regexp_replace(lower(company), '[^a-z0-9]+', '-', 'g') = $1 
-         OR lower(company) = REPLACE($1, '-', ' ')
+      WHERE REGEXP_REPLACE(LOWER(company), '[^a-z0-9]+', '-') = $1 
+         OR LOWER(company) = REPLACE($1, '-', ' ')
       ORDER BY created_at DESC
     `;
     const res = await client.query(sql, [slug]);

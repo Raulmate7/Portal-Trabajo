@@ -37,8 +37,8 @@ async function getJobsByCompany(companySlug: string, page: number = 1) {
   try {
     const sql = `
       SELECT * FROM jobs 
-      WHERE regexp_replace(lower(company), '[^a-z0-9]+', '-', 'g') = $1 
-         OR lower(company) = REPLACE($1, '-', ' ')
+      WHERE REGEXP_REPLACE(LOWER(company), '[^a-z0-9]+', '-') = $1 
+         OR LOWER(company) = REPLACE($1, '-', ' ')
       ORDER BY created_at DESC 
       LIMIT $2 OFFSET $3
     `;
