@@ -30,7 +30,7 @@ class TestSocialBots(unittest.TestCase):
         
         # Ofertas no publicadas
         mock_cursor.fetchall.return_value = [
-            ('job-li-1', 'Lead Engineer', 'Globex', 'Madrid', '70K')
+            ('job-li-1', 'Lead Engineer', 'Globex', 'Madrid', '70K', 'Backend')
         ]
         mock_conn.cursor.return_value = mock_cursor
         mock_db_connect.return_value = mock_conn
@@ -89,7 +89,7 @@ class TestSocialBots(unittest.TestCase):
         
         # Ofertas no publicadas
         mock_cursor.fetchall.return_value = [
-            ('job-mast-1', 'Scala Dev', 'Lightbend', 'Remoto', '80.000€')
+            ('job-mast-1', 'Scala Dev', 'Lightbend', 'Remoto', '80.000€', 'Backend')
         ]
         mock_conn.cursor.return_value = mock_cursor
         mock_db_connect.return_value = mock_conn

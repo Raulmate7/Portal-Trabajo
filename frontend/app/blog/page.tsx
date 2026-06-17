@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { BLOG_POSTS } from '@/lib/blog';
+import { getBlogPosts } from '@/lib/blog';
 import { BASE_URL } from '@/lib/constants';
 
 export const metadata: Metadata = {
@@ -11,14 +11,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function BlogPage() {
+export default async function BlogPage() {
+  const posts = await getBlogPosts();
+  
   const blogJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Blog',
     'name': 'Blog de Empleo Tech | Portal Trabajo',
     'description': 'Consejos, guías salariales y recursos para encontrar trabajo como programador en España.',
     'url': `${BASE_URL}/blog`,
-    'blogPost': BLOG_POSTS.map(post => ({
+    'blogPost': posts.map(post => ({
       '@type': 'BlogPosting',
       'headline': post.title,
       'description': post.excerpt,
@@ -42,7 +44,7 @@ export default function BlogPage() {
       <p className="text-xl text-gray-600 mb-12">Recursos, guías y consejos para potenciar tu carrera en tecnología.</p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {BLOG_POSTS.map((post) => (
+        {posts.map((post) => (
           <Link key={post.slug} href={`/blog/${post.slug}`} className="group">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all h-full flex flex-col">
               <div className="text-sm text-indigo-600 font-semibold mb-2">{new Date(post.date).toLocaleDateString()}</div>

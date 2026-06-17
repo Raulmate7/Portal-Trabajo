@@ -56,6 +56,7 @@ export default function Footer() {
     { label: 'Talento Premium', href: '/talento-premium' },
     { label: 'Publicar Oferta', href: '/publicar-oferta' },
     { label: 'Tarifas y Precios', href: '/precios' },
+    { label: '📢 Anúnciate / Publicidad', href: '/publicidad' },
     { label: 'Blog', href: '/blog' },
   ];
 

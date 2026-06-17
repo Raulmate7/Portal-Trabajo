@@ -1,3 +1,5 @@
+import pool from './db';
+
 export interface BlogPost {
   slug: string;
   title: string;
@@ -5,9 +7,11 @@ export interface BlogPost {
   content: string;
   date: string;
   author: string;
+  updatedAt?: string;
+  isEvergreen?: boolean;
 }
 
-export const BLOG_POSTS: BlogPost[] = [
+const STATIC_BLOG_POSTS: BlogPost[] = [
   {
     slug: 'como-superar-entrevista-tecnica-react',
     title: 'Cómo superar una entrevista técnica en React en 2026',
@@ -755,6 +759,47 @@ Si deseas comparar el salario medio real de desarrolladores Backend por tecnolog
   }
 ];
 
-export function getPostBySlug(slug: string): BlogPost | undefined {
-  return BLOG_POSTS.find(post => post.slug === slug);
+export const BLOG_POSTS: BlogPost[] = STATIC_BLOG_POSTS.map(post => {
+  const currentYear = new Date().getFullYear().toString();
+  const isEvergreen = post.isEvergreen !== false;
+  return {
+    ...post,
+    isEvergreen,
+    title: isEvergreen ? post.title.replace(/2026/g, currentYear) : post.title,
+    excerpt: isEvergreen ? post.excerpt.replace(/2026/g, currentYear) : post.excerpt,
+    content: isEvergreen ? post.content.replace(/2026/g, currentYear) : post.content,
+  };
+});
+
+export async function getBlogPosts(): Promise<BlogPost[]> {
+  const currentYear = new Date().getFullYear().toString();
+  try {
+    const res = await pool.query(
+      "SELECT slug, title, excerpt, content, date, author, updated_at as updatedAt, is_evergreen as isEvergreen FROM blog_posts ORDER BY date DESC"
+    );
+    if (res.rows && res.rows.length > 0) {
+      return res.rows.map((post: any) => {
+        const isEvergreen = post.isEvergreen === 1 || post.isEvergreen === true || post.isEvergreen === '1';
+        return {
+          slug: post.slug,
+          title: isEvergreen ? post.title.replace(/2026/g, currentYear) : post.title,
+          excerpt: isEvergreen ? post.excerpt.replace(/2026/g, currentYear) : post.excerpt,
+          content: isEvergreen ? post.content.replace(/2026/g, currentYear) : post.content,
+          date: post.date,
+          author: post.author,
+          updatedAt: post.updatedAt || undefined,
+          isEvergreen,
+        };
+      });
+    }
+  } catch (error) {
+    console.error("Error fetching blog posts from DB, using fallback:", error);
+  }
+  
+  return BLOG_POSTS;
+}
+
+export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
+  const posts = await getBlogPosts();
+  return posts.find(p => p.slug === slug) || null;
 }

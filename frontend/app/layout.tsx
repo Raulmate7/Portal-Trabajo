@@ -4,6 +4,10 @@ import "./globals.css";
 import CookieBanner from "@/components/CookieBanner";
 import Footer from "@/components/Footer";
 import { BASE_URL } from "@/lib/constants";
+import Header from "@/components/Header";
+import { Suspense } from "react";
+import { GoogleAnalytics } from "@next/third-parties/google";
+
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -92,6 +96,22 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
+        {/* Inicializador de Tema Oscuro para evitar flash de color */}
+        <script
+          id="theme-initializer"
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                var theme = localStorage.getItem('theme');
+                if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
+                }
+              })();
+            `
+          }}
+        />
         <script
           id="third-party-lazy-load"
           dangerouslySetInnerHTML={{
@@ -147,19 +167,23 @@ export default function RootLayout({
                 window.addEventListener('touchstart', loadThirdParty, { passive: true });
                 window.addEventListener('keydown', loadThirdParty, { passive: true });
 
-                // Carga diferida en 7 segundos como salvaguarda
-                setTimeout(loadThirdParty, 7000);
+                // Carga diferida en 3 segundos como salvaguarda
+                setTimeout(loadThirdParty, 3000);
               })();
             `
           }}
         />
       </head>
-      <body className={`${inter.className} min-h-screen flex flex-col bg-gray-50 text-gray-900`}>
+      <body className={`${inter.className} min-h-screen flex flex-col bg-gray-50 text-gray-900 dark:bg-slate-950 dark:text-gray-100 transition-colors duration-200`}>
+        <Suspense fallback={<div className="h-16 bg-white dark:bg-slate-950 border-b border-gray-200 dark:border-slate-800"></div>}>
+          <Header />
+        </Suspense>
         <div className="flex-grow">
           {children}
         </div>
         <Footer />
         <CookieBanner />
+        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || "G-E2W8P1V7E3"} />
       </body>
     </html>
   );

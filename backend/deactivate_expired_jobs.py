@@ -25,6 +25,22 @@ def deactivate_expired_jobs():
         print(f"❌ Error conectando a la base de datos: {e}")
         return
 
+    # 2.5. Expirar estado destacado de las ofertas cuyo plazo haya vencido
+    try:
+        print("⭐ Expirando estado destacado de ofertas vencidas...")
+        cur.execute("""
+            UPDATE jobs
+            SET is_featured = 0
+            WHERE is_featured = 1 AND featured_expires_at IS NOT NULL AND featured_expires_at < NOW()
+        """)
+        conn.commit()
+        affected = cur.rowcount
+        if affected > 0:
+            print(f"💾 Base de Datos: Se ha expirado el estado destacado para {affected} ofertas.")
+    except Exception as e:
+        print(f"❌ Error al expirar estado destacado en base de datos: {e}")
+        conn.rollback()
+
     # 3. Buscar ofertas que llevan activas más de 30 días
     expiration_limit = datetime.now() - timedelta(days=30)
 

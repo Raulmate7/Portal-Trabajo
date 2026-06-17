@@ -6,7 +6,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from logic.translator import translate_text
-from logic.salary_parser import parse_salary
+from logic.salary_parser import parse_salary, extract_salary_from_text
 
 class TestTranslationAndSalary(unittest.TestCase):
 
@@ -51,6 +51,34 @@ class TestTranslationAndSalary(unittest.TestCase):
         s_min, s_max, curr = parse_salary("A convenir")
         self.assertIsNone(s_min)
         self.assertIsNone(s_max)
+
+    def test_extract_salary_from_text(self):
+        # Test 1: Rango de miles
+        s_min, s_max, curr, raw = extract_salary_from_text("El rango salarial es de 30.000€ - 45.000€ anuales.")
+        self.assertEqual(s_min, 30000)
+        self.assertEqual(s_max, 45000)
+        self.assertEqual(curr, "EUR")
+        self.assertEqual(raw, "30.000€ - 45.000€")
+
+        # Test 2: Rango con k
+        s_min, s_max, curr, raw = extract_salary_from_text("We pay between 40k to 55k dollars depending on experience.")
+        self.assertEqual(s_min, 40000)
+        self.assertEqual(s_max, 55000)
+        self.assertEqual(curr, "USD")
+        self.assertEqual(raw, "40k to 55k dollars")
+
+        # Test 3: Salario mensual
+        s_min, s_max, curr, raw = extract_salary_from_text("El salario mensual aproximado es de 2.000 €/mes neto.")
+        self.assertEqual(s_min, 24000)
+        self.assertEqual(s_max, 24000)
+        self.assertEqual(curr, "EUR")
+        self.assertEqual(raw, "2.000 €/mes")
+
+        # Test 4: Ninguno encontrado
+        s_min, s_max, curr, raw = extract_salary_from_text("Trabajo remoto flexible en una gran empresa.")
+        self.assertIsNone(s_min)
+        self.assertIsNone(s_max)
+        self.assertIsNone(raw)
 
 if __name__ == "__main__":
     unittest.main()

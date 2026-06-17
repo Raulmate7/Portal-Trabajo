@@ -12,7 +12,7 @@ from scrapers.himalayas import get_himalayas_jobs
 from scrapers.pythonorg import get_pythonorg_jobs
 from logic.classifier import classify_job
 from logic.translator import translate_text
-from logic.salary_parser import parse_salary
+from logic.salary_parser import parse_salary, extract_salary_from_text
 
 
 load_dotenv()
@@ -65,18 +65,43 @@ def save_jobs(jobs, source_name):
         if company != 'Desconocida':
             cursor.execute("""
                 SELECT id FROM jobs 
-                WHERE title = %s AND company = %s AND created_at > NOW() - INTERVAL '48 hours'
+                WHERE title = %s AND company = %s AND created_at > NOW() - INTERVAL '7 days'
             """, (title, company))
             if cursor.fetchone():
                 continue
 
         desc_snippet = job.get('description_snippet', '')
+        
+        # Paso 24: Filtro de Relevancia Geográfica Internacional
+        is_intl = source_name.lower() in ['weworkremotely', 'remotive', 'himalayas', 'python.org', 'workingnomads', 'remoteok']
+        if is_intl:
+            desc_lower = (desc_snippet or "").lower()
+            title_lower = (title or "").lower()
+            lockout_phrases = [
+                "us only", "us-only", "us resident", "u.s. resident", "united states resident", 
+                "must be authorized to work in the us", "must be authorized to work in the u.s.",
+                "authorized to work in the us", "authorized to work in the u.s.", 
+                "legal authorization to work in the us", "legal authorization to work in the u.s.",
+                "eligible to work in the us", "eligible to work in the u.s.",
+                "us citizen", "citizenship: us", "north america only", "canada only", 
+                "us/canada only", "us / canada only", "authorized to work in the united states"
+            ]
+            
+            has_lockout = False
+            for phrase in lockout_phrases:
+                if phrase in desc_lower or phrase in title_lower:
+                    has_lockout = True
+                    break
+                    
+            if has_lockout:
+                print(f"🚫 Oferta descartada por exclusión geográfica internacional: '{title}' de '{company}' ({source_name})")
+                continue
+
         category = classify_job(title, desc_snippet)
 
         # Traducir si es un scraper internacional
         title_es = None
         desc_es = None
-        is_intl = source_name.lower() in ['weworkremotely', 'remotive', 'himalayas', 'python.org', 'workingnomads', 'remoteok']
         if is_intl:
             title_es = translate_text(title)
             desc_es = translate_text(desc_snippet)
@@ -87,7 +112,17 @@ def save_jobs(jobs, source_name):
 
         # Parsear salarios
         salary_raw = job.get('salary', 'Consultar')
+        if not salary_raw or salary_raw.strip() == '' or salary_raw.lower() in ['consultar', 'sin especificar']:
+            salary_raw = 'Consultar'
+            
         s_min, s_max, s_curr = parse_salary(salary_raw)
+
+        # Paso 21: Inferencia de salario si es 'Consultar' y hay datos en el snippet
+        if (s_min is None and s_max is None) and desc_snippet:
+            s_min_ext, s_max_ext, s_curr_ext, raw_ext = extract_salary_from_text(desc_snippet)
+            if s_min_ext is not None or s_max_ext is not None:
+                s_min, s_max, s_curr = s_min_ext, s_max_ext, s_curr_ext
+                salary_raw = f"{raw_ext} (estimado)"
 
         cursor.execute("""
             INSERT INTO jobs (title, company, location, salary, description_snippet, url_source, sector_id, category, title_es, description_snippet_es, salary_min, salary_max, salary_currency, is_active)

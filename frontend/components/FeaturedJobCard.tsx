@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getJobSlug } from '@/lib/slug';
+import CompanyLogo from './CompanyLogo';
 
 interface FeaturedJob {
   id: string | number;
@@ -39,7 +40,9 @@ export default function FeaturedJobCard({ job, lang }: { job: FeaturedJob; lang?
       </div>
 
       <div className="flex flex-col md:flex-row justify-between md:items-start gap-4 mt-2">
-        <div className="w-full">
+        <div className="flex gap-4 items-start w-full">
+          <CompanyLogo company={job.company} size={12} />
+          <div className="w-full">
           <Link href={detailUrl}>
             <h2 className="text-xl font-bold text-gray-900 group-hover:text-amber-700 transition-colors">
               {displayTitle}
@@ -70,6 +73,7 @@ export default function FeaturedJobCard({ job, lang }: { job: FeaturedJob; lang?
               📅 {new Date(job.created_at).toLocaleDateString()}
             </span>
           </div>
+        </div>
         </div>
 
         <Link

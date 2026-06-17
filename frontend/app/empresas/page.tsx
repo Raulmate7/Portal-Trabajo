@@ -204,6 +204,11 @@ export default async function EmpresasDirectoryPage() {
         </div>
       </div>
 
+      {/* Banner de publicidad Inline */}
+      <div className="mb-8">
+        <AdBanner variant="inline" />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Main Content */}
         <div className="lg:col-span-3">

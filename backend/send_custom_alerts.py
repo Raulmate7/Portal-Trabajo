@@ -42,15 +42,17 @@ def get_jobs_for_subscriber(cur, tech_keywords: str, location_pref: str, hours: 
     return cur.fetchall()
 
 
-def build_job_html(jobs):
+def build_job_html(jobs, subscriber_email):
     """Genera el bloque HTML con la lista de ofertas de empleo."""
     if not jobs:
         return "<p style='color: #6b7280; text-align: center;'>No hay nuevas ofertas con tus filtros en las últimas 24 horas. ¡Vuelve mañana!</p>"
 
+    import urllib.parse
     html = ""
     for job in jobs:
         job_id, title, company, location, url_source, salary = job
-        job_link = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=alert&utm_medium=email&utm_campaign=custom_alert"
+        original_job_link = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=alert&utm_medium=email&utm_campaign=custom_alert"
+        job_link = f"{BASE_URL}/api/track-click?email={subscriber_email}&campaign=custom_alert&redirect={urllib.parse.quote(original_job_link)}"
         salary_text = f"💰 {salary}" if salary and salary not in ("Consultar", None) else ""
 
         html += f"""
@@ -67,11 +69,17 @@ def build_job_html(jobs):
 
 def build_email_html(jobs, subscriber_email: str, tech_keywords: str, frequency: str):
     """Construye el cuerpo HTML completo del email de alerta."""
+    import urllib.parse
     BOOTCAMP_LINK = "https://trk.udemy.com/9VMAEj"
+    bootcamp_track = f"{BASE_URL}/api/track-click?email={subscriber_email}&campaign=custom_alert&redirect={urllib.parse.quote(BOOTCAMP_LINK)}"
+    cta_btn_orig = f"{BASE_URL}?utm_source=alert&utm_medium=email&utm_campaign=cta_btn"
+    cta_btn_track = f"{BASE_URL}/api/track-click?email={subscriber_email}&campaign=custom_alert&redirect={urllib.parse.quote(cta_btn_orig)}"
+    visit_web_track = f"{BASE_URL}/api/track-click?email={subscriber_email}&campaign=custom_alert&redirect={urllib.parse.quote(BASE_URL)}"
+    
     unsubscribe_link = f"{BASE_URL}/api/unsubscribe?email={subscriber_email}"
     freq_text = "diario" if frequency == "daily" else "semanal"
     tech_text = tech_keywords.replace(',', ', ').title() if tech_keywords else "Todas las tecnologías"
-    jobs_html = build_job_html(jobs)
+    jobs_html = build_job_html(jobs, subscriber_email)
     hours_window = 24 if frequency == "daily" else 168
     hours_label = "24 horas" if frequency == "daily" else "7 días"
     job_count = len(jobs)
@@ -96,7 +104,7 @@ def build_email_html(jobs, subscriber_email: str, tech_keywords: str, frequency:
 
       <!-- CTA -->
       <div style="text-align: center; margin: 24px 0;">
-        <a href="{BASE_URL}?utm_source=alert&utm_medium=email&utm_campaign=cta_btn" style="display: inline-block; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; padding: 12px 28px; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 14px;">
+        <a href="{cta_btn_track}" style="display: inline-block; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; padding: 12px 28px; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 14px;">
           Ver Todas las Ofertas →
         </a>
       </div>
@@ -106,14 +114,14 @@ def build_email_html(jobs, subscriber_email: str, tech_keywords: str, frequency:
         <p style="color: #78350f; font-size: 11px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; margin: 0 0 6px;">💡 Mejora tu Perfil</p>
         <h3 style="margin: 0 0 6px; color: #92400e; font-size: 15px;">Cursos IT para ser más competitivo</h3>
         <p style="margin: 0 0 12px; color: #b45309; font-size: 12px;">Aprende React, Python, AWS o Data Science con certificado.</p>
-        <a href="{BOOTCAMP_LINK}" style="background: #f59e0b; color: #1f2937; padding: 8px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 13px;">Ver Cursos →</a>
+        <a href="{bootcamp_track}" style="background: #f59e0b; color: #1f2937; padding: 8px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 13px;">Ver Cursos →</a>
       </div>
     </div>
 
     <!-- Footer -->
     <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
       <p style="color: #9ca3af; font-size: 11px; margin: 0;">
-        Enviado por <a href="{BASE_URL}" style="color: #6366f1; text-decoration: none;">Portal Trabajo IT</a> · 
+        Enviado por <a href="{visit_web_track}" style="color: #6366f1; text-decoration: none;">Portal Trabajo IT</a> · 
         <a href="{unsubscribe_link}" style="color: #9ca3af;">Cancelar suscripción</a>
       </p>
     </div>

@@ -29,20 +29,28 @@ export async function POST(request: Request) {
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
     const jobId = session.metadata?.jobId;
+    const plan = session.metadata?.plan || 'destacado_30d';
 
     if (jobId) {
-      console.log(`💰 Pago confirmado para la oferta ID: ${jobId}`);
+      console.log(`💰 Pago confirmado para la oferta ID: ${jobId} (Plan: ${plan})`);
 
       const client = await pool.connect();
       try {
-        // Activar la oferta y marcarla como destacada en la base de datos
+        let days = 30;
+        if (plan === 'destacado_7d') {
+          days = 7;
+        }
+
+        // Activar la oferta, marcarla como destacada y establecer expiración de destacado
         const query = `
           UPDATE jobs 
-          SET is_active = TRUE, is_featured = TRUE 
+          SET is_active = TRUE, 
+              is_featured = TRUE,
+              featured_expires_at = DATE_ADD(NOW(), INTERVAL ${days} DAY)
           WHERE id = $1
         `;
         await client.query(query, [jobId]);
-        console.log(`✅ Oferta ID ${jobId} activada y destacada exitosamente.`);
+        console.log(`✅ Oferta ID ${jobId} activada y destacada exitosamente por ${days} días.`);
       } catch (dbErr) {
         console.error(`❌ Error en la base de datos al activar oferta ID ${jobId}:`, dbErr);
         return NextResponse.json({ error: 'Error interno en la BD' }, { status: 500 });

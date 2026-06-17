@@ -89,86 +89,156 @@ export default function PublicarOfertaPage() {
       </section>
 
       {/* Planes */}
-      <section id="planes" className="max-w-5xl mx-auto px-4 py-16">
+      <section id="planes" className="max-w-7xl mx-auto px-4 py-16">
         <h2 className="text-2xl md:text-3xl font-black text-center mb-4">
-          Precios de lanzamiento
+          Nuestros Planes y Tarifas
         </h2>
         <p className="text-gray-400 text-center mb-12 max-w-xl mx-auto">
-          Aprovecha nuestras tarifas especiales mientras el portal sigue creciendo.
+          Elige el nivel de visibilidad que necesita tu vacante y empieza a recibir candidatos.
         </p>
 
-        <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
           {/* Plan Básico */}
-          <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-8 flex flex-col">
-            <div className="mb-6">
-              <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Básico</span>
+          <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-6 flex flex-col hover:border-gray-750 transition-all">
+            <div className="mb-4">
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-500 block mb-1">Plan Regular</span>
+              <h3 className="text-lg font-extrabold text-white">Básico</h3>
               <div className="flex items-end gap-1 mt-2">
-                <span className="text-4xl font-black">Gratis</span>
+                <span className="text-2xl font-black">Gratis</span>
               </div>
             </div>
-            <ul className="space-y-3 text-sm text-gray-300 flex-1">
+            <p className="text-gray-400 text-xs mb-4 leading-relaxed flex-grow">
+              Ideal para startups o pruebas rápidas de volumen.
+            </p>
+            <ul className="space-y-2.5 text-xs text-gray-300 border-t border-gray-800/80 pt-4 mb-6">
               <li className="flex items-start gap-2">
-                <span className="text-green-400 mt-0.5">✓</span>
-                Publicación en la web durante 30 días
+                <span className="text-green-400">✓</span>
+                Publicación estándar 30d
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-green-400 mt-0.5">✓</span>
-                Visible en el buscador y por sector
+                <span className="text-green-400">✓</span>
+                Indexación por categoría
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-green-400 mt-0.5">✓</span>
-                Enlace directo a tu página de candidatura
+                <span className="text-green-400">✓</span>
+                Enlace de candidatura
               </li>
             </ul>
             <a
               href="#formulario"
-              className="mt-8 text-center py-3 px-6 rounded-xl border border-gray-700 text-white font-bold hover:bg-gray-800 transition-all"
+              className="block w-full text-center py-2 px-4 rounded-lg border border-gray-750 text-white font-bold hover:bg-gray-800 transition-all text-xs"
             >
-              Publicar Gratis
+              Seleccionar Gratis
             </a>
           </div>
 
-          {/* Plan Destacado */}
-          <div className="relative bg-gradient-to-br from-gray-900 to-gray-950 border-2 border-amber-500/60 rounded-2xl p-8 flex flex-col shadow-lg shadow-amber-500/10">
-            <div className="absolute -top-3.5 left-6">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-white text-xs font-bold shadow-md uppercase tracking-wider">
-                ⭐ Oferta Especial
-              </span>
-            </div>
-            <div className="mb-6">
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-500">Destacado</span>
+          {/* Plan Destacado Rápido */}
+          <div className="bg-gray-900/60 border border-amber-500/30 rounded-2xl p-6 flex flex-col hover:border-amber-500/50 transition-all">
+            <div className="mb-4">
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-500/70 block mb-1">Destaque Corto</span>
+              <h3 className="text-lg font-extrabold text-white">Destacado Rápido</h3>
               <div className="flex items-end gap-1 mt-2">
-                <span className="text-4xl font-black">39€</span>
-                <span className="text-gray-500 mb-1 line-through ml-2 text-sm">149€</span>
+                <span className="text-2xl font-black text-amber-400">19€</span>
+                <span className="text-gray-500 text-xs ml-1 mb-0.5">/ 7 días</span>
               </div>
             </div>
-            <ul className="space-y-3 text-sm text-gray-300 flex-1">
+            <p className="text-gray-400 text-xs mb-4 leading-relaxed flex-grow">
+              Visibilidad de impacto inmediato para acelerar la captación a bajo coste.
+            </p>
+            <ul className="space-y-2.5 text-xs text-gray-300 border-t border-gray-800/80 pt-4 mb-6">
               <li className="flex items-start gap-2">
-                <span className="text-amber-400 mt-0.5">✓</span>
-                Todo lo del plan Básico
+                <span className="text-amber-400">✓</span>
+                Fijada arriba por 7 días
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-amber-400 mt-0.5">✓</span>
-                <strong className="text-white">Fijada en la parte superior</strong> con diseño premium dorado
+                <span className="text-amber-400">✓</span>
+                Diseño premium dorado
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-amber-400 mt-0.5">✓</span>
-                Publicación en <strong className="text-white">canal de Telegram</strong> (+500 suscriptores IT)
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-amber-400 mt-0.5">✓</span>
-                Envío en <strong className="text-white">newsletter semanal</strong>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-amber-400 mt-0.5">✓</span>
-                Badge &quot;⭐ Destacada&quot; que atrae más clics
+                <span className="text-amber-400">✓</span>
+                Badge ⭐ Destacada
               </li>
             </ul>
             <a
               href="#formulario"
-              className="mt-8 text-center py-3 px-6 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-gray-900 font-black hover:from-amber-400 hover:to-yellow-400 transition-all shadow-lg shadow-amber-500/20"
+              className="block w-full text-center py-2 px-4 rounded-lg border border-amber-500/50 text-amber-400 font-bold hover:bg-amber-500/10 transition-all text-xs"
             >
-              Destacar por 39€
+              Seleccionar 19€
+            </a>
+          </div>
+
+          {/* Plan Destacado Estándar */}
+          <div className="relative bg-gradient-to-br from-gray-900 to-gray-950 border-2 border-amber-500 rounded-2xl p-6 flex flex-col shadow-xl shadow-amber-500/5 hover:scale-[1.01] transition-all">
+            <div className="absolute -top-3 left-4">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-white text-[9px] font-bold shadow-md uppercase tracking-wider">
+                Recomendado
+              </span>
+            </div>
+            <div className="mb-4">
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-500 block mb-1">Máxima Conversión</span>
+              <h3 className="text-lg font-extrabold text-white">Destacado Estándar</h3>
+              <div className="flex items-end gap-1 mt-2">
+                <span className="text-2xl font-black text-amber-400">39€</span>
+                <span className="text-gray-500 text-xs ml-1 mb-0.5">/ 30 días</span>
+              </div>
+            </div>
+            <p className="text-gray-400 text-xs mb-4 leading-relaxed flex-grow">
+              Consigue la mayor visibilidad. Ideal para la mayoría de perfiles.
+            </p>
+            <ul className="space-y-2.5 text-xs text-gray-300 border-t border-gray-800/80 pt-4 mb-6">
+              <li className="flex items-start gap-2">
+                <span className="text-amber-400">✓</span>
+                Fijada arriba por 30 días
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-amber-400">✓</span>
+                Diseño premium dorado
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-amber-400">✓</span>
+                Alerta push a suscriptores
+              </li>
+            </ul>
+            <a
+              href="#formulario"
+              className="block w-full text-center py-2 px-4 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-500 text-gray-900 font-black hover:from-amber-400 hover:to-yellow-400 transition-all text-xs"
+            >
+              Seleccionar 39€
+            </a>
+          </div>
+
+          {/* Plan Destacado Premium */}
+          <div className="bg-gray-900/60 border border-purple-500/40 rounded-2xl p-6 flex flex-col hover:border-purple-500 transition-all">
+            <div className="mb-4">
+              <span className="text-xs font-bold uppercase tracking-wider text-purple-400 block mb-1">Cobertura Total</span>
+              <h3 className="text-lg font-extrabold text-white">Destacado Premium</h3>
+              <div className="flex items-end gap-1 mt-2">
+                <span className="text-2xl font-black text-purple-400">79€</span>
+                <span className="text-gray-500 text-xs ml-1 mb-0.5">/ 30 días</span>
+              </div>
+            </div>
+            <p className="text-gray-400 text-xs mb-4 leading-relaxed flex-grow">
+              Máxima difusión en Boletín, Telegram y todas nuestras redes.
+            </p>
+            <ul className="space-y-2.5 text-xs text-gray-300 border-t border-gray-800/80 pt-4 mb-6">
+              <li className="flex items-start gap-2">
+                <span className="text-purple-400">✓</span>
+                Fijada arriba por 30 días
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-purple-400">✓</span>
+                Inclusión en Boletín Semanal
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-purple-400">✓</span>
+                Telegram, LinkedIn, Twitter, Mastodon
+              </li>
+            </ul>
+            <a
+              href="#formulario"
+              className="block w-full text-center py-2 px-4 rounded-lg border border-purple-500 text-purple-400 font-bold hover:bg-purple-500/10 transition-all text-xs"
+            >
+              Seleccionar 79€
             </a>
           </div>
         </div>

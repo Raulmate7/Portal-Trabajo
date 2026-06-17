@@ -300,6 +300,18 @@ export default async function SalarioTechCityLevelPage({ params }: Props) {
   const p75Val = stats && stats.count >= 3 ? stats.p75 : Math.round(baseAvg * 1.15 * factor);
   const totalCount = stats && stats.count > 0 ? stats.count : 0;
 
+  const dynamicMarketText = `El mercado de trabajo para desarrolladores de ${techInfo.label} ${locText} se encuentra en una fase de ${
+    citySlug === 'remoto' 
+      ? 'alta expansión nacional con excelente flexibilidad para conciliar'
+      : `crecimiento constante en la región de ${cityInfo.label}, impulsado por empresas de producto y consultorías`
+  }. Un perfil de experiencia ${levelInfo.label.toLowerCase()} en esta tecnología suele enfrentarse a un mercado con ${
+    levelSlug === 'junior' 
+      ? 'oportunidades enfocadas en formación inicial, requiriendo conocimiento de bases y proactividad.' 
+      : levelSlug === 'mid' 
+        ? 'buena demanda de autonomía técnica, donde el dominio de frameworks secundarios y buenas prácticas de desarrollo es clave.'
+        : 'alta competencia y salarios muy atractivos, donde la capacidad de arquitectura, liderazgo técnico y comunicación directa de valor marca la diferencia.'
+  }`;
+
   const rangePercent = minVal && maxVal && avg
     ? Math.round(((avg - minVal) / (maxVal - minVal)) * 100)
     : 50;
@@ -448,6 +460,9 @@ export default async function SalarioTechCityLevelPage({ params }: Props) {
               </h2>
               <p className="text-gray-700 text-sm leading-relaxed mb-4">
                 {levelInfo.desc}
+              </p>
+              <p className="text-gray-700 text-sm leading-relaxed mb-4">
+                {dynamicMarketText}
               </p>
               <p className="text-gray-700 text-sm leading-relaxed">
                 El sueldo de un programador {techInfo.label} {levelInfo.label} {locText} varía según la solidez de sus conocimientos técnicos prácticos, su facilidad para comprender requisitos de negocio, su capacidad de comunicación y la solidez técnica demostrada en entrevistas y proyectos anteriores.

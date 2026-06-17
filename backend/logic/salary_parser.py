@@ -15,9 +15,9 @@ def parse_salary(salary_str: str):
         
         # Detectar moneda
         currency = 'EUR'
-        if '$' in clean_str or 'usd' in clean_str:
+        if any(x in clean_str for x in ['$', 'usd', 'dólar', 'dolar', 'dollar']):
             currency = 'USD'
-        elif '£' in clean_str or 'gbp' in clean_str:
+        elif any(x in clean_str for x in ['£', 'gbp', 'libra', 'pound']):
             currency = 'GBP'
             
         # Detectar sufijo 'k' (ej. 50k -> 50000)
@@ -54,6 +54,41 @@ def parse_salary(salary_str: str):
     except Exception as e:
         print(f"⚠️ Error parsing salary '{salary_str}': {e}")
         return None, None, 'EUR'
+
+def extract_salary_from_text(text: str):
+    """
+    Intenta extraer rango o valor de salario a partir de un texto (como description_snippet)
+    si el salario es 'Consultar' o no está disponible.
+    Devuelve (val_min, val_max, currency, salary_raw_extracted) o (None, None, 'EUR', None)
+    """
+    if not text:
+        return None, None, 'EUR', None
+        
+    # Limpiar saltos de línea y normalizar espacios
+    clean_text = text.replace('\n', ' ').replace('\r', ' ')
+    
+    # Expresiones regulares comunes en español/inglés:
+    # 1. Rango de miles con €/dólares/libras: ej. 30.000 - 45.000 €
+    # 2. Rango con k: ej. 30k - 45k
+    # 3. Salario mensual: ej. 2.500 €/mes
+    # 4. Salario anual único: ej. 35.000 €/año
+    # 5. Salario anual simple con moneda: 35.000 €
+    patterns = [
+        r'\b\d{2}[.,]\d{3}\s*(?:€|euros?|\$|usd|£|gbp|dólares|dolares|dollars)?\s*(?:-|a|to)\s*\d{2}[.,]\d{3}\s*(?:€|euros?|\$|usd|£|gbp|dólares|dolares|dollars)?',
+        r'\b\d{2,3}\s*k\s*(?:-|a|to)\s*\d{2,3}\s*k\s*(?:€|euros?|\$|usd|£|gbp|dólares|dolares|dollars)?',
+        r'\b\d{1}[.,]\d{3}\s*(?:€|euros?|\$|usd|£|gbp|dólares|dolares|dollars)?\s*(?:/|al?|per)\s*(?:mes|mensual|month|monthly)\b',
+        r'\b\d{2}[.,]\d{3}\s*(?:€|euros?|\$|usd|£|gbp|dólares|dolares|dollars)?\s*(?:/|al?|per)\s*(?:año|anual|year|yearly)\b',
+        r'\b\d{2}[.,]\d{3}\s*(?:€|euros?|\$|usd|£|gbp|dólares|dolares|dollars)'
+    ]
+    
+    for pattern in patterns:
+        matches = re.findall(pattern, clean_text, re.IGNORECASE)
+        for match in matches:
+            val_min, val_max, currency = parse_salary(match)
+            if val_min is not None or val_max is not None:
+                return val_min, val_max, currency, match.strip()
+                
+    return None, None, 'EUR', None
 
 if __name__ == '__main__':
     test_cases = [

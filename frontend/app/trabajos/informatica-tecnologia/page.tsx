@@ -104,26 +104,13 @@ export default async function JobsPage(props: Props) {
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
       
-      {/* --- CABECERA --- */}
-      <header className="bg-white shadow-sm sticky top-0 z-20 border-b border-gray-200">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <Link href="/" className="group flex items-center gap-2">
-            <span className="text-2xl">🚀</span>
-            <div className="flex flex-col">
-              <h1 className="text-xl font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
-                Portal Trabajo IT
-              </h1>
-              {queryFilter && <span className="text-xs text-gray-500">Filtro: "{queryFilter}"</span>}
-            </div>
-          </Link>
-          <div className="w-full md:w-80">
-            <Search placeholder="Tecnología (ej: Python)..." />
-          </div>
-        </div>
-      </header>
-
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         
+        {/* Buscador de Sector */}
+        <div className="mb-6 max-w-md">
+          <Search placeholder="Filtrar ofertas en este sector (ej: React)..." />
+        </div>
+
         {/* --- PESTAÑAS DE ALCANCE --- */}
         <ScopeTabs />
 
@@ -135,8 +122,11 @@ export default async function JobsPage(props: Props) {
               <LocationFilter />
             </div>
 
-            {/* AQUÍ ESTÁ EL CAMBIO: Usamos el componente funcional */}
-            <SubscribeForm location={locationFilter || (scopeFilter === 'espana' ? 'España' : 'Todo el mundo')} />
+            <SubscribeForm 
+              location={locationFilter || (scopeFilter === 'espana' ? 'España' : 'Todo el mundo')} 
+              defaultTech={queryFilter || undefined}
+              defaultLocation={locationFilter || undefined}
+            />
             <PushSubscribe />
 
             {/* Banner de afiliado: herramientas para devs */}

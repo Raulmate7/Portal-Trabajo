@@ -7,6 +7,7 @@ import AdBanner from "@/components/AdBanner";
 import SubscribeForm from "@/components/SubscribeForm";
 import FeaturedJobCard from "@/components/FeaturedJobCard";
 import PushSubscribe from "@/components/PushSubscribe";
+import CompanyLogo from "@/components/CompanyLogo";
 import { Suspense } from "react";
 import { getJobSlug } from "@/lib/slug";
 
@@ -167,12 +168,26 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
       'es-ES': baseLangUrl,
       'en': `${baseLangUrl}${q || loc ? '&' : '?'}lang=en`,
       'x-default': baseLangUrl,
-    }
+    },
+    types: {
+      'application/rss+xml': `${BASE_URL}/feed.xml`,
+    },
   };
 
   if (!q && !loc) {
     if (isPaged) {
       metadata.title = isEnglish ? `Page ${page} | IT Job Portal` : `Página ${page} | Portal Trabajo IT`;
+      metadata.alternates = {
+        canonical: isEnglish ? `${BASE_URL}/?lang=en` : `${BASE_URL}/`,
+        languages: {
+          'es-ES': `${BASE_URL}/`,
+          'en': `${BASE_URL}/?lang=en`,
+          'x-default': `${BASE_URL}/`,
+        },
+        types: {
+          'application/rss+xml': `${BASE_URL}/feed.xml`,
+        },
+      };
       return metadata;
     }
     return metadata; // Usa metadatos globales por defecto de layout.tsx
@@ -341,7 +356,7 @@ export default async function Home({ searchParams }: Props) {
           </div>
 
           <div className="flex justify-between items-center pt-2">
-            <h2 className="text-xl font-bold text-gray-800">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white">
               {jobs.length === 0 
                 ? (isEnglish ? "No results" : "Sin resultados") 
                 : (isEnglish ? `${jobs.length} recent offers` : `${jobs.length} ofertas recientes`)}
@@ -359,7 +374,11 @@ export default async function Home({ searchParams }: Props) {
                     {/* Formulario de suscripción después de la 3ª oferta (index === 2) */}
                     {index === 2 && (
                       <div className="my-6">
-                        <SubscribeForm location="España" />
+                        <SubscribeForm 
+                          location={loc || "España"} 
+                          defaultTech={q || undefined}
+                          defaultLocation={loc || undefined}
+                        />
                       </div>
                     )}
                     {/* Banner de afiliado entre las ofertas (después de la 5ª oferta) */}
@@ -375,35 +394,38 @@ export default async function Home({ searchParams }: Props) {
                       </div>
                     )}
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                      <div className="flex flex-col md:flex-row justify-between md:items-start gap-4">
-                        <div className="w-full">
-                          <Link href={detailUrl}>
-                            <h3 className="text-xl font-semibold text-indigo-900 hover:text-indigo-600 transition-colors">
-                              {displayJobTitle}
-                            </h3>
-                          </Link>
-                          <p className="text-gray-600 font-medium mt-1">{job.company}</p>
-                          
-                          <div className="flex flex-wrap gap-3 mt-3 text-sm text-gray-500">
-                            <a 
-                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded hover:bg-indigo-50 text-indigo-600 font-medium border border-gray-200"
-                            >
-                              📍 {job.location}
-                            </a>
-                            <span className="bg-gray-50 px-2 py-1 rounded">💰 {job.salary || (isEnglish ? "Negotiable" : "Consultar")}</span>
-                            <span className="bg-gray-50 px-2 py-1 rounded">📅 {new Date(job.created_at).toLocaleDateString()}</span>
+                      <div className="flex gap-4 items-start">
+                        <CompanyLogo company={job.company} size={12} />
+                        <div className="flex-grow w-full flex flex-col md:flex-row justify-between md:items-start gap-4">
+                          <div className="w-full">
+                            <Link href={detailUrl}>
+                              <h3 className="text-xl font-semibold text-indigo-900 hover:text-indigo-600 transition-colors">
+                                {displayJobTitle}
+                              </h3>
+                            </Link>
+                            <p className="text-gray-600 font-medium mt-1">{job.company}</p>
+                            
+                            <div className="flex flex-wrap gap-3 mt-3 text-sm text-gray-500">
+                              <a 
+                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded hover:bg-indigo-50 text-indigo-600 font-medium border border-gray-200"
+                              >
+                                📍 {job.location}
+                              </a>
+                              <span className="bg-gray-50 px-2 py-1 rounded">💰 {job.salary || (isEnglish ? "Negotiable" : "Consultar")}</span>
+                              <span className="bg-gray-50 px-2 py-1 rounded">📅 {new Date(job.created_at).toLocaleDateString()}</span>
+                            </div>
                           </div>
-                        </div>
 
-                        <Link 
-                          href={detailUrl}
-                          className="px-5 py-2 bg-indigo-50 text-indigo-700 font-medium rounded-lg hover:bg-indigo-100 transition-colors text-center shrink-0"
-                        >
-                          {isEnglish ? 'View offer' : 'Ver oferta'}
-                        </Link>
+                          <Link 
+                            href={detailUrl}
+                            className="px-5 py-2 bg-indigo-50 text-indigo-700 font-medium rounded-lg hover:bg-indigo-100 transition-colors text-center shrink-0"
+                          >
+                            {isEnglish ? 'View offer' : 'Ver oferta'}
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   </div>

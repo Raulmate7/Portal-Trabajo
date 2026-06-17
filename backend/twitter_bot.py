@@ -7,12 +7,38 @@ import time
 from logic.image_generator import generate_job_card
 from logic.slug import get_job_slug
 
+def get_sector_slug(title, category):
+    title_lower = (title or "").lower()
+    # Coincidencia con tecnologías específicas
+    if "react" in title_lower: return "react"
+    elif "node" in title_lower: return "node"
+    elif "python" in title_lower: return "python"
+    elif "java" in title_lower and "javascript" not in title_lower: return "java"
+    elif "devops" in title_lower: return "devops"
+    elif "aws" in title_lower: return "aws"
+    elif "angular" in title_lower: return "angular"
+    elif "vue" in title_lower: return "vue"
+    elif "flutter" in title_lower: return "flutter"
+    elif "kotlin" in title_lower: return "kotlin"
+    elif "swift" in title_lower: return "swift"
+    
+    # Mapeo de categorías generales
+    cat_map = {
+        'Backend': 'backend',
+        'Frontend': 'frontend',
+        'Data & AI': 'data',
+        'Cloud & DevOps': 'cloud',
+        'Mobile': 'mobile',
+    }
+    return cat_map.get(category, 'informatica-tecnologia')
+
+
 # Plantillas de Tweet expuestas a nivel de módulo
 TEMPLATES = [
-    "🚀 ¡Nueva oferta de empleo en tecnología!\n\n💼 {title}\n🏢 {company}\n📍 {location}\n\n👉 Detalles y postulación aquí: {url}\n\n{hashtags}",
-    "🔥 ¿Buscas un nuevo reto IT? Te traemos esta vacante recién publicada:\n\n💼 {title}\n🏢 {company}\n📍 {location}\n\n👉 Toda la información en: {url}\n\n{hashtags}",
-    "💻 ¡Oportunidad laboral tech disponible!\n\n💼 {title}\n🏢 {company}\n📍 {location}\n\n👉 Inscríbete ahora: {url}\n\n{hashtags}",
-    "🌟 Únete al equipo. Se busca talento especializado:\n\n💼 {title}\n🏢 {company}\n📍 {location}\n\n👉 Mira los requisitos y aplica en: {url}\n\n{hashtags}"
+    "🚀 ¡Nueva oferta de empleo en tecnología!\n\n💼 {title}\n🏢 {company}\n📍 {location}\n\n👉 Detalles: {url}\n🔍 Más ofertas: {cat_url}\n\n{hashtags}",
+    "🔥 ¿Buscas un nuevo reto IT? Te traemos esta vacante recién publicada:\n\n💼 {title}\n🏢 {company}\n📍 {location}\n\n👉 Info: {url}\n🔍 Más: {cat_url}\n\n{hashtags}",
+    "💻 ¡Oportunidad laboral tech disponible!\n\n💼 {title}\n🏢 {company}\n📍 {location}\n\n👉 Aplica: {url}\n🔍 Más: {cat_url}\n\n{hashtags}",
+    "🌟 Únete al equipo. Se busca talento especializado:\n\n💼 {title}\n🏢 {company}\n📍 {location}\n\n👉 Info y aplicar: {url}\n🔍 Más: {cat_url}\n\n{hashtags}"
 ]
 
 def run_twitter_bot():
@@ -65,7 +91,7 @@ def run_twitter_bot():
         
         # Buscamos ofertas activas que no hayan sido tuiteadas
         query = """
-            SELECT id, title, company, location, salary 
+            SELECT id, title, company, location, salary, category 
             FROM jobs 
             WHERE is_active = TRUE AND last_tweeted_at IS NULL
             ORDER BY created_at DESC 
@@ -103,7 +129,7 @@ def run_twitter_bot():
     print(f"📣 Seleccionadas {len(jobs_to_tweet)} ofertas nuevas para publicar en Twitter (X).")
 
     for idx, job in enumerate(jobs_to_tweet):
-        job_id, title, company, location, salary = job
+        job_id, title, company, location, salary, category = job
         
         # Extraer tecnología para hashtags
         title_lower = title.lower()
@@ -119,6 +145,8 @@ def run_twitter_bot():
         
         hashtags_str = " ".join(tags) + " #Programacion"
         job_url = f"{base_url}/job/{get_job_slug(job_id, title, location, company)}"
+        cat_slug = get_sector_slug(title, category)
+        cat_url = f"{base_url}/trabajos/{cat_slug}"
         
         # Formatear el Tweet usando una plantilla aleatoria
         template = random.choice(TEMPLATES)
@@ -127,6 +155,7 @@ def run_twitter_bot():
             company=company,
             location=location,
             url=job_url,
+            cat_url=cat_url,
             hashtags=hashtags_str
         )
         

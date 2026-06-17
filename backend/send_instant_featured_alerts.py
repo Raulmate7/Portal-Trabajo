@@ -15,8 +15,10 @@ EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
 def build_alert_email(email, job):
     """Construye el HTML para la alerta urgente de oferta destacada."""
+    import urllib.parse
     job_id, title, company, location, salary = job
-    job_link = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=featured_alert&utm_medium=email&utm_campaign=instant_alert_{job_id}"
+    original_job_link = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=featured_alert&utm_medium=email&utm_campaign=instant_alert_{job_id}"
+    job_link = f"{BASE_URL}/api/track-click?email={email}&campaign=instant_alert_{job_id}&redirect={urllib.parse.quote(original_job_link)}"
     salary_html = f"<p style='margin: 0 0 10px; color: #b45309; font-size: 14px;'>💰 <b>Salario:</b> {salary}</p>" if salary and salary not in ("Consultar", "") else ""
     
     return f"""

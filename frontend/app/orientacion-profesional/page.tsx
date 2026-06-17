@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import Link from 'next/link';
+import AdBanner from '@/components/AdBanner';
 
 interface Question {
   id: number;
@@ -266,6 +267,11 @@ export default function OrientacionQuizPage() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Banner de publicidad Inline */}
+        <div className="mt-8">
+          <AdBanner variant="inline" />
         </div>
       </div>
     </main>

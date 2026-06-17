@@ -12,6 +12,32 @@ load_dotenv()
 # URL base de tu web
 BASE_URL = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
 
+def get_sector_slug(title, category):
+    title_lower = (title or "").lower()
+    # Coincidencia con tecnologías específicas
+    if "react" in title_lower: return "react"
+    elif "node" in title_lower: return "node"
+    elif "python" in title_lower: return "python"
+    elif "java" in title_lower and "javascript" not in title_lower: return "java"
+    elif "devops" in title_lower: return "devops"
+    elif "aws" in title_lower: return "aws"
+    elif "angular" in title_lower: return "angular"
+    elif "vue" in title_lower: return "vue"
+    elif "flutter" in title_lower: return "flutter"
+    elif "kotlin" in title_lower: return "kotlin"
+    elif "swift" in title_lower: return "swift"
+    
+    # Mapeo de categorías generales
+    cat_map = {
+        'Backend': 'backend',
+        'Frontend': 'frontend',
+        'Data & AI': 'data',
+        'Cloud & DevOps': 'cloud',
+        'Mobile': 'mobile',
+    }
+    return cat_map.get(category, 'informatica-tecnologia')
+
+
 def send_telegram_message(token, channel_id, text_content, reply_markup=None):
     """Envía un mensaje de texto con formato HTML a un canal de Telegram."""
     url = f"https://api.telegram.org/bot{token}/sendMessage"
@@ -109,7 +135,8 @@ def send_to_telegram():
                 title_clean = title.replace('<', '').replace('>', '')
                 company_clean = company.replace('<', '').replace('>', '') if company else "Desconocida"
                 message += f"▪️ <a href='{job_url}'>{title_clean}</a> en {company_clean}\n"
-            message += "\n"
+            cat_slug = get_sector_slug("", cat)
+            message += f"🔗 <a href='{BASE_URL}/trabajos/{cat_slug}'>Ver más ofertas de {cat}</a>\n\n"
 
         message += (
             f"━━━━━━━━━━━━━━━━━━━━\n"
@@ -123,6 +150,10 @@ def send_to_telegram():
             "inline_keyboard": [
                 [
                     {"text": "🔍 Ver todas las ofertas en la web", "url": BASE_URL}
+                ],
+                [
+                    {"text": "👍 Me interesa", "callback_data": "like_general"},
+                    {"text": "👎 No me interesa", "callback_data": "dislike_general"}
                 ]
             ]
         }
@@ -157,8 +188,20 @@ def send_to_telegram():
             salary_text = f" | 💰 {salary}" if salary and salary != "Consultar" else ""
             cat_message += f"▪️ <a href='{job_url}'>{title_clean}</a> en {company_clean} (📍 {location}{salary_text})\n"
             
-        cat_message += f"\n👉 <a href='{BASE_URL}'>Ver más ofertas en Portal Trabajo IT</a>"
-        send_telegram_message(TOKEN, channel_id, cat_message)
+        cat_slug = get_sector_slug("", cat_name)
+        cat_message += f"\n👉 <a href='{BASE_URL}/trabajos/{cat_slug}'>Ver más ofertas de {cat_name}</a>"
+        
+        # Inyectar botones de reacciones
+        cat_slug = cat_name.lower().replace(' & ', '_').replace(' ', '_')
+        reply_markup_cat = {
+            "inline_keyboard": [
+                [
+                    {"text": "👍 Me interesa", "callback_data": f"like_{cat_slug}"},
+                    {"text": "👎 No me interesa", "callback_data": f"dislike_{cat_slug}"}
+                ]
+            ]
+        }
+        send_telegram_message(TOKEN, channel_id, cat_message, reply_markup_cat)
 
     # 7. Enviar al canal segmentado de Remoto
     channel_remoto = os.getenv("TELEGRAM_CHANNEL_REMOTO")
@@ -175,7 +218,17 @@ def send_to_telegram():
             remoto_message += f"▪️ <a href='{job_url}'>{title_clean}</a> en {company_clean}{salary_text}\n"
             
         remoto_message += f"\n👉 <a href='{BASE_URL}/trabajo-remoto'>Ver todas las ofertas en remoto</a>"
-        send_telegram_message(TOKEN, channel_remoto, remoto_message)
+        
+        # Inyectar botones de reacciones
+        reply_markup_remoto = {
+            "inline_keyboard": [
+                [
+                    {"text": "👍 Me interesa", "callback_data": "like_remoto"},
+                    {"text": "👎 No me interesa", "callback_data": "dislike_remoto"}
+                ]
+            ]
+        }
+        send_telegram_message(TOKEN, channel_remoto, remoto_message, reply_markup_remoto)
 
     print("===============================================")
 

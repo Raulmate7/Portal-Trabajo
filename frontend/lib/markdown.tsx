@@ -191,7 +191,24 @@ export function Markdown({ content }: { content: string }) {
       if (level === 1) {
         blocks.push(<h1 key={blockIdx++} className="text-3xl md:text-4xl font-extrabold text-gray-900 mt-8 mb-4 leading-tight" dangerouslySetInnerHTML={{ __html: cleanText }} />);
       } else if (level === 2) {
-        blocks.push(<h2 key={blockIdx++} className="text-2xl font-bold text-gray-900 mt-8 mb-4 leading-tight" dangerouslySetInnerHTML={{ __html: cleanText }} />);
+        const cleanTextStr = text.replace(/<[^>]*>?/gm, '');
+        const headingId = cleanTextStr
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, '-')
+          .replace(/[^\w\-]+/g, '')
+          .replace(/\-\-+/g, '-')
+          .replace(/^-+/, '')
+          .replace(/-+$/, '');
+
+        blocks.push(
+          <h2 
+            key={blockIdx++} 
+            id={headingId} 
+            className="text-2xl font-bold text-gray-900 mt-8 mb-4 leading-tight scroll-mt-20" 
+            dangerouslySetInnerHTML={{ __html: cleanText }} 
+          />
+        );
       } else {
         blocks.push(<h3 key={blockIdx++} className="text-xl font-bold text-gray-900 mt-6 mb-3 leading-tight" dangerouslySetInnerHTML={{ __html: cleanText }} />);
       }

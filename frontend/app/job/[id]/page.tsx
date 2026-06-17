@@ -14,6 +14,8 @@ import { getJobSlug, getNumericId } from '@/lib/slug';
 import SaveJobButton from '@/components/SaveJobButton';
 import ReactionButton from '@/components/ReactionButton';
 import { getJobReactions } from '@/app/actions';
+import ApplyButton from '@/components/ApplyButton';
+import CompanyLogo from '@/components/CompanyLogo';
 
 export const revalidate = 60;
 
@@ -198,7 +200,10 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
           'es-ES': `${BASE_URL}/job/${correctSlug}`,
           'en': `${BASE_URL}/job/${correctSlug}?lang=en`,
           'x-default': `${BASE_URL}/job/${correctSlug}`,
-        }
+        },
+        types: {
+          'application/rss+xml': `${BASE_URL}/feed.xml`,
+        },
       },
       robots: {
         index: !isExpired,
@@ -493,6 +498,11 @@ export default async function JobPage({ params, searchParams }: Props) {
     },
     employmentType: employmentTypes,
     directApply: true,
+    industry: "Information Technology",
+    speakable: {
+      '@type': 'SpeakableSpecification',
+      cssSelector: ['h1', '.job-description']
+    }
   };
 
   if (tecLabel) {
@@ -627,15 +637,17 @@ export default async function JobPage({ params, searchParams }: Props) {
               </div>
             )}
             <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-              <div className="bg-gradient-to-r from-indigo-900 to-indigo-800 text-white p-6 md:p-8">
-                <h1 className="text-2xl md:text-3xl font-bold mb-4 leading-tight flex flex-wrap items-center gap-2">
-                  {displayTitle}
-                  {hasTranslation && (
-                    <span className="inline-flex items-center text-[10px] bg-white/20 text-white px-2 py-0.5 rounded border border-white/10 font-bold uppercase tracking-wider" title={`Título original: ${job.title}`}>
-                      🤖 Traducido
-                    </span>
-                  )}
-                </h1>
+              <div className="bg-gradient-to-r from-indigo-900 to-indigo-800 text-white p-6 md:p-8 flex flex-col md:flex-row gap-6 md:items-center">
+                <CompanyLogo company={job.company} size={16} />
+                <div className="flex-grow">
+                  <h1 className="text-2xl md:text-3xl font-bold mb-4 leading-tight flex flex-wrap items-center gap-2">
+                    {displayTitle}
+                    {hasTranslation && (
+                      <span className="inline-flex items-center text-[10px] bg-white/20 text-white px-2 py-0.5 rounded border border-white/10 font-bold uppercase tracking-wider" title={`Título original: ${job.title}`}>
+                        🤖 Traducido
+                      </span>
+                    )}
+                  </h1>
                 <div className="flex flex-wrap gap-3 text-indigo-100 text-sm md:text-base">
                   <span className="bg-indigo-700/50 px-3 py-1 rounded-full flex items-center gap-2 backdrop-blur-sm">
                     🏢 {job.company}
@@ -648,12 +660,13 @@ export default async function JobPage({ params, searchParams }: Props) {
                   </span>
                 </div>
               </div>
+            </div>
 
               <div className="p-6 md:p-8">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">
                   {isEnglish ? 'Job Description' : 'Descripción del puesto'}
                 </h2>
-                <div className="prose max-w-none text-gray-650 mb-8 leading-relaxed">
+                <div className="prose max-w-none text-gray-650 mb-8 leading-relaxed job-description">
                   {displayDesc ? (
                     <p className="whitespace-pre-line" dangerouslySetInnerHTML={{ __html: autoLinkDescription(displayDesc, isEnglish) }} />
                   ) : (
@@ -704,14 +717,7 @@ export default async function JobPage({ params, searchParams }: Props) {
                     )}
                   </p>
                   <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                    <a
-                      href={job.url_source}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex w-full sm:w-auto justify-center items-center bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-indigo-700 shadow-md hover:shadow-lg transition-all"
-                    >
-                      {isEnglish ? '👉 Apply on original website' : '👉 Aplicar en la web original'}
-                    </a>
+                    <ApplyButton url={job.url_source} company={job.company} title={displayTitle} lang={lang} />
                     <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-center">
                       <SaveJobButton job={job} variant="detail" />
                       <ReactionButton jobId={job.id} initialLikes={reactions.likes} initialDislikes={reactions.dislikes} />
@@ -766,7 +772,11 @@ export default async function JobPage({ params, searchParams }: Props) {
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
             <div className="sticky top-6 space-y-6">
-              <SubscribeForm location={job.location || 'España'} />
+              <SubscribeForm 
+                location={job.location || 'España'} 
+                defaultTech={detectedTec || undefined}
+                defaultLocation={isRemote ? 'remoto' : undefined}
+              />
               <PushSubscribe />
               <AdBanner variant="sidebar" />
             </div>

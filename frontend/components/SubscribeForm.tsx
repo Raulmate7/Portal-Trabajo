@@ -3,6 +3,8 @@
 import { useRef, useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { subscribeUser } from '@/app/actions';
+import { sendGAEvent } from '@next/third-parties/google';
+
 
 const TECH_OPTIONS = [
   { value: 'react', label: 'React / Frontend' },
@@ -13,16 +15,54 @@ const TECH_OPTIONS = [
   { value: 'flutter', label: 'Mobile' },
 ];
 
-export default function SubscribeForm({ location }: { location: string }) {
+export default function SubscribeForm({ 
+  location,
+  defaultTech,
+  defaultLocation
+}: { 
+  location: string;
+  defaultTech?: string;
+  defaultLocation?: string;
+}) {
   const pathname = usePathname();
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
-  const [showOptions, setShowOptions] = useState(false);
-  const [selectedTech, setSelectedTech] = useState<string[]>([]);
-  const [remoteOnly, setRemoteOnly] = useState(false);
+  const [showOptions, setShowOptions] = useState(!!defaultTech || !!defaultLocation);
+  
+  const [selectedTech, setSelectedTech] = useState<string[]>(() => {
+    if (defaultTech) {
+      const val = defaultTech.toLowerCase().trim();
+      const option = TECH_OPTIONS.find(o => o.value === val || val.includes(o.value) || o.value.includes(val));
+      return option ? [option.value] : [];
+    }
+    return [];
+  });
+
+  const [remoteOnly, setRemoteOnly] = useState(() => {
+    if (defaultLocation) {
+      const val = defaultLocation.toLowerCase();
+      return val.includes('remoto') || val.includes('remote') || val.includes('teletrabajo');
+    }
+    return location.toLowerCase().includes('remoto') || location.toLowerCase().includes('remote') || location.toLowerCase().includes('teletrabajo');
+  });
+
   const [frequency, setFrequency] = useState<'daily' | 'weekly'>('weekly');
   const [referredBy, setReferredBy] = useState<string>('');
   const emailRef = useRef<HTMLInputElement>(null);
+  const [ctaVariant, setCtaVariant] = useState<'A' | 'B'>('A');
+
+  useEffect(() => {
+    // Asignación persistente de la variante para el test A/B
+    const savedVariant = localStorage.getItem('newsletter_cta_variant');
+    if (savedVariant === 'A' || savedVariant === 'B') {
+      setCtaVariant(savedVariant);
+    } else {
+      const chosenVariant = Math.random() < 0.5 ? 'A' : 'B';
+      localStorage.setItem('newsletter_cta_variant', chosenVariant);
+      setCtaVariant(chosenVariant);
+    }
+  }, []);
+
 
   useEffect(() => {
     if (typeof document !== 'undefined') {
@@ -51,6 +91,8 @@ export default function SubscribeForm({ location }: { location: string }) {
       setStatus('success');
       setMessage(result.message);
       if (emailRef.current) emailRef.current.value = '';
+      // Evento de GA4 para registrar la conversión y su respectiva variante A/B
+      sendGAEvent({ event: 'newsletter_signup', value: ctaVariant });
     } else {
       setStatus('error');
       setMessage(result.message);
@@ -62,14 +104,34 @@ export default function SubscribeForm({ location }: { location: string }) {
     }, 5000);
   }
 
+  const hasFilter = !!defaultTech || !!defaultLocation;
+  
+  let displayTitle = hasFilter ? 'Alertas para esta Búsqueda' : 'Alertas de Empleo';
+  let displaySubtitle = (
+    <>
+      Recibe ofertas de <strong className="text-gray-200">{location}</strong> directamente en tu inbox.
+    </>
+  );
+  let displayButtonText = '🔔 Suscribirme Gratis';
+
+  if (ctaVariant === 'B') {
+    displayTitle = '🚀 ¡Sé el primero en enterarte!';
+    displaySubtitle = (
+      <>
+        Únete a +5.000 programadores y recibe empleos de <strong className="text-gray-200">{location}</strong> directamente en tu inbox.
+      </>
+    );
+    displayButtonText = '🔥 ¡Recibir Ofertas IT Ya!';
+  }
+
   return (
     <div className="bg-gray-900 p-6 rounded-xl shadow-lg text-white border border-gray-800">
       <div className="flex items-center gap-2 mb-1">
-        <span className="text-2xl">⚡</span>
-        <h3 className="font-bold text-lg text-white">Alertas de Empleo</h3>
+        <span className="text-2xl">{ctaVariant === 'B' ? '🚀' : '⚡'}</span>
+        <h3 className="font-bold text-lg text-white">{displayTitle}</h3>
       </div>
       <p className="text-gray-400 text-xs mb-4 leading-relaxed">
-        Recibe ofertas de <strong className="text-gray-200">{location}</strong> directamente en tu inbox.
+        {displaySubtitle}
       </p>
 
       {status === 'success' ? (
@@ -170,7 +232,7 @@ export default function SubscribeForm({ location }: { location: string }) {
             disabled={status === 'loading'}
             className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-400 text-white font-bold py-3 px-4 rounded-lg transition-colors text-sm shadow-md flex justify-center"
           >
-            {status === 'loading' ? 'Guardando...' : '🔔 Suscribirme Gratis'}
+            {status === 'loading' ? 'Guardando...' : displayButtonText}
           </button>
 
           {status === 'error' && (

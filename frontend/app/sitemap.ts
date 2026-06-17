@@ -230,6 +230,16 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
 
       const sectorPages = [...BASE_PAGES, ...activeProgrammaticPages];
       const sectorUrls = sectorPages.map((path) => {
+        const hasEnglish = path.startsWith('/trabajos/') || path.startsWith('/talento-premium');
+        const alternates = hasEnglish
+          ? {
+              languages: {
+                es: `${BASE_URL}${path}`,
+                en: `${BASE_URL}${path}?lang=en`,
+              }
+            }
+          : undefined;
+
         // Páginas estáticas base del portal
         if (BASE_PAGES.includes(path)) {
           return {
@@ -237,6 +247,7 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
             lastModified: new Date(),
             changeFrequency: 'daily' as const,
             priority: 0.9,
+            alternates,
           };
         }
 
@@ -248,6 +259,7 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
           lastModified: new Date(),
           changeFrequency: (isConsolidated ? 'daily' : 'weekly') as 'daily' | 'weekly',
           priority: isConsolidated ? 0.85 : 0.6,
+          alternates,
         };
       });
 
@@ -301,6 +313,12 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
           lastModified: new Date(),
           changeFrequency: 'daily' as const,
           priority: 1.0,
+          alternates: {
+            languages: {
+              es: BASE_URL,
+              en: `${BASE_URL}?lang=en`,
+            }
+          }
         },
         ...sectorUrls,
         ...blogUrls,
@@ -313,7 +331,7 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
     // ----------------------------------------------------
     if (sitemapId === 1) {
       const jobsRes = await client.query(
-        "SELECT id, title, company, location, created_at FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 8000 OFFSET 0"
+        "SELECT id, title, company, location, created_at FROM jobs WHERE is_active = TRUE AND created_at >= NOW() - INTERVAL 30 DAY ORDER BY created_at DESC LIMIT 8000 OFFSET 0"
       );
       const jobs = jobsRes.rows;
 
@@ -329,6 +347,12 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
           lastModified: jobDate,
           changeFrequency: (isOld ? 'never' : 'monthly') as 'never' | 'monthly',
           priority: isOld ? 0.4 : 0.8,
+          alternates: {
+            languages: {
+              es: `${BASE_URL}/job/${jobSlug}`,
+              en: `${BASE_URL}/job/${jobSlug}?lang=en`,
+            }
+          }
         };
       });
     }
@@ -338,7 +362,7 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
     // ----------------------------------------------------
     if (sitemapId === 2) {
       const jobsRes = await client.query(
-        "SELECT id, title, company, location, created_at FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 8000 OFFSET 8000"
+        "SELECT id, title, company, location, created_at FROM jobs WHERE is_active = TRUE AND created_at >= NOW() - INTERVAL 30 DAY ORDER BY created_at DESC LIMIT 8000 OFFSET 8000"
       );
       const jobs = jobsRes.rows;
 
@@ -354,6 +378,12 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
           lastModified: jobDate,
           changeFrequency: (isOld ? 'never' : 'monthly') as 'never' | 'monthly',
           priority: isOld ? 0.4 : 0.8,
+          alternates: {
+            languages: {
+              es: `${BASE_URL}/job/${jobSlug}`,
+              en: `${BASE_URL}/job/${jobSlug}?lang=en`,
+            }
+          }
         };
       });
     }

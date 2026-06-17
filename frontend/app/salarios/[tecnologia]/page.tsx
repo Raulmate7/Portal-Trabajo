@@ -197,6 +197,8 @@ export default async function SalarioTechPage({ params }: Props) {
   const p75Val = stats && stats.count > 0 ? stats.p75 : 55000;
   const totalCount = stats && stats.count > 0 ? stats.count : 45;
 
+  const dynamicMarketText = `El desarrollo de software con especialización en ${techInfo.label} se mantiene como uno de los perfiles más buscados y estables en todo el territorio nacional. Con una retribución media estimada de ${formatEur(avg)} brutos anuales, la demanda se extiende a través de múltiples sectores y geografías. Las vacantes activas y el dinamismo general de las contrataciones sugieren que las empresas siguen valorando de manera prioritaria la experiencia en este ecosistema técnico.`;
+
   const rangePercent = minVal && maxVal && avg
     ? Math.round(((avg - minVal) / (maxVal - minVal)) * 100)
     : 50;
@@ -334,6 +336,19 @@ export default async function SalarioTechPage({ params }: Props) {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Análisis de Mercado Editorial Box */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
+                📝 Análisis del Mercado para {techInfo.label}
+              </h2>
+              <p className="text-gray-700 text-sm leading-relaxed mb-4">
+                {dynamicMarketText}
+              </p>
+              <p className="text-gray-700 text-sm leading-relaxed">
+                Adicionalmente, el dominio de buenas prácticas como arquitecturas desacopladas, pruebas automatizadas, control de versiones robusto y capacidad de comunicación son habilidades críticas que impulsan los salarios de este stack hacia los rangos superiores en España.
+              </p>
             </div>
 
             {/* FAQ Accordion Section */}

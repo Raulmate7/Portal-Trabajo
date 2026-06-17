@@ -13,7 +13,7 @@ export default function PublishForm() {
 
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
-  const [selectedPlan, setSelectedPlan] = useState<"basico" | "destacado">("destacado");
+  const [selectedPlan, setSelectedPlan] = useState<"basico" | "destacado_7d" | "destacado_30d" | "destacado_premium">("destacado_30d");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -42,6 +42,7 @@ export default function PublishForm() {
           description_snippet: formData.get("job_description"),
           url_source: formData.get("job_url"),
           category: "Otros",
+          plan: selectedPlan,
         };
 
         const res = await fetch("/api/checkout", {
@@ -144,30 +145,75 @@ export default function PublishForm() {
       </p>
 
       {/* Plan Selector */}
-      <div className="grid grid-cols-2 gap-3 mb-8">
+      <div className="space-y-3.5 mb-8">
+        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Selecciona tu Plan de Publicación</label>
+        
+        {/* Plan Gratis */}
         <button
           type="button"
           onClick={() => setSelectedPlan("basico")}
-          className={`p-4 rounded-xl border-2 text-center transition-all ${
+          className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center justify-between gap-4 ${
             selectedPlan === "basico"
-              ? "border-indigo-500 bg-indigo-500/10"
-              : "border-gray-700 hover:border-gray-600"
+              ? "border-indigo-500 bg-indigo-500/10 text-white"
+              : "border-gray-800 hover:border-gray-700 text-gray-300"
           }`}
         >
-          <span className="block text-sm font-bold">Básico</span>
-          <span className="block text-xl font-black mt-1">Gratis</span>
+          <div>
+            <span className="block text-sm font-bold">📋 Básico</span>
+            <span className="block text-xs text-gray-400 mt-0.5">Listado regular por 30 días sin destaque ni prioridad</span>
+          </div>
+          <span className="text-lg font-black shrink-0">Gratis</span>
         </button>
+
+        {/* Plan Destacado 7 Días */}
         <button
           type="button"
-          onClick={() => setSelectedPlan("destacado")}
-          className={`p-4 rounded-xl border-2 text-center transition-all ${
-            selectedPlan === "destacado"
-              ? "border-amber-500 bg-amber-500/10"
-              : "border-gray-700 hover:border-gray-600"
+          onClick={() => setSelectedPlan("destacado_7d")}
+          className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center justify-between gap-4 ${
+            selectedPlan === "destacado_7d"
+              ? "border-amber-500 bg-amber-500/10 text-white"
+              : "border-gray-800 hover:border-gray-700 text-gray-300"
           }`}
         >
-          <span className="block text-sm font-bold">⭐ Destacado</span>
-          <span className="block text-xl font-black mt-1">39€</span>
+          <div>
+            <span className="block text-sm font-bold">⚡ Destacado Rápido</span>
+            <span className="block text-xs text-gray-400 mt-0.5">Diseño destacado con bordes y fijado arriba durante 7 días</span>
+          </div>
+          <span className="text-lg font-black text-amber-400 shrink-0">19€</span>
+        </button>
+
+        {/* Plan Destacado 30 Días */}
+        <button
+          type="button"
+          onClick={() => setSelectedPlan("destacado_30d")}
+          className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center justify-between gap-4 ${
+            selectedPlan === "destacado_30d"
+              ? "border-amber-500 bg-amber-500/10 text-white"
+              : "border-gray-800 hover:border-gray-700 text-gray-300"
+          }`}
+        >
+          <div>
+            <span className="block text-sm font-bold">⭐ Destacado Estándar</span>
+            <span className="block text-xs text-gray-400 mt-0.5">Diseño destacado, fijado arriba por 30 días y alertas push</span>
+          </div>
+          <span className="text-lg font-black text-amber-400 shrink-0">39€</span>
+        </button>
+
+        {/* Plan Destacado Premium */}
+        <button
+          type="button"
+          onClick={() => setSelectedPlan("destacado_premium")}
+          className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center justify-between gap-4 ${
+            selectedPlan === "destacado_premium"
+              ? "border-purple-500 bg-purple-500/10 text-white"
+              : "border-gray-800 hover:border-gray-700 text-gray-300"
+          }`}
+        >
+          <div>
+            <span className="block text-sm font-bold">🚀 Destacado Premium</span>
+            <span className="block text-xs text-gray-400 mt-0.5">Destaque 30d + Envío Boletín Semanal + Telegram + Redes Sociales</span>
+          </div>
+          <span className="text-lg font-black text-purple-400 shrink-0">79€</span>
         </button>
       </div>
 
@@ -316,16 +362,16 @@ export default function PublishForm() {
           type="submit"
           disabled={status === "loading"}
           className={`w-full font-black text-base py-4 px-6 rounded-xl transition-all shadow-lg disabled:opacity-50 flex justify-center items-center gap-2 ${
-            selectedPlan === "destacado"
+            selectedPlan !== "basico"
               ? "bg-gradient-to-r from-amber-400 to-yellow-500 text-gray-900 hover:from-amber-300 hover:to-yellow-400 shadow-amber-500/20 hover:shadow-amber-500/40"
               : "bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-400 hover:to-purple-500 shadow-indigo-500/20 hover:shadow-indigo-500/40"
           }`}
         >
           {status === "loading"
             ? "Enviando..."
-            : selectedPlan === "destacado"
-            ? "Solicitar oferta Destacada ⭐"
-            : "Solicitar oferta Básica"}
+            : selectedPlan === "basico"
+            ? "Solicitar oferta Básica (Gratis)"
+            : `Pagar y Destacar Oferta (${selectedPlan === "destacado_7d" ? "19€" : selectedPlan === "destacado_30d" ? "39€" : "79€"}) 💳`}
         </button>
 
         <p className="text-center text-gray-500 text-xs mt-3">

@@ -244,6 +244,12 @@ export default async function SalarioTechCityPage({ params }: Props) {
   const p75Val = stats && stats.count >= 3 ? stats.p75 : Math.round(baseAvg * 1.3 * factor);
   const totalCount = stats && stats.count > 0 ? stats.count : 0;
 
+  const dynamicMarketText = `El entorno laboral para profesionales de ${techInfo.label} ${locText} destaca por ser un sector de ${
+    citySlug === 'remoto' 
+      ? 'máxima flexibilidad y alta competencia, atrayendo a empresas que compiten a nivel nacional.' 
+      : `fuerte dinamismo en la provincia de ${cityInfo.label}, siendo una de las especialidades más demandadas por consultoras e integradoras de sistemas locales.`
+  } La retribución media de ${formatEur(avg)} brutos anuales refleja la solidez de este perfil en el mercado actual.`;
+
   const rangePercent = minVal && maxVal && avg
     ? Math.round(((avg - minVal) / (maxVal - minVal)) * 100)
     : 50;
@@ -383,6 +389,19 @@ export default async function SalarioTechCityPage({ params }: Props) {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Análisis de Mercado Editorial Box */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
+                📝 Análisis del Mercado para {techInfo.label} {locText}
+              </h2>
+              <p className="text-gray-700 text-sm leading-relaxed mb-4">
+                {dynamicMarketText}
+              </p>
+              <p className="text-gray-700 text-sm leading-relaxed">
+                Adicionalmente, factores como el dominio de metodologías ágiles, control de versiones (Git), y competencias en despliegue continuo (CI/CD) marcan una diferencia notable en el salario final ofrecido por las organizaciones contratantes en esta localización.
+              </p>
             </div>
 
             {/* Accordion FAQ */}

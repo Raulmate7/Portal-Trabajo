@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getPostBySlug, BLOG_POSTS } from '@/lib/blog';
+import { getPostBySlug, getBlogPosts } from '@/lib/blog';
 import AdBanner from '@/components/AdBanner';
 import SubscribeForm from '@/components/SubscribeForm';
 import pool from '@/lib/db';
@@ -16,7 +16,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const resolvedParams = await params;
-  const post = getPostBySlug(resolvedParams.slug);
+  const post = await getPostBySlug(resolvedParams.slug);
 
   if (!post) {
     return { title: 'Artículo no encontrado' };
@@ -53,7 +53,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export async function generateStaticParams() {
-  return BLOG_POSTS.map((post) => ({
+  const posts = await getBlogPosts();
+  return posts.map((post) => ({
     slug: post.slug,
   }));
 }
@@ -90,7 +91,7 @@ async function getRelatedJobs(slug: string) {
 
 export default async function BlogPostPage({ params }: Props) {
   const resolvedParams = await params;
-  const post = getPostBySlug(resolvedParams.slug);
+  const post = await getPostBySlug(resolvedParams.slug);
 
   if (!post) {
     notFound();
@@ -105,6 +106,23 @@ export default async function BlogPostPage({ params }: Props) {
   if (match && match.index !== undefined) {
     intro = post.content.substring(0, match.index);
     rest = post.content.substring(match.index);
+  }
+
+  // Extraer encabezados H2 para la tabla de contenidos (TOC)
+  const headings: { id: string; text: string }[] = [];
+  const h2Regex = /\n##\s+([^\n]+)/g;
+  let matchH2;
+  while ((matchH2 = h2Regex.exec(post.content)) !== null) {
+    const text = matchH2[1].trim();
+    const id = text
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w\-]+/g, '')
+      .replace(/\-\-+/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '');
+    headings.push({ id, text });
   }
 
   const imageUrl = `${BASE_URL}/blog/${resolvedParams.slug}/opengraph-image`;
@@ -141,7 +159,7 @@ export default async function BlogPostPage({ params }: Props) {
       }
     },
     datePublished: new Date(post.date).toISOString(),
-    dateModified: new Date(post.date).toISOString(),
+    dateModified: post.updatedAt ? new Date(post.updatedAt).toISOString() : new Date().toISOString(),
     mainEntityOfPage: {
       '@type': 'WebPage',
       '@id': `${BASE_URL}/blog/${resolvedParams.slug}`
@@ -172,6 +190,24 @@ export default async function BlogPostPage({ params }: Props) {
                   <span>✍️ {post.author}</span>
                 </div>
               </header>
+
+              {headings.length > 0 && (
+                <div className="mb-8 p-6 bg-indigo-50/40 rounded-2xl border border-indigo-100/60 shadow-sm">
+                  <h3 className="text-sm font-bold text-indigo-950 mb-3.5 uppercase tracking-wider flex items-center gap-2">
+                    <span>📋</span> Contenido del artículo
+                  </h3>
+                  <ul className="space-y-2.5 text-sm">
+                    {headings.map((h) => (
+                      <li key={h.id} className="flex items-start gap-2">
+                        <span className="text-indigo-500 mt-0.5">•</span>
+                        <a href={`#${h.id}`} className="text-indigo-600 hover:text-indigo-800 font-semibold hover:underline transition-colors">
+                          {h.text}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               <div className="prose prose-indigo max-w-none text-gray-700 leading-relaxed text-lg mb-8">
                 <Markdown content={intro} />

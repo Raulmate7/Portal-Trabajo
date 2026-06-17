@@ -947,6 +947,13 @@ export default async function SectorPage({
                   }
                   return [card];
                 })}
+
+                {/* Banner Multiplex de publicidad antes de la paginación */}
+                {jobs && jobs.length > 0 && (
+                  <div className="col-span-full mt-6">
+                    <AdBanner variant="multiplex" />
+                  </div>
+                )}
                 
                 <div className="col-span-full flex justify-between items-center pt-6">
                   {validPage > 1 ? (
@@ -982,11 +989,6 @@ export default async function SectorPage({
                 <p className="text-sm text-gray-400 mt-2">
                   {isEnglish ? 'Check back tomorrow at 08:00.' : 'Vuelve mañana a las 08:00.'}
                 </p>
-              </div>
-            )}
-            {jobs && jobs.length > 0 && (
-              <div className="mt-8">
-                <AdBanner variant="multiplex" />
               </div>
             )}
           </div>

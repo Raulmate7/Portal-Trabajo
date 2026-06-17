@@ -10,7 +10,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { title, company, location, salary, description_snippet, url_source, category } = body;
+    const { title, company, location, salary, description_snippet, url_source, category, plan = 'destacado_30d' } = body;
 
     if (!title || !company || !url_source) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
@@ -21,8 +21,8 @@ export async function POST(request: Request) {
     const client = await pool.connect();
     try {
       const query = `
-        INSERT INTO jobs (id, title, company, location, salary, description_snippet, url_source, category, is_active, is_featured, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, FALSE, FALSE, NOW())
+        INSERT INTO jobs (id, title, company, location, salary, description_snippet, url_source, category, is_active, is_featured, created_at, plan)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, FALSE, FALSE, NOW(), $9)
       `;
       await client.query(query, [
         jobId,
@@ -32,13 +32,29 @@ export async function POST(request: Request) {
         salary || 'Consultar',
         description_snippet || '',
         url_source,
-        category || 'Otros'
+        category || 'Otros',
+        plan
       ]);
     } finally {
       client.release();
     }
 
-    // 2. Crear la sesión de checkout en Stripe referenciando el jobId
+    // 2. Determinar precio y datos del producto según el plan elegido
+    let unitAmount = 3900; // Por defecto 39€ (Estándar 30 días)
+    let planName = 'Oferta Destacada Estándar - Portal Trabajo IT';
+    let planDesc = `Destaca tu oferta "${title}" en la parte superior y búsquedas del portal durante 30 días.`;
+
+    if (plan === 'destacado_7d') {
+      unitAmount = 1900; // 19€ (Básico 7 días)
+      planName = 'Oferta Destacada Básica - Portal Trabajo IT';
+      planDesc = `Destaca tu oferta "${title}" en la parte superior y búsquedas del portal durante 7 días.`;
+    } else if (plan === 'destacado_premium') {
+      unitAmount = 7900; // 79€ (Premium 30 días + newsletter + Telegram + redes)
+      planName = 'Oferta Destacada Premium - Portal Trabajo IT';
+      planDesc = `Destaca tu oferta "${title}" durante 30 días + Difusión en Boletín, Telegram y Redes Sociales.`;
+    }
+
+    // 3. Crear la sesión de checkout en Stripe referenciando el jobId
     const protocol = request.headers.get('x-forwarded-proto') || 'http';
     const host = request.headers.get('host') || 'localhost:3000';
     const baseUrl = `${protocol}://${host}`;
@@ -50,10 +66,10 @@ export async function POST(request: Request) {
           price_data: {
             currency: 'eur',
             product_data: {
-              name: 'Publicación de Oferta Destacada - Portal Trabajo IT',
-              description: `Destaca tu oferta "${title}" en la parte superior y búsquedas del portal durante 30 días.`,
+              name: planName,
+              description: planDesc,
             },
-            unit_amount: 3900, // 39.00 EUR en céntimos
+            unit_amount: unitAmount,
           },
           quantity: 1,
         },
@@ -63,6 +79,7 @@ export async function POST(request: Request) {
       cancel_url: `${baseUrl}/publicar-oferta?canceled=true`,
       metadata: {
         jobId: String(jobId),
+        plan: String(plan),
       },
     });
 

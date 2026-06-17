@@ -7,6 +7,32 @@ import time
 from logic.image_generator import generate_job_card
 from logic.slug import get_job_slug
 
+def get_sector_slug(title, category):
+    title_lower = (title or "").lower()
+    # Coincidencia con tecnologías específicas
+    if "react" in title_lower: return "react"
+    elif "node" in title_lower: return "node"
+    elif "python" in title_lower: return "python"
+    elif "java" in title_lower and "javascript" not in title_lower: return "java"
+    elif "devops" in title_lower: return "devops"
+    elif "aws" in title_lower: return "aws"
+    elif "angular" in title_lower: return "angular"
+    elif "vue" in title_lower: return "vue"
+    elif "flutter" in title_lower: return "flutter"
+    elif "kotlin" in title_lower: return "kotlin"
+    elif "swift" in title_lower: return "swift"
+    
+    # Mapeo de categorías generales
+    cat_map = {
+        'Backend': 'backend',
+        'Frontend': 'frontend',
+        'Data & AI': 'data',
+        'Cloud & DevOps': 'cloud',
+        'Mobile': 'mobile',
+    }
+    return cat_map.get(category, 'informatica-tecnologia')
+
+
 def upload_image_to_linkedin(access_token, urn, image_path, job_title):
     """
     Sube una imagen a LinkedIn y devuelve el Asset URN.
@@ -105,7 +131,7 @@ def run_linkedin_bot():
         cur = conn.cursor()
         
         query = """
-            SELECT id, title, company, location, salary 
+            SELECT id, title, company, location, salary, category 
             FROM jobs 
             WHERE is_active = TRUE AND last_linkedin_posted_at IS NULL
             ORDER BY created_at DESC 
@@ -174,8 +200,11 @@ def run_linkedin_bot():
     print(f"📣 Seleccionadas {len(jobs_to_post)} ofertas nuevas para publicar de forma individual en LinkedIn.")
 
     for idx, job in enumerate(jobs_to_post):
-        job_id, title, company, location, salary = job
+        job_id, title, company, location, salary, category = job
         job_link = f"{frontend_url}/job/{get_job_slug(job_id, title, location, company)}"
+        
+        cat_slug = get_sector_slug(title, category)
+        cat_url = f"{frontend_url}/trabajos/{cat_slug}"
         
         # Formatear el contenido del post individual
         post_text = f"💼 ¡NUEVA OFERTA DE EMPLEO IT DESTACADA! 🚀\n\n"
@@ -188,6 +217,8 @@ def run_linkedin_bot():
         post_text += "\n"
         post_text += f"👉 Inscríbete y mira todos los detalles de la oferta aquí:\n"
         post_text += f"🔗 {job_link}\n\n"
+        post_text += f"🔍 ¿Buscas algo diferente? Explora más ofertas de esta categoría:\n"
+        post_text += f"🔗 {cat_url}\n\n"
         post_text += "#EmpleoTech #TrabajoIT #DesarrolloSoftware #Programacion #Remoto #TalentoIT"
 
         print(f"\n📝 [Post {idx+1}/{len(jobs_to_post)}] Preparando post:\n{title} en {company}\n")

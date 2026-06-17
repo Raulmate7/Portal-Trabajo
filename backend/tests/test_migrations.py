@@ -8,6 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from add_referred_by_column import migrate as migrate_referred_by
 from add_reactions_table import migrate as migrate_reactions
+from add_google_indexed_at import migrate as migrate_google_indexed_at
 
 class TestMigrations(unittest.TestCase):
 
@@ -97,6 +98,46 @@ class TestMigrations(unittest.TestCase):
         self.assertTrue(any("AUTO_INCREMENT PRIMARY KEY" in q for q in called_queries))
         self.assertTrue(any("ENGINE=InnoDB" in q for q in called_queries))
         mock_conn.commit.assert_called_once()
+
+    @patch('add_google_indexed_at.psycopg2.connect')
+    @patch.dict('os.environ', {'DATABASE_URL': 'postgresql://test_user:test_pass@localhost:5432/test_db'})
+    def test_add_google_indexed_at_success(self, mock_connect):
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+        mock_connect.return_value = mock_conn
+
+        with patch('add_google_indexed_at.print') as mock_print:
+            migrate_google_indexed_at()
+            
+            mock_print.assert_any_call("🔗 Conectando a la base de datos...")
+            mock_print.assert_any_call("✅ Columna 'google_indexed_at' agregada con éxito.")
+            mock_print.assert_any_call("🎉 Migración de jobs completada.")
+
+        # Verificar ejecución de DDL
+        mock_cursor.execute.assert_called_once_with("ALTER TABLE jobs ADD COLUMN google_indexed_at TIMESTAMP NULL DEFAULT NULL;")
+        mock_conn.commit.assert_called_once()
+        mock_cursor.close.assert_called_once()
+        mock_conn.close.assert_called_once()
+
+    @patch('add_google_indexed_at.psycopg2.connect')
+    @patch.dict('os.environ', {'DATABASE_URL': 'postgresql://test_user:test_pass@localhost:5432/test_db'})
+    def test_add_google_indexed_at_duplicate(self, mock_connect):
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        
+        # Simular que falla porque la columna ya existe
+        mock_cursor.execute.side_effect = Exception("Duplicate column name 'google_indexed_at'")
+        mock_conn.cursor.return_value = mock_cursor
+        mock_connect.return_value = mock_conn
+
+        with patch('add_google_indexed_at.print') as mock_print:
+            migrate_google_indexed_at()
+            
+            mock_print.assert_any_call("ℹ️ La columna 'google_indexed_at' ya existe.")
+            mock_print.assert_any_call("🎉 Migración de jobs completada.")
+
+        mock_conn.rollback.assert_called_once()
 
 if __name__ == '__main__':
     unittest.main()

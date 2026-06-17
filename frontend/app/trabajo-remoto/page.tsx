@@ -125,25 +125,6 @@ export default async function RemoteLandingPage({ searchParams }: Props) {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
-      {/* Cabecera */}
-      <header className="bg-white shadow-sm sticky top-0 z-20 border-b border-gray-200">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8 flex items-center justify-between">
-          <Link href="/" className="group flex items-center gap-2">
-            <span className="text-2xl" role="img" aria-label="rocket">🚀</span>
-            <div className="flex flex-col">
-              <span className="text-xl font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
-                Portal Trabajo IT
-              </span>
-            </div>
-          </Link>
-          <Link 
-            href="/trabajos/informatica-tecnologia" 
-            className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 hover:underline"
-          >
-            Buscar todos los empleos →
-          </Link>
-        </div>
-      </header>
 
       {/* Hero Section Premium */}
       <section className="relative bg-slate-900 text-white overflow-hidden py-16 px-4 sm:px-6 lg:px-8 shadow-inner">
@@ -312,7 +293,7 @@ export default async function RemoteLandingPage({ searchParams }: Props) {
           {/* Sidebar */}
           <aside className="lg:col-span-1 space-y-6">
             {/* Formulario de Suscripción preconfigurado con Remoto */}
-            <SubscribeForm location="Remoto" />
+            <SubscribeForm location="Remoto" defaultLocation="remoto" />
             
             {/* Push Notifications */}
             <PushSubscribe />

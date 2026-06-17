@@ -7,23 +7,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const email = searchParams.get('email') || '';
   const campaign = searchParams.get('campaign') || '';
-  const redirect = searchParams.get('redirect') || '';
-
-  if (email && campaign) {
-    const client = await pool.connect();
-    try {
-      // Registrar el click agregando un sufijo ':click' a la campaña
-      await client.query(
-        'INSERT INTO email_tracking (email, campaign) VALUES ($1, $2)',
-        [email.trim(), `${campaign.trim()}:click`]
-      );
-      console.log(`📈 Email click tracked: ${email} in campaign ${campaign}`);
-    } catch (error) {
-      console.error('Error logging email track-click:', error);
-    } finally {
-      client.release();
-    }
-  }
+  const redirect = searchParams.get('url') || searchParams.get('redirect') || '';
 
   // Redirigir al destino
   const redirectUrl = redirect ? decodeURIComponent(redirect) : '/';
@@ -32,6 +16,22 @@ export async function GET(request: NextRequest) {
   let targetUrl = '/';
   if (redirectUrl.startsWith('/') || redirectUrl.startsWith('http://localhost') || redirectUrl.startsWith('https://') || redirectUrl.startsWith('http://')) {
     targetUrl = redirectUrl;
+  }
+
+  if (email && campaign) {
+    const client = await pool.connect();
+    try {
+      // Registrar el click agregando un sufijo ':click' a la campaña y registrando la url cliqueada
+      await client.query(
+        'INSERT INTO email_tracking (email, campaign, clicked_url) VALUES ($1, $2, $3)',
+        [email.trim(), `${campaign.trim()}:click`, targetUrl]
+      );
+      console.log(`📈 Email click tracked: ${email} in campaign ${campaign} -> ${targetUrl}`);
+    } catch (error) {
+      console.error('Error logging email track-click:', error);
+    } finally {
+      client.release();
+    }
   }
 
   return NextResponse.redirect(new URL(targetUrl, request.url));

@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { usePathname } from 'next/navigation';
+import { sendGAEvent } from '@next/third-parties/google';
+
 
 // Banners de afiliado internos (no AdSense) — rápidos, sin JS externo, sin ad-blockers.
 const UDEMY_LINK = "https://trk.udemy.com/9VMAEj";
@@ -53,6 +55,7 @@ const ADS = [
     title: 'Certificaciones Cloud oficiales (AWS, GCP, Azure)',
     desc: 'Consigue tu certificado en la nube con cursos de Coursera.',
     cta: 'Ver Cursos →',
+    // NOTA: Reemplazar '123456' con tu ID real de afiliado de Coursera
     href: 'https://coursera.pxf.io/c/123456/1164968/14726',
     colors: 'from-sky-50 to-cyan-50 border-sky-200',
     ctaColors: 'bg-sky-600 hover:bg-sky-700 text-white',
@@ -63,11 +66,27 @@ const ADS = [
     title: 'Licencias JetBrains (WebStorm, PyCharm, IntelliJ)',
     desc: 'Optimiza tu productividad con los IDEs preferidos.',
     cta: 'Obtener IDE →',
+    // NOTA: Reemplazar '123456' con tu ID real de afiliado de JetBrains
     href: 'https://www.jetbrains.com/store/#affiliate=123456',
     colors: 'from-pink-50 to-rose-50 border-pink-200',
     ctaColors: 'bg-pink-600 hover:bg-pink-700 text-white',
   },
 ];
+
+// Helper para construir URLs de afiliados con parámetros UTM para análisis de conversión
+const getUtmUrl = (url: string, id: string, variant: string): string => {
+  try {
+    const parsedUrl = new URL(url);
+    parsedUrl.searchParams.set('utm_source', 'portalempleoit');
+    parsedUrl.searchParams.set('utm_medium', 'banner');
+    parsedUrl.searchParams.set('utm_campaign', id);
+    parsedUrl.searchParams.set('utm_content', variant);
+    return parsedUrl.toString();
+  } catch (e) {
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}utm_source=portalempleoit&utm_medium=banner&utm_campaign=${id}&utm_content=${variant}`;
+  }
+};
 
 declare global {
   interface Window {
@@ -271,10 +290,11 @@ export default function AdBanner({
             </div>
           </div>
           <a
-            href={ad.href}
+            href={getUtmUrl(ad.href, ad.id, variant)}
             target="_blank"
             rel="noopener noreferrer sponsored"
             className={`shrink-0 px-5 py-2 text-sm font-bold rounded-lg transition-colors shadow-sm ${ad.ctaColors}`}
+            onClick={() => sendGAEvent({ event: 'click_affiliate', value: ad.id })}
           >
             {ad.cta}
           </a>
@@ -297,10 +317,11 @@ export default function AdBanner({
                   <p className="text-gray-600 text-xs mb-4 leading-relaxed">{adItem.desc}</p>
                 </div>
                 <a
-                  href={adItem.href}
+                  href={getUtmUrl(adItem.href, adItem.id, variant)}
                   target="_blank"
                   rel="noopener noreferrer sponsored"
                   className={`block w-full text-center px-4 py-2 text-xs font-bold rounded-lg transition-colors shadow-sm ${adItem.ctaColors}`}
+                  onClick={() => sendGAEvent({ event: 'click_affiliate', value: adItem.id })}
                 >
                   {adItem.cta}
                 </a>
@@ -321,10 +342,11 @@ export default function AdBanner({
         <h4 className="font-bold text-gray-900 text-sm mb-1">{ad.title}</h4>
         <p className="text-gray-600 text-xs mb-4 leading-relaxed">{ad.desc}</p>
         <a
-          href={ad.href}
+          href={getUtmUrl(ad.href, ad.id, variant)}
           target="_blank"
           rel="noopener noreferrer sponsored"
           className={`block w-full text-center px-4 py-2.5 text-sm font-bold rounded-lg transition-colors shadow-sm ${ad.ctaColors}`}
+          onClick={() => sendGAEvent({ event: 'click_affiliate', value: ad.id })}
         >
           {ad.cta}
         </a>
