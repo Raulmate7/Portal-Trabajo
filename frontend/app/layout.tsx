@@ -81,7 +81,7 @@ export const metadata: Metadata = {
     },
   },
   other: {
-    "impact-site-verification": "58afcc07-f733-4e3d-99c2-05e359693a4c",
+    "impact-site-verification": "2348664d-36c1-45a5-8a74-a2dd472c4343",
   },
 };
 
@@ -96,6 +96,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
+        <meta name="impact-site-verification" value="2348664d-36c1-45a5-8a74-a2dd472c4343" />
         {/* Inicializador de Tema Oscuro para evitar flash de color */}
         <script
           id="theme-initializer"
