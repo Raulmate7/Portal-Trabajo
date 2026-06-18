@@ -4,7 +4,15 @@ const nextConfig: NextConfig = {
   // Le decimos a Next.js que 'mysql2' es una librería de servidor y no debe empaquetarla
   serverExternalPackages: ['mysql2'],
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'logo.clearbit.com',
+      },
+    ],
   },
   async headers() {
     return [

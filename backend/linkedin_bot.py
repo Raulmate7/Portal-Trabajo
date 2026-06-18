@@ -79,7 +79,7 @@ def upload_image_to_linkedin(access_token, urn, image_path, job_title):
             
         put_headers = {
             "Authorization": f"Bearer {access_token}",
-            "Content-Type": "image/png"
+            "Content-Type": "image/jpeg"
         }
         
         put_res = requests.put(upload_url, data=image_data, headers=put_headers, timeout=20)
@@ -125,6 +125,14 @@ def run_linkedin_bot():
         {"title": "Cómo superar una entrevista técnica de React", "slug": "como-superar-entrevista-tecnica-react"}
     ]
 
+    RHETORICAL_QUESTIONS = [
+        "¿Buscas dar el salto al teletrabajo o encontrar un puesto híbrido que se adapte a tu vida?",
+        "¿Quieres saber qué tecnologías están pagando mejores salarios este mes?",
+        "¿Estás listo/a para dar el siguiente paso en tu carrera profesional este año?",
+        "¿Sientes que tu talento está estancado? Es hora de buscar nuevos desafíos en el sector IT.",
+        "¿Buscas un cambio de aires con mejores condiciones y proyectos innovadores?"
+    ]
+
     # 2. Conectar a Base de Datos y obtener ofertas no publicadas en LinkedIn
     try:
         conn = psycopg2.connect(db_url)
@@ -140,6 +148,14 @@ def run_linkedin_bot():
         cur.execute(query)
         jobs = cur.fetchall()
         
+        # Consultar cuántas ofertas se han publicado en los últimos 7 días (formato compatible con MySQL via shim)
+        try:
+            cur.execute("SELECT COUNT(*) FROM jobs WHERE is_active = TRUE AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)")
+            recent_jobs_count = cur.fetchone()[0]
+        except Exception as cnt_err:
+            print(f"⚠️ Error al obtener contador de ofertas recientes: {cnt_err}")
+            recent_jobs_count = 0
+            
     except Exception as e:
         print(f"❌ Error consultando PostgreSQL: {e}")
         print("===============================================")
@@ -149,12 +165,21 @@ def run_linkedin_bot():
     if not jobs:
         print("💡 No hay ofertas nuevas sin publicar en LinkedIn. Publicando artículo recomendado del blog...")
         article = random.choice(BLOG_ARTICLES)
+        rhetorical_question = random.choice(RHETORICAL_QUESTIONS)
+        
+        stats_text = ""
+        if recent_jobs_count > 0:
+            stats_text = f"📊 Esta semana hemos publicado {recent_jobs_count} nuevas vacantes IT en nuestra web.\n\n"
+            
         post_text = (
             f"📚 ¡LECTURA RECOMENDADA PARA DESARROLLADORES! 🚀\n\n"
+            f"{rhetorical_question}\n\n"
+            f"{stats_text}"
             f"Compartimos este artículo de nuestro blog que te ayudará a impulsar tu carrera tecnológica:\n\n"
             f"💡 {article['title']}\n\n"
             f"👉 Lee el artículo completo aquí:\n"
-            f"🔗 {frontend_url}/blog/{article['slug']}\n\n"
+            f"🔗 {frontend_url}/blog/{article['slug']}?utm_source=linkedin&utm_medium=social&utm_campaign=linkedin_blog\n\n"
+            f"💬 ¿Qué opinas sobre este tema? Déjanos tu opinión abajo. ¡Te leemos! 👇\n\n"
             f"#DesarrolloSoftware #Programacion #CarreraIT #EmpleoTech #ConsejosBlog"
         )
         
@@ -201,13 +226,18 @@ def run_linkedin_bot():
 
     for idx, job in enumerate(jobs_to_post):
         job_id, title, company, location, salary, category = job
-        job_link = f"{frontend_url}/job/{get_job_slug(job_id, title, location, company)}"
+        job_link = f"{frontend_url}/job/{get_job_slug(job_id, title, location, company)}?utm_source=linkedin&utm_medium=social&utm_campaign=linkedin_oferta"
         
         cat_slug = get_sector_slug(title, category)
-        cat_url = f"{frontend_url}/trabajos/{cat_slug}"
+        cat_url = f"{frontend_url}/trabajos/{cat_slug}?utm_source=linkedin&utm_medium=social&utm_campaign=linkedin_cat_more"
+        
+        rhetorical_question = random.choice(RHETORICAL_QUESTIONS)
         
         # Formatear el contenido del post individual
         post_text = f"💼 ¡NUEVA OFERTA DE EMPLEO IT DESTACADA! 🚀\n\n"
+        post_text += f"{rhetorical_question}\n\n"
+        if recent_jobs_count > 0:
+            post_text += f"📊 ¡Ya hay {recent_jobs_count} nuevas vacantes IT publicadas esta semana!\n\n"
         post_text += f"Buscamos profesionales para el siguiente puesto en España:\n\n"
         post_text += f"📌 Puesto: {title}\n"
         post_text += f"🏢 Empresa: {company}\n"
@@ -219,12 +249,13 @@ def run_linkedin_bot():
         post_text += f"🔗 {job_link}\n\n"
         post_text += f"🔍 ¿Buscas algo diferente? Explora más ofertas de esta categoría:\n"
         post_text += f"🔗 {cat_url}\n\n"
+        post_text += f"💬 ¿Qué te parece esta oportunidad? Déjanos tu opinión o etiqueta a alguien interesado en los comentarios. 👇\n\n"
         post_text += "#EmpleoTech #TrabajoIT #DesarrolloSoftware #Programacion #Remoto #TalentoIT"
 
         print(f"\n📝 [Post {idx+1}/{len(jobs_to_post)}] Preparando post:\n{title} en {company}\n")
 
         # Generar imagen de la tarjeta de oferta
-        image_path = f"linkedin_card_{job_id}.png"
+        image_path = f"linkedin_card_{job_id}.jpg"
         has_image = False
         try:
             generate_job_card(

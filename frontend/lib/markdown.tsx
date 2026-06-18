@@ -24,7 +24,89 @@ export function parseInline(text: string): string {
   return escaped;
 }
 
-export function Markdown({ content }: { content: string }) {
+const techsSorted = [
+  'JavaScript', 'TypeScript', 'Node.js', 'Next.js',
+  'Kubernetes', 'Flutter', 'Angular', 'React', 'Python',
+  'Docker', 'Kotlin', 'Swift', 'Node', 'Java', 'Ruby',
+  'HTML', 'CSS', 'AWS', 'PHP', 'C#', 'Go'
+];
+
+const techPatterns = techsSorted.map(t => {
+  const escaped = t.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+  if (t === 'C#') {
+    return '\\bC#';
+  }
+  if (t === 'Go') {
+    return '\\bGo\\b';
+  }
+  return `\\b${escaped}\\b`;
+});
+
+const techRegex = new RegExp(`(${techPatterns.join('|')})`, 'g');
+
+const techSlugMap: Record<string, string> = {
+  'javascript': 'javascript',
+  'typescript': 'typescript',
+  'node.js': 'node',
+  'next.js': 'nextjs',
+  'kubernetes': 'kubernetes',
+  'flutter': 'flutter',
+  'angular': 'angular',
+  'react': 'react',
+  'python': 'python',
+  'docker': 'docker',
+  'kotlin': 'kotlin',
+  'swift': 'swift',
+  'node': 'node',
+  'java': 'java',
+  'ruby': 'ruby',
+  'html': 'informatica-tecnologia',
+  'css': 'informatica-tecnologia',
+  'aws': 'aws',
+  'php': 'php',
+  'c#': 'csharp',
+  'go': 'go'
+};
+
+export function autoLinkHtml(html: string, isEnglish: boolean): string {
+  const tokens = html.split(/(<\/?[a-zA-Z0-9]+(?:\s+[^>]*)?>)/);
+  let inLink = false;
+  let inCode = false;
+  
+  const queryParam = isEnglish ? '?lang=en' : '';
+
+  const processed = tokens.map(token => {
+    if (token.startsWith('<') && token.endsWith('>')) {
+      const lowerTag = token.toLowerCase();
+      if (lowerTag.startsWith('<a') || lowerTag.startsWith('<link')) {
+        inLink = true;
+      } else if (lowerTag.startsWith('</a')) {
+        inLink = false;
+      } else if (lowerTag.startsWith('<code') || lowerTag.startsWith('<pre')) {
+        inCode = true;
+      } else if (lowerTag.startsWith('</code') || lowerTag.startsWith('</pre')) {
+        inCode = false;
+      }
+      return token;
+    }
+    
+    if (inLink || inCode) {
+      return token;
+    }
+    
+    return token.replace(techRegex, (matched) => {
+      const slug = techSlugMap[matched.toLowerCase()];
+      if (slug) {
+        return `<a href="/trabajos/${slug}${queryParam}" class="text-indigo-650 hover:text-indigo-850 font-bold hover:underline">${matched}</a>`;
+      }
+      return matched;
+    });
+  });
+
+  return processed.join('');
+}
+
+export function Markdown({ content, isEnglish = false, autoLink = false }: { content: string; isEnglish?: boolean; autoLink?: boolean }) {
   const lines = content.split('\n');
   const blocks: React.ReactNode[] = [];
   
@@ -37,11 +119,15 @@ export function Markdown({ content }: { content: string }) {
     if (currentBlockType === 'p') {
       const textContent = currentLines.join('\n').trim();
       if (textContent) {
+        let htmlContent = parseInline(textContent);
+        if (autoLink) {
+          htmlContent = autoLinkHtml(htmlContent, isEnglish);
+        }
         blocks.push(
           <p
             key={key}
             className="mb-4 text-gray-700 leading-relaxed text-lg"
-            dangerouslySetInnerHTML={{ __html: parseInline(textContent) }}
+            dangerouslySetInnerHTML={{ __html: htmlContent }}
           />
         );
       }
@@ -50,10 +136,14 @@ export function Markdown({ content }: { content: string }) {
         <ul key={key} className="list-disc pl-6 mb-6 space-y-2 text-gray-700 text-lg">
           {currentLines.map((line, idx) => {
             const cleanLine = line.replace(/^[\*\-]\s+/, '');
+            let htmlContent = parseInline(cleanLine);
+            if (autoLink) {
+              htmlContent = autoLinkHtml(htmlContent, isEnglish);
+            }
             return (
               <li
                 key={idx}
-                dangerouslySetInnerHTML={{ __html: parseInline(cleanLine) }}
+                dangerouslySetInnerHTML={{ __html: htmlContent }}
               />
             );
           })}
@@ -64,10 +154,14 @@ export function Markdown({ content }: { content: string }) {
         <ol key={key} className="list-decimal pl-6 mb-6 space-y-2 text-gray-700 text-lg">
           {currentLines.map((line, idx) => {
             const cleanLine = line.replace(/^\d+\.\s+/, '');
+            let htmlContent = parseInline(cleanLine);
+            if (autoLink) {
+              htmlContent = autoLinkHtml(htmlContent, isEnglish);
+            }
             return (
               <li
                 key={idx}
-                dangerouslySetInnerHTML={{ __html: parseInline(cleanLine) }}
+                dangerouslySetInnerHTML={{ __html: htmlContent }}
               />
             );
           })}

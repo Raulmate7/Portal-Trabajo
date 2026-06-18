@@ -40,17 +40,23 @@ exit_code = os.system(f"{python_bin} telegram_bot.py")
 if exit_code != 0:
     print("⚠️ Advertencia: Telegram bot terminó con errores.")
 
+# 4.1. Enviar Digest Diario a Telegram
+print("\n[4.1/7] 📊 Enviando digest diario a Telegram (telegram_digest.py)...")
+exit_code = os.system(f"{python_bin} telegram_digest.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: Telegram digest terminó con errores.")
+
 # 4.5. Publicar en LinkedIn
 print("\n[4.5/7] 💼 Publicando ofertas en LinkedIn (linkedin_bot.py)...")
 exit_code = os.system(f"{python_bin} linkedin_bot.py")
 if exit_code != 0:
     print("⚠️ Advertencia: LinkedIn bot terminó con errores.")
 
-# 4.6. Publicar en Twitter (X)
-print("\n[4.6/7] 🐦 Publicando ofertas en Twitter/X (twitter_bot.py)...")
-exit_code = os.system(f"{python_bin} twitter_bot.py")
-if exit_code != 0:
-    print("⚠️ Advertencia: Twitter bot terminó con errores.")
+# 4.6. Publicar en Twitter (X) - OMITIDO POR PETICIÓN DEL USUARIO
+# print("\n[4.6/7] 🐦 Publicando ofertas en Twitter/X (twitter_bot.py)...")
+# exit_code = os.system(f"{python_bin} twitter_bot.py")
+# if exit_code != 0:
+#     print("⚠️ Advertencia: Twitter bot terminó con errores.")
 
 # 4.7. Publicar en Mastodon
 print("\n[4.7/7] 🐘 Publicando ofertas en Mastodon (mastodon_bot.py)...")

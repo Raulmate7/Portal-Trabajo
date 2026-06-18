@@ -265,3 +265,50 @@ export async function getReferralStats(email: string) {
   }
 }
 
+export async function submitCompanyReview(formData: FormData) {
+  const companySlug = formData.get('company_slug') as string;
+  const rating = parseInt(formData.get('rating') as string || '0', 10);
+  const reviewText = formData.get('review_text') as string;
+  const role = (formData.get('role') as string || 'Anónimo').trim();
+
+  if (!companySlug || rating < 1 || rating > 5 || !reviewText) {
+    return { message: 'Por favor, rellena la puntuación y el comentario.', success: false };
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query(
+      `INSERT INTO company_reviews (company_slug, rating, review_text, role, created_at)
+       VALUES ($1, $2, $3, $4, NOW())`,
+      [companySlug, rating, reviewText, role]
+    );
+    revalidatePath(`/empresas/${companySlug}`);
+    return { message: '¡Gracias por dejar tu reseña! 🚀 Se ha publicado con éxito.', success: true };
+  } catch (error) {
+    console.error('Error guardando reseña de empresa:', error);
+    return { message: 'Hubo un error al guardar tu reseña.', success: false };
+  } finally {
+    client.release();
+  }
+}
+
+export async function getCompanyReviews(companySlug: string) {
+  if (!companySlug) return [];
+  const client = await pool.connect();
+  try {
+    const res = await client.query(
+      `SELECT rating, review_text, role, created_at 
+       FROM company_reviews 
+       WHERE company_slug = $1 
+       ORDER BY created_at DESC`,
+      [companySlug]
+    );
+    return res.rows || [];
+  } catch (error) {
+    console.error("Error obteniendo reseñas de empresa:", error);
+    return [];
+  } finally {
+    client.release();
+  }
+}
+

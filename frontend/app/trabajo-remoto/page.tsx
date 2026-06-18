@@ -88,8 +88,6 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     description: `Encuentra las mejores ofertas de empleo 100% remoto para desarrolladores y profesionales tech. Trabaja desde casa en React, Python, Java, DevOps y más.${isPaged ? ` (Página ${page})` : ''}`,
     alternates: {
       canonical: `${BASE_URL}/trabajo-remoto`,
-      prev: isPaged ? `${BASE_URL}/trabajo-remoto${page > 2 ? `?page=${page - 1}` : ''}` : undefined,
-      next: hasNextPage ? `${BASE_URL}/trabajo-remoto?page=${page + 1}` : undefined,
     },
     openGraph: {
       title: `Empleo IT 100% Remoto — Trabaja desde Casa${isPaged ? ` (Página ${page})` : ''}`,
@@ -123,8 +121,15 @@ export default async function RemoteLandingPage({ searchParams }: Props) {
     getRemoteStats(),
   ]);
 
+  const isPaged = validPage > 1;
+  const hasNextPage = validPage * 30 < stats.total;
+  const prevUrl = isPaged ? `${BASE_URL}/trabajo-remoto${validPage > 2 ? `?page=${validPage - 1}` : ''}` : null;
+  const nextUrl = hasNextPage ? `${BASE_URL}/trabajo-remoto?page=${validPage + 1}` : null;
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
+      {prevUrl && <link rel="prev" href={prevUrl} />}
+      {nextUrl && <link rel="next" href={nextUrl} />}
 
       {/* Hero Section Premium */}
       <section className="relative bg-slate-900 text-white overflow-hidden py-16 px-4 sm:px-6 lg:px-8 shadow-inner">
@@ -297,9 +302,11 @@ export default async function RemoteLandingPage({ searchParams }: Props) {
             
             {/* Push Notifications */}
             <PushSubscribe />
-
-            {/* Banner de afiliado / cursos */}
-            <AdBanner variant="sidebar" />
+            
+            <div className="lg:sticky lg:top-24">
+              {/* Banner de afiliado / cursos */}
+              <AdBanner variant="sidebar" />
+            </div>
           </aside>
 
         </div>

@@ -4,6 +4,7 @@ import psycopg2
 import random
 from datetime import datetime
 import time
+from logic.slug import get_job_slug
 
 def get_sector_slug(title, category):
     title_lower = (title or "").lower()
@@ -116,7 +117,7 @@ def run_mastodon_bot():
             f"📚 ¡Artículo recomendado de nuestro blog para desarrolladores! 🚀\n\n"
             f"💡 {article['title']}\n\n"
             f"👉 Lee el artículo completo aquí:\n"
-            f"🔗 {frontend_url}/blog/{article['slug']}\n\n"
+            f"🔗 {frontend_url}/blog/{article['slug']}?utm_source=mastodon&utm_medium=social&utm_campaign=toot_blog\n\n"
             f"#BlogIT #CarreraIT #DesarrolloSoftware #Programacion #FediJobs #WebDev"
         )
         post_to_mastodon(instance, access_token, status_text)
@@ -132,7 +133,7 @@ def run_mastodon_bot():
 
     for idx, job in enumerate(jobs_to_post):
         job_id, title, company, location, salary, category = job
-        job_url = f"{frontend_url}/job/{job_id}"
+        job_url = f"{frontend_url}/job/{get_job_slug(job_id, title, location, company)}?utm_source=mastodon&utm_medium=social&utm_campaign=toot_oferta"
         
         # Extraer hashtags según el título
         title_lower = title.lower()
@@ -148,7 +149,7 @@ def run_mastodon_bot():
         hashtags_str = " ".join(tags) + " #Programacion"
         
         cat_slug = get_sector_slug(title, category)
-        cat_url = f"{frontend_url}/trabajos/{cat_slug}"
+        cat_url = f"{frontend_url}/trabajos/{cat_slug}?utm_source=mastodon&utm_medium=social&utm_campaign=toot_cat_more"
         
         # Formatear el toot
         status_text = f"🚀 ¡Nueva oferta de empleo IT recién indexada!\n\n"

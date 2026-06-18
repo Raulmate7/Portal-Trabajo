@@ -16,7 +16,7 @@ EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 def get_onboarding_jobs(cur, tech_keywords):
     """Obtiene hasta 3 ofertas recientes que coincidan con las tecnologías del suscriptor."""
     params = []
-    sql = "SELECT id, title, company, location, salary FROM jobs WHERE is_active = TRUE"
+    sql = "SELECT id, title, company, location, salary, category FROM jobs WHERE is_active = TRUE"
     
     if tech_keywords and tech_keywords.strip():
         keywords = [k.strip() for k in tech_keywords.split(',') if k.strip()]
@@ -38,8 +38,9 @@ def build_welcome_email(email, tech_keywords, jobs):
     
     if jobs:
         for job in jobs:
-            job_id, title, company, location, salary = job
-            original_link = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_1"
+            job_id, title, company, location, salary, category = job
+            category = category or 'Otros'
+            original_link = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_1&utm_term={urllib.parse.quote(category)}&utm_content={job_id}"
             job_link = f"{BASE_URL}/api/track-click?email={email}&campaign=welcome_email_1&redirect={urllib.parse.quote(original_link)}"
             sal_text = f" | 💰 {salary}" if salary and salary not in ("Consultar", "") else ""
             jobs_html += f"""
@@ -54,6 +55,8 @@ def build_welcome_email(email, tech_keywords, jobs):
 
     original_explore_link = f"{BASE_URL}?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_1"
     explore_link = f"{BASE_URL}/api/track-click?email={email}&campaign=welcome_email_1&redirect={urllib.parse.quote(original_explore_link)}"
+    original_referidos_link = f"{BASE_URL}/referidos?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_1"
+    referidos_link = f"{BASE_URL}/api/track-click?email={email}&campaign=welcome_email_1&redirect={urllib.parse.quote(original_referidos_link)}"
 
     return f"""
     <html>
@@ -80,6 +83,8 @@ def build_welcome_email(email, tech_keywords, jobs):
                 
                 <p style="font-size: 13px; color: #6b7280; margin-top: 30px;">
                     En los próximos días te enviaremos una guía para comprobar salarios IT reales en España. Si tienes dudas, puedes responder directamente a este correo.
+                    <br/><br/>
+                    👥 <strong>¿Quieres ventajas premium gratis?</strong> Invita a tus amigos usando tu enlace personalizado en nuestro <a href="{referidos_link}" style="color: #4f46e5; font-weight: bold; text-decoration: none;">Programa de Referidos</a>.
                 </p>
             </div>
             <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
@@ -104,6 +109,8 @@ def build_resources_email(email):
     
     original_salarios_link = f"{BASE_URL}/salarios?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_2"
     salarios_track = f"{BASE_URL}/api/track-click?email={email}&campaign=welcome_email_2&redirect={urllib.parse.quote(original_salarios_link)}"
+    original_referidos_link = f"{BASE_URL}/referidos?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_2"
+    referidos_track = f"{BASE_URL}/api/track-click?email={email}&campaign=welcome_email_2&redirect={urllib.parse.quote(original_referidos_link)}"
     
     return f"""
     <html>
@@ -136,6 +143,16 @@ def build_resources_email(email):
                 <div style="text-align: center; margin: 16px 0;">
                     <a href="{cv_track}" style="display: inline-block; background: #10b981; color: white; padding: 8px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px;">
                         Ver Plantillas ATS →
+                    </a>
+                </div>
+
+                <h3 style="color: #1e1b4b; margin-top: 24px; font-size: 16px;">👥 Programa de Referidos IT</h3>
+                <p style="font-size: 13.5px; color: #4b5563; margin-top: 0;">
+                    ¿Te gusta nuestro portal? ¡Compártelo con tus compañeros! Si traes a <strong>3 referidos</strong>, todos obtendréis ventajas premium gratis y visibilidad destacada en el portal.
+                </p>
+                <div style="text-align: center; margin: 16px 0;">
+                    <a href="{referidos_track}" style="display: inline-block; background: #6366f1; color: white; padding: 8px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px;">
+                        Obtener mi enlace de referido →
                     </a>
                 </div>
             </div>

@@ -1,296 +1,36 @@
-'use client';
-
-import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import AdBanner from '@/components/AdBanner';
+import SalariosCalculator from '@/components/SalariosCalculator';
+import { calculateSalaryStats } from '@/lib/salarios';
+import { Metadata } from 'next';
 
-const TECH_OPTIONS = [
-  { value: '', label: 'Todas las tecnologías' },
-  { value: 'react', label: '⚛️ React' },
-  { value: 'node', label: '🟩 Node.js' },
-  { value: 'python', label: '🐍 Python' },
-  { value: 'java', label: '☕ Java' },
-  { value: 'typescript', label: '🔷 TypeScript' },
-  { value: 'aws', label: '☁️ AWS / Cloud' },
-  { value: 'docker', label: '🐳 Docker / DevOps' },
-  { value: 'flutter', label: '📱 Flutter / Mobile' },
-  { value: 'csharp', label: '🔵 C# / .NET' },
-  { value: 'php', label: '🐘 PHP' },
-  { value: 'sql', label: '🗃️ SQL / Data' },
-];
+export const metadata: Metadata = {
+  title: 'Calculadora de Salarios IT en España [2026] | Portal Trabajo IT',
+  description: 'Descubre cuánto cobra un desarrollador o profesional de tecnología en España. Calcula el salario medio bruto anual por tecnología, ciudad y experiencia.',
+  alternates: {
+    canonical: '/salarios',
+  },
+};
 
-const LOCATION_OPTIONS = [
-  { value: '', label: 'Toda España' },
-  { value: 'remoto', label: '🌐 Remoto' },
-  { value: 'madrid', label: '🏙️ Madrid' },
-  { value: 'barcelona', label: '🏛️ Barcelona' },
-  { value: 'valencia', label: '🌊 Valencia' },
-  { value: 'bilbao', label: '🏔️ Bilbao' },
-  { value: 'sevilla', label: '☀️ Sevilla' },
-];
+type Props = {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
 
-const EXPERIENCE_OPTIONS = [
-  { value: '', label: 'Todos los niveles' },
-  { value: 'junior', label: '🌱 Junior (0–2 años)' },
-  { value: 'senior', label: '🏆 Senior (5+ años)' },
-];
+export default async function SalariosPage({ searchParams }: Props) {
+  const resolvedSearchParams = await searchParams;
+  const tech = typeof resolvedSearchParams.tech === 'string' ? resolvedSearchParams.tech : '';
+  const location = typeof resolvedSearchParams.location === 'string' ? resolvedSearchParams.location : '';
+  const experience = typeof resolvedSearchParams.experience === 'string' ? resolvedSearchParams.experience : '';
 
-interface SalaryData {
-  count: number;
-  average: number | null;
-  median: number | null;
-  min: number | null;
-  max: number | null;
-  p25: number | null;
-  p75: number | null;
-  message?: string;
-}
+  // Pre-calcular estadísticas en el servidor
+  const initialData = await calculateSalaryStats(tech, location, experience);
 
-function formatEur(val: number | null): string {
-  if (val === null) return 'N/D';
-  return `${val.toLocaleString('es-ES')}€`;
-}
+  const initialParams = {
+    tech,
+    location,
+    experience
+  };
 
-function SalariosCalculator() {
-  const searchParams = useSearchParams();
-
-  const [tech, setTech] = useState('');
-  const [location, setLocation] = useState('');
-  const [experience, setExperience] = useState('');
-  const [data, setData] = useState<SalaryData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [queried, setQueried] = useState(false);
-  const [copiedShare, setCopiedShare] = useState(false);
-
-  const techLabel = TECH_OPTIONS.find(t => t.value === tech)?.label?.replace(/^.{2}\s/, '') || 'IT';
-  const locLabel = LOCATION_OPTIONS.find(l => l.value === location)?.label?.replace(/^.{2}\s/, '') || 'España';
-  const expLabel = EXPERIENCE_OPTIONS.find(e => e.value === experience)?.label?.replace(/^.{2}\s/, '') || '';
-
-  // Efecto para inicializar filtros desde la URL y realizar el primer cálculo automático
-  useEffect(() => {
-    const pTech = searchParams.get('tech') || '';
-    const pLoc = searchParams.get('location') || '';
-    const pExp = searchParams.get('experience') || '';
-
-    setTech(pTech);
-    setLocation(pLoc);
-    setExperience(pExp);
-
-    if (pTech || pLoc || pExp) {
-      triggerCalculate(pTech, pLoc, pExp);
-    }
-  }, [searchParams]);
-
-  async function triggerCalculate(t: string, l: string, e: string) {
-    setLoading(true);
-    setQueried(true);
-    try {
-      const params = new URLSearchParams();
-      if (t) params.set('tech', t);
-      if (l) params.set('location', l);
-      if (e) params.set('experience', e);
-      const res = await fetch(`/api/salarios?${params.toString()}`);
-      const json = await res.json();
-      setData(json);
-    } catch {
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function calculate() {
-    await triggerCalculate(tech, location, experience);
-  }
-
-  const rangePercent = data?.min && data?.max && data?.average
-    ? Math.round(((data.average - data.min) / (data.max - data.min)) * 100)
-    : 50;
-
-  return (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 md:p-8 -mt-8 relative z-10">
-      <h2 className="text-lg font-bold text-gray-800 mb-6">🔍 Personaliza tu búsqueda salarial</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Tecnología</label>
-          <select
-            id="sal-tech"
-            value={tech}
-            onChange={e => setTech(e.target.value)}
-            className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
-          >
-            {TECH_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Ubicación</label>
-          <select
-            id="sal-location"
-            value={location}
-            onChange={e => setLocation(e.target.value)}
-            className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
-          >
-            {LOCATION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Experiencia</label>
-          <select
-            id="sal-experience"
-            value={experience}
-            onChange={e => setExperience(e.target.value)}
-            className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
-          >
-            {EXPERIENCE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        </div>
-      </div>
-      <button
-        id="sal-calculate-btn"
-        onClick={calculate}
-        disabled={loading}
-        className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-50 hover:to-violet-500 text-white font-bold py-3 rounded-xl transition-all hover:scale-[1.01] active:scale-[0.99] shadow-md disabled:opacity-60 mb-6"
-      >
-        {loading ? '⚙️ Calculando...' : '💰 Calcular Salario'}
-      </button>
-
-      {/* Resultados */}
-      {queried && (
-        <div className="mt-8">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-              <p className="text-gray-500 text-sm">Calculando salarios...</p>
-            </div>
-          ) : !data || data.count === 0 ? (
-            <div className="text-center py-12 bg-white rounded-2xl border border-gray-105 shadow-sm">
-              <span className="text-5xl block mb-4">📭</span>
-              <p className="text-gray-650 font-medium">{data?.message || 'No hay suficientes datos para este filtro.'}</p>
-              <p className="text-sm text-gray-400 mt-2">Prueba una tecnología diferente o amplía los filtros.</p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Tarjeta principal */}
-              <div className="bg-gradient-to-br from-indigo-900 to-violet-900 rounded-2xl p-8 text-white text-center shadow-xl">
-                <p className="text-indigo-300 text-sm font-medium mb-1">
-                  Salario medio de {techLabel}{expLabel ? ` ${expLabel}` : ''} en {locLabel}
-                </p>
-                <p className="text-6xl font-black mb-2">{formatEur(data.average)}</p>
-                <p className="text-indigo-300 text-xs">Bruto anual estimado · {data.count} ofertas analizadas</p>
-
-                {/* Barra de rango */}
-                <div className="mt-6">
-                  <div className="flex justify-between text-xs text-indigo-300 mb-1">
-                    <span>Mínimo: {formatEur(data.min)}</span>
-                    <span>Máximo: {formatEur(data.max)}</span>
-                  </div>
-                  <div className="relative h-3 bg-indigo-800 rounded-full overflow-hidden">
-                    <div
-                      className="absolute top-0 left-0 h-full bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full transition-all duration-700"
-                      style={{ width: `${rangePercent}%` }}
-                    />
-                    <div
-                      className="absolute top-0 w-3 h-3 bg-white rounded-full shadow-md transition-all duration-700"
-                      style={{ left: `calc(${rangePercent}% - 6px)` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Botón de Compartir */}
-                <div className="mt-6 pt-6 border-t border-indigo-800/60 flex justify-center">
-                  <button
-                    onClick={async () => {
-                      const url = `${window.location.origin}/salarios?tech=${tech}&location=${location}&experience=${experience}`;
-                      const shareText = `El salario medio para ${techLabel}${expLabel ? ` ${expLabel}` : ''} en ${locLabel} es de ${formatEur(data.average)} según Portal Trabajo IT. ¡Calcula el tuyo!`;
-                      if (navigator.share) {
-                        try {
-                          await navigator.share({
-                            title: 'Calculadora de Salarios IT',
-                            text: shareText,
-                            url: url,
-                          });
-                        } catch (e) {}
-                      } else {
-                        try {
-                          await navigator.clipboard.writeText(url);
-                          setCopiedShare(true);
-                          setTimeout(() => setCopiedShare(false), 2000);
-                        } catch (e) {}
-                      }
-                    }}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 active:scale-95 transition-all text-sm font-bold text-white border border-white/10 cursor-pointer"
-                  >
-                    {copiedShare ? '✅ Enlace Copiado' : '📤 Compartir Resultado'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Cards de percentiles */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[
-                  { label: 'Percentil 25%', value: data.p25, icon: '📉', desc: 'Salario bajo' },
-                  { label: 'Mediana (P50)', value: data.median, icon: '⚖️', desc: 'Salario típico' },
-                  { label: 'Percentil 75%', value: data.p75, icon: '📈', desc: 'Buen salario' },
-                  { label: 'Máximo', value: data.max, icon: '🏆', desc: 'Mejor salario' },
-                ].map(card => (
-                  <div key={card.label} className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm text-center">
-                    <span className="text-2xl block mb-1">{card.icon}</span>
-                    <p className="text-xl font-bold text-indigo-700">{formatEur(card.value)}</p>
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mt-1">{card.label}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{card.desc}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* CTA */}
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 flex flex-col md:flex-row items-center gap-4">
-                <div className="flex-1">
-                  <h3 className="font-bold text-amber-900 mb-1">¿Quieres llegar al P75?</h3>
-                  <p className="text-sm text-amber-700">Los perfiles senior con certificaciones cloud cobran de media un 40% más. Forma tu perfil con cursos especializados.</p>
-                </div>
-                <a
-                  href="https://trk.udemy.com/9VMAEj"
-                  target="_blank"
-                  rel="noopener noreferrer sponsored"
-                  className="shrink-0 bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold px-5 py-2.5 rounded-lg text-sm transition-colors"
-                >
-                  Ver Cursos →
-                </a>
-              </div>
-
-              {/* Disclaimer */}
-              <p className="text-center text-xs text-gray-400">
-                * Datos calculados a partir de las ofertas publicadas en{' '}
-                <Link href="/" className="text-indigo-500 hover:underline">Portal Trabajo IT</Link>{' '}
-                con salario visible. Pueden no representar el mercado completo.
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Estado inicial - guía de uso */}
-      {!queried && (
-        <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[
-            { icon: '🎯', title: 'Datos Reales', desc: 'Calculamos a partir de ofertas de empleo active con salario visible publicadas en nuestra plataforma.' },
-            { icon: '📊', title: 'Percentiles Salariales', desc: 'No solo el promedio: te mostramos el rango completo y los percentiles P25, P50 y P75.' },
-            { icon: '🔗', title: 'Comparte tu resultado', desc: 'Comparte esta herramienta con tu red para negociar mejor tu próximo salario.' },
-          ].map(card => (
-            <div key={card.title} className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm text-center">
-              <span className="text-4xl block mb-3">{card.icon}</span>
-              <h3 className="font-bold text-gray-800 mb-1 text-sm">{card.title}</h3>
-              <p className="text-xs text-gray-505 leading-relaxed">{card.desc}</p>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-export default function SalariosPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       {/* Hero */}
@@ -313,60 +53,63 @@ export default function SalariosPage() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 py-10">
-        <Suspense fallback={
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 flex flex-col items-center justify-center min-h-[200px] gap-3 -mt-8 relative z-10">
-            <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-            <p className="text-gray-500 text-sm font-medium">Cargando calculadora de salarios...</p>
-          </div>
-        }>
-          <SalariosCalculator />
-        </Suspense>
+      <div className="max-w-5xl mx-auto px-4 py-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          {/* Calculadora de Salarios con Datos Iniciales pre-cargados por SSR */}
+          <SalariosCalculator initialData={initialData} initialParams={initialParams} />
 
-        {/* Sección de Interlinking de Informes Salariales */}
-        <div className="mt-10 bg-white rounded-2xl p-6 md:p-8 border border-gray-100 shadow-sm relative z-10">
-          <h3 className="text-base font-bold text-gray-950 mb-5 flex items-center gap-2">
-            <span>🔍</span> Informes Salariales IT más Buscados
-          </h3>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-sm">
-            <div>
-              <h4 className="font-bold text-gray-800 mb-2.5 border-b border-gray-100 pb-1.5">Por Tecnología</h4>
-              <ul className="space-y-2 text-indigo-650 font-semibold">
-                <li><Link href="/salarios/react" className="hover:underline">React Developer</Link></li>
-                <li><Link href="/salarios/node" className="hover:underline">Node.js Developer</Link></li>
-                <li><Link href="/salarios/python" className="hover:underline">Python Developer</Link></li>
-                <li><Link href="/salarios/java" className="hover:underline">Java Developer</Link></li>
-                <li><Link href="/salarios/typescript" className="hover:underline">TypeScript Developer</Link></li>
-              </ul>
-            </div>
+          {/* Sección de Interlinking de Informes Salariales */}
+          <div className="bg-white rounded-2xl p-6 md:p-8 border border-gray-100 shadow-sm relative z-10">
+            <h3 className="text-base font-bold text-gray-950 mb-5 flex items-center gap-2">
+              <span>🔍</span> Informes Salariales IT más Buscados
+            </h3>
             
-            <div>
-              <h4 className="font-bold text-gray-800 mb-2.5 border-b border-gray-100 pb-1.5">Por Ciudad</h4>
-              <ul className="space-y-2 text-indigo-650 font-semibold">
-                <li><Link href="/salarios/react/madrid" className="hover:underline">React en Madrid</Link></li>
-                <li><Link href="/salarios/node/remoto" className="hover:underline">Node.js en Remoto</Link></li>
-                <li><Link href="/salarios/python/barcelona" className="hover:underline">Python en Barcelona</Link></li>
-                <li><Link href="/salarios/java/madrid" className="hover:underline">Java en Madrid</Link></li>
-                <li><Link href="/salarios/typescript/remoto" className="hover:underline">TypeScript en Remoto</Link></li>
-              </ul>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-sm">
+              <div>
+                <h4 className="font-bold text-gray-800 mb-2.5 border-b border-gray-100 pb-1.5">Por Tecnología</h4>
+                <ul className="space-y-2 text-indigo-650 font-semibold">
+                  <li><Link href="/salarios/react" className="hover:underline">React Developer</Link></li>
+                  <li><Link href="/salarios/node" className="hover:underline">Node.js Developer</Link></li>
+                  <li><Link href="/salarios/python" className="hover:underline">Python Developer</Link></li>
+                  <li><Link href="/salarios/java" className="hover:underline">Java Developer</Link></li>
+                  <li><Link href="/salarios/typescript" className="hover:underline">TypeScript Developer</Link></li>
+                </ul>
+              </div>
+              
+              <div>
+                <h4 className="font-bold text-gray-800 mb-2.5 border-b border-gray-100 pb-1.5">Por Ciudad</h4>
+                <ul className="space-y-2 text-indigo-650 font-semibold">
+                  <li><Link href="/salarios/react/madrid" className="hover:underline">React en Madrid</Link></li>
+                  <li><Link href="/salarios/node/remoto" className="hover:underline">Node.js en Remoto</Link></li>
+                  <li><Link href="/salarios/python/barcelona" className="hover:underline">Python en Barcelona</Link></li>
+                  <li><Link href="/salarios/java/madrid" className="hover:underline">Java en Madrid</Link></li>
+                  <li><Link href="/salarios/typescript/remoto" className="hover:underline">TypeScript en Remoto</Link></li>
+                </ul>
+              </div>
+              
+              <div>
+                <h4 className="font-bold text-gray-800 mb-2.5 border-b border-gray-100 pb-1.5">Por Experiencia</h4>
+                <ul className="space-y-2 text-indigo-650 font-semibold">
+                  <li><Link href="/salarios/react/remoto/senior" className="hover:underline">React Senior en Remoto</Link></li>
+                  <li><Link href="/salarios/java/madrid/junior" className="hover:underline">Java Junior en Madrid</Link></li>
+                  <li><Link href="/salarios/node/remoto/senior" className="hover:underline">Node.js Senior en Remoto</Link></li>
+                  <li><Link href="/salarios/python/madrid/senior" className="hover:underline">Python Senior en Madrid</Link></li>
+                  <li><Link href="/salarios/typescript/barcelona/junior" className="hover:underline">TypeScript Junior en BCN</Link></li>
+                </ul>
+              </div>
             </div>
-            
-            <div>
-              <h4 className="font-bold text-gray-800 mb-2.5 border-b border-gray-100 pb-1.5">Por Experiencia</h4>
-              <ul className="space-y-2 text-indigo-650 font-semibold">
-                <li><Link href="/salarios/react/remoto/senior" className="hover:underline">React Senior en Remoto</Link></li>
-                <li><Link href="/salarios/java/madrid/junior" className="hover:underline">Java Junior en Madrid</Link></li>
-                <li><Link href="/salarios/node/remoto/senior" className="hover:underline">Node.js Senior en Remoto</Link></li>
-                <li><Link href="/salarios/python/madrid/senior" className="hover:underline">Python Senior en Madrid</Link></li>
-                <li><Link href="/salarios/typescript/barcelona/junior" className="hover:underline">TypeScript Junior en BCN</Link></li>
-              </ul>
-            </div>
+          </div>
+
+          <div className="mt-8">
+            <AdBanner variant="inline" />
           </div>
         </div>
 
-        <div className="mt-8">
-          <AdBanner variant="inline" />
+        {/* Barra lateral con anuncio AdSense Sticky */}
+        <div className="lg:col-span-1 space-y-6">
+          <div className="lg:sticky lg:top-24">
+            <AdBanner variant="sidebar" />
+          </div>
         </div>
       </div>
     </main>

@@ -58,9 +58,14 @@ export default function Footer() {
     { label: 'Tarifas y Precios', href: '/precios' },
     { label: '📢 Anúnciate / Publicidad', href: '/publicidad' },
     { label: 'Blog', href: '/blog' },
+    { label: '📖 Glosario IT', href: '/glosario' },
+    { label: '📰 Noticias Tech', href: '/noticias' },
+    { label: '📈 Tendencias Tech', href: '/tendencias' },
+    { label: '👥 Programa de Referidos', href: '/referidos' },
   ];
 
   const legal = [
+    { label: 'Mapa del Sitio', href: '/mapa-del-sitio' },
     { label: 'Aviso Legal', href: '/aviso-legal' },
     { label: 'Política de Privacidad', href: '/privacy' },
     { label: 'Política de Cookies', href: '/cookies' },

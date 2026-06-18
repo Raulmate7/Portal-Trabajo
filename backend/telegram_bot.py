@@ -131,25 +131,25 @@ def send_to_telegram():
             message += f"📁 <b>{cat}</b>\n"
             for job in cat_jobs:
                 job_id, title, company, location, salary, _ = job
-                job_url = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}"
+                job_url = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=telegram&utm_medium=social&utm_campaign=tg_general_job"
                 title_clean = title.replace('<', '').replace('>', '')
                 company_clean = company.replace('<', '').replace('>', '') if company else "Desconocida"
                 message += f"▪️ <a href='{job_url}'>{title_clean}</a> en {company_clean}\n"
             cat_slug = get_sector_slug("", cat)
-            message += f"🔗 <a href='{BASE_URL}/trabajos/{cat_slug}'>Ver más ofertas de {cat}</a>\n\n"
+            message += f"🔗 <a href='{BASE_URL}/trabajos/{cat_slug}?utm_source=telegram&utm_medium=social&utm_campaign=tg_general_cat_more'>Ver más ofertas de {cat}</a>\n\n"
 
         message += (
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"⭐ <b>¿Eres Senior (+3 años)?</b>\n"
             f"Accede a ofertas exclusivas con salarios +45K.\n"
-            f"👉 <a href=\"{BASE_URL}/talento-premium\">Registrarse gratis</a>\n"
+            f"👉 <a href=\"{BASE_URL}/talento-premium?utm_source=telegram&utm_medium=social&utm_campaign=tg_general_premium_cta\">Registrarse gratis</a>\n"
             f"━━━━━━━━━━━━━━━━━━━━"
         )
         
         reply_markup = {
             "inline_keyboard": [
                 [
-                    {"text": "🔍 Ver todas las ofertas en la web", "url": BASE_URL}
+                    {"text": "🔍 Ver todas las ofertas en la web", "url": f"{BASE_URL}?utm_source=telegram&utm_medium=social&utm_campaign=tg_general_web_btn"}
                 ],
                 [
                     {"text": "👍 Me interesa", "callback_data": "like_general"},
@@ -182,14 +182,16 @@ def send_to_telegram():
         
         for job in cat_jobs:
             job_id, title, company, location, salary, _ = job
-            job_url = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}"
+            cat_slug_utm = cat_name.lower().replace(' & ', '_').replace(' ', '_')
+            job_url = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=telegram&utm_medium=social&utm_campaign=tg_{cat_slug_utm}_job"
             title_clean = title.replace('<', '').replace('>', '')
             company_clean = company.replace('<', '').replace('>', '') if company else "Desconocida"
             salary_text = f" | 💰 {salary}" if salary and salary != "Consultar" else ""
             cat_message += f"▪️ <a href='{job_url}'>{title_clean}</a> en {company_clean} (📍 {location}{salary_text})\n"
             
         cat_slug = get_sector_slug("", cat_name)
-        cat_message += f"\n👉 <a href='{BASE_URL}/trabajos/{cat_slug}'>Ver más ofertas de {cat_name}</a>"
+        cat_slug_utm = cat_name.lower().replace(' & ', '_').replace(' ', '_')
+        cat_message += f"\n👉 <a href='{BASE_URL}/trabajos/{cat_slug}?utm_source=telegram&utm_medium=social&utm_campaign=tg_{cat_slug_utm}_cat_more'>Ver más ofertas de {cat_name}</a>"
         
         # Inyectar botones de reacciones
         cat_slug = cat_name.lower().replace(' & ', '_').replace(' ', '_')
@@ -211,13 +213,13 @@ def send_to_telegram():
         
         for job in remote_jobs:
             job_id, title, company, location, salary, _ = job
-            job_url = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}"
+            job_url = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=telegram&utm_medium=social&utm_campaign=tg_remoto_job"
             title_clean = title.replace('<', '').replace('>', '')
             company_clean = company.replace('<', '').replace('>', '') if company else "Desconocida"
             salary_text = f" | 💰 {salary}" if salary and salary != "Consultar" else ""
             remoto_message += f"▪️ <a href='{job_url}'>{title_clean}</a> en {company_clean}{salary_text}\n"
             
-        remoto_message += f"\n👉 <a href='{BASE_URL}/trabajo-remoto'>Ver todas las ofertas en remoto</a>"
+        remoto_message += f"\n👉 <a href='{BASE_URL}/trabajo-remoto?utm_source=telegram&utm_medium=social&utm_campaign=tg_remoto_more'>Ver todas las ofertas en remoto</a>"
         
         # Inyectar botones de reacciones
         reply_markup_remoto = {

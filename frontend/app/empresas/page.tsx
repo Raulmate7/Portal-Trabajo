@@ -272,9 +272,11 @@ export default async function EmpresasDirectoryPage() {
 
         {/* Sidebar */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="sticky top-6 space-y-6">
+          <div className="space-y-6">
             <SubscribeForm location="Empresas en España" />
-            <AdBanner variant="sidebar" />
+            <div className="lg:sticky lg:top-24">
+              <AdBanner variant="sidebar" />
+            </div>
           </div>
         </div>
       </div>

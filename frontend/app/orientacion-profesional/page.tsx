@@ -250,6 +250,10 @@ export default function OrientacionQuizPage() {
                 </div>
               </div>
 
+              <div className="my-6">
+                <AdBanner variant="multiplex" tech={result?.slug} />
+              </div>
+
               {/* Botón para resetear */}
               <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
                 <button

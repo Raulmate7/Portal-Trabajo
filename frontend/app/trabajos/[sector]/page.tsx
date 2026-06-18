@@ -3,6 +3,7 @@ import JobCard from "@/components/JobCard";
 import SubscribeForm from "@/components/SubscribeForm";
 import AdBanner from "@/components/AdBanner";
 import PushSubscribe from "@/components/PushSubscribe";
+import { ReferralWidget } from "@/components/Widgets";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import Link from "next/link";
 import { Metadata } from "next";
@@ -134,12 +135,12 @@ const adMap: Record<string, { title: string, text: string, link: string }> = {
   'backend': { 
     title: '¿Quieres ser experto en Java/Spring?', 
     text: 'Las empresas pagan +40k a los seniors. Fórmate aquí.', 
-    link: 'https://trk.udemy.com/9VMAEj' 
+    link: 'https://trk.udemy.com/9VMAEj?ulp=https%3A%2F%2Fwww.udemy.com%2Fcourses%2Fsearch%2F%3Fq%3Djava+spring+backend'
   },
   'data': { 
     title: 'Domina el Big Data y PowerBI', 
     text: 'El perfil más demandado de 2026.', 
-    link: 'https://trk.udemy.com/9VMAEj'
+    link: 'https://trk.udemy.com/9VMAEj?ulp=https%3A%2F%2Fwww.udemy.com%2Fcourses%2Fsearch%2F%3Fq%3Dbig+data+powerbi'
   }
 };
 
@@ -293,6 +294,123 @@ function parseSector(sectorSlug: string) {
   return { tec, ciudad, experiencia, modalidad, dbCategory, salaryMin, salaryMax };
 }
 
+const getJobsCount = cache(async (
+  tec: string, 
+  ciudad: string, 
+  dbCategory: string | undefined, 
+  experiencia: string = '', 
+  modalidad: string = '',
+  salaryMin?: number | null,
+  salaryMax?: number | null
+): Promise<number> => {
+  const client = await pool.connect();
+  try {
+    let sql = "SELECT COUNT(*) as count FROM jobs WHERE is_active = TRUE";
+    const paramsQuery: any[] = [];
+    let paramIndex = 1;
+
+    if (dbCategory) {
+      sql += ` AND category = $${paramIndex}`;
+      paramsQuery.push(dbCategory);
+      paramIndex++;
+    } else if (tec !== 'informatica-tecnologia') {
+      if (tec === 'nextjs') {
+        sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1} OR title ILIKE $${paramIndex + 2})`;
+        paramsQuery.push('%nextjs%', '%next.js%', '%next-js%');
+        paramIndex += 3;
+      } else if (tec === 'csharp') {
+        sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1} OR title ILIKE $${paramIndex + 2})`;
+        paramsQuery.push('%c#%', '%c-sharp%', '%csharp%');
+        paramIndex += 3;
+      } else if (tec === 'cybersecurity' || tec === 'ciberseguridad') {
+        sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1} OR title ILIKE $${paramIndex + 2})`;
+        paramsQuery.push('%cybersecurity%', '%ciberseguridad%', '%seguridad%');
+        paramIndex += 3;
+      } else if (tec === 'desarrollador-fullstack' || tec === 'fullstack') {
+        sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1})`;
+        paramsQuery.push('%fullstack%', '%full stack%');
+        paramIndex += 2;
+      } else if (tec === 'devops-engineer' || tec === 'devops') {
+        sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1} OR title ILIKE $${paramIndex + 2})`;
+        paramsQuery.push('%devops%', '%dev ops%', '%site reliability%');
+        paramIndex += 3;
+      } else if (tec === 'data-analyst' || tec === 'analista-datos') {
+        sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1})`;
+        paramsQuery.push('%data analyst%', '%analista de datos%');
+        paramIndex += 2;
+      } else if (tec === 'scrum-master') {
+        sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1})`;
+        paramsQuery.push('%scrum master%', '%scrum%');
+        paramIndex += 2;
+      } else if (tec === 'product-manager') {
+        sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1})`;
+        paramsQuery.push('%product manager%', '%gestor de producto%');
+        paramIndex += 2;
+      } else if (tec === 'qa-engineer') {
+        sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1} OR title ILIKE $${paramIndex + 2} OR title ILIKE $${paramIndex + 3})`;
+        paramsQuery.push('%qa%', '%tester%', '%calidad%', '%test engineer%');
+        paramIndex += 4;
+      } else if (tec === 'ux-designer') {
+        sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1} OR title ILIKE $${paramIndex + 2})`;
+        paramsQuery.push('%ux%', '%diseñador%ux%', '%diseño%ux%');
+        paramIndex += 3;
+      } else {
+        sql += ` AND title ILIKE $${paramIndex}`;
+        paramsQuery.push(`%${tec}%`);
+        paramIndex++;
+      }
+    }
+
+    if (ciudad) {
+      if (ciudad.toLowerCase() === 'remoto') {
+        sql += ` AND (location ILIKE $${paramIndex} OR location ILIKE $${paramIndex + 1} OR location ILIKE $${paramIndex + 2} OR location ILIKE $${paramIndex + 3})`;
+        paramsQuery.push('%remoto%', '%remote%', '%worldwide%', '%teletrabajo%');
+        paramIndex += 4;
+      } else {
+        sql += ` AND location ILIKE $${paramIndex}`;
+        paramsQuery.push(`%${ciudad}%`);
+        paramIndex++;
+      }
+    }
+
+    if (modalidad === 'hibrido') {
+      sql += ` AND (location ILIKE $${paramIndex} OR location ILIKE $${paramIndex + 1} OR location ILIKE $${paramIndex + 2} OR description_snippet ILIKE $${paramIndex + 3})`;
+      paramsQuery.push('%híbrido%', '%hibrido%', '%hybrid%', '%semipresencial%');
+      paramIndex += 4;
+    }
+
+    if (experiencia && EXPERIENCE_SUFFIXES[experiencia]) {
+      const expKeywords = EXPERIENCE_SUFFIXES[experiencia].keywords;
+      const expConditions = expKeywords.map(() => {
+        const cond = `(title ILIKE $${paramIndex} OR description_snippet ILIKE $${paramIndex})`;
+        paramIndex++;
+        return cond;
+      }).join(' OR ');
+      sql += ` AND (${expConditions})`;
+      paramsQuery.push(...expKeywords.map(k => `%${k}%`));
+    }
+
+    if (salaryMin) {
+      sql += ` AND (salary_min >= $${paramIndex} OR salary_max >= $${paramIndex})`;
+      paramsQuery.push(salaryMin);
+      paramIndex++;
+    }
+    if (salaryMax) {
+      sql += ` AND (salary_min <= $${paramIndex} OR salary_max <= $${paramIndex})`;
+      paramsQuery.push(salaryMax);
+      paramIndex++;
+    }
+
+    const result = await client.query(sql, paramsQuery);
+    return parseInt(result.rows[0].count || '0', 10);
+  } catch (error) {
+    console.error("Error cargando conteo de BD:", error);
+    return 0;
+  } finally {
+    client.release();
+  }
+});
+
 export async function generateMetadata({ params, searchParams }: { params: Params, searchParams: Promise<{ [key: string]: string | string[] | undefined }> }): Promise<Metadata> {
   const { sector } = await params;
   const sectorSlug = sector.toLowerCase();
@@ -305,8 +423,12 @@ export async function generateMetadata({ params, searchParams }: { params: Param
   
   const { tec, ciudad, experiencia, modalidad, dbCategory, salaryMin, salaryMax } = parseSector(sectorSlug);
   
-  const jobs = await getJobs(tec, ciudad, dbCategory, experiencia, modalidad, validPage, salaryMin, salaryMax);
-  const isThinPage = jobs.length === 0;
+  const [jobs, totalCount] = await Promise.all([
+    getJobs(tec, ciudad, dbCategory, experiencia, modalidad, validPage, salaryMin, salaryMax),
+    getJobsCount(tec, ciudad, dbCategory, experiencia, modalidad, salaryMin, salaryMax)
+  ]);
+  
+  const isThinPage = totalCount < 5;
   const jobCount = jobs.length;
 
   const displayNameMapUsed = isEnglish ? displayNameMapEn : displayNameMap;
@@ -328,26 +450,29 @@ export async function generateMetadata({ params, searchParams }: { params: Param
   let tituloBase = "";
   let descBase = "";
 
+  const mes = now.toLocaleDateString('es-ES', { month: 'long' });
+  const anio = now.getFullYear();
+  const mesCapitalizado = mes.charAt(0).toUpperCase() + mes.slice(1);
+
   if (isEnglish) {
-    tituloBase = `${categoriaBonita}${modLabelEn}${expLabel}${salaryLabel} Jobs`;
-    descBase = `Active ${categoriaBonita}${modLabelEn}${expLabel ? ` (${expLabel.trim()})` : ''}${salaryLabel} job vacancies`;
+    const totalText = totalCount > 0 ? `${totalCount} ` : '';
+    tituloBase = `🔥 ${totalText}${categoriaBonita}${modLabelEn}${expLabel}${salaryLabel} Jobs in Spain [${mesCapitalizado} ${anio}]`;
+    descBase = `Apply to ${totalCount > 0 ? `${totalCount} ` : ''}active ${categoriaBonita}${modLabelEn}${expLabel ? ` (${expLabel.trim()})` : ''}${salaryLabel} vacancies. Updated today.`;
     if (ciudad) {
       const ciudadBonita = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
-      tituloBase += ` in ${ciudadBonita}`;
-      descBase += ` in ${ciudadBonita}`;
+      tituloBase = `🔥 ${totalText}${categoriaBonita}${modLabelEn}${expLabel}${salaryLabel} Jobs in ${ciudadBonita} [${mesCapitalizado} ${anio}]`;
+      descBase += ` in ${ciudadBonita}.`;
     }
   } else {
-    const mes = now.toLocaleDateString('es-ES', { month: 'long' });
-    const anio = now.getFullYear();
-    tituloBase = `Trabajo${modLabel}${expLabel} de ${categoriaBonita}${salaryLabel}`;
-    descBase = `Ofertas de trabajo${modLabel}${expLabel ? ` para ${expLabel.trim()}` : ''} de ${categoriaBonita}${salaryLabel}`;
+    const totalText = totalCount > 0 ? `${totalCount} ` : '';
+    tituloBase = `🔥 ${totalText}Ofertas de Trabajo${modLabel}${expLabel} de ${categoriaBonita}${salaryLabel}`;
+    descBase = `Encuentra ${totalCount > 0 ? `${totalCount} ` : ''}ofertas de trabajo${modLabel}${expLabel ? ` para ${expLabel.trim()}` : ''} de ${categoriaBonita}${salaryLabel} actualizadas hoy.`;
     if (ciudad) {
       const ciudadBonita = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
       tituloBase += ` en ${ciudadBonita}`;
-      descBase += ` en ${ciudadBonita}`;
+      descBase += ` en ${ciudadBonita}.`;
     }
-    const countText = jobCount > 0 ? `${jobCount} ` : '';
-    tituloBase = `${countText}${tituloBase} [${mes.charAt(0).toUpperCase() + mes.slice(1)} ${anio}]`;
+    tituloBase += ` [${mesCapitalizado} ${anio}]`;
   }
 
   let tituloSeo = tituloBase;
@@ -379,12 +504,10 @@ export async function generateMetadata({ params, searchParams }: { params: Param
   return {
     title: isEnglish ? `${tituloSeo} | IT Job Portal` : `${tituloSeo} | Portal Trabajo`,
     description: isEnglish
-      ? `${descBase} updated today. ${jobCount > 0 ? `${jobCount} vacancies available now.` : 'We aggregate offers from top tech companies.'}${isPaged ? ` (Page ${validPage})` : ''}`
-      : `${descBase} actualizadas hoy. ${jobCount > 0 ? `${jobCount} vacantes disponibles ahora.` : 'Recopilamos ofertas de las mejores empresas tecnológicas.'}${isPaged ? ` (Página ${validPage})` : ''}`,
+      ? `${descBase} ${isPaged ? ` (Page ${validPage})` : ''}`
+      : `${descBase} ${isPaged ? ` (Página ${validPage})` : ''}`,
     alternates: {
       canonical: canonicalUrl,
-      prev: isPaged ? `${BASE_URL}/trabajos/${sectorSlug}${validPage > 2 ? `?page=${validPage - 1}` : ''}${isEnglish ? (validPage > 2 ? '&lang=en' : '?lang=en') : ''}` : undefined,
-      next: jobs.length === 20 ? `${BASE_URL}/trabajos/${sectorSlug}?page=${validPage + 1}${isEnglish ? '&lang=en' : ''}` : undefined,
       languages: {
         'es-ES': `${BASE_URL}/trabajos/${sectorSlug}`,
         'en': `${BASE_URL}/trabajos/${sectorSlug}?lang=en`,
@@ -395,7 +518,7 @@ export async function generateMetadata({ params, searchParams }: { params: Param
       },
     },
     openGraph: {
-      title: isEnglish ? `${tituloBase} — ${jobCount} Vacancies` : `${tituloBase} — ${jobCount > 0 ? `${jobCount} Vacantes Disponibles` : 'Vacantes Urgentes'}${isPaged ? ` (Página ${page})` : ''}`,
+      title: isEnglish ? `${tituloBase} — ${totalCount} Vacancies` : `${tituloBase} — ${totalCount > 0 ? `${totalCount} Vacantes Disponibles` : 'Vacantes Urgentes'}${isPaged ? ` (Página ${page})` : ''}`,
       description: isEnglish ? `Updated list of ${descBase.toLowerCase()}.` : `Listado actualizado de ${descBase.toLowerCase()}.`,
       url: canonicalUrl,
       images: [
@@ -409,7 +532,7 @@ export async function generateMetadata({ params, searchParams }: { params: Param
     },
     twitter: {
       card: 'summary_large_image',
-      title: isEnglish ? `${tituloBase} — ${jobCount} Vacancies` : `${tituloBase} — ${jobCount > 0 ? `${jobCount} Vacantes Disponibles` : 'Vacantes Urgentes'}${isPaged ? ` (Página ${page})` : ''}`,
+      title: isEnglish ? `${tituloBase} — ${totalCount} Vacancies` : `${tituloBase} — ${totalCount > 0 ? `${totalCount} Vacantes Disponibles` : 'Vacantes Urgentes'}${isPaged ? ` (Página ${page})` : ''}`,
       description: isEnglish ? `List of ${descBase.toLowerCase()}.` : `Listado de ${descBase.toLowerCase()}.`,
       images: [`${BASE_URL}/trabajos/${sectorSlug}/opengraph-image`],
     },
@@ -760,7 +883,7 @@ export default async function SectorPage({
     name: isEnglish ? `${tituloMostrado} Vacancies` : `Ofertas de empleo de ${tituloMostrado}`,
     description: isEnglish ? `List of tech job offers for ${tituloMostrado} in Spain` : `Listado de ofertas de trabajo para ${tituloMostrado} en España`,
     numberOfItems: jobs.length,
-    itemListElement: jobs.map((job, idx) => ({
+    itemListElement: jobs.map((job: Job, idx: number) => ({
       '@type': 'ListItem',
       position: idx + 1,
       url: `${BASE_URL}/job/${getJobSlug(job)}`,
@@ -768,7 +891,7 @@ export default async function SectorPage({
     }))
   };
 
-  const uniqueCompanies = Array.from(new Set(jobs.map(j => j.company).filter(c => c && c !== 'Desconocida'))).slice(0, 3);
+  const uniqueCompanies = Array.from(new Set(jobs.map((j: Job) => j.company).filter((c: string | null | undefined) => c && c !== 'Desconocida'))).slice(0, 3);
   const companyListText = uniqueCompanies.length > 0 
     ? uniqueCompanies.join(', ') 
     : (isEnglish ? 'various tech companies' : 'diversas empresas del sector');
@@ -821,8 +944,15 @@ export default async function SectorPage({
     }))
   };
 
+  const isPaged = validPage > 1;
+  const hasNextPage = jobs.length === 20;
+  const prevUrl = isPaged ? `${BASE_URL}/trabajos/${sectorSlug}${validPage > 2 ? `?page=${validPage - 1}` : ''}${isEnglish ? (validPage > 2 ? '&lang=en' : '?lang=en') : ''}` : null;
+  const nextUrl = hasNextPage ? `${BASE_URL}/trabajos/${sectorSlug}?page=${validPage + 1}${isEnglish ? '&lang=en' : ''}` : null;
+
   return (
     <div className="container mx-auto px-4 py-8">
+      {prevUrl && <link rel="prev" href={prevUrl} />}
+      {nextUrl && <link rel="next" href={nextUrl} />}
       <script 
         type="application/ld+json" 
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} 
@@ -927,20 +1057,20 @@ export default async function SectorPage({
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {jobs && jobs.length > 0 ? (
               <>
-                {jobs.flatMap((job, index) => {
+                {jobs.flatMap((job: Job, index: number) => {
                   const card = <JobCard key={job.id} job={job as Job} lang={lang} />;
                   if (index === 3) {
                     return [
-                      <div key={`ad-inline-1-${job.id}`} className="col-span-full my-2">
-                        <AdBanner variant="inline" />
+                      <div key={`ad-infeed-1-${job.id}`} className="my-2">
+                        <AdBanner variant="infeed" />
                       </div>,
                       card
                     ];
                   }
                   if (index === 9) {
                     return [
-                      <div key={`ad-inline-2-${job.id}`} className="col-span-full my-2">
-                        <AdBanner variant="inline" />
+                      <div key={`ad-infeed-2-${job.id}`} className="my-2 hidden md:block">
+                        <AdBanner variant="infeed" />
                       </div>,
                       card
                     ];
@@ -995,9 +1125,10 @@ export default async function SectorPage({
         </div>
         
         <div className="lg:col-span-1 space-y-6">
-          <div className="sticky top-6 space-y-6">
-            <SubscribeForm location={ciudad ? ciudad : tec} />
-            <PushSubscribe />
+          <SubscribeForm location={ciudad ? ciudad : tec} />
+          <PushSubscribe />
+          <ReferralWidget lang={lang} />
+          <div className="lg:sticky lg:top-24">
             <AdBanner variant="sidebar" />
           </div>
         </div>

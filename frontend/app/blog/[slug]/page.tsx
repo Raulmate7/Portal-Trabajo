@@ -210,13 +210,13 @@ export default async function BlogPostPage({ params }: Props) {
               )}
 
               <div className="prose prose-indigo max-w-none text-gray-700 leading-relaxed text-lg mb-8">
-                <Markdown content={intro} />
+                <Markdown content={intro} autoLink={true} isEnglish={false} />
                 {rest && (
                   <>
                     <div className="my-8">
                       <AdBanner variant="inline" />
                     </div>
-                    <Markdown content={rest} />
+                    <Markdown content={rest} autoLink={true} isEnglish={false} />
                   </>
                 )}
               </div>
@@ -251,9 +251,11 @@ export default async function BlogPostPage({ params }: Props) {
 
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
-            <div className="sticky top-6 space-y-6">
+            <div className="space-y-6">
               <SubscribeForm location="España" />
-              <AdBanner variant="sidebar" />
+              <div className="lg:sticky lg:top-24">
+                <AdBanner variant="sidebar" />
+              </div>
             </div>
           </div>
         </div>

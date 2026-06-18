@@ -33,7 +33,7 @@ export default function ApplyButton({ url, company, title, lang }: ApplyButtonPr
   };
 
   const handleDirectRedirect = () => {
-    sendGAEvent({ event: 'click_apply', value: 'direct' });
+    sendGAEvent({ event: 'click_apply', value: 'direct', company, job_title: title });
     window.open(url, '_blank', 'noopener,noreferrer');
     handleCloseModal();
   };
@@ -75,8 +75,8 @@ export default function ApplyButton({ url, company, title, lang }: ApplyButtonPr
       setStatus('success');
       setMessage(isEnglish ? 'Subscribed successfully! Redirecting...' : '¡Suscrito correctamente! Redirigiendo...');
       // Disparar eventos de conversión en GA4
-      sendGAEvent({ event: 'newsletter_signup', value: 'apply_modal' });
-      sendGAEvent({ event: 'generate_lead', value: 'apply_modal' });
+      sendGAEvent({ event: 'newsletter_signup', value: 'apply_modal', company, job_title: title });
+      sendGAEvent({ event: 'generate_lead', value: 'apply_modal', company, job_title: title });
       
       setTimeout(() => {
         window.open(url, '_blank', 'noopener,noreferrer');

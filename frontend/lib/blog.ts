@@ -756,6 +756,365 @@ Si deseas comparar el salario medio real de desarrolladores Backend por tecnolog
 `,
     date: '2026-06-16',
     author: 'Equipo Portal Empleo',
+  },
+  {
+    slug: 'mejores-certificaciones-cloud-aws-azure-gcp',
+    title: 'Las mejores certificaciones de Cloud (AWS, Microsoft Azure, Google Cloud) en 2026',
+    excerpt: '¿Quieres dar un salto salarial? Comparamos las certificaciones cloud más demandadas de AWS, Azure y Google Cloud, y cómo prepararlas.',
+    content: `
+La computación en la nube es uno de los pilares de la infraestructura tecnológica. Conseguir una certificación oficial de AWS, Azure o Google Cloud no solo valida tus conocimientos prácticos, sino que puede incrementar tu salario hasta un 30% en España en 2026.
+
+A continuación, comparamos los caminos de certificación más valiosos para ingenieros de software, administradores de sistemas y DevOps.
+
+## 1. Amazon Web Services (AWS) - El líder del mercado
+AWS sigue liderando la cuota de mercado global y es el más solicitado en ofertas de empleo.
+* **AWS Certified Cloud Practitioner:** Ideal para principiantes o roles de gestión/ventas que necesitan entender los conceptos básicos.
+* **AWS Certified Solutions Architect - Associate:** La certificación más popular y valorada. Valida tu capacidad para diseñar y desplegar sistemas escalables y tolerantes a fallos en AWS.
+* **AWS Certified DevOps Engineer - Professional:** Un nivel avanzado de alta complejidad enfocado en la automatización, CI/CD y monitorización en AWS.
+
+## 2. Microsoft Azure - El favorito empresarial
+Azure domina en entornos corporativos y de gran empresa que ya utilizan el ecosistema de Microsoft.
+* **Azure Administrator Associate (AZ-104):** Equivalente al Solutions Architect de AWS, se centra en implementar y gestionar soluciones de identidad, almacenamiento y computación en Azure.
+* **Azure Solutions Architect Expert (AZ-305):** Para perfiles Senior responsables del diseño de infraestructura cloud empresarial.
+
+## 3. Google Cloud Platform (GCP) - Fuerte en datos e IA
+GCP se ha ganado un gran espacio gracias a su excelente suite para Big Data, Machine Learning e Inteligencia Artificial.
+* **Google Cloud Professional Cloud Architect:** Considerada una de las certificaciones mejor pagadas a nivel mundial por su nivel de exigencia en resolución de casos reales.
+* **Google Cloud Professional Data Engineer:** Muy demandada por Data Scientists e Ingenieros de Datos.
+
+## Tabla Comparativa de Certificaciones Cloud
+
+| Proveedor | Certificación Clave (Associate) | Nivel de Demanda | Salario Senior Medio |
+|---|---|---|---|
+| 🌐 AWS | Solutions Architect Associate | Máximo | 55.000€ - 70.000€ |
+| 🟦 Azure | Azure Administrator | Alto | 50.000€ - 65.000€ |
+| 🟩 Google Cloud | Professional Cloud Architect | Alto (Especializado) | 58.000€ - 75.000€ |
+
+## Consejos para Preparar tu Certificación
+1. **Práctica Real:** No uses solo exámenes de prueba (dumps). Crea una cuenta gratuita en el proveedor y levanta infraestructura real para asentar los conceptos.
+2. **Cursos Especializados:** Utiliza plataformas como Udemy, Adrian Cantrill (AWS) o Learn Microsoft (Azure).
+3. **Controla los costes:** Si levantas recursos para practicar, asegúrate de destruirlos al terminar para evitar cargos sorpresa en tu tarjeta.
+`,
+    date: '2026-06-17',
+    author: 'Equipo Portal Empleo',
+  },
+  {
+    slug: 'guia-trabajar-freelance-tecnologia-espana-autonomo',
+    title: 'Guía completa para trabajar como freelance de tecnología en España: cuotas de autónomo, IRPF y facturación',
+    excerpt: 'Trabajar para el extranjero o como contratista independiente desde España es muy lucrativo. Conoce las obligaciones de autónomo, impuestos y cómo facturar.',
+    content: `
+El trabajo freelance en el sector tecnológico ofrece libertad, flexibilidad y la oportunidad de acceder a tarifas por hora de mercados internacionales muy superiores a los salarios locales. Sin embargo, convertirse en autónomo en España implica navegar por una burocracia compleja de cuotas de seguridad social, retenciones de IRPF e IVA.
+
+En esta guía te explicamos el proceso paso a paso de forma clara.
+
+## 1. Darse de Alta: El primer paso
+Para facturar legalmente en España debes registrarte en dos administraciones:
+* **Hacienda (Agencia Tributaria):** Mediante la presentación del modelo 036 o 037, donde seleccionas tu epígrafe del IAE (habitualmente 763 para programadores o analistas de sistemas).
+* **Seguridad Social:** Dándote de alta en el Régimen Especial de Trabajadores Autónomos (RETA) para pagar tu cotización mensual.
+
+## 2. La Cuota de Autónomos en 2026
+La cuota de autónomos en España se calcula en base a tus ingresos reales mensuales declarados (rendimiento neto).
+* **Tarifa Plana:** Si te das de alta por primera vez, puedes solicitar la tarifa plana de aproximadamente 80€ al mes durante el primer año.
+* **Tramos de Cotización:** Pasado el periodo bonificado, pagarás una cuota en función de tu tramo de ingresos. Por ejemplo, para rendimientos netos de 3.000€ a 4.000€ mensuales, la cuota ronda los 420€ - 500€ al mes.
+
+## 3. IRPF e IVA: ¿Cómo facturar?
+* **IVA (Impuesto sobre el Valor Añadido):** El tipo general es el 21%. Si facturas a una empresa en España, debes sumarle el 21% de IVA. Si facturas a un cliente intracomunitario (Unión Europea) y estás de alta en el Registro de Operadores Intracomunitarios (ROI), la factura está exenta de IVA. También lo está si facturas a un cliente de fuera de la UE (como Estados Unidos).
+* **IRPF (Impuesto sobre la Renta de las Personas Físicas):** Si tu cliente es una empresa española, debes aplicar una retención en tu factura (generalmente 15%, o 7% para nuevos autónomos durante los primeros tres años). Si facturas a clientes extranjeros, no retienes IRPF en la factura; en su lugar, presentas pagos fraccionados trimestrales del 20% a cuenta de tu renta final (modelo 130).
+
+## 4. Ejemplo de Factura Freelance IT
+
+Supongamos que trabajas para una startup española por una tarifa mensual de 4.000€:
+* **Base Imponible:** 4.000€
+* **+ IVA (21%):** +840€
+* **- IRPF (15%):** -600€
+* **Total a recibir:** 4.240€
+
+*Nota: El IVA recaudado no es tuyo. Deberás declararlo y pagarlo trimestralmente a Hacienda mediante el modelo 303.*
+
+Si te interesa evaluar las diferencias salariales entre contratos por cuenta ajena y tarifas de freelance en España, te aconsejamos utilizar nuestra [Calculadora de Salarios IT](/salarios) para orientarte sobre qué tarifas medias por hora se cobran por tu stack tecnológico.
+`,
+    date: '2026-06-17',
+    author: 'Equipo Portal Empleo',
+  },
+  {
+    slug: 'mejores-empresas-tecnologicas-espana-trabajar',
+    title: 'Top de empresas tecnológicas en España con mejores condiciones de trabajo y salarios en 2026',
+    excerpt: 'Analizamos las empresas de tecnología en España mejor valoradas por sus desarrolladores por su salario, teletrabajo y cultura empresarial.',
+    content: `
+Encontrar el trabajo ideal no solo es una cuestión de sueldo bruto. Aspectos como el teletrabajo flexible, el presupuesto para formación, el horario intensivo de verano y un ambiente laboral libre de microgestión son fundamentales para el bienestar de cualquier programador en España.
+
+Basándonos en las ofertas de empleo y las opiniones recopiladas en nuestro directorio de empresas, destacamos el top de compañías tecnológicas con mejores condiciones en 2026.
+
+## 1. Multinacionales Tecnológicas con Sede en España
+Estas compañías ofrecen excelentes salarios, beneficios de primer nivel y un entorno altamente internacional:
+* **Google (Madrid / Málaga):** Con su hub de ciberseguridad en Málaga, ofrece salarios que superan con creces la media nacional y un paquete de beneficios legendario.
+* **Microsoft (Barcelona):** Fuerte inversión en su centro de diseño e investigación de IA, con excelentes programas de retribución flexible.
+* **Amazon (Madrid / Barcelona):** Altos salarios asociados a compensaciones en acciones (RSUs) y gran proyección de carrera internacional.
+
+## 2. Startups y Unicornios de Producto Nacional
+Empresas nacidas en España que compiten por captar el mejor talento local ofreciendo flexibilidad máxima:
+* **Factorial (Barcelona / Remoto):** Cultura de producto fuerte, metodologías ágiles maduras y excelente conciliación con el teletrabajo.
+* **TravelPerk (Barcelona):** Un entorno dinámico, oficinas premium y un paquete competitivo con stock options.
+* **Cabify (Madrid / Remoto):** Destaca por el cuidado de su stack técnico (Go, Ruby, React) y fomento activo de buenas prácticas de ingeniería.
+
+## 3. Consultoras Tecnológicas Especializadas
+Las consultoras que han redefinido su modelo para alejarse del "body shopping" tradicional ofreciendo planes de carrera reales:
+* **Codely (Remoto):** Foco absoluto en la formación técnica continua, clean code y buenas prácticas.
+* **Autentia (Madrid):** Muy valorada por su transparencia y el fomento de la formación técnica y divulgación comunitaria de sus ingenieros.
+
+Si quieres explorar los rangos salariales reales por empresa y tecnología, te invitamos a navegar por nuestro [Directorio de Empresas](/empresas) y comparar salarios reales con nuestra [Calculadora Salarial IT](/salarios).
+`,
+    date: '2026-06-17',
+    author: 'Equipo Portal Empleo',
+  },
+  {
+    slug: 'bootcamps-programacion-vs-universidad',
+    title: 'Bootcamps de programación vs Universidad: ¿cuál elegir para aprender a programar en 2026?',
+    excerpt: '¿Merece la pena pagar un bootcamp intensivo de 3 meses o es mejor cursar una Ingeniería Informática o FP de desarrollo de software? Comparamos pros, contras y empleabilidad.',
+    content: `
+La escasez de talento tecnológico en España ha diversificado las rutas de acceso a la industria del software. Hoy en día, los reclutadores no solo evalúan títulos universitarios; los graduados de bootcamps e institutos de Formación Profesional (FP) ocupan miles de vacantes de desarrollo de software.
+
+Si estás pensando en entrar en este sector, te ayudamos a elegir la formación adecuada según tus metas y presupuesto.
+
+## 1. Universidad (Ingeniería Informática / Grado)
+* **Duración:** 4 años.
+* **Enfoque:** Muy teórico y de base científica. Aprenderás ciencias de la computación, matemáticas, compiladores, arquitectura de ordenadores y teoría de algoritmos.
+* **Ventajas:** Te da una base de conocimientos extremadamente sólida para toda tu vida profesional. Facilita el acceso a visados de trabajo internacionales y a puestos de investigación o deep tech.
+* **Inconvenientes:** La curva de aprendizaje es lenta. Se dedican cientos de horas a asignaturas no relacionadas directamente con la programación web moderna.
+
+## 2. Formación Profesional (FP - DAM / DAW)
+* **Duración:** 2 años.
+* **Enfoque:** Práctico y orientado al empleo. DAM se centra en Desarrollo de Aplicaciones Multiplataforma (Java, Android/iOS) y DAW en Desarrollo de Aplicaciones Web (HTML/CSS, JS, PHP/Java).
+* **Ventajas:** Es pública o de bajo coste. Incluye de 3 a 6 meses de prácticas obligatorias en empresas (FCT), lo que a menudo se traduce en tu primer empleo directo.
+* **Inconvenientes:** El plan de estudios oficial a veces se queda rezagado respecto a herramientas de última generación.
+
+## 3. Bootcamps de Programación
+* **Duración:** 3 a 6 meses (muy intensivos).
+* **Enfoque:** 100% práctico. Aprenderás el stack exacto que demandan las empresas hoy (comúnmente React, Node.js, TypeScript y Git).
+* **Ventajas:** Rapidez de inserción al mercado. Te ayudan a construir tu portafolio inicial de proyectos desde el primer día.
+* **Inconvenientes:** Coste elevado (entre 4.000€ y 7.000€ en España). Requieren un nivel de dedicación brutal y no cubren la teoría de computación de fondo.
+
+## Comparativa Resumida de Opciones Educativas
+
+| Criterio | Grado Universitario | Formación Profesional (FP) | Bootcamp de Programación |
+|---|---|---|---|
+| ⏳ Duración | 4 Años | 2 Años | 3 - 6 Meses |
+| 💰 Coste | Medio (Tasas públicas) | Gratuito / Bajo | Alto (4k - 7k€) |
+| 🛠️ Foco Práctico | Bajo / Medio | Alto | Muy Alto |
+| 💼 Empleabilidad | Excelente a largo plazo | Muy Alta (Prácticas) | Rápida (Soporte empleo) |
+
+Navega por nuestro [Buscador de Empleo](/trabajos/informatica-tecnologia) para ver qué requisitos de titulación suelen solicitar las ofertas de tu zona o evalúa qué salarios medios obtienen los desarrolladores Junior según su stack preferido usando la [Calculadora de Salarios](/salarios).
+`,
+    date: '2026-06-17',
+    author: 'Equipo Portal Empleo',
+  },
+  {
+    slug: 'salarios-devops-sre-espana',
+    title: 'Salarios de DevOps y SRE en España: rangos por experiencia y certificaciones',
+    excerpt: 'Los perfiles de DevOps y Site Reliability Engineering (SRE) son los mejor pagados en infraestructura tecnológica. Analizamos sus salarios en España en 2026.',
+    content: `
+El movimiento DevOps y la ingeniería SRE han cambiado para siempre la forma en que las empresas despliegan y mantienen su software. Al automatizar la integración y entrega continua (CI/CD) y supervisar la estabilidad de los servicios a escala cloud, estos profesionales disfrutan de algunas de las retribuciones más elevadas del sector en España.
+
+Analizamos a continuación la escala salarial de estos roles y qué habilidades cotizan mejor.
+
+## 1. Rangos Salariales DevOps en España en 2026
+La escasez de ingenieros de sistemas con habilidades de desarrollo hace que los sueldos comiencen ya elevados en las etapas iniciales de la carrera:
+* **Junior (0-2 años):** De **28.000€ a 36.000€** brutos anuales. Es raro ver perfiles DevOps puros sin algo de experiencia previa como SysAdmin o Developer Backend.
+* **Mid-Level (2-5 años):** Entre **40.000€ y 55.000€** brutos anuales. En este nivel se maneja con fluidez contenedores e infraestructura como código.
+* **Senior (5+ años):** A partir de **60.000€**, superando con frecuencia los **75.000€** en grandes corporaciones de producto o multinacionales de consultoría con trabajo remoto.
+
+## 2. Diferencia de Salarios entre DevOps y SRE
+Aunque las funciones a veces se solapan, la Ingeniería de Fiabilidad del Sitio (SRE) suele estar más orientada a la programación y al diseño de la resiliencia operativa del sistema:
+* **DevOps Engineer:** Se centra en automatizar pipelines, optimizar flujos de trabajo de desarrollo y aprovisionar infraestructura.
+* **SRE (Site Reliability Engineer):** Aplica principios de ingeniería de software a los problemas de operaciones. Escriben código en Go o Python para monitorizar de forma inteligente y automatizar la autorecuperación del sistema ante fallos de gran escala. Sus salarios senior suelen estar un **10% por encima** de la media DevOps convencional.
+
+## 3. Tecnologías Imprescindibles para el Salario Máximo
+Para acceder al tope de la banda salarial en España, asegúrate de dominar:
+1. **Infraestructura como Código (IaC):** Terraform y Ansible.
+2. **Orquestación de Contenedores:** Kubernetes (e idealmente poseer la certificación CKA o CKAD).
+3. **Flujos CI/CD:** GitHub Actions, GitLab CI, Jenkins.
+4. **Cloud Providers:** Certificaciones profesionales en AWS (DevOps Engineer Professional) o Azure (DevOps Engineer Expert).
+5. **Observabilidad:** Grafana, Prometheus, Datadog.
+
+¿Quieres comprobar en tiempo real qué ofertas de infraestructura se adaptan a tus pretensiones salariales? Visita nuestro [Buscador de DevOps](/trabajos/cloud) o evalúa los rangos precisos por ciudad y stack en nuestra [Calculadora de Salarios IT](/salarios).
+`,
+    date: '2026-06-17',
+    author: 'Equipo Portal Empleo',
+  },
+  {
+    slug: 'como-superar-entrevista-trabajo-ingles-programadores',
+    title: 'Cómo superar una entrevista de trabajo en inglés para programadores',
+    excerpt: 'Trabajar para multinacionales o startups extranjeras requiere comunicarte en inglés. Te damos las claves de vocabulario, respuestas típicas y preparación.',
+    content: `
+El inglés es la habilidad no técnica que más incrementa los ingresos de un programador. Dominar la lengua internacional de la tecnología te permite acceder directamente a ofertas de trabajo en remoto para empresas de Reino Unido, Estados Unidos o Europa Central, donde los salarios duplican o triplican las medias españolas.
+
+Aunque tu nivel de inglés conversacional no sea perfecto, puedes superar con éxito los procesos de selección si te preparas de forma estratégica.
+
+## 1. El vocabulario clave para tu CV y presentación (Elevator Pitch)
+Evita traducir de forma literal tus funciones del español. En su lugar, utiliza verbos de acción y tecnicismos aceptados internacionalmente:
+* En vez de "Hice el backend", usa: *"I designed and implemented the backend architecture using Node.js and PostgreSQL."*
+* En lugar de "Me encargué de arreglar fallos", di: *"I took ownership of debugging and optimizing database queries, reducing API latency by 30%."*
+
+## 2. La estructura de la entrevista y preguntas típicas
+Las entrevistas de trabajo en inglés en empresas de tecnología suelen seguir el mismo patrón:
+1. **The Icebreaker:** Conversación informal inicial para evaluar tu fluidez básica. Te preguntarán: *"Tell me about yourself"* o *"How is your day going?"*. Ten preparado un resumen de 2 minutos sobre tu experiencia y tu stack actual.
+2. **Behavioral Questions:** Evalúan tu actitud y resolución de problemas bajo la metodología STAR (Situation, Task, Action, Result).
+   * **Pregunta:** *"Tell me about a time you had a conflict with a team member."*
+   * **Respuesta STAR:** Explica el contexto (Situation), qué debías resolver (Task), qué pasos diste tú de forma proactiva (Action) y cuál fue el desenlace positivo (Result).
+
+## 3. Expresiones útiles para la fase técnica (Live Coding)
+Durante una prueba de código en vivo (live coding), los entrevistadores valoran más que expliques tu razonamiento a que completes el código perfecto a la primera.
+* Para expresar que estás analizando el problema: *"First, let's break down the problem. I need to iterate through this array to find the duplicates..."*
+* Si vas a optimizar tu solución inicial: *"This approach has a time complexity of O(N^2). I can optimize it to O(N) by using a Hash Set to track the visited elements."*
+* Si necesitas pedir aclaraciones: *"Could you clarify if the input array can contain negative numbers or if it is already sorted?"*
+
+## 4. Consejos Prácticos de Preparación
+* **Grábate en vídeo:** Responde preguntas típicas de entrevista frente a la cámara y evalúa tus muletillas e indecisiones.
+* **Prácticas gratuitas:** Practica en plataformas como Pramp o haciendo "mock interviews" con compañeros de equipo.
+* **Lee y escucha en inglés técnico:** Acostúmbrate a leer documentación y ver videotutoriales en inglés para automatizar la pronunciación de términos como "database", "inheritance" o "deployment".
+
+En nuestro portal agregamos ofertas internacionales y nacionales con requisito de inglés que puedes filtrar usando el buscador de [Trabajo IT en España](/trabajos/informatica-tecnologia).
+`,
+    date: '2026-06-17',
+    author: 'Equipo Portal Empleo',
+  },
+  {
+    slug: 'mejores-ciudades-espana-vivir-desarrollador',
+    title: 'Las mejores ciudades de España para vivir como desarrollador de software',
+    excerpt: 'Comparamos el coste de vida, los hubs tecnológicos, la calidad de vida y el mercado laboral IT de Madrid, Barcelona, Málaga y Valencia.',
+    content: `
+España se ha consolidado como uno de los destinos preferidos en Europa para el talento tecnológico. La combinación de un excelente clima, alta calidad de vida, seguridad y un sector de desarrollo de software en plena expansión atrae tanto a desarrolladores locales como a nómadas digitales de todo el mundo.
+
+Si estás pensando en mudarte, comparamos las mejores ciudades de España para vivir e impulsar tu carrera en la tecnología en 2026.
+
+## 1. Madrid - El centro neurálgico corporativo
+* **Hub Tecnológico:** Máximo. Alberga las sedes principales de consultoras multinacionales, bancos y grandes corporaciones de telecomunicaciones.
+* **Coste de Vida:** Elevado (especialmente el precio del alquiler en el centro).
+* **Pros:** Mayor volumen de ofertas de empleo totales. Excelente red de networking, meetups y eventos de tecnología.
+* **Contras:** Ciudad ruidosa y con tráfico. No tiene playa.
+
+## 2. Barcelona - La capital de las startups y el producto
+* **Hub Tecnológico:** Muy Alto. Es el principal ecosistema de startups e innovación de España y del sur de Europa.
+* **Coste de Vida:** Muy Alto (alquileres y coste general equiparable o superior a Madrid).
+* **Pros:** Cultura internacional de producto y startups de primer nivel (Factorial, TravelPerk, Glovo). Presencia de mar, playa y gran oferta cultural.
+* **Contras:** Presión turística elevada.
+
+## 3. Málaga - El "Silicon Valley" del Sur
+* **Hub Tecnológico:** Alto y en crecimiento explosivo. Ha captado la llegada de gigantes como Google (Centro de Ciberseguridad), Vodafone y múltiples startups.
+* **Coste de Vida:** Medio-Alto (los precios han subido notablemente por la demanda).
+* **Pros:** Clima excepcional todo el año. Comunidad de ingenieros muy vibrante y conectada con la Costa del Sol.
+* **Contras:** Oferta habitacional y transporte público con tensión por el rápido crecimiento.
+
+## 4. Valencia - El equilibrio perfecto
+* **Hub Tecnológico:** Consolidado. Con gran tradición de startups locales y sedes satélite de producto.
+* **Coste de Vida:** Medio. Más asequible que Madrid o Barcelona.
+* **Pros:** Excelente calidad de vida, playa, gastronomía y un tamaño de ciudad muy manejable y llano para bicicleta.
+* **Contras:** Salarios locales promedio ligeramente inferiores a las capitales (aunque compensados por el coste de vida inferior).
+
+## Tabla Comparativa de Ciudades para Programadores
+
+| Ciudad | Salario Senior Medio | Alquiler Medio (Piso 1 hab) | Calidad del Clima | Tipo de Ecosistema IT |
+|---|---|---|---|---|
+| 🏙️ Madrid | 55.000€ | 950€ - 1.200€ | 3/5 (Continental) | Grandes Corporaciones y Consultoría |
+| 🏰 Barcelona | 54.000€ | 1.000€ - 1.300€ | 4/5 (Mediterráneo) | Startups Internacionales y Producto |
+| 🌴 Málaga | 48.000€ | 800€ - 1.000€ | 5/5 (Excelente) | Ciberseguridad y Hubs Internacionales |
+| 🍊 Valencia | 46.000€ | 750€ - 950€ | 4.5/5 (Muy Bueno) | Startups Locales y Satélites |
+
+Independientemente de la ciudad que elijas, si trabajas en remoto podrás disfrutar de lo mejor de cada una de ellas sin estar atado a su mercado salarial local. Revisa las vacantes activas y compara condiciones salariales por región usando nuestra [Calculadora de Salarios IT](/salarios).
+`,
+    date: '2026-06-17',
+    author: 'Equipo Portal Empleo',
+  },
+  {
+    slug: 'preguntas-frecuentes-entrevista-tecnica-python',
+    title: 'Preguntas más frecuentes en una entrevista técnica de Python en 2026',
+    excerpt: 'Prepara tu próxima entrevista de desarrollo Python. Conceptos de memoria, decoradores, generadores and preguntas habituales explicadas con código.',
+    content: `
+Python es un lenguaje muy accesible para empezar, pero sus características avanzadas de tipado dinámico, gestión de memoria e introspección hacen que las entrevistas para perfiles Mid y Senior sean muy detalladas. Los entrevistadores buscan candidatos que conozcan los entresijos de la máquina virtual (CPython) y no solo la sintaxis del lenguaje.
+
+Recopilamos las preguntas técnicas de Python más frecuentes y cómo responderlas de forma impecable.
+
+## 1. ¿Qué es el GIL (Global Interpreter Lock) y cómo afecta al rendimiento?
+El GIL es un mecanismo que utiliza el intérprete clásico de Python (CPython) para asegurar que un solo hilo ejecute bytecode de Python a la vez. Esto evita problemas de concurrencia al gestionar la memoria (evitando condiciones de carrera en el conteo de referencias).
+* **Impacto:** Python no aprovecha múltiples núcleos de CPU mediante hilos convencionales (módulo \`threading\`) para tareas pesadas de cálculo numérico (CPU-bound).
+* **Solución en entrevista:** Para paralelizar tareas pesadas se debe usar multi-procesamiento (módulo \`multiprocessing\`), delegar el cálculo a extensiones en C/Rust (como NumPy) o utilizar librerías asíncronas para tareas de entrada/salida (I/O-bound) con \`asyncio\`.
+
+## 2. Explica la diferencia entre Generadores e Iteradores en Python
+* **Iterador:** Cualquier objeto que implementa el protocolo de iteración mediante los métodos \`__iter__()\` y \`__next__()\`.
+* **Generador:** Una forma simplificada de crear iteradores utilizando funciones que devuelven valores con la palabra clave \`yield\` en lugar de \`return\`.
+* **Ventaja clave:** Evaluación perezosa (lazy evaluation). No cargan toda la lista en memoria; generan cada elemento bajo demanda, lo que permite procesar archivos o flujos de datos gigantistas consumiendo pocos megabytes de RAM.
+
+\`\`\`python
+# Ejemplo de generador eficiente para procesar archivos de log masivos
+def read_huge_log(file_path):
+    with open(file_path, 'r') as file:
+        for line in file:
+            if "ERROR" in line:
+                yield line.strip()
+\`\`\`
+
+## 3. ¿Cómo funcionan los Decoradores en Python?
+Un decorador es una función que toma otra función como argumento, extiende su comportamiento sin modificarla directamente, y devuelve una nueva función. Son muy utilizados para logging, autenticación o medición de rendimiento.
+* **Pregunta práctica:** *"Escribe un decorador que mida el tiempo de ejecución de una función"*.
+
+\`\`\`python
+import time
+
+def measure_time(func):
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)
+        end = time.time()
+        print(f"Función {func.__name__} tardó {end - start:.4f} segundos")
+        return result
+    return wrapper
+
+@measure_time
+def heavy_calculation():
+    time.sleep(1) # Simulación de trabajo
+\`\`\`
+
+## 4. Gestión de Memoria: Conteo de Referencias vs Garbage Collector
+Python utiliza dos estrategias para liberar memoria de objetos que ya no se usan:
+* **Conteo de referencias (Reference Counting):** Cada objeto lleva un contador de cuántas variables apuntan a él. Si llega a cero, se libera inmediatamente.
+* **Garbage Collector (Recolector de Basura):** CPython cuenta con un recolector cíclico generacional secundario que detecta "referencias circulares" (ej: Objeto A apunta a Objeto B, y Objeto B apunta a Objeto A, pero nadie más los referencia en el programa), las cuales el conteo de referencias no puede resolver por sí solo.
+
+Si quieres prepararte para un proceso de selección completo o comprobar las horquillas de salarios actuales para programadores Python en España, te recomendamos utilizar nuestra [Calculadora Salarial IT](/salarios) de forma gratuita.
+`,
+    date: '2026-06-17',
+    author: 'Equipo Portal Empleo',
+  },
+  {
+    slug: 'salario-data-scientist-espana',
+    title: 'Salario de Data Scientist en España: ¿cuánto cobra un experto en datos e IA?',
+    excerpt: 'Analizamos las horquillas salariales para perfiles de Ciencia de Datos en España en 2026. Diferencias entre perfiles Junior, Mid y Senior, y el impacto de la IA.',
+    content: `
+El auge de los modelos de lenguaje a gran escala (LLMs), los sistemas de recomendación predictiva y la analítica de negocio ha convertido la Ciencia de Datos en una de las disciplinas más rentables en el sector tecnológico español. En 2026, los perfiles con dominio matemático, estadístico y de programación web con Python disfrutan de bandas salariales muy atractivas.
+
+A continuación, analizamos las tablas de remuneración de los desarrolladores orientados a datos en España.
+
+## 1. Salario Medio de Data Science por Experiencia
+Las bandas salariales reflejan el alto valor que las empresas otorgan a la interpretación y explotación de su activo más valioso: los datos.
+* **Data Scientist Junior (0-2 años):** El salario medio ronda los **25.000€ - 32.000€** brutos anuales. Poseer un título de máster especializado o un portafolio destacado de análisis predictivos en GitHub es vital en esta etapa.
+* **Data Scientist Mid-Level (2-5 años):** Los sueldos escalan a la franja de los **36.000€ a los 48.000€** brutos anuales. Se requiere autonomía para limpiar datos, entrenar modelos de aprendizaje automático y desplegarlos mediante APIs sencillas.
+* **Data Scientist Senior (5+ años):** A partir de los **52.000€**, superando con frecuencia los **75.000€** en corporaciones internacionales o puestos con responsabilidades de liderazgo técnico de equipos de IA.
+
+## 2. Especializaciones que Multiplican el Salario
+Dentro del mundo de los datos, el salario varía según la complejidad técnica del rol:
+1. **Ingeniero de Machine Learning (ML Engineer / MLOps):** Centrados en llevar los modelos de datos a entornos de producción a gran escala de forma automatizada y monitorizada. Sus salarios senior promedian los **65.000€**.
+2. **Ingeniero de Datos (Data Engineer):** Diseñan y optimizan la estructura del lago de datos (Data Lake) y los flujos ETL. Rango Senior: **55.000€ - 70.000€**.
+3. **Científico de Datos Clásico (Análisis y Modelado):** Centrados en la parte matemática y de negocio. Rango Senior: **52.000€ - 62.000€**.
+
+## 3. ¿Qué habilidades demandan las ofertas mejor pagadas en España?
+Si quieres acceder a la banda alta de los salarios, debes incorporar estas herramientas a tu perfil:
+* **Entornos Cloud:** Experiencia práctica en herramientas de Machine Learning y almacenamiento en la nube (AWS SageMaker, Google BigQuery, Snowflake).
+* **Ecosistema de Big Data:** Manejo de herramientas para grandes volúmenes de datos como Apache Spark, PySpark o Databricks.
+* **Despliegue de Modelos (MLOps):** Uso de herramientas como Docker, Kubernetes y MLflow para empaquetar y gestionar el ciclo de vida de los modelos.
+
+Si quieres comprobar cómo se distribuyen los salarios en base a tu stack y localización exacta, puedes utilizar de forma gratuita nuestra [Calculadora de Salarios IT](/salarios) o explorar las ofertas de empleo en la sección especializada de [Data & IA](/trabajos/data).
+`,
+    date: '2026-06-17',
+    author: 'Equipo Portal Empleo',
   }
 ];
 

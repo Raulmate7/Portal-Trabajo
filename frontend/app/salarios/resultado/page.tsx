@@ -284,7 +284,7 @@ export default async function SalaryResultPage({ searchParams }: Props) {
             Mejora tus habilidades con cursos certificados especializados en programación y DevOps.
           </p>
           <a 
-            href="https://trk.udemy.com/9VMAEj" 
+            href={`https://trk.udemy.com/9VMAEj?ulp=${encodeURIComponent(`https://www.udemy.com/courses/search/?q=${techNice}`)}`}
             target="_blank" 
             rel="noopener noreferrer sponsored"
             className="inline-block bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold px-5 py-2.5 rounded-lg text-xs transition-colors"

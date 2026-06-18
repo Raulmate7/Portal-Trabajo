@@ -5,6 +5,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+from logic.slug import get_job_slug
 
 load_dotenv()
 
@@ -88,7 +89,7 @@ def run_reactivation():
             tech_keywords_str = tech_keywords or "programacion"
             keywords = [k.strip() for k in tech_keywords_str.split(',') if k.strip()]
             
-            sql = "SELECT id, title, company, location, salary FROM jobs WHERE is_active = TRUE"
+            sql = "SELECT id, title, company, location, salary, category FROM jobs WHERE is_active = TRUE"
             params = []
             if keywords:
                 keyword_conditions = " OR ".join([f"title ILIKE %s" for _ in keywords])
@@ -106,8 +107,9 @@ def run_reactivation():
             jobs_html = ""
             if jobs:
                 for job in jobs:
-                    job_id, title, company, location, salary = job
-                    original_link = f"{BASE_URL}/job/{job_id}?utm_source=reactivation&utm_medium=email&utm_campaign=reactivation_1"
+                    job_id, title, company, location, salary, category = job
+                    category = category or 'Otros'
+                    original_link = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=reactivation&utm_medium=email&utm_campaign=reactivation_1&utm_term={urllib.parse.quote(category)}&utm_content={job_id}"
                     job_link = f"{BASE_URL}/api/track-click?email={email}&campaign=reactivation_email&redirect={urllib.parse.quote(original_link)}"
                     sal_text = f" | 💰 {salary}" if salary and salary not in ("Consultar", "") else ""
                     jobs_html += f"""

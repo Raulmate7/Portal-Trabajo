@@ -9,18 +9,21 @@ Este documento sirve como la fuente única de verdad para desarrolladores y asis
 
 ## 🛠️ 1. Stack Tecnológico y Arquitectura Distribuida
 
+> [!IMPORTANT]
+> **Arquitectura activa en producción:** El proyecto opera **exclusivamente** bajo una arquitectura **híbrida distribuida** entre Vercel y Raiola Networks. La alternativa de VPS unificado con PM2/Nginx documentada en la sección 11 está **obsoleta y no se utiliza**.
+
 El proyecto opera bajo una **arquitectura híbrida distribuida**:
-1. El **Frontend (Next.js)** está alojado en **Vercel** para beneficiarse de tiempos de respuesta ultrarrápidos en el Edge y optimizaciones de entrega de Next.js.
+1. El **Frontend (Next.js)** está alojado en **Vercel** → desplegado automáticamente desde la rama `main` de GitHub.
 2. La **Base de Datos MySQL** y las tareas de **Backend en Python (Scrapers y Bots)** se ejecutan de forma dedicada en servidores de **Raiola Networks** (administrados vía cPanel/cron).
 
 ### Ficha Técnica de Componentes
 
 | Componente | Tecnología | Ubicación / Hosting | Detalles / Configuración |
 | :--- | :--- | :--- | :--- |
-| **Frontend** | Next.js 15 (App Router) | Vercel | TypeScript, Tailwind CSS v4, React 19, `@next/third-parties/google`. |
-| **Backend** | Python 3.10 | Raiola Networks | Scrapy, FastAPI, PyMySQL, Cloudscraper, BeautifulSoup4, Pillow (PIL). |
-| **Base de Datos** | MySQL 5.7+ / 8.0 | Raiola Networks | Base de datos relacional MySQL local en Raiola. Conexión desde Vercel mediante proxy HTTP (`db_proxy.php`). |
-| **Automatización** | GitHub Actions | GitHub Nube | Tareas programadas (cron) para scrapers (`run_all.py`) y envíos semanales (`mailer.py`). |
+| **Frontend** | Next.js 15 (App Router) | ☁️ **Vercel** | TypeScript, Tailwind CSS v4, React 19, `@next/third-parties/google`. Deploy automático desde `main`. |
+| **Backend** | Python 3.10 | 🖥️ **Raiola Networks** | Scrapy, FastAPI, PyMySQL, Cloudscraper, BeautifulSoup4, Pillow (PIL). Administrado vía cPanel. |
+| **Base de Datos** | MySQL 5.7+ / 8.0 | 🖥️ **Raiola Networks** | MySQL local en Raiola. Vercel accede a ella mediante proxy HTTP (`db_proxy.php`) al no permitirse conexiones TCP directas al puerto 3306. |
+| **Automatización** | GitHub Actions | ☁️ GitHub Nube | Tareas programadas (cron) para scrapers (`run_all.py`) y envíos semanales (`mailer.py`). |
 | **Canales Externos** | Telegram, Twitter/X, LinkedIn, Mastodon, Email | Integraciones API | Difusión automatizada de vacantes mediante bots e email SMTP. |
 
 ---
@@ -400,13 +403,18 @@ CRON_SECRET=token-secreto-cron                     # Firma de autorización para
 ```
 
 ### Flujo de Despliegue (Deployments)
-El proyecto admite dos metodologías de despliegue según el servidor destino:
-1.  **Arquitectura Distribuida (cPanel + Vercel)**:
-    *   *Frontend*: Sincronizado automáticamente con Vercel al hacer push en la rama `main`.
-    *   *Backend*: La GitHub Action `deploy_cpanel.yml` se dispara al hacer push. Genera un directorio de distribución limpio, eliminando entornos virtuales (`venv`), módulos de node (`node_modules`) y archivos `.env` de desarrollo, y lo sube al servidor Raiola mediante FTP seguro.
-2.  **Arquitectura VPS Unificada (PM2 + Nginx)**:
-    *   El script de shell `deploy.sh` en el root del proyecto permite compilar y recargar Next.js en producción en un VPS propio. Instala dependencias, compila y recarga el proceso con PM2 (`pm2 reload portal-trabajo`) garantizando cero tiempo de inactividad (*Zero-Downtime*).
-    *   Se proporciona la plantilla `nginx.conf.template` para configurar Nginx como proxy inverso hacia el puerto `3000`, configurando compresión Gzip agresiva y cabeceras de caché inmutable para optimizar las métricas SEO.
+
+> [!IMPORTANT]
+> **Arquitectura en producción activa: Vercel (Frontend) + Raiola Networks (Backend y Base de Datos).** Esta es la única metodología de despliegue vigente.
+
+1.  **✅ ACTIVO — Arquitectura Distribuida (Vercel + Raiola Networks)**:
+    *   *Frontend (Vercel)*: Sincronizado automáticamente con Vercel al hacer push en la rama `main`. No requiere intervención manual.
+    *   *Backend (Raiola)*: La GitHub Action `deploy_cpanel.yml` se dispara al hacer push. Genera un directorio de distribución limpio, eliminando entornos virtuales (`venv`), módulos de node (`node_modules`) y archivos `.env` de desarrollo, y lo sube al servidor Raiola mediante FTP seguro.
+    *   *Base de Datos (Raiola)*: MySQL local en el servidor Raiola. No se despliega; es persistente y se gestiona desde cPanel.
+
+2.  **⚠️ OBSOLETO — Arquitectura VPS Unificada (PM2 + Nginx)**:
+    *   Esta opción ya **no está en uso**. Se documenta únicamente por razones históricas.
+    *   El script de shell `deploy.sh` y la plantilla `nginx.conf.template` en el root del proyecto son artefactos de esta arquitectura descartada. No deben utilizarse en el flujo de trabajo actual.
 
 ---
 

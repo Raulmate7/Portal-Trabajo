@@ -1,10 +1,11 @@
 import { MetadataRoute } from 'next'
 import pool from '@/lib/db';
 import { BLOG_POSTS } from '@/lib/blog';
+import { GLOSSARY_TERMS } from '@/lib/glosario';
 import { BASE_URL } from '@/lib/constants';
 import { getJobSlug } from '@/lib/slug';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 21600; // Cache por 6 horas
 
 const BASE_PAGES = [
   '/trabajos/informatica-tecnologia',
@@ -23,6 +24,10 @@ const BASE_PAGES = [
   '/sobre-nosotros',
   '/orientacion-profesional',
   '/ofertas-guardadas',
+  '/glosario',
+  '/noticias',
+  '/tendencias',
+  '/recursos',
 ];
 
 const TECNOLOGIAS = [
@@ -39,6 +44,16 @@ const CIUDADES = [
   'madrid', 'barcelona', 'valencia', 'sevilla', 'bilbao', 'malaga', 'zaragoza', 'alicante', 
   'murcia', 'gijon', 'oviedo', 'vigo', 'coruna', 'granada', 'san-sebastian', 'pamplona', 
   'valladolid', 'remoto'
+];
+
+const COMPARATIVAS = [
+  'react-vs-angular',
+  'vue-vs-react',
+  'python-vs-java',
+  'javascript-vs-typescript',
+  'node-vs-python',
+  'go-vs-rust',
+  'aws-vs-kubernetes',
 ];
 
 function detectTechForSitemap(title: string, category: string | null): string[] {
@@ -222,10 +237,10 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
         }
       }
 
-      // Excluir del sitemap combinaciones dinámicas con menos de 2 ofertas de empleo (evita thin content)
+      // Excluir del sitemap combinaciones dinámicas con menos de 5 ofertas de empleo (evita thin content)
       const activeProgrammaticPages = Array.from(pageCounts.keys()).filter((path) => {
         const count = pageCounts.get(path) || 0;
-        return count >= 2;
+        return count >= 5;
       });
 
       const sectorPages = [...BASE_PAGES, ...activeProgrammaticPages];
@@ -307,6 +322,20 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
         )
       ];
 
+      const glossaryUrls = GLOSSARY_TERMS.map((term) => ({
+        url: `${BASE_URL}/glosario/${term.slug}`,
+        lastModified: new Date(),
+        changeFrequency: 'monthly' as const,
+        priority: 0.6,
+      }));
+
+      const comparisonUrls = COMPARATIVAS.map((slug) => ({
+        url: `${BASE_URL}/comparar/${slug}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.7,
+      }));
+
       return [
         {
           url: BASE_URL,
@@ -323,6 +352,8 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
         ...sectorUrls,
         ...blogUrls,
         ...salaryUrls,
+        ...glossaryUrls,
+        ...comparisonUrls,
       ];
     }
 
@@ -401,7 +432,9 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
         url: `${BASE_URL}/empresas/${slugify(c.company)}`,
         lastModified: new Date(),
         changeFrequency: 'weekly' as const,
-        priority: 0.85,
+        // Prioridad reducida: las páginas de empresa son thin content (solo listan ofertas).
+        // No deben competir en prioridad con las páginas de categoría principales (0.85-0.9).
+        priority: 0.55,
       }));
     }
 

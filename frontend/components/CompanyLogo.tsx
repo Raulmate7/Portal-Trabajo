@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 
 const COMMON_DOMAINS: Record<string, string> = {
   idealista: 'idealista.com',
@@ -56,6 +57,12 @@ interface CompanyLogoProps {
   size?: number; // Tailwind class size (e.g. 10, 12, 16)
 }
 
+const SIZE_MAP: Record<number, { tailwind: string; px: number }> = {
+  10: { tailwind: 'w-10 h-10', px: 40 },
+  12: { tailwind: 'w-12 h-12', px: 48 },
+  16: { tailwind: 'w-16 h-16', px: 64 },
+};
+
 export default function CompanyLogo({ company, size = 12 }: CompanyLogoProps) {
   const [imgFailed, setImgFailed] = useState(false);
   const cleanCompany = company ? company.trim() : 'Empresa';
@@ -84,20 +91,25 @@ export default function CompanyLogo({ company, size = 12 }: CompanyLogoProps) {
     }
   }
 
-  // Clases de tamaño dinámicas para Tailwind
-  const sizeClass = `w-${size} h-${size}`;
+  // Clases de tamaño estáticas y dimensiones fijas inline para evitar CLS
+  const sizeConfig = SIZE_MAP[size] || { tailwind: 'w-12 h-12', px: 48 };
+  const sizeClass = sizeConfig.tailwind;
+  const containerStyle = { width: `${sizeConfig.px}px`, height: `${sizeConfig.px}px` };
   const textClass = size >= 16 ? 'text-2xl' : size >= 12 ? 'text-lg font-bold' : 'text-xs font-semibold';
 
   if (logoUrl && !imgFailed) {
     return (
-      <div className={`relative ${sizeClass} rounded-xl overflow-hidden border border-gray-200 dark:border-slate-800 shrink-0 bg-white flex items-center justify-center shadow-sm`}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+      <div 
+        style={containerStyle}
+        className={`relative ${sizeClass} rounded-xl overflow-hidden border border-gray-200 dark:border-slate-800 shrink-0 bg-white flex items-center justify-center shadow-sm`}
+      >
+        <Image
           src={logoUrl}
           alt={`Logo de ${cleanCompany}`}
-          className="object-contain p-1 w-full h-full"
+          fill
+          sizes="(max-width: 768px) 40px, 48px"
+          className="object-contain p-1"
           onError={() => setImgFailed(true)}
-          loading="lazy"
         />
       </div>
     );
@@ -105,6 +117,7 @@ export default function CompanyLogo({ company, size = 12 }: CompanyLogoProps) {
 
   return (
     <div
+      style={containerStyle}
       className={`shrink-0 ${sizeClass} rounded-xl bg-gradient-to-br ${gradientClass} flex items-center justify-center ${textClass} shadow-sm border border-black/5 dark:border-white/5 uppercase`}
       aria-hidden="true"
     >

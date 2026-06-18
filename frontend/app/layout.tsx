@@ -96,7 +96,18 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
-        <meta name="impact-site-verification" value="2348664d-36c1-45a5-8a74-a2dd472c4343" />
+        <meta name="impact-site-verification" content="2348664d-36c1-45a5-8a74-a2dd472c4343" />
+        {/* Preconexión y dns-prefetch para servicios de terceros externos */}
+        <link rel="preconnect" href="https://logo.clearbit.com" />
+        <link rel="preconnect" href="https://pagead2.googlesyndication.com" />
+        <link rel="preconnect" href="https://adservice.google.com" />
+        <link rel="preconnect" href="https://cdn.onesignal.com" />
+        <link rel="dns-prefetch" href="https://logo.clearbit.com" />
+        <link rel="dns-prefetch" href="https://pagead2.googlesyndication.com" />
+        <link rel="dns-prefetch" href="https://adservice.google.com" />
+        <link rel="dns-prefetch" href="https://tpc.googlesyndication.com" />
+        <link rel="dns-prefetch" href="https://cdn.onesignal.com" />
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         {/* Inicializador de Tema Oscuro para evitar flash de color */}
         <script
           id="theme-initializer"
@@ -132,8 +143,13 @@ export default function RootLayout({
                   window.removeEventListener('touchstart', loadThirdParty);
                   window.removeEventListener('keydown', loadThirdParty);
 
-                  // Inyectar AdSense
-                  if (adsenseId) {
+                  // Inyectar AdSense (excluyendo rutas de reclutadores/conversión)
+                  var excludedPaths = ['/publicar-oferta', '/precios', '/publicidad'];
+                  var isExcluded = excludedPaths.some(function(p) {
+                    return window.location.pathname.startsWith(p);
+                  });
+
+                  if (adsenseId && !isExcluded) {
                     var ads = document.createElement('script');
                     ads.async = true;
                     ads.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + adsenseId;
@@ -168,8 +184,8 @@ export default function RootLayout({
                 window.addEventListener('touchstart', loadThirdParty, { passive: true });
                 window.addEventListener('keydown', loadThirdParty, { passive: true });
 
-                // Carga diferida en 3 segundos como salvaguarda
-                setTimeout(loadThirdParty, 3000);
+                // Carga diferida en 1.5 segundos como salvaguarda
+                setTimeout(loadThirdParty, 1500);
               })();
             `
           }}

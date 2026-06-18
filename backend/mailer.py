@@ -10,6 +10,23 @@ from logic.slug import get_job_slug
 
 load_dotenv()
 
+def get_custom_udemy_link(tech_keywords):
+    base_udemy = "https://trk.udemy.com/9VMAEj"
+    if not tech_keywords:
+        return f"{base_udemy}?subid=newsletter_general"
+    
+    techs = tech_keywords.lower()
+    if any(k in techs for k in ['react', 'frontend', 'javascript', 'typescript', 'next', 'vue', 'angular']):
+        return f"{base_udemy}?subid=newsletter_react&redirect=https%3A%2F%2Fwww.udemy.com%2Fcourse%2Freact-the-complete-guide-incl-redux%2F"
+    elif any(k in techs for k in ['python', 'data', 'machine', 'learning', 'ai', 'sql']):
+        return f"{base_udemy}?subid=newsletter_python&redirect=https%3A%2F%2Fwww.udemy.com%2Fcourse%2Fcomplete-python-bootcamp%2F"
+    elif any(k in techs for k in ['java', 'spring', 'csharp', 'php', 'backend', 'node']):
+        return f"{base_udemy}?subid=newsletter_backend&redirect=https%3A%2F%2Fwww.udemy.com%2Fcourse%2Fthe-complete-web-development-bootcamp%2F"
+    elif any(k in techs for k in ['cloud', 'devops', 'aws', 'docker', 'kubernetes']):
+        return f"{base_udemy}?subid=newsletter_devops&redirect=https%3A%2F%2Fwww.udemy.com%2Fcourse%2Fdecodingdevops%2F"
+    
+    return f"{base_udemy}?subid=newsletter_general"
+
 def send_newsletter():
     print("===============================================")
     print("🚀 PREPARANDO ENVÍO DE NEWSLETTER SEMANAL...")
@@ -104,7 +121,7 @@ def send_newsletter():
             job_id, title, company, location, url_source, _ = job
             import urllib.parse
             base_url = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
-            original_job_link = f"{base_url}/job/{get_job_slug(job_id, title, location, company)}?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
+            original_job_link = f"{base_url}/job/{get_job_slug(job_id, title, location, company)}?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal&utm_term={urllib.parse.quote(cat)}&utm_content={job_id}"
             job_link = f"{base_url}/api/track-click?email=##EMAIL##&campaign=##CAMPAIGN##&redirect={urllib.parse.quote(original_job_link)}"
 
             standard_jobs_html += f"""
@@ -118,9 +135,8 @@ def send_newsletter():
             """
 
     # Enlaces fijos
-    BOOTCAMP_LINK = "https://trk.udemy.com/9VMAEj"
-    CV_LINK = "https://ejemplo.com/afiliado-cv"
     base_url = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
+    CV_LINK = f"{base_url}/recursos?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
 
     # 4. OBTENER SUSCRIPTORES CON SUS PREFERENCIAS
     cur.execute("SELECT email, tech_keywords FROM subscribers WHERE email IS NOT NULL")
@@ -174,9 +190,10 @@ def send_newsletter():
                     </h2>
                 """
                 for job in recommended_jobs:
-                    job_id, title, company, location, url_source, _ = job
+                    job_id, title, company, location, url_source, job_cat = job
+                    job_cat = job_cat or 'Otros'
                     import urllib.parse
-                    original_job_link = f"{base_url}/job/{get_job_slug(job_id, title, location, company)}?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
+                    original_job_link = f"{base_url}/job/{get_job_slug(job_id, title, location, company)}?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal&utm_term={urllib.parse.quote(job_cat)}&utm_content={job_id}"
                     job_link = f"{base_url}/api/track-click?email=##EMAIL##&campaign=##CAMPAIGN##&redirect={urllib.parse.quote(original_job_link)}"
                     
                     recommended_html += f"""
@@ -193,7 +210,8 @@ def send_newsletter():
             
             # Generar enlaces con tracking para los CTAs generales del correo
             import urllib.parse
-            bootcamp_track = f"{base_url}/api/track-click?email={email}&campaign={campaign_name}&redirect={urllib.parse.quote(BOOTCAMP_LINK)}"
+            user_udemy_link = get_custom_udemy_link(tech_keywords)
+            bootcamp_track = f"{base_url}/api/track-click?email={email}&campaign={campaign_name}&redirect={urllib.parse.quote(user_udemy_link)}"
             cv_track = f"{base_url}/api/track-click?email={email}&campaign={campaign_name}&redirect={urllib.parse.quote(CV_LINK)}"
             
             talento_premium_orig = f"{base_url}/talento-premium?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"

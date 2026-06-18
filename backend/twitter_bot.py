@@ -124,8 +124,9 @@ def run_twitter_bot():
         conn.close()
         return
 
-    # Seleccionar hasta 3 ofertas para publicar
-    jobs_to_tweet = recent_jobs[:3]
+    # Seleccionar ofertas a publicar (por defecto 5, configurable por env)
+    limit_tweets = int(os.getenv("TWITTER_POST_LIMIT", "5"))
+    jobs_to_tweet = recent_jobs[:limit_tweets]
     print(f"📣 Seleccionadas {len(jobs_to_tweet)} ofertas nuevas para publicar en Twitter (X).")
 
     for idx, job in enumerate(jobs_to_tweet):
@@ -162,7 +163,7 @@ def run_twitter_bot():
         print(f"\n📝 Preparando Tweet {idx+1}/{len(jobs_to_tweet)}:\n{tweet_text}\n")
         
         # Generar la imagen para adjuntar
-        image_path = f"temp_card_{job_id}.png"
+        image_path = f"temp_card_{job_id}.jpg"
         has_image = False
         try:
             generate_job_card(

@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import pool from '@/lib/db';
+import { getBlogPosts } from '@/lib/blog';
 import Link from 'next/link';
 import { cache } from 'react';
 import ShareButton from '@/components/ShareButton';
@@ -8,6 +9,7 @@ import CourseAffiliate from '@/components/CourseAffiliate';
 import SubscribeForm from '@/components/SubscribeForm';
 import AdBanner from '@/components/AdBanner';
 import PushSubscribe from '@/components/PushSubscribe';
+import { ReferralWidget } from '@/components/Widgets';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { BASE_URL } from '@/lib/constants';
 import { getJobSlug, getNumericId } from '@/lib/slug';
@@ -16,6 +18,7 @@ import ReactionButton from '@/components/ReactionButton';
 import { getJobReactions } from '@/app/actions';
 import ApplyButton from '@/components/ApplyButton';
 import CompanyLogo from '@/components/CompanyLogo';
+import { RecentlyViewedTracker } from '@/components/RecentlyViewed';
 
 export const revalidate = 60;
 
@@ -145,6 +148,39 @@ function detectTechnology(title: string, desc: string): string | null {
   return null;
 }
 
+async function getRelatedBlogPost(title: string, desc: string, isRemote: boolean) {
+  const posts = await getBlogPosts();
+  const text = `${title} ${desc}`.toLowerCase();
+  
+  if (text.includes('react')) {
+    const p = posts.find(post => post.slug === 'como-superar-entrevista-tecnica-react');
+    if (p) return p;
+  }
+  if (text.includes('java')) {
+    const p = posts.find(post => post.slug === 'guia-superar-entrevista-tecnica-java-spring-boot');
+    if (p) return p;
+  }
+  if (text.includes('python')) {
+    const p = posts.find(post => post.slug === 'salario-python-espana-2026');
+    if (p) return p;
+  }
+  if (text.includes('backend') || text.includes('node') || text.includes('django') || text.includes('spring')) {
+    const p = posts.find(post => post.slug === 'tecnologias-backend-mas-demandadas-espana-2026');
+    if (p) return p;
+  }
+  if (text.includes('data') || text.includes('inteligencia artificial') || text.includes('machine learning') || text.includes(' ia ') || text.includes(' ai ')) {
+    const p = posts.find(post => post.slug === 'trabajo-data-scientist-inteligencia-artificial');
+    if (p) return p;
+  }
+
+  if (isRemote) {
+    const p = posts.find(post => post.slug === 'trabajo-remoto-programadores-espana');
+    if (p) return p;
+  }
+
+  return posts.find(post => post.slug === 'como-optimizar-cv-programador-filtros-ats') || posts[0] || null;
+}
+
 type Props = {
   params: Promise<{ id: string }>;
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -186,6 +222,13 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     const isOld = (new Date().getTime() - new Date(job.created_at).getTime()) > 30 * 24 * 60 * 60 * 1000;
     const isExpired = job.is_active === false || isOld;
 
+    if (isExpired) {
+      return {
+        title: 'Oferta no encontrada',
+        robots: { index: false, follow: false }
+      };
+    }
+
     const correctSlug = getJobSlug(job);
     const canonicalUrl = isEnglish 
       ? `${BASE_URL}/job/${correctSlug}?lang=en` 
@@ -206,8 +249,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
         },
       },
       robots: {
-        index: !isExpired,
-        follow: true,
+        index: false,
+        follow: false,
       },
       openGraph: {
         title: titulo,
@@ -375,6 +418,12 @@ export default async function JobPage({ params, searchParams }: Props) {
     notFound();
   }
 
+  const isOld = (new Date().getTime() - new Date(job.created_at).getTime()) > 30 * 24 * 60 * 60 * 1000;
+  const isExpired = job.is_active === false || isOld;
+  if (isExpired) {
+    notFound();
+  }
+
   const correctSlug = getJobSlug(job);
   const lang = resolvedSearchParams?.lang === 'en' ? 'en' : 'es';
   const isEnglish = lang === 'en';
@@ -387,9 +436,6 @@ export default async function JobPage({ params, searchParams }: Props) {
 
   const similarJobs = await getSimilarJobs(numericId, job.category, job.title, 3);
   const reactions = await getJobReactions(job.id);
-
-  const isOld = (new Date().getTime() - new Date(job.created_at).getTime()) > 30 * 24 * 60 * 60 * 1000;
-  const isExpired = job.is_active === false || isOld;
 
   const hasTranslation = !!job.title_es && !isEnglish;
   const displayTitle = isEnglish ? job.title : (job.title_es || job.title);
@@ -413,6 +459,7 @@ export default async function JobPage({ params, searchParams }: Props) {
   const textForInference = `${job.title} ${job.description_snippet || ''}`.toLowerCase();
   const isRemote = textForInference.includes('remoto') || textForInference.includes('teletrabajo') || textForInference.includes('remote');
   const employmentTypes = inferEmploymentTypes(textForInference);
+  const relatedBlogPost = await getRelatedBlogPost(job.title, job.description_snippet || '', isRemote);
 
   const datePosted = new Date(job.created_at);
   const validThroughDate = new Date(datePosted.getTime() + 45 * 24 * 60 * 60 * 1000);
@@ -472,6 +519,67 @@ export default async function JobPage({ params, searchParams }: Props) {
     ? job.company 
     : (sourceLabel && sourceLabel !== 'Internet' ? sourceLabel : 'Portal Trabajo IT');
 
+  let postalCode = '28001';
+  let streetAddress = 'Calle Gran Vía, 1';
+  let addressRegion = 'Madrid';
+
+  const cleanLocForAddress = (job.location || '').toLowerCase();
+  if (cleanLocForAddress.includes('barcelona') || cleanLocForAddress.includes('bcn')) {
+    addressRegion = 'Barcelona';
+    postalCode = '08001';
+    streetAddress = 'La Rambla, 1';
+  } else if (cleanLocForAddress.includes('valencia')) {
+    addressRegion = 'Valencia';
+    postalCode = '46001';
+    streetAddress = 'Plaza del Ayuntamiento, 1';
+  } else if (cleanLocForAddress.includes('sevilla')) {
+    addressRegion = 'Sevilla';
+    postalCode = '41001';
+    streetAddress = 'Avenida de la Constitución, 1';
+  } else if (cleanLocForAddress.includes('bilbao')) {
+    addressRegion = 'Bizkaia';
+    postalCode = '48001';
+    streetAddress = 'Gran Vía de Don Diego López de Haro, 1';
+  } else if (cleanLocForAddress.includes('málaga') || cleanLocForAddress.includes('malaga')) {
+    addressRegion = 'Málaga';
+    postalCode = '29001';
+    streetAddress = 'Calle Larios, 1';
+  }
+
+  let fallbackSalaryObj: any = null;
+  if (!baseSalaryObj) {
+    let estMin = 30000;
+    let estMax = 45000;
+
+    const tLower = job.title.toLowerCase();
+    if (tLower.includes('senior') || tLower.includes('sr') || tLower.includes('lead') || tLower.includes('principal') || tLower.includes('architect')) {
+      estMin = 45000;
+      estMax = 70000;
+    } else if (tLower.includes('junior') || tLower.includes('becario') || tLower.includes('trainee') || tLower.includes('jr') || tLower.includes('prácticas') || tLower.includes('sin experiencia')) {
+      estMin = 22000;
+      estMax = 30000;
+    }
+
+    if (detectedTec === 'react' || detectedTec === 'typescript' || detectedTec === 'node') {
+      estMin = Math.round(estMin * 1.05);
+      estMax = Math.round(estMax * 1.05);
+    } else if (detectedTec === 'aws' || detectedTec === 'docker' || detectedTec === 'kubernetes' || detectedTec === 'cloud' || detectedTec === 'devops') {
+      estMin = Math.round(estMin * 1.15);
+      estMax = Math.round(estMax * 1.15);
+    }
+
+    fallbackSalaryObj = {
+      "@type": "MonetaryAmount",
+      "currency": job.salary_currency || "EUR",
+      "value": {
+        "@type": "QuantitativeValue",
+        "minValue": estMin,
+        "maxValue": estMax,
+        "unitText": "YEAR"
+      }
+    };
+  }
+
   const jsonLd: any = {
     '@context': 'https://schema.org',
     '@type': 'JobPosting',
@@ -492,7 +600,10 @@ export default async function JobPage({ params, searchParams }: Props) {
       '@type': 'Place',
       address: { 
         '@type': 'PostalAddress', 
-        addressLocality: job.location || 'Remoto', 
+        addressLocality: job.location || 'Madrid', 
+        addressRegion: addressRegion,
+        postalCode: postalCode,
+        streetAddress: streetAddress,
         addressCountry: countryCode 
       },
     },
@@ -513,8 +624,24 @@ export default async function JobPage({ params, searchParams }: Props) {
     jsonLd.experienceRequirements = expRequirements;
   }
 
+  // URL canónica de la oferta (campo requerido por Google para Rich Results)
+  jsonLd.url = `${BASE_URL}/job/${correctSlug}`;
+
+  // Moneda del salario explícita (mejora la precisión del Rich Result de salario)
+  if (baseSalaryObj) {
+    const currency = job.salary_currency || 'EUR';
+    baseSalaryObj.currency = currency;
+    jsonLd.baseSalary = baseSalaryObj;
+  } else if (fallbackSalaryObj) {
+    jsonLd.baseSalary = fallbackSalaryObj;
+  }
+
+  // Beneficios para trabajo remoto
   if (isRemote) {
-    jsonLd.jobLocationType = "TELECOMMUTE";
+    jsonLd.jobBenefits = isEnglish
+      ? 'Remote work (telecommute), flexible schedule'
+      : 'Teletrabajo (trabajo remoto), horario flexible';
+    jsonLd.jobLocationType = 'TELECOMMUTE';
     if (!isWorldwide) {
       jsonLd.applicantLocationRequirements = {
         '@type': 'Country',
@@ -523,8 +650,27 @@ export default async function JobPage({ params, searchParams }: Props) {
     }
   }
 
-  if (baseSalaryObj) {
-    jsonLd.baseSalary = baseSalaryObj;
+  // Requisitos formativos inferidos del título
+  const titleForEdu = job.title.toLowerCase();
+  if (
+    titleForEdu.includes('junior') ||
+    titleForEdu.includes('becario') ||
+    titleForEdu.includes('trainee') ||
+    titleForEdu.includes('prácticas')
+  ) {
+    jsonLd.educationRequirements = {
+      '@type': 'EducationalOccupationalCredential',
+      credentialCategory: isEnglish ? 'bachelor degree' : 'grado universitario o FP Superior'
+    };
+  } else if (
+    titleForEdu.includes('senior') ||
+    titleForEdu.includes('lead') ||
+    titleForEdu.includes('architect')
+  ) {
+    jsonLd.educationRequirements = {
+      '@type': 'EducationalOccupationalCredential',
+      credentialCategory: isEnglish ? 'bachelor degree' : 'grado universitario'
+    };
   }
 
   const breadcrumbJsonLd = {
@@ -597,6 +743,7 @@ export default async function JobPage({ params, searchParams }: Props) {
 
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-4 md:px-8">
+      <RecentlyViewedTracker job={{ id: job.id, title: displayTitle, company: job.company, location: job.location, salary: job.salary }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
@@ -680,6 +827,26 @@ export default async function JobPage({ params, searchParams }: Props) {
                     </p>
                   )}
                 </div>
+
+                {relatedBlogPost && (
+                  <div className="mb-8 p-5 bg-gradient-to-br from-indigo-50 via-indigo-50/70 to-white border border-indigo-100 rounded-2xl shadow-sm flex items-start gap-4 hover:shadow-md transition-shadow">
+                    <span className="text-2xl shrink-0">📖</span>
+                    <div>
+                      <h4 className="font-extrabold text-indigo-950 text-sm mb-1">
+                        {isEnglish ? 'Recommended Career Guide:' : 'Guía de Empleo Recomendada:'}
+                      </h4>
+                      <Link 
+                        href={`/blog/${relatedBlogPost.slug}${queryParam}`}
+                        className="text-base font-bold text-indigo-705 hover:text-indigo-900 hover:underline"
+                      >
+                        {relatedBlogPost.title}
+                      </Link>
+                      <p className="text-xs text-gray-600 mt-1.5 leading-relaxed font-normal">
+                        {relatedBlogPost.excerpt}
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Enlaces de Interlinking de SEO */}
                 {detectedTec && tecLabel && (
@@ -771,14 +938,17 @@ export default async function JobPage({ params, searchParams }: Props) {
 
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
-            <div className="sticky top-6 space-y-6">
+            <div className="space-y-6">
               <SubscribeForm 
                 location={job.location || 'España'} 
                 defaultTech={detectedTec || undefined}
                 defaultLocation={isRemote ? 'remoto' : undefined}
               />
               <PushSubscribe />
-              <AdBanner variant="sidebar" />
+              <ReferralWidget lang={lang} />
+              <div className="lg:sticky lg:top-24">
+                <AdBanner variant="sidebar" />
+              </div>
             </div>
           </div>
         </div>

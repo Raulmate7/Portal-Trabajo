@@ -46,7 +46,7 @@ class TestOnboardingAndAlerts(unittest.TestCase):
         # 1. Retornar suscriptores: uno en stage 0 (bienvenida), otro en stage 1 (recursos)
         mock_cursor.fetchall.side_effect = [
             [('sub-stage0@gmail.com', 'python', 0, None), ('sub-stage1@gmail.com', 'react', 1, datetime.now() - timedelta(days=5))], # Sub bucle principal
-            [('job-1', 'Python dev', 'Acme', 'Madrid', 'Consultar')] # Ofertas para bienvenida
+            [('job-1', 'Python dev', 'Acme', 'Madrid', 'Consultar', 'Backend')] # Ofertas para bienvenida
         ]
         mock_conn.cursor.return_value = mock_cursor
         mock_db_connect.return_value = mock_conn
@@ -74,7 +74,7 @@ class TestOnboardingAndAlerts(unittest.TestCase):
         # 1. Retornar suscriptores y ofertas
         mock_cursor.fetchall.side_effect = [
             [('sub-alert@gmail.com', 'node', 'Madrid', 'daily')], # Suscriptores
-            [('job-2', 'Node Developer', 'Globex', 'Madrid', 'https://globex.com', '50.000€')] # Ofertas
+            [('job-2', 'Node Developer', 'Globex', 'Madrid', 'https://globex.com', '50.000€', 'Backend')] # Ofertas
         ]
         mock_conn.cursor.return_value = mock_cursor
         mock_db_connect.return_value = mock_conn
@@ -100,7 +100,7 @@ class TestOnboardingAndAlerts(unittest.TestCase):
         
         # 1. Retornar ofertas destacadas y suscriptores
         mock_cursor.fetchall.side_effect = [
-            [('job-feat', 'Senior Java Developer', 'Java Corp', 'Barcelona', 'A convenir')], # Ofertas destacadas
+            [('job-feat', 'Senior Java Developer', 'Java Corp', 'Barcelona', 'A convenir', 'Backend')], # Ofertas destacadas
             [('sub-feat@gmail.com', 'java')] # Suscriptores
         ]
         mock_conn.cursor.return_value = mock_cursor
@@ -161,7 +161,7 @@ class TestOnboardingAndAlerts(unittest.TestCase):
         # Suscriptores pendientes de reactivación y ofertas
         mock_cursor.fetchall.side_effect = [
             [('sub-inactive@gmail.com', 'python')], # Suscriptores
-            [('job-rec', 'Python Lead', 'Google', 'Remoto', '90.000€')] # Ofertas
+            [('job-rec', 'Python Lead', 'Google', 'Remoto', '90.000€', 'Backend')] # Ofertas
         ]
         mock_cursor.rowcount = 1 # 1 fila borrada en limpieza
         mock_conn.cursor.return_value = mock_cursor

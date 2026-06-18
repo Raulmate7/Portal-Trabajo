@@ -14,7 +14,7 @@ type Props = {
 
 export default async function Image({ params }: Props) {
   const { slug } = await params;
-  const post = getPostBySlug(slug);
+  const post = await getPostBySlug(slug);
 
   const title = post ? post.title : 'Blog de Empleo Tech';
   const author = post ? post.author : 'Equipo Portal Empleo';

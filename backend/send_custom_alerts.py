@@ -18,7 +18,7 @@ def get_jobs_for_subscriber(cur, tech_keywords: str, location_pref: str, hours: 
     """Busca ofertas en la BD que coincidan con los filtros del suscriptor."""
     params = []
     sql = """
-        SELECT id, title, company, location, url_source, salary
+        SELECT id, title, company, location, url_source, salary, category
         FROM jobs
         WHERE created_at > %s
     """
@@ -50,8 +50,9 @@ def build_job_html(jobs, subscriber_email):
     import urllib.parse
     html = ""
     for job in jobs:
-        job_id, title, company, location, url_source, salary = job
-        original_job_link = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=alert&utm_medium=email&utm_campaign=custom_alert"
+        job_id, title, company, location, url_source, salary, category = job
+        category = category or 'Otros'
+        original_job_link = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=alert&utm_medium=email&utm_campaign=custom_alert&utm_term={urllib.parse.quote(category)}&utm_content={job_id}"
         job_link = f"{BASE_URL}/api/track-click?email={subscriber_email}&campaign=custom_alert&redirect={urllib.parse.quote(original_job_link)}"
         salary_text = f"💰 {salary}" if salary and salary not in ("Consultar", None) else ""
 

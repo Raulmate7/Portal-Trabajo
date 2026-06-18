@@ -10,88 +10,15 @@ import PushSubscribe from "@/components/PushSubscribe";
 import CompanyLogo from "@/components/CompanyLogo";
 import { Suspense } from "react";
 import { getJobSlug } from "@/lib/slug";
+import { getJobs, getFeaturedJobs, getJobsCount, getJobOfTheDay, getTrendingTech } from "@/lib/jobs";
+import LoadMoreJobs from "@/components/LoadMoreJobs";
+import { RecentlyViewedList } from "@/components/RecentlyViewed";
+import { JobOfTheDayWidget, TrendingTechWidget, ReferralWidget } from "@/components/Widgets";
 
-export const revalidate = 300;
+export const revalidate = 60; // Reducimos para actualizar los widgets con mayor frecuencia
 
 type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
-}
-
-async function getJobs(query: string, location: string, page: number = 1) {
-  const limit = 20;
-  const offset = (page - 1) * limit;
-  const client = await pool.connect();
-  try {
-    let sql = "SELECT * FROM jobs WHERE (is_featured = FALSE OR is_featured IS NULL) AND is_active = TRUE";
-    const params: any[] = [];
-    let paramIndex = 1;
-
-    if (query && query.trim()) {
-      sql += ` AND (title ILIKE $${paramIndex} OR company ILIKE $${paramIndex} OR description_snippet ILIKE $${paramIndex})`;
-      params.push(`%${query.trim()}%`);
-      paramIndex++;
-    }
-
-    if (location && location.trim()) {
-      sql += ` AND location ILIKE $${paramIndex}`;
-      params.push(`%${location.trim()}%`);
-      paramIndex++;
-    }
-
-    sql += ` ORDER BY created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-    params.push(limit, offset);
-
-    const result = await client.query(sql, params);
-    return result.rows;
-  } catch (error) {
-    console.error("Error BD:", error);
-    return [];
-  } finally {
-    client.release();
-  }
-}
-
-async function getFeaturedJobs(query: string, location: string) {
-  const client = await pool.connect();
-  try {
-    let sql = "SELECT * FROM jobs WHERE is_featured = TRUE AND is_active = TRUE";
-    const params: any[] = [];
-    let paramIndex = 1;
-
-    if (query && query.trim()) {
-      sql += ` AND (title ILIKE $${paramIndex} OR company ILIKE $${paramIndex} OR description_snippet ILIKE $${paramIndex})`;
-      params.push(`%${query.trim()}%`);
-      paramIndex++;
-    }
-
-    if (location && location.trim()) {
-      sql += ` AND location ILIKE $${paramIndex}`;
-      params.push(`%${location.trim()}%`);
-      paramIndex++;
-    }
-
-    sql += ` ORDER BY created_at DESC LIMIT 3`;
-    const result = await client.query(sql, params);
-    return result.rows;
-  } catch (error) {
-    console.error("Error fetching featured jobs:", error);
-    return [];
-  } finally {
-    client.release();
-  }
-}
-
-async function getJobsCount() {
-  const client = await pool.connect();
-  try {
-    const result = await client.query("SELECT COUNT(*) FROM jobs WHERE is_active = TRUE AND (is_featured = FALSE OR is_featured IS NULL)");
-    return parseInt(result.rows[0].count, 10);
-  } catch (error) {
-    console.error("Error counting jobs:", error);
-    return 0;
-  } finally {
-    client.release();
-  }
 }
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
@@ -113,12 +40,12 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
       const countParams: any[] = [];
       let paramIdx = 1;
       if (q) {
-        countSql += ` AND (title ILIKE $${paramIdx} OR company ILIKE $${paramIdx} OR description_snippet ILIKE $${paramIdx})`;
+        countSql += ` AND (title LIKE $${paramIdx} OR company LIKE $${paramIdx} OR description_snippet LIKE $${paramIdx})`;
         countParams.push(`%${q}%`);
         paramIdx++;
       }
       if (loc) {
-        countSql += ` AND location ILIKE $${paramIdx}`;
+        countSql += ` AND location LIKE $${paramIdx}`;
         countParams.push(`%${loc}%`);
       }
       const countRes = await client.query(countSql, countParams);
@@ -135,35 +62,61 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
   const metadata: Metadata = {};
 
+  // Las páginas paginadas no deben indexarse (evitar contenido duplicado)
   if (isPaged) {
     metadata.robots = { index: false, follow: true };
   }
 
+  // Mapa de tecnologías conocidas a sus slugs de ruta programática
+  const KNOWN_TECH_SLUGS: Record<string, string> = {
+    'react': 'react', 'angular': 'angular', 'vue': 'vue', 'node': 'node', 'node.js': 'node',
+    'python': 'python', 'java': 'java', 'php': 'php', 'c#': 'csharp', 'ruby': 'ruby',
+    'go': 'go', 'javascript': 'javascript', 'typescript': 'typescript', 'aws': 'aws',
+    'docker': 'docker', 'kubernetes': 'kubernetes', 'backend': 'backend', 'frontend': 'frontend',
+    'data': 'data', 'cloud': 'cloud', 'mobile': 'mobile', 'nextjs': 'nextjs', 'next.js': 'nextjs',
+    'flutter': 'flutter', 'kotlin': 'kotlin', 'swift': 'swift', 'sql': 'sql',
+    'fullstack': 'fullstack', 'devops': 'cloud', 'cybersecurity': 'cybersecurity',
+  };
+  const KNOWN_CITY_SLUGS: Record<string, string> = {
+    'madrid': 'madrid', 'barcelona': 'barcelona', 'valencia': 'valencia', 'sevilla': 'sevilla',
+    'bilbao': 'bilbao', 'malaga': 'malaga', 'málaga': 'malaga', 'zaragoza': 'zaragoza',
+    'alicante': 'alicante', 'granada': 'granada', 'remoto': 'remoto', 'remote': 'remoto',
+    'teletrabajo': 'remoto',
+  };
+
   const queryParam = isEnglish ? '&lang=en' : '';
   let canonicalUrl = `${BASE_URL}/`;
+
   if (q || loc) {
-    canonicalUrl += `?q=${encodeURIComponent(q)}&location=${encodeURIComponent(loc)}${queryParam}`;
+    const techSlug = KNOWN_TECH_SLUGS[q.toLowerCase().trim()];
+    const citySlug = KNOWN_CITY_SLUGS[loc.toLowerCase().trim()];
+
+    if (techSlug) {
+      // La búsqueda coincide con una tecnología conocida: apuntar a la página programática canónica
+      if (citySlug) {
+        // /trabajos/react-en-madrid o /trabajos/react-remoto
+        const programmaticPath = citySlug === 'remoto'
+          ? `/trabajos/${techSlug}-remoto`
+          : `/trabajos/${techSlug}-en-${citySlug}`;
+        canonicalUrl = isEnglish ? `${BASE_URL}${programmaticPath}?lang=en` : `${BASE_URL}${programmaticPath}`;
+      } else {
+        // /trabajos/react
+        canonicalUrl = isEnglish ? `${BASE_URL}/trabajos/${techSlug}?lang=en` : `${BASE_URL}/trabajos/${techSlug}`;
+      }
+    } else {
+      // Búsqueda libre sin tecnología conocida: canonical a la URL de búsqueda
+      canonicalUrl = `${BASE_URL}/?q=${encodeURIComponent(q)}&location=${encodeURIComponent(loc)}${queryParam}`;
+    }
   } else if (isEnglish) {
-    canonicalUrl += `?lang=en`;
+    canonicalUrl = `${BASE_URL}/?lang=en`;
   }
 
   const baseLangUrl = q || loc 
     ? `${BASE_URL}/?q=${encodeURIComponent(q)}&location=${encodeURIComponent(loc)}` 
     : `${BASE_URL}/`;
 
-  const paginationQuery = (p: number) => {
-    const queryParts: string[] = [];
-    if (q) queryParts.push(`q=${encodeURIComponent(q)}`);
-    if (loc) queryParts.push(`location=${encodeURIComponent(loc)}`);
-    if (p > 1) queryParts.push(`page=${p}`);
-    if (isEnglish) queryParts.push(`lang=en`);
-    return queryParts.length > 0 ? `?${queryParts.join('&')}` : '';
-  };
-
-  metadata.alternates = {
+  const metadataAlternates: any = {
     canonical: canonicalUrl,
-    prev: isPaged ? `${BASE_URL}/${paginationQuery(page - 1)}` : undefined,
-    next: hasNextPage ? `${BASE_URL}/${paginationQuery(page + 1)}` : undefined,
     languages: {
       'es-ES': baseLangUrl,
       'en': `${baseLangUrl}${q || loc ? '&' : '?'}lang=en`,
@@ -173,6 +126,8 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
       'application/rss+xml': `${BASE_URL}/feed.xml`,
     },
   };
+
+  metadata.alternates = metadataAlternates;
 
   if (!q && !loc) {
     if (isPaged) {
@@ -190,7 +145,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
       };
       return metadata;
     }
-    return metadata; // Usa metadatos globales por defecto de layout.tsx
+    return metadata;
   }
 
   let titleText = isEnglish ? 'Job Offers' : 'Ofertas de Empleo';
@@ -227,17 +182,39 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
 export default async function Home({ searchParams }: Props) {
   const resolvedParams = await searchParams;
+  
+  // Parámetros de búsqueda general
   const q = typeof resolvedParams.q === 'string' ? resolvedParams.q : '';
   const loc = typeof resolvedParams.location === 'string' ? resolvedParams.location : '';
+  
+  // Parámetros de búsqueda avanzada
+  const minSalaryStr = typeof resolvedParams.min_salary === 'string' ? resolvedParams.min_salary : '';
+  const minSalary = minSalaryStr ? parseInt(minSalaryStr, 10) : undefined;
+  const modality = typeof resolvedParams.modality === 'string' ? resolvedParams.modality : undefined;
+  const dateRange = typeof resolvedParams.date_range === 'string' ? resolvedParams.date_range : undefined;
+  const experience = typeof resolvedParams.experience === 'string' ? resolvedParams.experience : undefined;
+
   const page = typeof resolvedParams.page === 'string' ? parseInt(resolvedParams.page, 10) : 1;
   const validPage = isNaN(page) || page < 1 ? 1 : page;
   const lang = resolvedParams.lang === 'en' ? 'en' : 'es';
   const isEnglish = lang === 'en';
 
-  const [jobs, featuredJobs, totalJobs] = await Promise.all([
-    getJobs(q, loc, validPage),
-    getFeaturedJobs(q, loc),
-    getJobsCount()
+  const filters = {
+    query: q,
+    location: loc,
+    minSalary,
+    modality,
+    dateRange,
+    experience
+  };
+
+  // Carga de datos concurrentes en el servidor
+  const [jobs, featuredJobs, totalJobs, jobOfTheDay, trendingTech] = await Promise.all([
+    getJobs(filters, validPage),
+    getFeaturedJobs(filters),
+    getJobsCount(),
+    getJobOfTheDay(),
+    getTrendingTech()
   ]);
 
   const websiteJsonLd = {
@@ -267,10 +244,11 @@ export default async function Home({ searchParams }: Props) {
   };
 
   const queryParam = isEnglish ? '?lang=en' : '';
-  const queryParamAmp = isEnglish ? '&lang=en' : '';
+  const isPaged = validPage > 1;
+  const hasNextPage = jobs.length === 20;
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-gray-50 dark:bg-slate-950">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
@@ -280,12 +258,11 @@ export default async function Home({ searchParams }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
       />
       
-      {/* Hero Section Premium con Degradado y Estadísticas en Vivo */}
-      <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-850 text-white relative overflow-hidden py-16">
+      {/* Hero Section Premium */}
+      <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-900 text-white relative overflow-hidden py-16">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.15),transparent_45%)]"></div>
         <div className="max-w-5xl mx-auto px-4 text-center relative z-10">
           
-          {/* Badge de Ofertas Activas */}
           {totalJobs > 0 && (
             <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-200 text-xs font-semibold mb-6 shadow-sm backdrop-blur-sm animate-pulse">
               {isEnglish ? (
@@ -329,148 +306,168 @@ export default async function Home({ searchParams }: Props) {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-8 -mt-8 relative z-20">
-        <Suspense fallback={<div className="h-24 bg-white rounded-xl shadow animate-pulse"></div>}>
-          <SearchFilters />
-        </Suspense>
-
-        <div className="mt-8 space-y-6">
+      {/* Main Container Layout de 2 Columnas */}
+      <div className="max-w-7xl mx-auto px-4 py-8 -mt-8 relative z-20">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* Ofertas Destacadas / Patrocinadas */}
-          {featuredJobs.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-xs font-bold text-amber-600 uppercase tracking-wider flex items-center gap-1.5">
-                ⭐ {isEnglish ? 'Featured Jobs' : 'Ofertas Destacadas'}
-              </h2>
-              <div className="grid grid-cols-1 gap-4">
-                {featuredJobs.map((job: any) => (
-                  <FeaturedJobCard key={job.id} job={job} lang={lang} />
-                ))}
+          {/* COLUMNA PRINCIPAL (Filtros + Listado) */}
+          <div className="lg:col-span-2 space-y-6">
+            <Suspense fallback={<div className="h-24 bg-white rounded-2xl shadow animate-pulse"></div>}>
+              <SearchFilters />
+            </Suspense>
+
+            {/* Ofertas Destacadas */}
+            {featuredJobs.length > 0 && (
+              <div className="space-y-4 pt-2">
+                <h2 className="text-xs font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wider flex items-center gap-1.5">
+                  ⭐ {isEnglish ? 'Featured Jobs' : 'Ofertas Destacadas'}
+                </h2>
+                <div className="grid grid-cols-1 gap-4">
+                  {featuredJobs.map((job: any) => (
+                    <FeaturedJobCard key={job.id} job={job} lang={lang} />
+                  ))}
+                </div>
               </div>
+            )}
+
+            {/* Anuncio AdSense Inline */}
+            <div className="my-4">
+              <AdBanner variant="inline" />
             </div>
-          )}
 
-          {/* Banner publicitario entre destacadas y recientes */}
-          <div className="my-4">
-            <AdBanner variant="inline" />
-          </div>
+            {/* Listado Reciente */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center pt-2">
+                <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                  {jobs.length === 0 
+                    ? (isEnglish ? "No results" : "Sin resultados") 
+                    : (isEnglish ? `${jobs.length} recent offers` : `${jobs.length} ofertas recientes`)}
+                </h2>
+              </div>
 
-          <div className="flex justify-between items-center pt-2">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white">
-              {jobs.length === 0 
-                ? (isEnglish ? "No results" : "Sin resultados") 
-                : (isEnglish ? `${jobs.length} recent offers` : `${jobs.length} ofertas recientes`)}
-            </h2>
-          </div>
+              {jobs.length > 0 ? (
+                <div className="space-y-4">
+                  {jobs.map((job: any, index: number) => {
+                    const jobSlug = getJobSlug(job);
+                    const detailUrl = `/job/${jobSlug}${queryParam}`;
+                    const displayJobTitle = isEnglish ? job.title : (job.title_es || job.title);
+                    
+                    return (
+                      <div key={job.id}>
+                        {/* CTA Newsletter in-feed */}
+                        {index === 6 && (
+                          <div className="my-6">
+                            <SubscribeForm 
+                              location={loc || "España"} 
+                              defaultTech={q || undefined}
+                              defaultLocation={loc || undefined}
+                            />
+                          </div>
+                        )}
+                        {/* AdSense inline in-feed */}
+                        {index === 5 && (
+                          <div className="my-4">
+                            <AdBanner variant="inline" />
+                          </div>
+                        )}
+                        {/* Segundo AdSense inline in-feed */}
+                        {index === 15 && (
+                          <div className="my-4">
+                            <AdBanner variant="inline" />
+                          </div>
+                        )}
 
-          {jobs.length > 0 ? (
-            <>
-              {jobs.map((job: any, index: number) => {
-                const jobSlug = getJobSlug(job);
-                const detailUrl = `/job/${jobSlug}${queryParam}`;
-                const displayJobTitle = isEnglish ? job.title : (job.title_es || job.title);
-                return (
-                  <div key={job.id}>
-                    {/* Formulario de suscripción después de la 3ª oferta (index === 2) */}
-                    {index === 2 && (
-                      <div className="my-6">
-                        <SubscribeForm 
-                          location={loc || "España"} 
-                          defaultTech={q || undefined}
-                          defaultLocation={loc || undefined}
-                        />
-                      </div>
-                    )}
-                    {/* Banner de afiliado entre las ofertas (después de la 5ª oferta) */}
-                    {index === 4 && (
-                      <div className="my-4">
-                        <AdBanner variant="inline" />
-                      </div>
-                    )}
-                    {/* Segundo banner de AdSense entre las ofertas (después de la 15ª oferta) */}
-                    {index === 14 && (
-                      <div className="my-4">
-                        <AdBanner variant="inline" />
-                      </div>
-                    )}
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                      <div className="flex gap-4 items-start">
-                        <CompanyLogo company={job.company} size={12} />
-                        <div className="flex-grow w-full flex flex-col md:flex-row justify-between md:items-start gap-4">
-                          <div className="w-full">
-                            <Link href={detailUrl}>
-                              <h3 className="text-xl font-semibold text-indigo-900 hover:text-indigo-600 transition-colors">
-                                {displayJobTitle}
-                              </h3>
-                            </Link>
-                            <p className="text-gray-600 font-medium mt-1">{job.company}</p>
-                            
-                            <div className="flex flex-wrap gap-3 mt-3 text-sm text-gray-500">
-                              <a 
-                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded hover:bg-indigo-50 text-indigo-600 font-medium border border-gray-200"
+                        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800/80 hover:shadow-md transition-shadow">
+                          <div className="flex gap-4 items-start">
+                            <CompanyLogo company={job.company} size={12} />
+                            <div className="flex-grow w-full flex flex-col md:flex-row justify-between md:items-start gap-4">
+                              <div className="w-full">
+                                <Link href={detailUrl}>
+                                  <h3 className="text-xl font-semibold text-indigo-900 dark:text-indigo-400 hover:text-indigo-650 dark:hover:text-indigo-300 transition-colors">
+                                    {displayJobTitle}
+                                  </h3>
+                                </Link>
+                                <p className="text-gray-650 dark:text-slate-350 font-medium mt-1">{job.company}</p>
+                                
+                                <div className="flex flex-wrap gap-3 mt-3 text-sm text-gray-500 dark:text-slate-400">
+                                  <a 
+                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1 bg-gray-50 dark:bg-slate-850 px-2 py-1 rounded hover:bg-indigo-50 dark:hover:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 font-medium border border-gray-200 dark:border-slate-800"
+                                  >
+                                    📍 {job.location}
+                                  </a>
+                                  <span className="bg-gray-50 dark:bg-slate-850 px-2 py-1 rounded border border-gray-200 dark:border-slate-800">💰 {job.salary || (isEnglish ? "Negotiable" : "Consultar")}</span>
+                                  <span className="bg-gray-50 dark:bg-slate-850 px-2 py-1 rounded border border-gray-200 dark:border-slate-800">📅 {new Date(job.created_at).toLocaleDateString()}</span>
+                                </div>
+                              </div>
+
+                              <Link 
+                                href={detailUrl}
+                                className="px-5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/30 dark:hover:bg-indigo-950/60 dark:text-indigo-300 font-semibold rounded-lg transition-colors text-center shrink-0 cursor-pointer"
                               >
-                                📍 {job.location}
-                              </a>
-                              <span className="bg-gray-50 px-2 py-1 rounded">💰 {job.salary || (isEnglish ? "Negotiable" : "Consultar")}</span>
-                              <span className="bg-gray-50 px-2 py-1 rounded">📅 {new Date(job.created_at).toLocaleDateString()}</span>
+                                {isEnglish ? 'View offer' : 'Ver oferta'}
+                              </Link>
                             </div>
                           </div>
-
-                          <Link 
-                            href={detailUrl}
-                            className="px-5 py-2 bg-indigo-50 text-indigo-700 font-medium rounded-lg hover:bg-indigo-100 transition-colors text-center shrink-0"
-                          >
-                            {isEnglish ? 'View offer' : 'Ver oferta'}
-                          </Link>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                );
-              })}
+                    );
+                  })}
 
-              {/* Controles de Paginación */}
-              <div className="flex justify-between items-center pt-6">
-                {validPage > 1 ? (
-                  <Link
-                    href={`/?q=${encodeURIComponent(q)}&location=${encodeURIComponent(loc)}&page=${validPage - 1}${queryParamAmp}`}
-                    className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                    {isEnglish ? '← Previous' : '← Anterior'}
-                  </Link>
-                ) : (
-                  <div />
-                )}
-                <span className="text-sm text-gray-600">
-                  {isEnglish ? `Page ${validPage}` : `Página ${validPage}`}
-                </span>
-                {jobs.length === 20 ? (
-                  <Link
-                    href={`/?q=${encodeURIComponent(q)}&location=${encodeURIComponent(loc)}&page=${validPage + 1}${queryParamAmp}`}
-                    className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                    {isEnglish ? 'Next →' : 'Siguiente →'}
-                  </Link>
-                ) : (
-                  <div />
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="text-center py-12 bg-white rounded-xl border border-gray-100">
-              <p className="text-lg text-gray-800 font-medium">
-                {isEnglish ? 'No offers were found.' : 'No se encontraron ofertas.'}
-              </p>
-              <p className="text-gray-500 mt-2">
-                {isEnglish 
-                  ? "Try searching for keywords you see in titles (e.g. 'Junior', 'Java', 'Python')."
-                  : "Intenta buscar palabras que veas en el título (ej: 'Junior', 'Java', 'Python')."}
-              </p>
+                  {/* Carga Incremental client-side */}
+                  <LoadMoreJobs lang={lang} initiallyHasMore={hasNextPage} />
+                </div>
+              ) : (
+                <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-xl border border-gray-150 dark:border-slate-800/80 shadow-sm">
+                  <span className="text-5xl block mb-4">📭</span>
+                  <p className="text-lg text-gray-800 dark:text-slate-200 font-medium">
+                    {isEnglish ? 'No offers were found matching your criteria.' : 'No se encontraron ofertas con esos filtros.'}
+                  </p>
+                  <p className="text-gray-450 dark:text-slate-500 mt-2 text-sm max-w-sm mx-auto leading-relaxed">
+                    {isEnglish 
+                      ? 'Try clearing some filters or searching for general keywords like React, Node or Python.'
+                      : 'Intenta limpiar algunos filtros avanzados o buscar términos generales como React, Java o Python.'}
+                  </p>
+                </div>
+              )}
             </div>
-          )}
+          </div>
+
+          {/* COLUMNA LATERAL (Widgets de Retención y AdSense Sticky) */}
+          <div className="lg:col-span-1 space-y-6">
+            <div className="lg:sticky lg:top-20 space-y-6">
+              
+              {/* Widget: Boletín de Empleo */}
+              <div className="hidden lg:block">
+                <SubscribeForm 
+                  location={loc || "España"} 
+                  defaultTech={q || undefined}
+                  defaultLocation={loc || undefined}
+                />
+              </div>
+
+              {/* Widget: Oferta del Día */}
+              <JobOfTheDayWidget job={jobOfTheDay} lang={lang} />
+
+              {/* Widget: Programa de Referidos */}
+              <ReferralWidget lang={lang} />
+
+              {/* Widget: Categorías en Tendencia */}
+              <TrendingTechWidget trends={trendingTech} lang={lang} />
+
+              {/* Widget: Vistos Recientemente (LocalStorage client-side) */}
+              <RecentlyViewedList lang={lang} />
+
+              {/* Banner Publicitario Sticky de Alto RPM */}
+              <div className="pt-2">
+                <AdBanner variant="sidebar" />
+              </div>
+
+            </div>
+          </div>
+
         </div>
       </div>
     </main>

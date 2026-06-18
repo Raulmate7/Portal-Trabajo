@@ -32,6 +32,7 @@ class TestSocialBots(unittest.TestCase):
         mock_cursor.fetchall.return_value = [
             ('job-li-1', 'Lead Engineer', 'Globex', 'Madrid', '70K', 'Backend')
         ]
+        mock_cursor.fetchone.return_value = (5,)
         mock_conn.cursor.return_value = mock_cursor
         mock_db_connect.return_value = mock_conn
 
@@ -60,9 +61,9 @@ class TestSocialBots(unittest.TestCase):
         mock_put.return_value = mock_put_res
 
         # Crear un archivo temporal simulando la tarjeta de imagen
-        image_path = "linkedin_card_job-li-1.png"
+        image_path = "linkedin_card_job-li-1.jpg"
         with open(image_path, "wb") as f:
-            f.write(b"PNG mock data")
+            f.write(b"JPEG mock data")
 
         try:
             with patch('linkedin_bot.print'):

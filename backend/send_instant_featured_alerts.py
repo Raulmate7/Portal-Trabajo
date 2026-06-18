@@ -16,8 +16,9 @@ EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 def build_alert_email(email, job):
     """Construye el HTML para la alerta urgente de oferta destacada."""
     import urllib.parse
-    job_id, title, company, location, salary = job
-    original_job_link = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=featured_alert&utm_medium=email&utm_campaign=instant_alert_{job_id}"
+    job_id, title, company, location, salary, category = job
+    category = category or 'Otros'
+    original_job_link = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=featured_alert&utm_medium=email&utm_campaign=instant_alert_{job_id}&utm_term={urllib.parse.quote(category)}&utm_content={job_id}"
     job_link = f"{BASE_URL}/api/track-click?email={email}&campaign=instant_alert_{job_id}&redirect={urllib.parse.quote(original_job_link)}"
     salary_html = f"<p style='margin: 0 0 10px; color: #b45309; font-size: 14px;'>💰 <b>Salario:</b> {salary}</p>" if salary and salary not in ("Consultar", "") else ""
     
@@ -82,7 +83,7 @@ def send_instant_featured_alerts():
 
     # 2. Buscar ofertas destacadas no alertadas
     cur.execute("""
-        SELECT id, title, company, location, salary 
+        SELECT id, title, company, location, salary, category 
         FROM jobs 
         WHERE is_active = TRUE AND is_featured = TRUE AND last_instant_alert_sent_at IS NULL
         ORDER BY created_at DESC
@@ -124,7 +125,7 @@ def send_instant_featured_alerts():
     alerts_sent_total = 0
 
     for job in featured_jobs:
-        job_id, title, company, location, salary = job
+        job_id, title, company, location, salary, category = job
         title_lower = title.lower()
         
         # Encontrar suscriptores con keywords coincidentes

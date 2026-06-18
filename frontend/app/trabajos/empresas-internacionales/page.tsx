@@ -50,7 +50,7 @@ async function getInternationalJobs(): Promise<Job[]> {
     // 2. Si no hay suficientes, complementamos con ofertas que sean 100% en remoto / global
     if (jobs.length < 12) {
       const needed = 30 - jobs.length;
-      const excludeIds = jobs.map(j => j.id);
+      const excludeIds = jobs.map((j: any) => j.id);
       
       let fallbackSql = `
         SELECT id, title, title_es, company, location, url_source, description_snippet, category, created_at, salary 
@@ -60,7 +60,7 @@ async function getInternationalJobs(): Promise<Job[]> {
       `;
       const fallbackParams = [];
       if (excludeIds.length > 0) {
-        fallbackSql += ` AND id NOT IN (${excludeIds.map((_, i) => `$${i+1}`).join(',')})`;
+        fallbackSql += ` AND id NOT IN (${excludeIds.map((_: any, i: number) => `$${i+1}`).join(',')})`;
         fallbackParams.push(...excludeIds);
       }
       fallbackSql += ` ORDER BY created_at DESC LIMIT $${fallbackParams.length + 1}`;
@@ -311,7 +311,9 @@ export default async function EmpresasInternacionalesPage() {
             </div>
           </div>
 
-          <AdBanner variant="sidebar" />
+          <div className="lg:sticky lg:top-24">
+            <AdBanner variant="sidebar" />
+          </div>
         </div>
       </div>
     </div>

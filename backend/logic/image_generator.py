@@ -37,7 +37,7 @@ def wrap_text(text, font, max_width):
         
     return lines
 
-def generate_job_card(title, company, location, salary=None, output_path="card.png"):
+def generate_job_card(title, company, location, salary=None, output_path="card.jpg"):
     """
     Genera una imagen de tarjeta de oferta de 1200x630 píxeles.
     """
@@ -142,7 +142,7 @@ def generate_job_card(title, company, location, salary=None, output_path="card.p
     draw.text((text_x, text_y), btn_text, fill=(255, 255, 255), font=font_footer)
     
     # 10. Guardar la imagen
-    img.save(output_path, "PNG")
+    img.save(output_path, "JPEG", quality=85, optimize=True)
     print(f"📸 Tarjeta generada con éxito y guardada en {output_path}")
 
 if __name__ == "__main__":

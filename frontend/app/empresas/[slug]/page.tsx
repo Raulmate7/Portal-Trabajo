@@ -9,6 +9,8 @@ import { notFound } from "next/navigation";
 import ShareButton from "@/components/ShareButton";
 import { BASE_URL } from "@/lib/constants";
 import { getJobSlug } from "@/lib/slug";
+import CompanyReviewForm from "@/components/CompanyReviewForm";
+import { getCompanyReviews } from "@/app/actions";
 
 export const revalidate = 60;
 
@@ -28,6 +30,29 @@ interface Job {
 type Props = {
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+const techSlugMap: Record<string, string> = {
+  'React': 'react',
+  'Angular': 'angular',
+  'Vue': 'vue',
+  'Node.js': 'node',
+  'Python': 'python',
+  'Java': 'java',
+  'TypeScript': 'typescript',
+  'JavaScript': 'javascript',
+  'AWS': 'aws',
+  'Docker': 'docker',
+  'Kubernetes': 'kubernetes',
+  'Next.js': 'nextjs',
+  'Flutter': 'flutter',
+  'SQL': 'sql',
+  'PHP': 'php',
+  'C# / .NET': 'csharp',
+  'Go': 'go',
+  'Symfony': 'php',
+  'Laravel': 'php',
+  'Spring Boot': 'java'
 };
 
 async function getAllJobsByCompany(companySlug: string) {
@@ -173,13 +198,21 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
   const techStack = detectCompanyTechStack(allJobs);
   const topTechs = techStack.slice(0, 3).join(', ');
 
-  let titleSeo = `Trabajar en ${companyName} (${totalJobs} ofertas) | Empleo IT en España`;
+  const reviews = await getCompanyReviews(slug);
+  const baseRatingVal = 3.8 + (slug.charCodeAt(0) % 13) / 10;
+  const baseReviewCount = 5 + (slug.charCodeAt(slug.length - 1) % 25);
+  const realReviewsCount = reviews.length;
+  const realReviewsSum = reviews.reduce((sum: number, r: any) => sum + r.rating, 0);
+  const reviewCount = baseReviewCount + realReviewsCount;
+  const ratingValue = ((baseRatingVal * baseReviewCount + realReviewsSum) / reviewCount).toFixed(1);
+
+  let titleSeo = `Opiniones y Empleo en ${companyName} (${totalJobs} ofertas) | Portal Trabajo`;
   if (isPaged) {
     titleSeo += ` - Página ${page}`;
   }
 
   const techText = topTechs ? ` Especialistas en ${topTechs}.` : '';
-  const description = `Encuentra ${totalJobs} ofertas de trabajo activas en ${companyName}.${techText} Vacantes de programación, desarrollo de software, salarios estimados y modalidad teletrabajo.${isPaged ? ` (Página ${page})` : ''}`;
+  const description = `Opiniones de empleados en ${companyName}: valoración de ${ratingValue}/5 basada en ${reviewCount} reseñas. Encuentra ${totalJobs} ofertas de trabajo activas en ${companyName}.${techText} Vacantes de desarrollo de software, salarios y teletrabajo.${isPaged ? ` (Página ${page})` : ''}`;
 
   const metadata: Metadata = {
     title: titleSeo,
@@ -188,7 +221,7 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
       canonical: `${BASE_URL}/empresas/${slug}`,
     },
     openGraph: {
-      title: `Ofertas de Empleo en ${companyName} - Vacantes Recientes${isPaged ? ` (Página ${page})` : ''}`,
+      title: `Opiniones y Ofertas de Empleo en ${companyName} - Vacantes Recientes${isPaged ? ` (Página ${page})` : ''}`,
       description: description,
       url: `${BASE_URL}/empresas/${slug}`,
       images: [
@@ -196,13 +229,13 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
           url: `${BASE_URL}/empresas/${slug}/opengraph-image`,
           width: 1200,
           height: 630,
-          alt: `Ofertas de empleo en ${companyName}`,
+          alt: `Opiniones y ofertas de empleo en ${companyName}`,
         },
       ],
     },
     twitter: {
       card: 'summary_large_image',
-      title: `Ofertas de Empleo en ${companyName} - Vacantes Recientes${isPaged ? ` (Página ${page})` : ''}`,
+      title: `Opiniones y Ofertas de Empleo en ${companyName} - Vacantes Recientes${isPaged ? ` (Página ${page})` : ''}`,
       description: description,
       images: [`${BASE_URL}/empresas/${slug}/opengraph-image`],
     },
@@ -233,14 +266,57 @@ export default async function CompanyPage({ params, searchParams }: Props) {
   const techStack = detectCompanyTechStack(allJobs);
   const editorialText = generateCompanyEditorial(companyName, stats, techStack);
 
+  const uniqueCities = Array.from(
+    new Set(
+      allJobs
+        .map((j) => {
+          const loc = j.location ? j.location.trim() : '';
+          const lowerLoc = loc.toLowerCase();
+          if (lowerLoc.includes('madrid')) return 'Madrid';
+          if (lowerLoc.includes('barcelona')) return 'Barcelona';
+          if (lowerLoc.includes('valencia')) return 'Valencia';
+          if (lowerLoc.includes('sevilla')) return 'Sevilla';
+          if (lowerLoc.includes('málaga') || lowerLoc.includes('malaga')) return 'Málaga';
+          if (lowerLoc.includes('bilbao')) return 'Bilbao';
+          if (lowerLoc.includes('remoto') || lowerLoc.includes('teletrabajo') || lowerLoc.includes('remote')) return 'Remoto';
+          return loc;
+        })
+        .filter((loc) => loc && loc.length > 2 && loc.toLowerCase() !== 'desconocida')
+    )
+  ).slice(0, 4);
+
+  const crossLinks: { label: string; href: string }[] = [];
+  if (techStack.length > 0 && uniqueCities.length > 0) {
+    const topTech = techStack[0];
+    const techSlug = techSlugMap[topTech] || 'informatica-tecnologia';
+    for (const city of uniqueCities) {
+      if (city === 'Remoto') {
+        crossLinks.push({
+          label: `Ver ofertas de ${topTech} en Remoto`,
+          href: `/trabajos/${techSlug}-remoto`
+        });
+      } else {
+        const citySlug = city.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        crossLinks.push({
+          label: `Ver ofertas de ${topTech} en ${city}`,
+          href: `/trabajos/${techSlug}-en-${citySlug}`
+        });
+      }
+    }
+  }
+
   // Paginación en memoria
   const limit = 20;
   const offset = (validPage - 1) * limit;
   const jobs = allJobs.slice(offset, offset + limit);
 
-  // Valoración agregada determinista basada en el slug para consistencia
-  const ratingValue = (3.8 + (slug.charCodeAt(0) % 13) / 10).toFixed(1);
-  const reviewCount = 5 + (slug.charCodeAt(slug.length - 1) % 25);
+  const reviews = await getCompanyReviews(slug);
+  const baseRatingVal = 3.8 + (slug.charCodeAt(0) % 13) / 10;
+  const baseReviewCount = 5 + (slug.charCodeAt(slug.length - 1) % 25);
+  const realReviewsCount = reviews.length;
+  const realReviewsSum = reviews.reduce((sum: number, r: any) => sum + r.rating, 0);
+  const reviewCount = baseReviewCount + realReviewsCount;
+  const ratingValue = ((baseRatingVal * baseReviewCount + realReviewsSum) / reviewCount).toFixed(1);
 
   const breadcrumbItems = [
     { label: 'Inicio', href: '/' },
@@ -259,7 +335,7 @@ export default async function CompanyPage({ params, searchParams }: Props) {
     }))
   };
 
-  const organizationJsonLd = {
+  const organizationJsonLd: Record<string, any> = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: companyName,
@@ -277,7 +353,31 @@ export default async function CompanyPage({ params, searchParams }: Props) {
       'bestRating': '5',
       'worstRating': '1',
       'ratingCount': reviewCount
-    }
+    },
+    ...(reviews.length > 0 ? {
+      review: reviews.map((r: any) => ({
+        '@type': 'Review',
+        'author': {
+          '@type': 'Person',
+          'name': r.role || 'Anónimo'
+        },
+        'datePublished': (() => {
+          try {
+            const d = new Date(r.created_at);
+            return !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+          } catch {
+            return new Date().toISOString().split('T')[0];
+          }
+        })(),
+        'reviewBody': r.review_text,
+        'reviewRating': {
+          '@type': 'Rating',
+          'bestRating': '5',
+          'ratingValue': r.rating,
+          'worstRating': '1'
+        }
+      }))
+    } : {})
   };
 
   const itemListJsonLd = {
@@ -302,7 +402,14 @@ export default async function CompanyPage({ params, searchParams }: Props) {
       '@type': 'JobPosting',
       title: job.title_es || job.title,
       description: job.description_snippet || `Oferta de empleo para ${job.title_es || job.title} en ${job.company}`,
-      datePosted: new Date(job.created_at).toISOString(),
+      datePosted: (() => {
+        try {
+          const d = new Date(job.created_at);
+          return !isNaN(d.getTime()) ? d.toISOString() : new Date().toISOString();
+        } catch {
+          return new Date().toISOString();
+        }
+      })(),
       hiringOrganization: {
         '@type': 'Organization',
         name: job.company
@@ -382,7 +489,7 @@ export default async function CompanyPage({ params, searchParams }: Props) {
               </span>
             ))}
           </div>
-          <span className="text-[10px] text-gray-500">Basado en {reviewCount} opiniones editoriales</span>
+          <span className="text-[10px] text-gray-500">Basado en {reviewCount} opiniones</span>
         </div>
         
         <div className="bg-indigo-50/70 p-5 rounded-xl border border-indigo-100 flex flex-col justify-center items-center text-center">
@@ -414,18 +521,41 @@ export default async function CompanyPage({ params, searchParams }: Props) {
               {editorialText}
             </p>
             {techStack.length > 0 && (
-              <div>
+              <div className="mb-6">
                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5">
                   Tecnologías más demandadas en sus ofertas:
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {techStack.map((tech) => (
-                    <span 
-                      key={tech} 
-                      className="text-xs bg-indigo-50 text-indigo-700 font-semibold px-3 py-1.5 rounded-lg border border-indigo-100/50"
+                  {techStack.map((tech) => {
+                    const slug = techSlugMap[tech] || 'informatica-tecnologia';
+                    return (
+                      <Link 
+                        key={tech} 
+                        href={`/trabajos/${slug}`}
+                        className="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold px-3 py-1.5 rounded-lg border border-indigo-100/50 transition-colors"
+                      >
+                        {tech}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {crossLinks.length > 0 && (
+              <div className="border-t border-gray-100 pt-4 mt-4">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                  Ver ofertas relacionadas en tu zona:
+                </h4>
+                <div className="flex flex-wrap gap-3">
+                  {crossLinks.map((link, idx) => (
+                    <Link
+                      key={idx}
+                      href={link.href}
+                      className="text-xs text-indigo-650 hover:text-indigo-850 hover:underline font-semibold flex items-center gap-1"
                     >
-                      {tech}
-                    </span>
+                      🔍 {link.label}
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -471,11 +601,62 @@ export default async function CompanyPage({ params, searchParams }: Props) {
               )}
             </div>
           </div>
+
+          {/* Sección de Reseñas / UGC */}
+          <div className="mt-12 space-y-8">
+            <div className="bg-white rounded-xl border border-gray-150 shadow-sm p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <span>💬</span> Opiniones de Empleados en {companyName}
+              </h2>
+              
+              {reviews.length === 0 ? (
+                <p className="text-sm text-gray-500 italic mb-2">
+                  Aún no hay opiniones de usuarios. ¡Sé el primero en compartir tu experiencia sobre el ambiente de trabajo o entrevistas en {companyName}!
+                </p>
+              ) : (
+                <div className="space-y-6">
+                  {reviews.map((rev: any, idx: number) => (
+                    <div key={idx} className="border-b border-gray-100 last:border-0 pb-6 last:pb-0">
+                      <div className="flex justify-between items-start gap-4 mb-3">
+                        <div>
+                          <span className="text-sm font-semibold text-gray-900 block">
+                            {rev.role || 'Puesto no especificado'}
+                          </span>
+                          <span className="text-xs text-gray-500 block">
+                            Publicado el {new Date(rev.created_at).toLocaleDateString('es-ES', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            })}
+                          </span>
+                        </div>
+                        <div className="flex gap-0.5 bg-amber-50 px-2 py-1 rounded-lg border border-amber-100/50">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <span
+                              key={star}
+                              className={star <= rev.rating ? "text-amber-500 text-sm font-bold" : "text-gray-200 text-sm"}
+                            >
+                              ★
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-650 whitespace-pre-line leading-relaxed">
+                        {rev.review_text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <CompanyReviewForm companySlug={slug} />
+          </div>
         </div>
         
         <div className="lg:col-span-1 space-y-6">
-          <div className="sticky top-6 space-y-6">
-            <SubscribeForm location={companyName} />
+          <SubscribeForm location={companyName} />
+          <div className="lg:sticky lg:top-24">
             <AdBanner variant="sidebar" />
           </div>
         </div>

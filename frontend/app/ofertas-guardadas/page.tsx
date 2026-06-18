@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import JobCard from '@/components/JobCard';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import Link from 'next/link';
+import AdBanner from '@/components/AdBanner';
 
 interface Job {
   id?: string | number;
@@ -107,6 +108,10 @@ export default function OfertasGuardadasPage() {
             ))}
           </div>
         )}
+
+        <div className="mt-8">
+          <AdBanner variant="inline" />
+        </div>
       </div>
     </main>
   );

@@ -129,7 +129,7 @@ export default async function NoticiasPage() {
           ) : (
             <div className="space-y-6">
               {allNews.map((item, idx) => (
-                <div key={`${item.slug || idx}-${item.title}`} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-shadow">
+                <div key={`${idx}-${item.title}`} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-shadow">
                   <div className="flex items-center gap-2 mb-3">
                     <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
                       item.source === 'Genbeta' 
@@ -172,21 +172,21 @@ export default async function NoticiasPage() {
 
         {/* Sidebar Column */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="sticky top-6 space-y-6">
-            <div className="bg-gradient-to-br from-indigo-900 to-indigo-950 text-white rounded-2xl p-6 shadow-sm border border-indigo-950 text-center">
-              <span className="text-3xl block mb-3">💼</span>
-              <h3 className="font-bold text-lg mb-2">¿Buscas empleo IT?</h3>
-              <p className="text-indigo-200 text-xs leading-relaxed mb-5">
-                Encuentra miles de vacantes de programación y sistemas actualizadas cada 6 horas en España.
-              </p>
-              <Link 
-                href="/trabajos/informatica-tecnologia"
-                className="inline-block w-full bg-white hover:bg-indigo-50 text-indigo-900 font-bold py-2.5 rounded-lg text-sm transition-colors"
-              >
-                Explorar Ofertas
-              </Link>
-            </div>
+          <div className="bg-gradient-to-br from-indigo-900 to-indigo-950 text-white rounded-2xl p-6 shadow-sm border border-indigo-950 text-center">
+            <span className="text-3xl block mb-3">💼</span>
+            <h3 className="font-bold text-lg mb-2">¿Buscas empleo IT?</h3>
+            <p className="text-indigo-200 text-xs leading-relaxed mb-5">
+              Encuentra miles de vacantes de programación y sistemas actualizadas cada 6 horas en España.
+            </p>
+            <Link 
+              href="/trabajos/informatica-tecnologia"
+              className="inline-block w-full bg-white hover:bg-indigo-50 text-indigo-900 font-bold py-2.5 rounded-lg text-sm transition-colors"
+            >
+              Explorar Ofertas
+            </Link>
+          </div>
 
+          <div className="lg:sticky lg:top-24">
             <AdBanner variant="sidebar" />
           </div>
         </div>

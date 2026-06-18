@@ -440,6 +440,9 @@ export default async function SalarioTechCityPage({ params }: Props) {
                 </div>
               </div>
             </div>
+            <div className="mt-6">
+              <AdBanner variant="inline" tech={techSlug} />
+            </div>
           </div>
 
           {/* Sidebar */}
@@ -504,7 +507,7 @@ export default async function SalarioTechCityPage({ params }: Props) {
                 Mejora tu rango salarial adquiriendo competencias avanzadas de {techInfo.label}.
               </p>
               <a 
-                href="https://trk.udemy.com/9VMAEj" 
+                href={`https://trk.udemy.com/9VMAEj?ulp=${encodeURIComponent(`https://www.udemy.com/courses/search/?q=${techInfo.label}`)}`}
                 target="_blank" 
                 rel="noopener noreferrer sponsored"
                 className="inline-block bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold px-4 py-2 rounded-lg text-xs transition-colors"
@@ -513,6 +516,9 @@ export default async function SalarioTechCityPage({ params }: Props) {
               </a>
             </div>
 
+            <div className="lg:sticky lg:top-24">
+              <AdBanner variant="sidebar" tech={techSlug} />
+            </div>
           </div>
         </div>
       </div>

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import UserStreak from './UserStreak';
 
 export default function Header() {
   const searchParams = useSearchParams();
@@ -39,6 +40,7 @@ export default function Header() {
     { label: isEnglish ? 'Remote' : 'Remoto', href: `/trabajo-remoto${queryParam}` },
     { label: isEnglish ? 'Salaries' : 'Salarios', href: `/salarios${queryParam}` },
     { label: isEnglish ? 'Companies' : 'Empresas', href: `/empresas${queryParam}` },
+    { label: isEnglish ? 'Glossary' : 'Glosario', href: `/glosario${queryParam}` },
     { label: isEnglish ? 'News' : 'Noticias', href: `/noticias${queryParam}` },
     { label: isEnglish ? 'Advertising' : 'Publicidad', href: `/publicidad${queryParam}` },
   ];
@@ -72,6 +74,9 @@ export default function Header() {
           {/* CTAs de Escritorio (Tema, Idioma, Publicar) */}
           <div className="hidden md:flex items-center gap-4 shrink-0">
             
+            {/* Racha de Visitas */}
+            <UserStreak lang={lang} />
+
             {/* Cambiador de Idioma */}
             <Link
               href={isEnglish ? `/${searchParams?.toString().replace(/lang=en&?|&lang=en/g, '')}` : `?lang=en`}
@@ -114,6 +119,9 @@ export default function Header() {
           {/* Panel Lateral e Interacciones Móviles */}
           <div className="flex md:hidden items-center gap-2">
             
+            {/* Racha Móvil */}
+            <UserStreak lang={lang} />
+
             {/* Alternador de Tema Móvil */}
             {theme !== null && (
               <button
