@@ -59,8 +59,8 @@ async function getRemoteStats() {
         AND salary_max <= 150000
     `);
     
-    const count = parseInt(totalRes.rows[0].count || '0', 10);
-    const avgSalary = salaryRes.rows[0].avg_sal ? Math.round(parseFloat(salaryRes.rows[0].avg_sal)) : null;
+    const count = parseInt(totalRes.rows[0]?.count || '0', 10);
+    const avgSalary = salaryRes.rows[0]?.avg_sal ? Math.round(parseFloat(salaryRes.rows[0].avg_sal)) : null;
 
     return {
       total: count,

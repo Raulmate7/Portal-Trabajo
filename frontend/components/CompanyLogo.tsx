@@ -107,6 +107,7 @@ export default function CompanyLogo({ company, size = 12 }: CompanyLogoProps) {
           src={logoUrl}
           alt={`Logo de ${cleanCompany}`}
           fill
+          unoptimized
           sizes="(max-width: 768px) 40px, 48px"
           className="object-contain p-1"
           onError={() => setImgFailed(true)}
