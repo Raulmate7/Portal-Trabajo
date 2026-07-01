@@ -120,10 +120,10 @@ export default async function SobreNosotrosPage() {
             <h2 className="text-2xl font-bold text-gray-950">Creador y Fundador: Raúl M.</h2>
           </div>
           <p className="text-sm md:text-base leading-relaxed text-gray-600">
-            Detrás de Portal Trabajo IT se encuentra **Raúl M.**, Ingeniero de Software español con años de experiencia en desarrollo full stack, arquitectura de sistemas y automatización de procesos. 
+            Detrás de Portal Trabajo IT se encuentra **Raúl M.**, estudiante de Ingeniería Informática y desarrollador de software. Apasionado por la automatización de procesos, el desarrollo web y el análisis de datos, Raúl diseñó e implementó este portal como un proyecto independiente para aplicar sus conocimientos prácticos en un entorno real.
           </p>
           <p className="text-sm md:text-base leading-relaxed text-gray-600">
-            Frustrado por la baja calidad de las ofertas agregadas en portales generalistas y la ausencia de salarios claros en la mayoría de vacantes en España, Raúl diseñó e implementó este portal como un proyecto independiente para aplicar técnicas avanzadas de curación y normalización de datos. 
+            Frustrado al buscar sus primeras ofertas y prácticas por la fragmentación del mercado y la falta de transparencia en los salarios de las vacantes en España, decidió crear una herramienta que limpiara el spam, unificara las fuentes y aportara estadísticas salariales fiables para toda la comunidad tecnológica.
           </p>
           <div className="bg-indigo-50/30 p-5 rounded-2xl border border-indigo-100/40 text-xs md:text-sm text-indigo-950 space-y-2">
             <p className="font-bold">🛠️ Compromiso Técnico y de Calidad Editorial:</p>
