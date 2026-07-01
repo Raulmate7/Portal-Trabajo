@@ -4,6 +4,8 @@ import AdBanner from '@/components/AdBanner';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { BASE_URL } from '@/lib/constants';
+import Breadcrumbs from '@/components/Breadcrumbs';
+import AuthorBox from '@/components/AuthorBox';
 
 type Props = {
   params: Promise<{ term: string }>;
@@ -78,10 +80,23 @@ export default async function GlossaryDetailPage({ params }: Props) {
           <p className="text-gray-300 text-sm md:text-base max-w-xl mx-auto">
             Definición técnica y relevancia del concepto en el empleo de tecnología en España.
           </p>
+          <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-indigo-200/90 mt-6 border-t border-indigo-500/20 pt-4 max-w-xs mx-auto">
+            <span>📅 Actualizado: Hoy</span>
+            <span className="text-indigo-500/30">•</span>
+            <span>👤 Supervisor: <Link href="/sobre-nosotros" className="font-semibold text-white hover:text-indigo-200 hover:underline">Raúl M.</Link></span>
+          </div>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-5xl mx-auto px-4 pt-6">
+        <Breadcrumbs items={[
+          { label: 'Inicio', href: '/' },
+          { label: 'Glosario', href: '/glosario' },
+          { label: item.term }
+        ]} />
+      </div>
+
+      <div className="max-w-5xl mx-auto px-4 py-4 grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Main column */}
         <div className="lg:col-span-2 space-y-8">
@@ -108,6 +123,12 @@ export default async function GlossaryDetailPage({ params }: Props) {
               {item.relevance}
             </p>
           </div>
+
+          <AuthorBox 
+            author="Equipo Portal Empleo" 
+            date="2026-07-01" 
+            slug={term} 
+          />
 
           {/* Ad unit inferior */}
           <AdBanner variant="inline" />

@@ -2254,14 +2254,14 @@ La pregunta reina de toda entrevista de Node.js es: **¿Cómo gestiona Node.js l
 A diferencia de los servidores web tradicionales (como Apache) que crean un nuevo hilo del sistema operativo para cada conexión entrante, Node.js ejecuta todo el código JavaScript en un único hilo principal. La magia del rendimiento asíncrono reside en el **Event Loop**, gestionado a bajo nivel por la librería **libuv** escrita en C.
 
 El Event Loop se divide en varias fases secuenciales que se ejecutan en bucle de forma continua:
-1. **Timers (Temporizadores):** Ejecuta las devoluciones de llamada (callbacks) programadas por \\`setTimeout()\\` y \\`setInterval()\\`.
+1. **Timers (Temporizadores):** Ejecuta las devoluciones de llamada (callbacks) programadas por \`setTimeout()\` y \`setInterval()\`.
 2. **Pending Callbacks:** Ejecuta callbacks de I/O del sistema que se retrasaron de la iteración anterior.
 3. **Poll (Sondeo):** Recupera nuevos eventos de I/O (lectura de disco, peticiones de red). Si el bucle de eventos entra en esta fase y no hay tareas pendientes, esperará de forma activa a que lleguen nuevos eventos.
-4. **Check (Verificación):** Ejecuta de forma inmediata callbacks programados mediante \\`setImmediate()\\`.
+4. **Check (Verificación):** Ejecuta de forma inmediata callbacks programados mediante \`setImmediate()\`.
 5. **Close Callbacks:** Ejecuta callbacks de cierre, como conexiones de sockets destruidas.
 
 ### El Thread Pool de libuv
-Aunque el motor V8 ejecuta JavaScript en un solo hilo, las operaciones pesadas del sistema (como la lectura de archivos en disco mediante el módulo \\`fs\\`, consultas DNS o criptografía mediante \\`crypto\\`) no son asíncronas de forma nativa a nivel de sistema operativo en todas las plataformas. Para evitar bloquear el hilo principal, libuv delega estas tareas a un **Thread Pool** interno (por defecto cuenta con 4 hilos) que ejecuta el trabajo en segundo plano y avisa al Event Loop en cuanto finaliza.
+Aunque el motor V8 ejecuta JavaScript en un solo hilo, las operaciones pesadas del sistema (como la lectura de archivos en disco mediante el módulo \`fs\`, consultas DNS o criptografía mediante \`crypto\`) no son asíncronas de forma nativa a nivel de sistema operativo en todas las plataformas. Para evitar bloquear el hilo principal, libuv delega estas tareas a un **Thread Pool** interno (por defecto cuenta con 4 hilos) que ejecuta el trabajo en segundo plano y avisa al Event Loop en cuanto finaliza.
 
 ---
 
@@ -2294,9 +2294,9 @@ const userResponse = createResponse({ id: 1, name: 'Alice' });
 
 ### B. Mapped Types y Utility Types
 Debes conocer y saber implementar manualmente los principales tipos de utilidad que proporciona TypeScript:
-* **\\`Partial<T>\\`:** Convierte todas las propiedades de un tipo en opcionales.
-* **\\`Pick<T, K>\\`:** Crea un nuevo tipo seleccionando un subconjunto de claves \\`K\\` del tipo \\`T\\`.
-* **\\`Omit<T, K>\\`:** Crea un nuevo tipo omitiendo un subconjunto de claves \\`K\\` del tipo \\`T\\`.
+* **\`Partial<T>\`:** Convierte todas las propiedades de un tipo en opcionales.
+* **\`Pick<T, K>\`:** Crea un nuevo tipo seleccionando un subconjunto de claves \`K\` del tipo \`T\`.
+* **\`Omit<T, K>\`:** Crea un nuevo tipo omitiendo un subconjunto de claves \`K\` del tipo \`T\`.
 
 \`\`\`typescript
 interface User {
@@ -2318,7 +2318,7 @@ const updatePayload: UserUpdatePayload = {
 ---
 
 ## 3. Ejercicio Práctico: Implementación de un Middleware en Express con TypeScript
-Un ejercicio en vivo habitual es escribir un middleware de autenticación personalizado utilizando Express y TypeScript, y configurar la declaración de tipos para extender el objeto \\`Request\\` de Express de forma segura:
+Un ejercicio en vivo habitual es escribir un middleware de autenticación personalizado utilizando Express y TypeScript, y configurar la declaración de tipos para extender el objeto \`Request\` de Express de forma segura:
 
 \`\`\`typescript
 import { Request, Response, NextFunction } from 'express';
@@ -2372,21 +2372,21 @@ En las pruebas para puestos senior, es habitual que se debatan los límites del 
 ### Causas habituales de fugas de memoria en Node.js:
 * **Variables globales accidentales:** Almacenar referencias a objetos grandes en variables globales o en el ámbito raíz de un módulo, lo que impide que el Garbage Collector libere la memoria correspondiente al no reducirse a cero el conteo de referencias.
 * **Clausuras (Closures) mal estructuradas:** Funciones internas que mantienen referencias a variables del ámbito externo de forma indefinida en segundo plano.
-* **Temporizadores activos y Event Listeners:** No limpiar callbacks programados mediante \\`clearTimeout()\\` o no desvincular escuchadores de eventos (\\`removeListener\\`) en conexiones de red o lectura de ficheros una vez procesada la petición.
+* **Temporizadores activos y Event Listeners:** No limpiar callbacks programados mediante \`clearTimeout()\` o no desvincular escuchadores de eventos (\`removeListener\`) en conexiones de red o lectura de ficheros una vez procesada la petición.
 
 ### Cómo diagnosticar fugas en entrevistas:
-Explica el uso de herramientas de perfilado como las Chrome DevTools conectadas al proceso de Node.js (ej: mediante el flag \\`--inspect\\`), la generación de capturas de memoria (heap dumps) en diferentes puntos de ejecución del servidor web y su comparación para identificar qué clases u objetos específicos crecen de forma descontrolada.
+Explica el uso de herramientas de perfilado como las Chrome DevTools conectadas al proceso de Node.js (ej: mediante el flag \`--inspect\`), la generación de capturas de memoria (heap dumps) en diferentes puntos de ejecución del servidor web y su comparación para identificar qué clases u objetos específicos crecen de forma descontrolada.
 
 ## 7. Buffers y Streams en Node.js: Procesamiento Eficiente de I/O
 En entrevistas para perfiles backend, los evaluadores te preguntarán cómo procesar archivos gigantescos (como bases de datos de texto o volcados de logs de 10GB) sin agotar la memoria RAM del servidor:
 * **Buffers:** Representan una región de memoria física reservada fuera del motor V8 para almacenar datos binarios crudos. Es idóneo para archivos pequeños que se pueden cargar por completo en memoria.
-* **Streams (Flujos de datos):** Permiten leer o escribir datos pedazo a pedazo (chunk-by-chunk) de forma asíncrona y secuencial. Se clasifican en: Readable (lectura), Writable (escritura), Duplex (lectura y escritura) y Transform (modifican los datos a medida que pasan). Utilizar \\`fs.createReadStream()\\` conectado mediante \\`pipe()\\` a un flujo de escritura mantendrá el consumo de RAM constante y mínimo (apenas unos kilobytes), sin importar el tamaño del archivo procesado.
+* **Streams (Flujos de datos):** Permiten leer o escribir datos pedazo a pedazo (chunk-by-chunk) de forma asíncrona y secuencial. Se clasifican en: Readable (lectura), Writable (escritura), Duplex (lectura y escritura) y Transform (modifican los datos a medida que pasan). Utilizar \`fs.createReadStream()\` conectado mediante \`pipe()\` a un flujo de escritura mantendrá el consumo de RAM constante y mínimo (apenas unos kilobytes), sin importar el tamaño del archivo procesado.
 
 ## 8. NestJS y Arquitecturas Modulares en TypeScript
 En proyectos de gran envergadura backend en España, la tendencia absoluta en 2026 es el uso de **NestJS**. Este framework aporta una arquitectura modular estructurada inspirada en Angular que soluciona los problemas de desorganización comunes de Express:
 * **Inyección de Dependencias (Dependency Injection):** NestJS utiliza un contenedor de inversión de control (IoC) para instanciar y vincular clases de servicio (providers) automáticamente, simplificando el mantenimiento de dependencias y el mocking en pruebas unitarias.
-* **Decoradores y Metadatos:** El uso extensivo de decoradores TypeScript (como \\`@Controller()\\`, \\`@Get()\\`, \\`@Injectable()\\`) permite declarar rutas, validaciones y comportamientos de forma declarativa e intuitiva.
-* **Estructura Modular:** Organizar el código backend en módulos autocontenidos (\\`UserModule\\`, \\`AuthModule\\`, \\`PaymentModule\\`) facilita el trabajo en paralelo de múltiples desarrolladores en bases de código gigantes.
+* **Decoradores y Metadatos:** El uso extensivo de decoradores TypeScript (como \`@Controller()\`, \`@Get()\`, \`@Injectable()\`) permite declarar rutas, validaciones y comportamientos de forma declarativa e intuitiva.
+* **Estructura Modular:** Organizar el código backend en módulos autocontenidos (\`UserModule\`, \`AuthModule\`, \`PaymentModule\`) facilita el trabajo en paralelo de múltiples desarrolladores en bases de código gigantes.
 
 Si deseas valorar tu sueldo objetivo o comparar las condiciones salariales de tu perfil técnico, te invitamos a usar de forma gratuita nuestra [Calculadora de Salarios IT](/salarios) o a buscar ofertas transparentes en nuestro [Buscador de Empleo IT](/trabajos/informatica-tecnologia). Asimismo, te recomendamos leer nuestro artículo especializado sobre [preparar una entrevista de System Design](/blog/preparar-entrevista-system-design) para seguir impulsando tu carrera en tecnología.
 `,
@@ -2460,7 +2460,7 @@ El desarrollo móvil es una especialización muy cotizada y estable. La elecció
 Un aspecto que diferencia notablemente a los programadores senior de dispositivos móviles es su preocupación constante por la eficiencia y el uso racional de los recursos de hardware limitados del teléfono inteligente del usuario:
 
 ### Áreas clave de optimización móvil:
-* **Renderización eficiente de listas:** Utilizar patrones de reciclaje de componentes visuales (como \\`RecyclerView\\` en Android clásico, \\`LazyColumn\\` en Jetpack Compose o \\`UICollectionView\\` en iOS) para renderizar únicamente los elementos visibles en pantalla y no sobrecargar la memoria RAM con listas interminables.
+* **Renderización eficiente de listas:** Utilizar patrones de reciclaje de componentes visuales (como \`RecyclerView\` en Android clásico, \`LazyColumn\` en Jetpack Compose o \`UICollectionView\` en iOS) para renderizar únicamente los elementos visibles en pantalla y no sobrecargar la memoria RAM con listas interminables.
 * **Caché y Reducción de Red:** Cachear imágenes y datos de API de forma local utilizando bases de datos eficientes (Room o Core Data) para evitar llamadas de red redundantes que agotan el plan de datos y la batería del terminal.
 * **Tamaño del binario (App Size):** Optimizar los assets gráficos de la aplicación (usando formatos vectoriales SVG o WebP comprimidos) para reducir el tamaño del instalador (APK/IPA), facilitando que los usuarios lo descarguen en redes móviles lentas.
 
@@ -2471,7 +2471,7 @@ El desarrollo móvil no termina cuando el código compila localmente de forma co
 
 ## 8. Seguridad y Cifrado de Información en Dispositivos Móviles
 La seguridad de los datos locales en el dispositivo móvil del usuario es un requisito crítico de cumplimiento legal y protección empresarial (OWASP Mobile Top 10):
-* **Almacenamiento Seguro de Credenciales:** Nunca almacenes claves de API, tokens de sesión o contraseñas en texto claro dentro del almacenamiento local básico (\\`SharedPreferences\\` o \\`UserDefaults\\`). Utiliza siempre mecanismos de cifrado por hardware que proporciona el sistema operativo, como **Keychain** en iOS y **Keystore / EncryptedSharedPreferences** en Android.
+* **Almacenamiento Seguro de Credenciales:** Nunca almacenes claves de API, tokens de sesión o contraseñas en texto claro dentro del almacenamiento local básico (\`SharedPreferences\` o \`UserDefaults\`). Utiliza siempre mecanismos de cifrado por hardware que proporciona el sistema operativo, como **Keychain** en iOS y **Keystore / EncryptedSharedPreferences** en Android.
 * **SSL Pinning:** Una técnica de seguridad de red que asocia el certificado criptográfico de tu servidor de producción directamente dentro del código de la aplicación móvil, previniendo ataques de interceptación de red de tipo Man-in-the-Middle (MitM) en redes Wi-Fi públicas.
 * **Ofuscación de Código:** Configurar compilaciones con herramientas de ofuscación de código (como **ProGuard / R8** en Android) para dificultar la ingeniería inversa de los binarios y proteger la propiedad intelectual de la aplicación.
 
@@ -2601,9 +2601,9 @@ Evita comentarios ambiguos o imperativos como *"Esto está mal"* o *"Cambia esto
 
 ### B. Clasifica la Severidad de tus Comentarios
 No todo el feedback tiene la misma prioridad. Utiliza prefijos para clasificar la severidad de tus sugerencias técnicas para que el autor sepa de inmediato qué cambios son bloqueantes:
-* **\\`[BLOCKING]\\`:** Problemas críticos de seguridad, bugs evidentes o fallos de arquitectura que impiden el despliegue del PR.
-* **\\`[SUGGESTION]\\`:** Optimizaciones de rendimiento, mejoras de legibilidad o refactorizaciones sanas que no impiden el despliegue inicial.
-* **\\`[NIT]\\` / \\`[TYPO]\\`:** Detalles de formato o corrección de textos menores que se pueden corregir de forma rápida o dejar para futuras iteraciones del código.
+* **\`[BLOCKING]\`:** Problemas críticos de seguridad, bugs evidentes o fallos de arquitectura que impiden el despliegue del PR.
+* **\`[SUGGESTION]\`:** Optimizaciones de rendimiento, mejoras de legibilidad o refactorizaciones sanas que no impiden el despliegue inicial.
+* **\`[NIT]\` / \`[TYPO]\`:** Detalles de formato o corrección de textos menores que se pueden corregir de forma rápida o dejar para futuras iteraciones del código.
 
 ---
 
@@ -2671,7 +2671,7 @@ El editor de código sigue siendo tu herramienta principal de trabajo. Aunque la
 
 ### A. Visual Studio Code (VS Code)
 VS Code se mantiene como el líder de la industria por volumen de usuarios y riqueza de su ecosistema de extensiones. Destaca por su versatilidad para desarrollo web frontend y backend, excelente soporte nativo de TypeScript y su suave integración con herramientas de contenedores.
-* **Consejo de Productividad:** Aprende los atajos de teclado clave de navegación rápida en VS Code (como \\`Cmd+P\\` / \\`Ctrl+P\\` para buscar archivos de forma rápida o \\`Cmd+Shift+P\\` / \\`Ctrl+Shift+P\\` para acceder a la paleta de comandos de forma rápida). Utilizar el ratón para moverte entre pestañas y archivos es un sumidero de concentración y tiempo.
+* **Consejo de Productividad:** Aprende los atajos de teclado clave de navegación rápida en VS Code (como \`Cmd+P\` / \`Ctrl+P\` para buscar archivos de forma rápida o \`Cmd+Shift+P\` / \`Ctrl+Shift+P\` para acceder a la paleta de comandos de forma rápida). Utilizar el ratón para moverte entre pestañas y archivos es un sumidero de concentración y tiempo.
 
 ### B. Editores Basados en Vim (Neovim)
 Para perfiles intermedios y senior que desean llevar la productividad de edición al límite absoluto, Neovim configurado como un entorno de desarrollo personalizado (PDE) mediante Lua es la opción estrella. Navegar y editar texto utilizando de forma exclusiva el teclado sin separar las manos de las teclas principales (teclas de inicio) proporciona una velocidad de edición y concentración incomparables.
@@ -2687,9 +2687,9 @@ La terminal de Linux / macOS es la consola de mandos de todo programador backend
 
 ### B. Utilidades CLI que Sustituyen Comandos Clásicos
 Los comandos tradicionales de la terminal de Linux tienen alternativas modernas escritas en Rust con mejor rendimiento y visualizaciones en color:
-* **\\`bat\\` en vez de \\`cat\\`:** Lee archivos de texto en la terminal con resaltado de sintaxis en color según el lenguaje de programación detectado de forma automática.
-* **\\`eza\\` en vez de \\`ls\\`:** Lista los archivos de directorios con vistas en color, iconos y detalles de Git estructurados de forma legible.
-* **\\`fzf\\` (Fuzzy Finder):** Buscador de archivos y comandos del historial interactivo extremadamente rápido que realiza búsquedas aproximadas a medida que vas escribiendo.
+* **\`bat\` en vez de \`cat\`:** Lee archivos de texto en la terminal con resaltado de sintaxis en color según el lenguaje de programación detectado de forma automática.
+* **\`eza\` en vez de \`ls\`:** Lista los archivos de directorios con vistas en color, iconos y detalles de Git estructurados de forma legible.
+* **\`fzf\` (Fuzzy Finder):** Buscador de archivos y comandos del historial interactivo extremadamente rápido que realiza búsquedas aproximadas a medida que vas escribiendo.
 
 ---
 
@@ -2724,7 +2724,7 @@ La productividad del programador no solo depende de su stack técnico de herrami
 Para llevar tu productividad técnica al máximo, debes identificar aquellas secuencias de comandos de terminal que ejecutas docenas de veces al día y automatizarlas mediante accesos rápidos o scripts personalizados:
 
 ### A. Configuración de Git Aliases
-Ahorra segundos en cada interacción con tu terminal configurando alias sencillos en tu archivo de configuración \\`.gitconfig\\`:
+Ahorra segundos en cada interacción con tu terminal configurando alias sencillos en tu archivo de configuración \`.gitconfig\`:
 \`\`\`ini
 [alias]
   co = checkout
@@ -2739,7 +2739,7 @@ Crea pequeños scripts en Bash o Python para automatizar el arranque de tus cont
 
 ## 8. Gestión de Configuraciones Compartidas: Dotfiles
 A lo largo de tu carrera técnica, dedicarás horas a configurar tu editor de código VS Code, tu terminal Warp o Zsh, tus scripts locales y alias favoritos. Para evitar perder esta inversión de tiempo al cambiar de ordenador de trabajo:
-* **¿Qué son los Dotfiles?:** Consiste en guardar todos tus archivos de configuración ocultos (que empiezan por un punto, ej: \\`.zshrc\\`, \\`.gitconfig\\`, \\`.vimrc\\`) en un repositorio de Git centralizado y público en tu cuenta de GitHub.
+* **¿Qué son los Dotfiles?:** Consiste en guardar todos tus archivos de configuración ocultos (que empiezan por un punto, ej: \`.zshrc\`, \`.gitconfig\`, \`.vimrc\`) en un repositorio de Git centralizado y público en tu cuenta de GitHub.
 * **Instalación Instantánea:** Utiliza scripts sencillos de enlazado simbólico (symlinks) o herramientas como Stow para clonar e instalar todo tu ecosistema de productividad y atajos de teclado en un nuevo ordenador en pocos minutos.
 
 Mantener tus configuraciones públicas en GitHub es también una excelente señal de marca personal que demuestra tu nivel de organización y pasión por la excelencia en la ingeniería.

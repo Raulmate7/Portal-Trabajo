@@ -3,6 +3,7 @@ import Link from 'next/link';
 import AdBanner from '@/components/AdBanner';
 import { Metadata } from 'next';
 import { BASE_URL } from '@/lib/constants';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 export const metadata: Metadata = {
   title: 'Glosario Tecnológico IT | Diccionario de Términos de Programación',
@@ -49,10 +50,22 @@ export default function GlossaryIndexPage() {
           <p className="text-gray-300 text-base md:text-lg max-w-xl mx-auto leading-relaxed">
             Domina el vocabulario del sector IT. Definiciones claras de herramientas, metodologías y tecnologías más buscadas por los reclutadores.
           </p>
+          <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-indigo-200/90 mt-6 border-t border-indigo-500/20 pt-4 max-w-xs mx-auto">
+            <span>📅 Actualizado: Hoy</span>
+            <span className="text-indigo-500/30">•</span>
+            <span>👤 Supervisor: <Link href="/sobre-nosotros" className="font-semibold text-white hover:text-indigo-200 hover:underline">Raúl M.</Link></span>
+          </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-10">
+      <div className="max-w-4xl mx-auto px-4 pt-6">
+        <Breadcrumbs items={[
+          { label: 'Inicio', href: '/' },
+          { label: 'Glosario' }
+        ]} />
+      </div>
+
+      <div className="max-w-4xl mx-auto px-4 py-4">
         
         {/* AdBanner unit */}
         <div className="mb-8">
