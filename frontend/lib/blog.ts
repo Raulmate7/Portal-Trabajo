@@ -78,12 +78,12 @@ Describe las características principales del proyecto haciendo hincapié en las
 #### E. Arquitectura del Proyecto y Diagrama
 Si tu proyecto consta de múltiples servicios o sigue una arquitectura limpia (Clean Architecture), explica brevemente las decisiones de diseño tomadas o integra un diagrama visual simple utilizando el formato nativo de diagramación **Mermaid** de GitHub.
 * *Ejemplo de diagrama Mermaid:*
-```mermaid
+\`\`\`mermaid
 graph TD
     Client[Cliente React] -->|API REST| Gateway[API Gateway NestJS]
     Gateway -->|Consultas| DB[(PostgreSQL)]
     Gateway -->|Caché| Cache[(Redis)]
-```
+\`\`\`
 
 #### F. Guía de Instalación y Ejecución Local
 Provee instrucciones claras y concisas para que cualquier desarrollador pueda ejecutar tu proyecto localmente en un par de minutos:
@@ -350,7 +350,7 @@ Felicidades, has superado las entrevistas técnicas y el director de ingeniería
 ### Plantilla 1: Responder a una oferta inicial baja solicitando un incremento
 Usa este correo cuando la oferta económica recibida se encuentra por debajo de tus pretensiones, pero el proyecto te interesa mucho.
 
-```markdown
+\`\`\`markdown
 Asunto: Agradecimiento por la propuesta y pasos a seguir - [Tu Nombre]
 
 Hola [Nombre del Reclutador],
@@ -365,12 +365,12 @@ Quedo a tu disposición para hablarlo por teléfono si lo consideras oportuno.
 
 Un cordial saludo,
 [Tu Nombre]
-```
+\`\`\`
 
 ### Plantilla 2: Contraoferta cuando tienes otros procesos activos
 Disponer de otras ofertas de empleo competitivas es la mejor herramienta de negociación posible. Úsala con honestidad y tacto.
 
-```markdown
+\`\`\`markdown
 Asunto: Dudas sobre la oferta para el puesto de [Nombre del Puesto] - [Tu Nombre]
 
 Hola [Nombre del Reclutador],
@@ -385,7 +385,7 @@ Agradezco de antemano vuestro esfuerzo por valorar esta opción.
 
 Un saludo,
 [Tu Nombre]
-```
+\`\`\`
 
 ---
 
@@ -647,7 +647,7 @@ Python libera memoria de forma automática combinando dos sistemas:
 Un decorador es una función que recibe otra función como argumento, modifica o amplía su comportamiento sin alterar su código fuente de forma permanente, y devuelve una nueva función. Son muy utilizados para logging, autenticación o medición de rendimiento de endpoints.
 * **Reto práctico común:** *"Escribe un decorador en Python que mida y muestre el tiempo de ejecución de cualquier función."*
 
-```python
+\`\`\`python
 import time
 from functools import wraps
 
@@ -664,7 +664,7 @@ def measure_time(func):
 @measure_time
 def process_data():
     time.sleep(1) # Simulación de proceso
-```
+\`\`\`
 *Nota: El decorador \`@wraps(func)\` de la librería estándar es esencial para preservar los metadatos de la función original (nombre, docstring, etc.). Mencionarlo te sumará puntos de nivel senior.*
 
 ### Generadores y Evaluación Perezosa (Lazy Evaluation)
@@ -690,7 +690,7 @@ FastAPI ha ganado una popularidad tremenda gracias a su velocidad de ejecución 
 ### Inyección de Dependencias
 FastAPI provee un sistema de inyección de dependencias muy limpio mediante la función \`Depends()\`. Permite compartir lógica de conexión a bases de datos, autenticación de usuarios o políticas de permisos de forma reutilizable y testeable en tus endpoints.
 
-```python
+\`\`\`python
 from fastapi import FastAPI, Depends, HTTPException, status
 
 app = FastAPI()
@@ -707,14 +707,14 @@ def get_db_connection():
 @app.get("/users")
 def list_users(db = Depends(get_db_connection)):
     return {"message": "Lista de usuarios usando la DB"}
-```
+\`\`\`
 
 ---
 
 ## 5. Ejercicio Práctico: Implementación de un Limitador de Tasa (Rate Limiter)
 En entrevistas avanzadas de Backend en Python, es habitual que te pidan codificar un algoritmo simple de control. A continuación, te mostramos cómo estructurar un limitador de tasa mediante una clase que controle la frecuencia de peticiones de un usuario basándose en su dirección IP o ID:
 
-```python
+\`\`\`python
 import time
 
 class RateLimiter:
@@ -743,7 +743,7 @@ class RateLimiter:
             
         self.requests[client_id] = active_timestamps
         return False
-```
+\`\`\`
 
 ---
 
@@ -772,7 +772,7 @@ Es muy probable que en las pruebas en vivo de nivel intermedio te pidan implemen
 
 A continuación se muestra la forma óptima de resolver este ejercicio utilizando \`yield\` para evitar consumir memoria RAM innecesaria con listas enormes de números:
 
-```python
+\`\`\`python
 def fibonacci_generator(limit: int):
     a, b = 0, 1
     count = 0
@@ -785,7 +785,7 @@ def fibonacci_generator(limit: int):
 # Generamos los primeros 10 números de Fibonacci sin almacenarlos en una lista
 for num in fibonacci_generator(10):
     print(num)
-```
+\`\`\`
 
 ### Explicación del funcionamiento:
 El generador mantiene en memoria únicamente el estado de las variables \`a\` y \`b\` correspondientes a los dos últimos números de la serie en cada iteración. En lugar de retornar toda la serie en una lista consumiendo memoria proporcional al límite solicitado (complejidad espacial O(N)), este código mantiene un consumo de memoria constante y óptimo (O(1)). Dominar esta explicación teórica sumará puntos de nivel senior a tu postulación técnica.
@@ -1839,7 +1839,7 @@ Un contenedor es una instancia de ejecución viva y de lectura/escritura creada 
 ## 3. Guía Práctica: Escribiendo un Dockerfile Optimizado para Node.js
 Escribir un Dockerfile eficiente requiere estructurar las instrucciones de forma que se aproveche al máximo el sistema de caché por capas de Docker para reducir los tiempos de compilación de las imágenes:
 
-```dockerfile
+\`\`\`dockerfile
 # Paso 1: Seleccionamos la imagen base oficial (usamos versión lightweight Alpine)
 FROM node:20-alpine
 
@@ -1860,7 +1860,7 @@ EXPOSE 3000
 
 # Paso 7: Comando final para iniciar la ejecución del backend
 CMD ["node", "dist/main.js"]
-```
+\`\`\`
 
 ### Explicación de la optimización por capas:
 Docker ejecuta e instala cada línea del Dockerfile como una capa cacheada de solo lectura. Si modificas tu código fuente pero no has instalado nuevas dependencias, Docker saltará los pasos 3 y 4 (que son los más lentos ya que acceden a NPM) y reutilizará la caché acumulada, reduciendo el tiempo de compilación de tu imagen de varios minutos a apenas un par de segundos.
@@ -1886,7 +1886,7 @@ Es la unidad de ejecución mínima de Kubernetes. Un Pod contiene uno o más con
 ### B. Deployments (Despliegues)
 Es el componente que describe el estado deseado de tu aplicación. Define qué imagen Docker utilizar y cuántas réplicas (copias idénticas) del Pod deben estar activas y ejecutándose de forma simultánea.
 
-```yaml
+\`\`\`yaml
 # Ejemplo de configuración declarativa de un Deployment
 apiVersion: apps/v1
 kind: Deployment
@@ -1907,7 +1907,7 @@ spec:
         image: tu-registro/backend-api:v1.0.0
         ports:
         - containerPort: 3000
-```
+\`\`\`
 
 ### C. Services (Servicios)
 Dado que los Pods son destruidos y creados con nuevas direcciones IP virtuales de forma constante, no puedes apuntar tu frontend a un Pod específico. Un Service es una abstracción lógica que proporciona una dirección IP estable y un punto de entrada de red único para un grupo de Pods seleccionados mediante etiquetas (labels).
@@ -2271,7 +2271,7 @@ En entrevistas de TypeScript, los evaluadores querrán ver si utilizas el compil
 ### A. Tipos Genéricos (Generics)
 Los genéricos te permiten escribir funciones, clases o interfaces que aceptan tipos como parámetros, garantizando la reutilización del código sin perder la seguridad del tipado.
 
-```typescript
+\`\`\`typescript
 // Ejemplo de función genérica para envolver respuestas de API
 interface ApiResponse<T> {
   data: T;
@@ -2290,7 +2290,7 @@ function createResponse<T>(data: T): ApiResponse<T> {
 // Uso práctico
 const userResponse = createResponse({ id: 1, name: 'Alice' });
 // userResponse.data es tipado automáticamente como { id: number, name: string }
-```
+\`\`\`
 
 ### B. Mapped Types y Utility Types
 Debes conocer y saber implementar manualmente los principales tipos de utilidad que proporciona TypeScript:
@@ -2298,7 +2298,7 @@ Debes conocer y saber implementar manualmente los principales tipos de utilidad 
 * **\\`Pick<T, K>\\`:** Crea un nuevo tipo seleccionando un subconjunto de claves \\`K\\` del tipo \\`T\\`.
 * **\\`Omit<T, K>\\`:** Crea un nuevo tipo omitiendo un subconjunto de claves \\`K\\` del tipo \\`T\\`.
 
-```typescript
+\`\`\`typescript
 interface User {
   id: string;
   name: string;
@@ -2313,14 +2313,14 @@ const updatePayload: UserUpdatePayload = {
   id: '123',
   name: 'Bob', // Permitido
 };
-```
+\`\`\`
 
 ---
 
 ## 3. Ejercicio Práctico: Implementación de un Middleware en Express con TypeScript
 Un ejercicio en vivo habitual es escribir un middleware de autenticación personalizado utilizando Express y TypeScript, y configurar la declaración de tipos para extender el objeto \\`Request\\` de Express de forma segura:
 
-```typescript
+\`\`\`typescript
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
@@ -2350,7 +2350,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     return res.status(401).json({ error: 'Invalid token' });
   }
 }
-```
+\`\`\`
 
 ---
 
@@ -2725,14 +2725,14 @@ Para llevar tu productividad técnica al máximo, debes identificar aquellas sec
 
 ### A. Configuración de Git Aliases
 Ahorra segundos en cada interacción con tu terminal configurando alias sencillos en tu archivo de configuración \\`.gitconfig\\`:
-```ini
+\`\`\`ini
 [alias]
   co = checkout
   br = branch
   st = status -sb
   cm = commit -m
   lg = log --oneline --graph --decorate -n 10
-```
+\`\`\`
 
 ### B. Scripts de Shell Locales
 Crea pequeños scripts en Bash o Python para automatizar el arranque de tus contenedores locales, la limpieza de registros de compilación obsoletos o la verificación estática de linter y pruebas unitarias antes de enviar tus ramas de código a GitHub.

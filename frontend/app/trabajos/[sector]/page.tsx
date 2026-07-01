@@ -741,7 +741,10 @@ export default async function SectorPage({
 
   const { tec, ciudad, experiencia, modalidad, dbCategory, salaryMin, salaryMax } = parseSector(sectorSlug);
   
-  let jobs = await getJobs(tec, ciudad, dbCategory, experiencia, modalidad, validPage, salaryMin, salaryMax);
+  const [jobs, totalCount] = await Promise.all([
+    getJobs(tec, ciudad, dbCategory, experiencia, modalidad, validPage, salaryMin, salaryMax),
+    getJobsCount(tec, ciudad, dbCategory, experiencia, modalidad, salaryMin, salaryMax)
+  ]);
   let isFallback = false;
   let fallbackType = '';
 
@@ -968,9 +971,26 @@ export default async function SectorPage({
 
       <Breadcrumbs items={breadcrumbItems} />
       
-      <h1 className="text-3xl font-bold mb-4 capitalize text-gray-900">
+      <h1 className="text-3xl font-bold mb-2 capitalize text-gray-900">
         {isEnglish ? `${tituloMostrado} Job Openings` : `Ofertas de ${tituloMostrado}`}
       </h1>
+
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 mb-6 border-b border-gray-100 pb-3">
+        <span className="inline-flex items-center gap-1">
+          <span>📅</span>
+          {isEnglish ? 'Updated: Today' : 'Actualizado: Hoy'}, {new Date().toLocaleDateString(isEnglish ? 'en-US' : 'es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+        </span>
+        <span className="text-gray-300">|</span>
+        <span className="inline-flex items-center gap-1">
+          <span>👤</span>
+          {isEnglish ? 'Supervised by' : 'Supervisado por'}: <Link href="/sobre-nosotros" className="font-semibold text-indigo-650 hover:underline">Raúl M.</Link>
+        </span>
+        <span className="text-gray-300">|</span>
+        <span className="inline-flex items-center gap-1">
+          <span>💼</span>
+          {isEnglish ? `${totalCount} active offers` : `${totalCount} ofertas activas`}
+        </span>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch mb-8 bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
         <div className="md:col-span-2 flex flex-col justify-center">

@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { getPostBySlug, getBlogPosts } from '@/lib/blog';
 import AdBanner from '@/components/AdBanner';
 import SubscribeForm from '@/components/SubscribeForm';
+import Breadcrumbs from '@/components/Breadcrumbs';
+import AuthorBox from '@/components/AuthorBox';
 import pool from '@/lib/db';
 import { Markdown } from '@/lib/markdown';
 import { BASE_URL } from '@/lib/constants';
@@ -171,11 +173,11 @@ export default async function BlogPostPage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       <div className="max-w-5xl mx-auto">
-        <div className="mb-6">
-          <Link href="/blog" className="text-indigo-600 hover:underline inline-flex items-center gap-2 font-medium">
-            ← Volver al blog
-          </Link>
-        </div>
+        <Breadcrumbs items={[
+          { label: 'Inicio', href: '/' },
+          { label: 'Blog', href: '/blog' },
+          { label: post.title },
+        ]} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Article Content */}
@@ -185,9 +187,18 @@ export default async function BlogPostPage({ params }: Props) {
                 <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4 leading-tight">
                   {post.title}
                 </h1>
-                <div className="flex items-center text-gray-500 text-sm gap-4">
-                  <span>📅 {new Date(post.date).toLocaleDateString()}</span>
-                  <span>✍️ {post.author}</span>
+                <div className="flex flex-wrap items-center text-gray-500 text-xs gap-x-4 gap-y-1 mt-3">
+                  <time dateTime={post.date} className="inline-flex items-center gap-1.5">
+                    <span aria-hidden="true">📅</span>
+                    {new Date(post.date).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </time>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span aria-hidden="true">✍️</span> Raúl M.
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span aria-hidden="true">⏱️</span>
+                    {Math.max(1, Math.ceil(post.content.split(/\s+/).length / 220))} min de lectura
+                  </span>
                 </div>
               </header>
 
@@ -246,6 +257,13 @@ export default async function BlogPostPage({ params }: Props) {
                   </div>
                 </div>
               )}
+              <AuthorBox
+                author={post.author}
+                date={post.date}
+                updatedAt={post.updatedAt}
+                slug={resolvedParams.slug}
+                readingTimeMinutes={Math.max(1, Math.ceil(post.content.split(/\s+/).length / 220))}
+              />
             </article>
           </div>
 
