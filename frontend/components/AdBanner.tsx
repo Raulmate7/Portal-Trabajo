@@ -17,6 +17,33 @@ const getAmazonLink = (url: string) => {
   }
 };
 
+const getLinkedinLink = (url: string) => {
+  const affiliateId = typeof process !== 'undefined' ? (process.env.NEXT_PUBLIC_LINKEDIN_AFFILIATE_ID || '') : '';
+  if (affiliateId) {
+    return url.replace('TU_AFFILIATE_ID_LINKEDIN', affiliateId);
+  } else {
+    return url.replace(/[&?]upsellOrderOrigin=aff_TU_AFFILIATE_ID_LINKEDIN/, '');
+  }
+};
+
+const BOOKS = [
+  {
+    title: 'Libro: Código Limpio (Clean Code)',
+    desc: 'El manual clásico de Robert C. Martin para escribir software limpio, legible y fácil de mantener.',
+    href: getAmazonLink('https://www.amazon.es/dp/8441532109?tag=TU_AMAZON_TAG'),
+  },
+  {
+    title: 'Libro: El Programador Pragmático',
+    desc: 'La guía fundamental para perfeccionar tu oficio como desarrollador y crear software de alta calidad.',
+    href: getAmazonLink('https://www.amazon.es/dp/8441542694?tag=TU_AMAZON_TAG'),
+  },
+  {
+    title: 'Libro: Designing Data-Intensive Applications',
+    desc: 'La biblia de Martin Kleppmann para comprender la arquitectura de datos, escalabilidad y sistemas distribuidos.',
+    href: getAmazonLink('https://www.amazon.es/dp/1449373321?tag=TU_AMAZON_TAG'),
+  }
+];
+
 const ADS = [
   {
     id: 'bootcamp',
@@ -79,7 +106,7 @@ const ADS = [
     // ACCIÓN REQUERIDA: Registrarse en el programa de afiliados de LinkedIn en Impact.com
     // https://app.impact.com/campaign-promo-signup/LinkedIn.brand
     // y sustituir 'TU_AFFILIATE_ID_LINKEDIN' por el ID asignado.
-    href: 'https://www.linkedin.com/premium/products/?upsellOrderOrigin=aff_TU_AFFILIATE_ID_LINKEDIN',
+    href: getLinkedinLink('https://www.linkedin.com/premium/products/?upsellOrderOrigin=aff_TU_AFFILIATE_ID_LINKEDIN'),
     colors: 'from-blue-50 to-sky-50 border-blue-200',
     ctaColors: 'bg-blue-700 hover:bg-blue-800 text-white',
   },
@@ -168,6 +195,11 @@ export default function AdBanner({
   const [refreshKey, setRefreshKey] = useState(0);
   const [adError, setAdError] = useState(!shouldTryAdsense);
   const [isLoading, setIsLoading] = useState(shouldTryAdsense);
+  const [bookIndex, setBookIndex] = useState(0);
+
+  useEffect(() => {
+    setBookIndex(Math.floor(Math.random() * BOOKS.length));
+  }, []);
   
   const insRef = useRef<HTMLModElement>(null);
   const initializedRef = useRef(false);
@@ -428,7 +460,13 @@ export default function AdBanner({
     adIndex = new Date().getHours() % ADS.length;
   }
 
-  const ad = ADS[adIndex];
+  const rawAd = ADS[adIndex];
+  const ad = rawAd.id === 'books' ? {
+    ...rawAd,
+    title: BOOKS[bookIndex].title,
+    desc: BOOKS[bookIndex].desc,
+    href: BOOKS[bookIndex].href
+  } : rawAd;
 
   // Si no está configurada la variable de entorno o hay un error de carga, usar afiliación Udemy
   if (!adsenseClientId || adError) {

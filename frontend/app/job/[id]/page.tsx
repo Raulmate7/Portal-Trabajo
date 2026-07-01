@@ -222,13 +222,6 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     const isOld = (new Date().getTime() - new Date(job.created_at).getTime()) > 30 * 24 * 60 * 60 * 1000;
     const isExpired = job.is_active === false || isOld;
 
-    if (isExpired) {
-      return {
-        title: 'Oferta no encontrada',
-        robots: { index: false, follow: false }
-      };
-    }
-
     const correctSlug = getJobSlug(job);
     const canonicalUrl = isEnglish 
       ? `${BASE_URL}/job/${correctSlug}?lang=en` 
@@ -249,8 +242,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
         },
       },
       robots: {
-        index: false,
-        follow: false,
+        index: isExpired ? false : true,
+        follow: true,
       },
       openGraph: {
         title: titulo,
@@ -420,9 +413,6 @@ export default async function JobPage({ params, searchParams }: Props) {
 
   const isOld = (new Date().getTime() - new Date(job.created_at).getTime()) > 30 * 24 * 60 * 60 * 1000;
   const isExpired = job.is_active === false || isOld;
-  if (isExpired) {
-    notFound();
-  }
 
   const correctSlug = getJobSlug(job);
   const lang = resolvedSearchParams?.lang === 'en' ? 'en' : 'es';
