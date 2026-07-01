@@ -2751,51 +2751,6 @@ Si deseas valorar tu sueldo objetivo o comparar las condiciones salariales de tu
   }
 ];
 
-export const BLOG_POSTS: BlogPost[] = STATIC_BLOG_POSTS.map(post => {
-  const currentYear = new Date().getFullYear().toString();
-  const isEvergreen = post.isEvergreen !== false;
-  return {
-    ...post,
-    isEvergreen,
-    title: isEvergreen ? post.title.replace(/2026/g, currentYear) : post.title,
-    excerpt: isEvergreen ? post.excerpt.replace(/2026/g, currentYear) : post.excerpt,
-    content: isEvergreen ? post.content.replace(/2026/g, currentYear) : post.content,
-  };
-});
-
-export async function getBlogPosts(): Promise<BlogPost[]> {
-  const currentYear = new Date().getFullYear().toString();
-  try {
-    const res = await pool.query(
-      "SELECT slug, title, excerpt, content, date, author, updated_at as updatedAt, is_evergreen as isEvergreen FROM blog_posts ORDER BY date DESC"
-    );
-    if (res.rows && res.rows.length > 0) {
-      return res.rows.map((post: any) => {
-        const isEvergreen = post.isEvergreen === 1 || post.isEvergreen === true || post.isEvergreen === '1';
-        return {
-          slug: post.slug,
-          title: isEvergreen ? post.title.replace(/2026/g, currentYear) : post.title,
-          excerpt: isEvergreen ? post.excerpt.replace(/2026/g, currentYear) : post.excerpt,
-          content: isEvergreen ? post.content.replace(/2026/g, currentYear) : post.content,
-          date: post.date,
-          author: post.author,
-          updatedAt: post.updatedAt || undefined,
-          isEvergreen,
-        };
-      });
-    }
-  } catch (error) {
-    console.error("Error fetching blog posts from DB, using fallback:", error);
-  }
-  
-  return BLOG_POSTS;
-}
-
-export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
-  const posts = await getBlogPosts();
-  return posts.find(p => p.slug === slug) || null;
-}
-];
 
 export const BLOG_POSTS: BlogPost[] = STATIC_BLOG_POSTS.map(post => {
   const currentYear = new Date().getFullYear().toString();
