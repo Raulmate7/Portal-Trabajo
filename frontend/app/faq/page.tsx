@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 interface FaqItem {
   q: string;
   a: React.ReactNode;
+  plainText: string;
 }
 
 interface FaqCategory {
@@ -26,6 +28,7 @@ const FAQ_DATA: FaqCategory[] = [
             Agregamos vacantes de más de una decena de fuentes especializadas en empleo tecnológico en España —incluyendo bolsas de trabajo de grandes empresas, portales IT nacionales e internacionales y publicaciones directas de equipos de People & Talent. Nuestro sistema revisa todas las fuentes cada 6 horas para incorporar las novedades en tiempo real.
           </>
         ),
+        plainText: 'Agregamos vacantes de más de una decena de fuentes especializadas en empleo tecnológico en España —incluyendo bolsas de trabajo de grandes empresas, portales IT nacionales e internacionales y publicaciones directas de equipos de People & Talent. Nuestro sistema revisa todas las fuentes cada 6 horas para incorporar las novedades en tiempo real.'
       },
       {
         q: '¿Con qué frecuencia se actualizan las ofertas?',
@@ -34,16 +37,18 @@ const FAQ_DATA: FaqCategory[] = [
             El pipeline de ingesta y deduplicación se ejecuta de forma automática <strong>cada 6 horas</strong>. Esto significa que el catálogo de vacantes activas se renueva aproximadamente 4 veces al día, ofreciéndote siempre la información más fresca disponible en el mercado español.
           </>
         ),
+        plainText: 'El pipeline de ingesta y deduplicación se ejecuta de forma automática cada 6 horas. Esto significa que el catálogo de vacantes activas se renueva aproximadamente 4 veces al día, ofreciéndote siempre la información más fresca disponible en el mercado español.'
       },
       {
         q: '¿Por qué veo algunas ofertas sin salario indicado?',
         a: (
           <>
-            Lamentablemente, una parte significativa de las empresas en España aún publica sus vacantes sin indicar el rango salarial. Nosotros mostramos los datos tal y como los publica la empresa original, sin inventar ni estimarsal arios. Para aquellas sin dato, te recomendamos usar nuestra{' '}
-            <Link href="/salarios" className="text-indigo-600 hover:underline font-medium">Calculadora de Salarios IT</Link>
+            Lamentablemente, una parte significativa de las empresas en España aún publica sus vacantes sin indicar el rango salarial. Nosotros mostramos los datos tal y como los publica la empresa original, sin inventar ni estimar salarios. Para aquellas sin dato, te recomendamos usar nuestra{' '}
+            <Link href="/salarios" className="text-indigo-650 hover:underline font-semibold">Calculadora de Salarios IT</Link>
             {' '}para obtener una referencia de mercado real.
           </>
         ),
+        plainText: 'Lamentablemente, una parte significativa de las empresas en España aún publica sus vacantes sin indicar el rango salarial. Nosotros mostramos los datos tal y como los publica la empresa original, sin inventar ni estimar salarios. Para aquellas sin dato, te recomendamos usar nuestra Calculadora de Salarios IT para obtener una referencia de mercado real.'
       },
       {
         q: '¿Cómo se eliminan las ofertas duplicadas?',
@@ -52,18 +57,20 @@ const FAQ_DATA: FaqCategory[] = [
             Aplicamos un proceso de deduplicación semántica y estructural: comparamos el título del puesto, la empresa, la descripción y la URL de origen para detectar publicaciones idénticas o muy similares procedentes de distintas plataformas. Solo conservamos la primera entrada original para evitar el ruido en los resultados.
           </>
         ),
+        plainText: 'Aplicamos un proceso de deduplicación semántica y estructural: comparamos el título del puesto, la empresa, la descripción y la URL de origen para detectar publicaciones idénticas o muy similares procedentes de distintas plataformas. Solo conservamos la primera entrada original para evitar el ruido en los resultados.'
       },
       {
         q: '¿Cómo puedo filtrar por trabajo remoto o híbrido?',
         a: (
           <>
             En nuestro{' '}
-            <Link href="/trabajos/informatica-tecnologia" className="text-indigo-600 hover:underline font-medium">Buscador IT</Link>
+            <Link href="/trabajos/informatica-tecnologia" className="text-indigo-650 hover:underline font-semibold">Buscador IT</Link>
             {' '}encontrarás filtros rápidos de modalidad (100% Remoto, Híbrido, Presencial). También puedes acceder directamente a nuestra sección de{' '}
-            <Link href="/trabajo-remoto" className="text-indigo-600 hover:underline font-medium">Trabajo Remoto</Link>
+            <Link href="/trabajo-remoto" className="text-indigo-650 hover:underline font-semibold">Trabajo Remoto</Link>
             {' '}con las mejores vacantes sin necesidad de desplazamiento.
           </>
         ),
+        plainText: 'En nuestro Buscador IT encontrarás filtros rápidos de modalidad (100% Remoto, Híbrido, Presencial). También puedes acceder directamente a nuestra sección de Trabajo Remoto con las mejores vacantes sin necesidad de desplazamiento.'
       },
     ],
   },
@@ -76,10 +83,11 @@ const FAQ_DATA: FaqCategory[] = [
         a: (
           <>
             Nuestra{' '}
-            <Link href="/salarios" className="text-indigo-600 hover:underline font-medium">Calculadora de Salarios IT</Link>
+            <Link href="/salarios" className="text-indigo-650 hover:underline font-semibold">Calculadora de Salarios IT</Link>
             {' '}cruza los datos salariales reales extraídos de las ofertas activas para calcular percentiles de mercado (P25, mediana P50 y P75) según tu tecnología, nivel de experiencia (Junior / Mid / Senior) y modalidad de trabajo. Los datos se actualizan periódicamente para reflejar el estado real del mercado.
           </>
         ),
+        plainText: 'Nuestra Calculadora de Salarios IT cruza los datos salariales reales extraídos de las ofertas activas para calcular percentiles de mercado (P25, mediana P50 y P75) según tu tecnología, nivel de experiencia (Junior / Mid / Senior) y modalidad de trabajo. Los datos se actualizan periódicamente para reflejar el estado real del mercado.'
       },
       {
         q: '¿Los salarios son brutos o netos?',
@@ -88,6 +96,7 @@ const FAQ_DATA: FaqCategory[] = [
             Todos los rangos salariales que mostramos son <strong>brutos anuales</strong> (salario bruto anual en euros), tal y como los publicitan las empresas en sus ofertas. Para estimar tu salario neto aproximado, puedes aplicar las tablas del IRPF vigentes en España o utilizar un simulador fiscal externo.
           </>
         ),
+        plainText: 'Todos los rangos salariales que mostramos son brutos anuales (salario bruto anual en euros), tal y como los publicitan las empresas en sus ofertas. Para estimar tu salario neto aproximado, puedes aplicar las tablas del IRPF vigentes en España o utilizar un simulador fiscal externo.'
       },
       {
         q: '¿Los datos salariales son representativos del mercado real?',
@@ -96,15 +105,17 @@ const FAQ_DATA: FaqCategory[] = [
             Son una referencia basada en las ofertas que sí detallan su rango salarial en España, que representan aproximadamente el 30-40% del total de vacantes publicadas. Para los puestos restantes las empresas no divulgan el dato públicamente. Por ello, los percentiles deben entenderse como una guía orientativa y no como una media estadísticamente perfecta de todo el sector.
           </>
         ),
+        plainText: 'Son una referencia basada en las ofertas que sí detallan su rango salarial en España, que representan aproximadamente el 30-40% del total de vacantes publicadas. Para los puestos restantes las empresas no divulgan el dato públicamente. Por ello, los percentiles deben entenderse como una guía orientativa y no como una media estadísticamente perfecta de todo el sector.'
       },
       {
         q: '¿Por qué varía el salario según la tecnología?',
         a: (
           <>
             El mercado retribuye de forma diferente cada especialidad en función de la demanda y la oferta de talento disponible. Tecnologías con menor número de profesionales cualificados (ej: Rust, Go, Scala o Ciberseguridad) suelen tener salarios notablemente superiores a stacks de mayor adopción masiva. Consulta la comparativa detallada en nuestra{' '}
-            <Link href="/salarios" className="text-indigo-600 hover:underline font-medium">sección de salarios</Link>.
+            <Link href="/salarios" className="text-indigo-650 hover:underline font-semibold">sección de salarios</Link>.
           </>
         ),
+        plainText: 'El mercado retribuye de forma diferente cada especialidad en función de la demanda y la oferta de talento disponible. Tecnologías con menor número de profesionales cualificados (ej: Rust, Go, Scala o Ciberseguridad) suelen tener salarios notablemente superiores a stacks de mayor adopción masiva. Consulta la comparativa detallada en nuestra sección de salarios.'
       },
     ],
   },
@@ -119,36 +130,40 @@ const FAQ_DATA: FaqCategory[] = [
             No. Puedes navegar por todas las ofertas, aplicar filtros, consultar los detalles de cada vacante y acceder a la calculadora de salarios de forma completamente gratuita y sin necesidad de crear ninguna cuenta. El registro es opcional y únicamente añade funcionalidades como guardar favoritos o crear alertas de empleo.
           </>
         ),
+        plainText: 'No. Puedes navegar por todas las ofertas, aplicar filtros, consultar los detalles de cada vacante y acceder a la calculadora de salarios de forma completamente gratuita y sin necesidad de crear ninguna cuenta. El registro es opcional y únicamente añade funcionalidades como guardar favoritos o crear alertas de empleo.'
       },
       {
         q: '¿Cómo puedo guardar ofertas para revisarlas después?',
         a: (
           <>
             Puedes guardar cualquier vacante haciendo clic en el icono de marcador (🔖) en la tarjeta de la oferta. Las ofertas guardadas quedan almacenadas en tu dispositivo y son accesibles desde la sección de{' '}
-            <Link href="/ofertas-guardadas" className="text-indigo-600 hover:underline font-medium">Ofertas Guardadas</Link>
+            <Link href="/ofertas-guardadas" className="text-indigo-650 hover:underline font-semibold">Ofertas Guardadas</Link>
             {' '}sin necesidad de registrarte.
           </>
         ),
+        plainText: 'Puedes guardar cualquier vacante haciendo clic en el icono de marcador (🔖) en la tarjeta de la oferta. Las ofertas guardadas quedan almacenadas en tu dispositivo y son accesibles desde la sección de Ofertas Guardadas sin necesidad de registrarte.'
       },
       {
         q: '¿El portal recoge y vende mis datos personales?',
         a: (
           <>
             No vendemos ni compartimos datos personales de nuestros usuarios con terceros. El portal utiliza cookies de analítica web (Google Analytics) para mejorar la experiencia y cookies de publicidad contextual (Google AdSense) para financiar el mantenimiento del servicio gratuito. Puedes consultar todos los detalles en nuestra{' '}
-            <Link href="/privacy" className="text-indigo-600 hover:underline font-medium">Política de Privacidad</Link>
+            <Link href="/privacy" className="text-indigo-650 hover:underline font-semibold">Política de Privacidad</Link>
             {' '}y gestionar tus preferencias en el banner de cookies.
           </>
         ),
+        plainText: 'No vendemos ni compartimos datos personales de nuestros usuarios con terceros. El portal utiliza cookies de analítica web (Google Analytics) para mejorar la experiencia y cookies de publicidad contextual (Google AdSense) para financiar el mantenimiento del servicio gratuito. Puedes consultar todos los detalles en nuestra Política de Privacidad y gestionar tus preferencias en el banner de cookies.'
       },
       {
         q: '¿Cómo puedo recibir alertas de nuevas ofertas?',
         a: (
           <>
             Puedes suscribirte a notificaciones push desde el navegador (a través del botón que aparece en la esquina inferior derecha de la página, gestionado por OneSignal). También puedes seguir nuestro canal de Telegram{' '}
-            <a href="https://t.me/PortalDeTrabajo" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline font-medium">@PortalDeTrabajo</a>
+            <a href="https://t.me/PortalDeTrabajo" target="_blank" rel="noopener noreferrer" className="text-indigo-650 hover:underline font-semibold font-sans">@PortalDeTrabajo</a>
             {' '}donde publicamos las nuevas vacantes en tiempo real.
           </>
         ),
+        plainText: 'Puedes suscribirte a notificaciones push desde el navegador (a través del botón que aparece en la esquina inferior derecha de la página, gestionado por OneSignal). También puedes seguir nuestro canal de Telegram @PortalDeTrabajo donde publicamos las nuevas vacantes en tiempo real.'
       },
     ],
   },
@@ -161,32 +176,35 @@ const FAQ_DATA: FaqCategory[] = [
         a: (
           <>
             Accede a nuestra sección de{' '}
-            <Link href="/publicar-oferta" className="text-indigo-600 hover:underline font-medium">Publicar Oferta</Link>
+            <Link href="/publicar-oferta" className="text-indigo-650 hover:underline font-semibold">Publicar Oferta</Link>
             {' '}para enviar los detalles de tu vacante. Las ofertas patrocinadas aparecen destacadas en la parte superior de los resultados y tienen mayor visibilidad ante candidatos cualificados activos. Consulta nuestros{' '}
-            <Link href="/precios" className="text-indigo-600 hover:underline font-medium">planes y precios</Link>
+            <Link href="/precios" className="text-indigo-650 hover:underline font-semibold">planes y precios</Link>
             {' '}para más detalles.
           </>
         ),
+        plainText: 'Accede a nuestra sección de Publicar Oferta para enviar los detalles de tu vacante. Las ofertas patrocinadas aparecen destacadas en la parte superior de los resultados y tienen mayor visibilidad ante candidatos cualificados activos. Consulta nuestros planes y precios para más detalles.'
       },
       {
         q: '¿Puedo solicitar que se retire una oferta indexada?',
         a: (
           <>
             Sí. Si eres la empresa o el representante autorizado de la empresa que publicó la vacante y deseas que la retiremos de nuestro índice, escríbenos a{' '}
-            <a href="mailto:contacto@portalempleoit.com" className="text-indigo-600 hover:underline font-medium">contacto@portalempleoit.com</a>
+            <a href="mailto:contacto@portalempleoit.com" className="text-indigo-650 hover:underline font-semibold">contacto@portalempleoit.com</a>
             {' '}indicando la URL de la oferta. Gestionaremos la baja en un plazo máximo de 48 horas laborables.
           </>
         ),
+        plainText: 'Sí. Si eres la empresa o el representante autorizado de la empresa que publicó la vacante y deseas que la retiremos de nuestro índice, escríbenos a contacto@portalempleoit.com indicando la URL de la oferta. Gestionaremos la baja en un plazo máximo de 48 horas laborables.'
       },
       {
         q: '¿Disponéis de opciones de publicidad o patrocinio?',
         a: (
           <>
             Sí. Ofrecemos espacios de publicidad contextual y patrocinio de categorías para empresas que deseen aumentar su visibilidad ante un público de desarrolladores y profesionales IT en España. Consulta nuestra{' '}
-            <Link href="/publicidad" className="text-indigo-600 hover:underline font-medium">página de publicidad</Link>
+            <Link href="/publicidad" className="text-indigo-650 hover:underline font-semibold">página de publicidad</Link>
             {' '}o contáctanos directamente para recibir un presupuesto personalizado.
           </>
         ),
+        plainText: 'Sí. Ofrecemos espacios de publicidad contextual y patrocinio de categorías para empresas que deseen aumentar su visibilidad ante un público de desarrolladores y profesionales IT en España. Consulta nuestra página de publicidad o contáctanos directamente para recibir un presupuesto personalizado.'
       },
     ],
   },
@@ -211,9 +229,9 @@ function AccordionItem({ item, isOpen, onToggle }: { item: FaqItem; isOpen: bool
       </button>
       {isOpen && (
         <div className="px-5 pb-5 pt-1 bg-white border-t border-indigo-50">
-          <p className="text-sm md:text-base text-gray-600 leading-relaxed">
+          <div className="text-sm md:text-base text-gray-650 leading-relaxed font-sans">
             {item.a}
-          </p>
+          </div>
         </div>
       )}
     </div>
@@ -237,11 +255,15 @@ export default function FaqPage() {
       name: item.q,
       acceptedAnswer: {
         '@type': 'Answer',
-        // Render React nodes to plain text for schema
-        text: typeof item.a === 'string' ? item.a : item.q,
+        text: item.plainText,
       },
     })),
   };
+
+  const breadcrumbItems = [
+    { label: 'Inicio', href: '/' },
+    { label: 'Preguntas Frecuentes' }
+  ];
 
   return (
     <>
@@ -252,15 +274,10 @@ export default function FaqPage() {
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
 
-        {/* Breadcrumb manual */}
-        <nav className="text-xs text-gray-500 mb-6 flex items-center gap-1.5">
-          <Link href="/" className="hover:text-indigo-600 transition-colors">Inicio</Link>
-          <span>›</span>
-          <span className="text-gray-800 font-medium">Preguntas Frecuentes</span>
-        </nav>
+        <Breadcrumbs items={breadcrumbItems} />
 
         {/* Hero */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-12 mt-4">
           <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 text-xs font-bold px-3 py-1.5 rounded-full mb-4 border border-indigo-100">
             ❓ Centro de Ayuda
           </div>
