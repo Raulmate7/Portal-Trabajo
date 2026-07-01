@@ -38,7 +38,7 @@ async function getPortalStats(): Promise<Stats> {
 
 export async function generateMetadata(): Promise<Metadata> {
   const title = "Sobre Nosotros y Cómo Funciona | Portal Trabajo IT";
-  const description = "Descubre el origen de nuestros datos, el proceso de deduplicación cada 6 horas, estadísticas del sector en vivo y nuestro compromiso E-E-A-T con la transparencia salarial.";
+  const description = "Conoce al creador de Portal Trabajo IT, nuestro flujo técnico de datos automatizado y nuestro compromiso E-E-A-T con la transparencia y calidad del empleo tecnológico.";
   const canonicalUrl = `${BASE_URL}/sobre-nosotros`;
 
   return {
@@ -67,109 +67,140 @@ export default async function SobreNosotrosPage() {
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <Breadcrumbs items={breadcrumbItems} />
 
-      <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-6 tracking-tight">
-        ℹ️ Sobre Nosotros y Cómo Funciona el Portal
-      </h1>
+      {/* Hero Header */}
+      <div className="text-center md:text-left mb-10">
+        <h1 className="text-3xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-900 via-indigo-950 to-violet-950 mb-4 tracking-tight">
+          ℹ️ Sobre Nosotros y Cómo Funciona
+        </h1>
+        <p className="text-sm md:text-base text-gray-600 max-w-2xl leading-relaxed">
+          Descubre el propósito detrás de Portal Trabajo IT, las tecnologías que lo sustentan y el proceso técnico diario para mantener la información más limpia y transparente del sector.
+        </p>
+      </div>
 
-      {/* Intro Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 text-center">
-        <div className="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100">
+      {/* Stats Dashboard */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+        <div className="bg-gradient-to-b from-white to-indigo-50/20 p-6 rounded-2xl border border-indigo-50 shadow-sm transition-transform hover:scale-[1.01]">
           <span className="text-3xl block mb-2">📊</span>
-          <span className="text-2xl font-black text-indigo-950 block">{stats.totalJobs.toLocaleString('es-ES')}</span>
-          <span className="text-xs text-gray-550 font-medium uppercase tracking-wider">Ofertas Activas</span>
+          <span className="text-3xl font-black text-indigo-950 block">{stats.totalJobs.toLocaleString('es-ES')}</span>
+          <span className="text-xs text-indigo-650 font-bold uppercase tracking-wider">Ofertas Activas</span>
         </div>
-        <div className="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100">
+        <div className="bg-gradient-to-b from-white to-indigo-50/20 p-6 rounded-2xl border border-indigo-50 shadow-sm transition-transform hover:scale-[1.01]">
           <span className="text-3xl block mb-2">🏢</span>
-          <span className="text-2xl font-black text-indigo-950 block">{stats.totalCompanies.toLocaleString('es-ES')}</span>
-          <span className="text-xs text-gray-550 font-medium uppercase tracking-wider">Empresas Indexadas</span>
+          <span className="text-3xl font-black text-indigo-950 block">{stats.totalCompanies.toLocaleString('es-ES')}</span>
+          <span className="text-xs text-indigo-650 font-bold uppercase tracking-wider">Empresas Indexadas</span>
         </div>
-        <div className="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100">
+        <div className="bg-gradient-to-b from-white to-indigo-50/20 p-6 rounded-2xl border border-indigo-50 shadow-sm transition-transform hover:scale-[1.01]">
           <span className="text-3xl block mb-2">⚡</span>
-          <span className="text-2xl font-black text-indigo-950 block">Cada 6h</span>
-          <span className="text-xs text-gray-550 font-medium uppercase tracking-wider">Actualización</span>
+          <span className="text-3xl font-black text-indigo-950 block">Cada 6 Horas</span>
+          <span className="text-xs text-indigo-650 font-bold uppercase tracking-wider">Ciclo de Actualización</span>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 md:p-8 space-y-8 text-gray-750">
+      {/* Main Content Layout */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 md:p-10 space-y-10 text-gray-700">
         
         {/* Section 1: Mission */}
-        <section className="space-y-3">
-          <h2 className="text-xl font-bold text-gray-950">🎯 Nuestra Misión: Transparencia y Eficiencia</h2>
-          <p className="text-sm leading-relaxed">
-            Portal Trabajo IT nació con la vocación de solucionar la fragmentación y falta de claridad que sufre el mercado de empleo tecnológico en España. Los desarrolladores a menudo pierden valiosas horas revisando ofertas repetidas o con descripciones salariales confusas. Nuestra meta es ofrecer un buscador especializado, deduplicado y enriquecido con estadísticas de mercado reales.
+        <section className="space-y-4">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🎯</span>
+            <h2 className="text-2xl font-bold text-gray-950">Nuestra Misión: Transparencia y Eficiencia</h2>
+          </div>
+          <p className="text-sm md:text-base leading-relaxed text-gray-600">
+            Portal Trabajo IT nació con la vocación de mitigar la fragmentación extrema y la falta de claridad en el mercado del empleo tecnológico en España. Los profesionales de software pierden valiosas horas diarias navegando por portales saturados de spam, ofertas de empleo obsoletas o descripciones salariales ambiguas. 
+          </p>
+          <p className="text-sm md:text-base leading-relaxed text-gray-600">
+            Nuestra meta es consolidar un agregador especializado, deduplicado y enriquecido con métricas de mercado reales, de forma que buscar tu siguiente oportunidad en tecnología sea un proceso directo, limpio y eficiente.
           </p>
         </section>
 
-        {/* Section 2: Pipeline */}
-        <section className="space-y-4">
-          <h2 className="text-xl font-bold text-gray-950">⚙️ ¿Cómo funciona nuestro flujo de datos?</h2>
-          <p className="text-sm leading-relaxed">
-            Para mantener el portal actualizado y útil para la comunidad, ejecutamos una secuencia técnica automatizada cada 6 horas:
+        {/* Section 2: Creator E-E-A-T */}
+        <section className="space-y-4 border-t border-gray-100 pt-8">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">👨‍💻</span>
+            <h2 className="text-2xl font-bold text-gray-950">Creador y Fundador: Raúl M.</h2>
+          </div>
+          <p className="text-sm md:text-base leading-relaxed text-gray-600">
+            Detrás de Portal Trabajo IT se encuentra **Raúl M.**, Ingeniero de Software español con años de experiencia en desarrollo full stack, arquitectura de sistemas y automatización de procesos. 
           </p>
-          <div className="space-y-4 pl-2">
-            <div className="flex gap-4">
-              <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold text-sm">1</span>
-              <div>
-                <h4 className="font-bold text-gray-900 text-sm">Agregación e Ingesta de Fuentes</h4>
-                <p className="text-xs text-gray-600 leading-relaxed mt-0.5">
-                  Rastreamos más de una decena de fuentes de empleo nacionales e internacionales en busca de vacantes informáticas.
-                </p>
+          <p className="text-sm md:text-base leading-relaxed text-gray-600">
+            Frustrado por la baja calidad de las ofertas agregadas en portales generalistas y la ausencia de salarios claros en la mayoría de vacantes en España, Raúl diseñó e implementó este portal como un proyecto independiente para aplicar técnicas avanzadas de curación y normalización de datos. 
+          </p>
+          <div className="bg-indigo-50/30 p-5 rounded-2xl border border-indigo-100/40 text-xs md:text-sm text-indigo-950 space-y-2">
+            <p className="font-bold">🛠️ Compromiso Técnico y de Calidad Editorial:</p>
+            <ul className="list-disc pl-4 space-y-1 text-gray-600">
+              <li>Toda guía y artículo sobre carreras, entrevistas y lenguajes es supervisado y redactado por profesionales de software activos.</li>
+              <li>Las guías fiscales y laborales son revisadas periódicamente contra las directivas vigentes de la Agencia Tributaria en España.</li>
+              <li>Las estadísticas salariales que mostramos son 100% transparentes, calculadas mediante percentiles reales sobre la base de datos de ofertas recopiladas.</li>
+            </ul>
+          </div>
+        </section>
+
+        {/* Section 3: Data flow */}
+        <section className="space-y-6 border-t border-gray-100 pt-8">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">⚙️</span>
+            <h2 className="text-2xl font-bold text-gray-950">¿Cómo funciona nuestro flujo de datos?</h2>
+          </div>
+          <p className="text-sm md:text-base leading-relaxed text-gray-600">
+            Para garantizar que el portal muestre información fresca y libre de redundancias, ejecutamos una secuencia técnica automatizada cada 6 horas:
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+            <div className="p-5 rounded-xl border border-gray-100 bg-gray-50/30 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs">1</span>
+                <h4 className="font-bold text-gray-900 text-sm">Ingesta de Fuentes</h4>
               </div>
+              <p className="text-xs text-gray-550 leading-relaxed">
+                Rastreamos más de una decena de fuentes y bolsas de empleo nacionales e internacionales filtrando únicamente vacantes del sector informático y tecnológico.
+              </p>
             </div>
-            <div className="flex gap-4">
-              <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold text-sm">2</span>
-              <div>
-                <h4 className="font-bold text-gray-900 text-sm">Limpieza y Deduplicación Estricta</h4>
-                <p className="text-xs text-gray-600 leading-relaxed mt-0.5">
-                  Filtramos el spam y las ofertas duplicadas mediante comparación de firma digital del puesto y contenido. Solo se muestra la oferta original.
-                </p>
+            
+            <div className="p-5 rounded-xl border border-gray-100 bg-gray-50/30 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs">2</span>
+                <h4 className="font-bold text-gray-900 text-sm">Deduplicación Estricta</h4>
               </div>
+              <p className="text-xs text-gray-550 leading-relaxed">
+                Filtramos ofertas repetidas comparando de forma semántica y estructural el contenido de las vacantes. De este modo, solo visualizas la oferta original de la empresa.
+              </p>
             </div>
-            <div className="flex gap-4">
-              <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold text-sm">3</span>
-              <div>
-                <h4 className="font-bold text-gray-900 text-sm">Categorización por Stack y Seniority</h4>
-                <p className="text-xs text-gray-600 leading-relaxed mt-0.5">
-                  Clasificamos cada oferta en su sector tecnológico específico (Backend, Frontend, Cloud...) y asignamos su nivel de experiencia y modalidad (remoto/híbrido).
-                </p>
+
+            <div className="p-5 rounded-xl border border-gray-100 bg-gray-50/30 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs">3</span>
+                <h4 className="font-bold text-gray-900 text-sm">Categorización por IA y Regex</h4>
               </div>
+              <p className="text-xs text-gray-550 leading-relaxed">
+                Clasificamos las ofertas por stack (React, Node, Python, Cloud...) y seniority (Junior, Mid, Senior, Lead), permitiéndote realizar búsquedas granulares y precisas.
+              </p>
             </div>
-            <div className="flex gap-4">
-              <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold text-sm">4</span>
-              <div>
-                <h4 className="font-bold text-gray-900 text-sm">Cálculo de Percentiles Salariales</h4>
-                <p className="text-xs text-gray-600 leading-relaxed mt-0.5">
-                  Extraemos los rangos salariales transparentes para alimentar nuestra calculadora de percentiles (P25, P50, P75) y ofrecer referencias fiables de mercado.
-                </p>
+
+            <div className="p-5 rounded-xl border border-gray-100 bg-gray-50/30 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs">4</span>
+                <h4 className="font-bold text-gray-900 text-sm">Extracción Salarial</h4>
               </div>
+              <p className="text-xs text-gray-550 leading-relaxed">
+                Normalizamos los salarios expresados en la oferta para actualizar la Calculadora de Salarios, ofreciendo referencias reales de percentiles del mercado de trabajo.
+              </p>
             </div>
           </div>
         </section>
 
-        {/* Section 3: E-E-A-T Credibility */}
-        <section className="space-y-3 border-t border-gray-150 pt-6">
-          <h2 className="text-xl font-bold text-gray-950">✍️ Autoría y Rigor de Contenidos (E-E-A-T)</h2>
-          <p className="text-sm leading-relaxed">
-            Nuestro portal está gestionado por ingenieros de software y consultores de recruiting técnico. Toda la información editorial referente a fiscalidad, orientación profesional, consejos para currículum y preparación de entrevistas técnicas es redactada e inspeccionada por profesionales activos con experiencia en procesos de reclutamiento globales.
-          </p>
-          <p className="text-sm leading-relaxed">
-            Las estadísticas salariales que se muestran en el portal son puramente estadísticas, extraídas directamente de las ofertas de trabajo activas en España que detallan sus rangos salariales mínimos y máximos en el mercado actual.
-          </p>
-        </section>
-
-        {/* Section 4: Contact/Channels */}
-        <section className="bg-indigo-50/30 p-5 rounded-xl border border-indigo-100/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h4 className="font-bold text-indigo-950 text-sm">📬 ¿Quieres colaborar o sugerir una fuente?</h4>
-            <p className="text-xs text-indigo-850 mt-1">
-              Si organizas un meetup de programadores o quieres que indexemos tu bolsa de empleo, escríbenos.
+        {/* Section 4: Contact/CTA */}
+        <section className="bg-gradient-to-r from-indigo-50/50 to-violet-50/30 p-6 md:p-8 rounded-2xl border border-indigo-100/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-1">
+            <h4 className="font-bold text-indigo-950 text-sm md:text-base">📬 ¿Tienes dudas o sugerencias?</h4>
+            <p className="text-xs md:text-sm text-indigo-800 leading-relaxed">
+              Si quieres que indexemos tu bolsa de empleo, si organizas una comunidad técnica o si tienes dudas sobre nuestra política de datos, escríbenos directamente.
             </p>
           </div>
           <Link 
-            href="/talento-premium"
-            className="inline-block text-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-lg text-xs transition-colors"
+            href="/contacto"
+            className="inline-block text-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-3 rounded-xl text-xs md:text-sm transition-all shadow-sm hover:shadow"
           >
-            Contacto del Portal
+            Ponte en Contacto
           </Link>
         </section>
 
