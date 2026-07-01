@@ -741,10 +741,11 @@ export default async function SectorPage({
 
   const { tec, ciudad, experiencia, modalidad, dbCategory, salaryMin, salaryMax } = parseSector(sectorSlug);
   
-  let [jobs, totalCount] = await Promise.all([
+  const [jobsInitial, totalCount] = await Promise.all([
     getJobs(tec, ciudad, dbCategory, experiencia, modalidad, validPage, salaryMin, salaryMax),
     getJobsCount(tec, ciudad, dbCategory, experiencia, modalidad, salaryMin, salaryMax)
   ]);
+  let jobs = jobsInitial;
   let isFallback = false;
   let fallbackType = '';
 

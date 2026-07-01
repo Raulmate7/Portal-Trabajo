@@ -384,7 +384,7 @@ export default function AdBanner({
       if (viewTimer5s.current) clearTimeout(viewTimer5s.current);
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [shouldTryAdsense, adError, refreshKey, trackViewability]);
+  }, [shouldTryAdsense, adError, refreshKey, trackViewability, enableRefresh]);
 
   const pathname = usePathname() || '';
 
