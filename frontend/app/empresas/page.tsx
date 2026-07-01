@@ -212,6 +212,21 @@ export default async function EmpresasDirectoryPage() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Main Content */}
         <div className="lg:col-span-3">
+          {/* Guía Editorial E-E-A-T sobre el Directorio de Empresas */}
+          <div className="bg-white rounded-2xl p-6 md:p-8 border border-gray-100 shadow-sm space-y-4 mb-8">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 border-b border-gray-50 pb-3">
+              <span>🏢</span> Guía para Evaluar Empresas Tecnológicas en España
+            </h2>
+            <div className="text-gray-700 text-sm leading-relaxed space-y-4 font-sans">
+              <p>
+                Elegir tu próximo destino profesional es una de las decisiones más importantes en la carrera de cualquier programador. No se trata únicamente del salario bruto anual; factores como la cultura de flexibilidad, el stack tecnológico y la transparencia de la organización definen tu calidad de vida y crecimiento a largo plazo. Nuestro **Directorio de Empresas IT** te proporciona una radiografía en tiempo real basada en datos agregados.
+              </p>
+              <p>
+                A través del análisis diario de las ofertas de trabajo, extraemos y estructuramos tres métricas fundamentales por cada empresa activa en España: el **volumen de vacantes** (indicador de su ritmo de contratación y salud financiera), el **salario medio estimado** (calculado exclusivamente sobre las ofertas transparentes), y la **tasa de teletrabajo** (que muestra la proporción de puestos 100% remotos). Esto te permite comparar de forma objetiva y preparar tus candidaturas apuntando a empresas alineadas con tus preferencias de vida.
+              </p>
+            </div>
+          </div>
+
           {companies.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-2xl border border-gray-100 shadow-sm">
               <span className="text-5xl block mb-4">📭</span>
