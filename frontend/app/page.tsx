@@ -14,6 +14,7 @@ import { getJobs, getFeaturedJobs, getJobsCount, getJobOfTheDay, getTrendingTech
 import LoadMoreJobs from "@/components/LoadMoreJobs";
 import { RecentlyViewedList } from "@/components/RecentlyViewed";
 import { JobOfTheDayWidget, TrendingTechWidget, ReferralWidget } from "@/components/Widgets";
+import { getBlogPosts } from "@/lib/blog";
 
 export const revalidate = 60; // Reducimos para actualizar los widgets con mayor frecuencia
 
@@ -209,13 +210,15 @@ export default async function Home({ searchParams }: Props) {
   };
 
   // Carga de datos concurrentes en el servidor
-  const [jobs, featuredJobs, totalJobs, jobOfTheDay, trendingTech] = await Promise.all([
+  const [jobs, featuredJobs, totalJobs, jobOfTheDay, trendingTech, allPosts] = await Promise.all([
     getJobs(filters, validPage),
     getFeaturedJobs(filters),
     getJobsCount(),
     getJobOfTheDay(),
-    getTrendingTech()
+    getTrendingTech(),
+    getBlogPosts()
   ]);
+  const lastPosts = allPosts.slice(0, 3);
 
   const websiteJsonLd = {
     '@context': 'https://schema.org',
@@ -467,6 +470,129 @@ export default async function Home({ searchParams }: Props) {
 
             </div>
           </div>
+
+        </div>
+      </div>
+
+      {/* SECCIÓN EDITORIAL INFERIOR E-E-A-T */}
+      <div className="bg-white border-t border-gray-200 dark:bg-slate-900/60 dark:border-slate-800/80 mt-12 py-16">
+        <div className="max-w-7xl mx-auto px-4 space-y-16">
+          
+          {/* 1. ¿Por qué Portal Trabajo IT? & Estadísticas */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-4 text-sm leading-relaxed text-gray-650 dark:text-slate-350">
+              <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+                {isEnglish ? 'Why search for job offers on Portal Trabajo IT?' : '¿Por qué buscar ofertas de empleo en Portal Trabajo IT?'}
+              </h2>
+              <p>
+                {isEnglish 
+                  ? 'Portal Trabajo IT is not just another job portal. We are a specialized technology job aggregator that indexes, cleans, and deduplicates hundreds of vacancies daily from major IT boards and software companies in Spain. Our mission is to save you time and offer complete salary transparency.'
+                  : 'Portal Trabajo IT no es un portal de empleo más. Somos un agregador de ofertas de trabajo especializado en tecnología que rastrea, limpia y deduplica cientos de vacantes diariamente procedentes de las principales bolsas de empleo y empresas de software en España. Nuestra misión es ahorrarte tiempo y ofrecerte transparencia salarial.'}
+              </p>
+              <p>
+                {isEnglish
+                  ? 'We analyze the description of each job listing to extract exact technologies (React, Java, Python, AWS...) and experience levels (Junior, Mid, Senior). This allows you to apply highly granular filters and discover the jobs that match your technical profile. Additionally, we provide real-time salary calculations to give you negotiation leverage.'
+                  : 'Analizamos la descripción de cada vacante para extraer las tecnologías requeridas (React, Java, Python, AWS...) y clasificar el nivel de experiencia (Junior, Mid, Senior). Esto te permite aplicar filtros de búsqueda avanzados y encontrar puestos alineados a tu perfil. También calculamos salarios promedio en tiempo real para darte herramientas en tus negociaciones.'}
+              </p>
+            </div>
+
+            {/* 2. Estadísticas en tiempo real */}
+            <div className="bg-indigo-50/50 dark:bg-indigo-950/20 p-6 rounded-2xl border border-indigo-100/50 dark:border-indigo-900/50 flex flex-col justify-center gap-4 text-center">
+              <h3 className="text-xs font-bold text-indigo-950 dark:text-indigo-300 uppercase tracking-widest">
+                {isEnglish ? 'Live Portal Stats' : 'Estadísticas en Tiempo Real'}
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-indigo-50 dark:border-slate-800 shadow-sm">
+                  <span className="text-2xl font-black text-indigo-900 dark:text-indigo-400 block">{totalJobs.toLocaleString('es-ES')}</span>
+                  <span className="text-[10px] text-gray-550 dark:text-slate-400 font-bold uppercase tracking-wide">
+                    {isEnglish ? 'Offers Today' : 'Ofertas Activas'}
+                  </span>
+                </div>
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-indigo-50 dark:border-slate-800 shadow-sm">
+                  <span className="text-2xl font-black text-indigo-900 dark:text-indigo-400 block">+8.700</span>
+                  <span className="text-[10px] text-gray-550 dark:text-slate-400 font-bold uppercase tracking-wide">
+                    {isEnglish ? 'Subscribers' : 'Suscriptores'}
+                  </span>
+                </div>
+              </div>
+              <p className="text-[11px] text-gray-550 dark:text-slate-400 m-0">
+                {isEnglish ? 'Data updated automatically every 6 hours' : 'Datos actualizados de forma automática cada 6 horas'}
+              </p>
+            </div>
+          </div>
+
+          {/* 3. Tecnologías más buscadas */}
+          <div className="border-t border-gray-150 dark:border-slate-800/80 pt-8">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+              {isEnglish ? 'Most Searched IT Categories in Spain' : 'Tecnologías y Categorías más buscadas en España'}
+            </h3>
+            <div className="flex flex-wrap gap-2.5">
+              {[
+                { label: 'React Developer', slug: 'react' },
+                { label: 'Angular', slug: 'angular' },
+                { label: 'Vue.js', slug: 'vue' },
+                { label: 'Node.js Developer', slug: 'node' },
+                { label: 'Python Developer', slug: 'python' },
+                { label: 'Java Developer', slug: 'java' },
+                { label: 'TypeScript', slug: 'typescript' },
+                { label: 'DevOps / Cloud', slug: 'cloud' },
+                { label: 'AWS', slug: 'aws' },
+                { label: 'Docker / Kubernetes', slug: 'docker' },
+                { label: 'PHP / Laravel', slug: 'php' },
+                { label: 'SQL / Databases', slug: 'sql' },
+                { label: 'C# / .NET', slug: 'csharp' },
+                { label: 'Flutter Developer', slug: 'flutter' }
+              ].map((tech) => (
+                <Link 
+                  key={tech.slug} 
+                  href={`/trabajos/${tech.slug}${queryParam}`}
+                  className="text-xs bg-gray-50 hover:bg-indigo-50/50 hover:text-indigo-600 dark:bg-slate-850 dark:hover:bg-slate-800 dark:text-slate-300 dark:hover:text-indigo-400 px-3.5 py-2 rounded-lg font-semibold border border-gray-200 dark:border-slate-800 shadow-sm transition-all"
+                >
+                  🔍 {tech.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* 4. Últimos artículos del Blog */}
+          {lastPosts && lastPosts.length > 0 && (
+            <div className="border-t border-gray-150 dark:border-slate-800/80 pt-8">
+              <div className="flex items-center justify-between gap-4 mb-6">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                  {isEnglish ? 'Latest Career & IT Guides' : 'Últimas Guías de Carrera e Informática'}
+                </h3>
+                <Link href={`/blog${queryParam}`} className="text-sm font-bold text-indigo-650 hover:text-indigo-850 dark:text-indigo-400 dark:hover:text-indigo-300 hover:underline">
+                  {isEnglish ? 'View Blog →' : 'Ver todo el Blog →'}
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {lastPosts.map((post: any) => (
+                  <div key={post.slug} className="bg-gray-50 dark:bg-slate-850/40 p-5 rounded-2xl border border-gray-200 dark:border-slate-800/80 flex flex-col justify-between hover:shadow-sm transition-shadow">
+                    <div>
+                      <span className="text-[10px] font-bold text-indigo-650 dark:text-indigo-400 uppercase tracking-widest">
+                        {post.category || (isEnglish ? 'Career' : 'Orientación')}
+                      </span>
+                      <h4 className="font-bold text-gray-900 dark:text-white text-base mt-2 mb-1.5 line-clamp-2">
+                        <Link href={`/blog/${post.slug}${queryParam}`} className="hover:text-indigo-650 hover:underline transition-colors">
+                          {post.title}
+                        </Link>
+                      </h4>
+                      <p className="text-xs text-gray-550 dark:text-slate-400 line-clamp-3 leading-relaxed mb-4">
+                        {post.excerpt}
+                      </p>
+                    </div>
+                    <Link 
+                      href={`/blog/${post.slug}${queryParam}`}
+                      className="text-xs font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1"
+                    >
+                      {isEnglish ? 'Read article' : 'Leer artículo'} →
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
         </div>
       </div>
