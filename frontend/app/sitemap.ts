@@ -22,6 +22,7 @@ const BASE_PAGES = [
   '/trabajos/empresas-internacionales',
   '/trabajos/ingles-requerido',
   '/sobre-nosotros',
+  '/faq',
   '/orientacion-profesional',
   '/ofertas-guardadas',
   '/glosario',
@@ -29,6 +30,7 @@ const BASE_PAGES = [
   '/tendencias',
   '/recursos',
 ];
+
 
 const TECNOLOGIAS = [
   'react', 'angular', 'vue', 'node', 'python', 'java', 'php', 'csharp', 'ruby', 'go', 

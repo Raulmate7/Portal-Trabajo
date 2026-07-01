@@ -24,7 +24,7 @@ Para un programador, un perfil de GitHub bien optimizado y estructurado es su ac
 ---
 
 ## 1. El README de Perfil: Tu Carta de Presentación Dinámica
-GitHub permite a los usuarios crear un repositorio especial con el mismo nombre que su nombre de usuario (por ejemplo, si tu nombre de usuario es `luisdev`, el nombre del repositorio debe ser exactamente `luisdev`). El archivo `README.md` que crees dentro de este repositorio se renderizará automáticamente en la parte superior de tu página de perfil público de GitHub.
+GitHub permite a los usuarios crear un repositorio especial con el mismo nombre que su nombre de usuario (por ejemplo, si tu nombre de usuario es \`luisdev\`, el nombre del repositorio debe ser exactamente \`luisdev\`). El archivo \`README.md\` que crees dentro de este repositorio se renderizará automáticamente en la parte superior de tu página de perfil público de GitHub.
 
 Este espacio es tu "carta de presentación" interactiva y el primer punto de contacto visual. Para estructurarlo con la máxima profesionalidad en 2026, te recomendamos seguir la siguiente estructura:
 
@@ -56,7 +56,7 @@ El feed principal de GitHub muestra por defecto tus repositorios con actividad r
 ---
 
 ## 3. Anatomía de un Repositorio Impecable
-Cuando un líder técnico hace clic en uno de tus proyectos fijados, lo primero que evaluará no es el código en sí, sino el archivo `README.md` de ese repositorio. La calidad de este archivo predice la calidad y el orden del software que contiene. Un repositorio profesional debe tener una estructura de README extremadamente clara y visual.
+Cuando un líder técnico hace clic en uno de tus proyectos fijados, lo primero que evaluará no es el código en sí, sino el archivo \`README.md\` de ese repositorio. La calidad de este archivo predice la calidad y el orden del software que contiene. Un repositorio profesional debe tener una estructura de README extremadamente clara y visual.
 
 ### Estructura recomendada para el README del proyecto:
 
@@ -87,10 +87,10 @@ graph TD
 
 #### F. Guía de Instalación y Ejecución Local
 Provee instrucciones claras y concisas para que cualquier desarrollador pueda ejecutar tu proyecto localmente en un par de minutos:
-1. Clonar repositorio: `git clone ...`
-2. Instalar dependencias: `npm install` o `pip install -r requirements.txt`
-3. Configurar variables de entorno (provee un archivo de ejemplo `.env.example` indicando qué clases se necesitan sin incluir credenciales reales).
-4. Ejecutar entorno de desarrollo: `npm run dev` o `python main.py`
+1. Clonar repositorio: \`git clone ...\`
+2. Instalar dependencias: \`npm install\` o \`pip install -r requirements.txt\`
+3. Configurar variables de entorno (provee un archivo de ejemplo \`.env.example\` indicando qué clases se necesitan sin incluir credenciales reales).
+4. Ejecutar entorno de desarrollo: \`npm run dev\` o \`python main.py\`
 
 ---
 
@@ -98,8 +98,8 @@ Provee instrucciones claras y concisas para que cualquier desarrollador pueda ej
 Una vez que el evaluador técnico decide inspeccionar tus carpetas de código, buscará detalles que diferencian a un programador amateur de uno con mentalidad e ingeniería profesional.
 
 ### A. Limpieza y Estilo Consistente
-* **Usa Linters y Formateadores:** Tus proyectos deben contar con configuraciones de `ESLint` y `Prettier` (o sus equivalentes en otros lenguajes) integradas. El espaciado, el estilo de las llaves, el uso de punto y coma y la declaración de variables deben ser completamente homogéneos en todo el proyecto.
-* **Elimina Código Muerto:** Borra cualquier fragmento de código comentado, variables importadas que no se estén usando o logs de depuración (`console.log`) que solo demuestran dejadez o falta de revisión antes de subir el código.
+* **Usa Linters y Formateadores:** Tus proyectos deben contar con configuraciones de \`ESLint\` y \`Prettier\` (o sus equivalentes en otros lenguajes) integradas. El espaciado, el estilo de las llaves, el uso de punto y coma y la declaración de variables deben ser completamente homogéneos en todo el proyecto.
+* **Elimina Código Muerto:** Borra cualquier fragmento de código comentado, variables importadas que no se estén usando o logs de depuración (\`console.log\`) que solo demuestran dejadez o falta de revisión antes de subir el código.
 
 ### B. Arquitectura y Estructura de Directorios
 Organiza tus archivos bajo una arquitectura lógica de carpetas. Evita colocar decenas de archivos en el directorio raíz. Sigue convenciones estándar de la industria como agrupar tus archivos por módulos, controladores, servicios y entidades, o estructurar tu frontend bajo la clásica arquitectura de componentes reutilizables y contextos de estado limpios.
@@ -115,18 +115,18 @@ El historial de commits de un repositorio es el diario de abordo del desarrollad
 ### Cómo mantener un historial de Git impecable:
 * **Haz commits pequeños y enfocados (Atómicos):** Cada commit debe representar un único cambio lógico en la aplicación (por ejemplo, añadir la lógica del cliente de BD, diseñar el botón de registro o escribir las pruebas de un endpoint).
 * **Adopta la convención de Commits Semánticos (Conventional Commits):** Esto demuestra que conoces las metodologías de trabajo de equipos de alto rendimiento.
-  * `feat: add user register validations on submit`
-  * `fix: resolve memory leak in websocket message broker`
-  * `docs: add API documentation endpoints to readme`
-  * `test: implement integration tests for invoice service`
-  * `refactor: clean database query variables names`
+  * \`feat: add user register validations on submit\`
+  * \`fix: resolve memory leak in websocket message broker\`
+  * \`docs: add API documentation endpoints to readme\`
+  * \`test: implement integration tests for invoice service\`
+  * \`refactor: clean database query variables names\`
 
 ---
 
 ## 6. Colaboración y Contribución al Open Source
 La gran mayoría de las empresas tecnológicas trabajan con equipos distribuidos que colaboran en bases de código compartidas. Demostrar que dominas la colaboración en GitHub es un gran punto a tu favor.
 
-* **Usa ramas (Branches) y Pull Requests:** Incluso si eres el único desarrollador del proyecto, no trabajes directamente en la rama principal (`main`). Crea ramas temáticas para cada funcionalidad (`feature/payment-integration`) y realiza Pull Requests para fusionarlas en la rama principal. Esto demuestra que estás familiarizado con los flujos de integración del mundo empresarial real.
+* **Usa ramas (Branches) y Pull Requests:** Incluso si eres el único desarrollador del proyecto, no trabajes directamente en la rama principal (\`main\`). Crea ramas temáticas para cada funcionalidad (\`feature/payment-integration\`) y realiza Pull Requests para fusionarlas en la rama principal. Esto demuestra que estás familiarizado con los flujos de integración del mundo empresarial real.
 * **Configura flujos de Integración Continua (CI/CD):** Integra herramientas sencillas como GitHub Actions para que ejecuten tus pruebas unitarias y verifiquen el formato del código con cada Pull Request. Un badge verde de *"build: passing"* en tu README añade un nivel de madurez técnica inmenso a tu portafolio.
 * **Contribuye a Proyectos Open Source:** Colabora con la comunidad participando en proyectos públicos. Puedes buscar repositorios de librerías sencillas que utilices habitualmente y resolver fallos de documentación, añadir pequeñas mejoras o resolver tareas de nivel básico etiquetadas como *good first issue*. Esto dejará una huella digital excelente de tu pericia y generosidad como ingeniero.
 
@@ -631,8 +631,8 @@ En esta guía de preparación técnica de más de 2000 palabras, analizamos los 
 
 ### ¿Qué es el GIL (Global Interpreter Lock) y cómo afecta al desarrollo?
 El GIL es un mecanismo exclusivo del intérprete estándar de Python (CPython) que asegura que solo un hilo de ejecución de bytecode de Python corra a la vez. Esto se implementó originalmente para simplificar la gestión de memoria (evitando condiciones de carrera en el conteo de referencias).
-* **Impacto en el rendimiento:** El GIL impide que los programas de Python aprovechen múltiples núcleos de CPU si utilizan hilos estándar (módulo `threading`) para tareas que consumen procesador (CPU-bound), como operaciones matemáticas o procesamiento de imágenes.
-* **Cómo responder en la entrevista:** Explica que para tareas pesadas de CPU se debe usar el multiprocesamiento (módulo `multiprocessing`), delegar el procesamiento a librerías escritas en C/C++/Rust (como NumPy) o, si la tarea es de Entrada/Salida (I/O-bound) como llamadas HTTP o consultas a BD, usar programación asíncrona mediante el módulo `asyncio`.
+* **Impacto en el rendimiento:** El GIL impide que los programas de Python aprovechen múltiples núcleos de CPU si utilizan hilos estándar (módulo \`threading\`) para tareas que consumen procesador (CPU-bound), como operaciones matemáticas o procesamiento de imágenes.
+* **Cómo responder en la entrevista:** Explica que para tareas pesadas de CPU se debe usar el multiprocesamiento (módulo \`multiprocessing\`), delegar el procesamiento a librerías escritas en C/C++/Rust (como NumPy) o, si la tarea es de Entrada/Salida (I/O-bound) como llamadas HTTP o consultas a BD, usar programación asíncrona mediante el módulo \`asyncio\`.
 
 ### Gestión de Memoria: Conteo de Referencias y Recolector Cíclico
 Python libera memoria de forma automática combinando dos sistemas:
@@ -665,10 +665,10 @@ def measure_time(func):
 def process_data():
     time.sleep(1) # Simulación de proceso
 ```
-*Nota: El decorador `@wraps(func)` de la librería estándar es esencial para preservar los metadatos de la función original (nombre, docstring, etc.). Mencionarlo te sumará puntos de nivel senior.*
+*Nota: El decorador \`@wraps(func)\` de la librería estándar es esencial para preservar los metadatos de la función original (nombre, docstring, etc.). Mencionarlo te sumará puntos de nivel senior.*
 
 ### Generadores y Evaluación Perezosa (Lazy Evaluation)
-Un generador es una función que retorna un iterador de forma perezosa (bajo demanda) mediante la palabra clave `yield` en lugar de `return`.
+Un generador es una función que retorna un iterador de forma perezosa (bajo demanda) mediante la palabra clave \`yield\` en lugar de \`return\`.
 * **Ventaja crítica:** Eficiencia de memoria. No cargan una lista completa en la memoria RAM, sino que producen un elemento a la vez. Son indispensables para leer archivos gigantistas o procesar flujos infinitos de datos en streaming.
 
 ---
@@ -679,8 +679,8 @@ Django es el framework de referencia para aplicaciones complejas que necesitan u
 ### El Problema de N+1 Consultas en el ORM de Django
 Este es el fallo de rendimiento más habitual en proyectos reales. Ocurre cuando se consulta una base de datos para obtener una lista de objetos y luego se ejecuta una consulta adicional por cada objeto para obtener sus datos relacionados.
 * **Cómo solucionarlo en Django:**
-  1. `select_related(*fields)`: Realiza un `SQL JOIN` en la misma consulta para obtener relaciones de tipo clave foránea (ForeignKey o OneToOneField).
-  2. `prefetch_related(*fields)`: Realiza una segunda consulta separada y une los resultados en Python. Es idóneo para relaciones de muchos a muchos (ManyToManyField) o ForeignKey inversas.
+  1. \`select_related(*fields)\`: Realiza un \`SQL JOIN\` en la misma consulta para obtener relaciones de tipo clave foránea (ForeignKey o OneToOneField).
+  2. \`prefetch_related(*fields)\`: Realiza una segunda consulta separada y une los resultados en Python. Es idóneo para relaciones de muchos a muchos (ManyToManyField) o ForeignKey inversas.
 
 ---
 
@@ -688,7 +688,7 @@ Este es el fallo de rendimiento más habitual en proyectos reales. Ocurre cuando
 FastAPI ha ganado una popularidad tremenda gracias a su velocidad de ejecución (comparable a Node.js y Go), su uso nativo de asincronía y la autogeneración de documentación interactiva (OpenAPI/Swagger).
 
 ### Inyección de Dependencias
-FastAPI provee un sistema de inyección de dependencias muy limpio mediante la función `Depends()`. Permite compartir lógica de conexión a bases de datos, autenticación de usuarios o políticas de permisos de forma reutilizable y testeable en tus endpoints.
+FastAPI provee un sistema de inyección de dependencias muy limpio mediante la función \`Depends()\`. Permite compartir lógica de conexión a bases de datos, autenticación de usuarios o políticas de permisos de forma reutilizable y testeable en tus endpoints.
 
 ```python
 from fastapi import FastAPI, Depends, HTTPException, status
@@ -759,7 +759,7 @@ En las entrevistas para roles backend con Python, los evaluadores dedicarán una
 ### REST vs gRPC vs GraphQL en Python
 * **REST (Representacional State Transfer):** La opción estándar. Utiliza HTTP y JSON. En Python, se implementa fácilmente con Django REST Framework o FastAPI. Debes saber explicar el uso adecuado de los métodos HTTP (GET, POST, PUT, PATCH, DELETE) y códigos de estado (200, 201, 400, 401, 403, 404, 500).
 * **gRPC:** Diseñado por Google, utiliza HTTP/2 y Protocol Buffers en lugar de JSON. Es idóneo para la comunicación interna entre microservicios de Python de alta velocidad y baja latencia.
-* **GraphQL:** Permite al cliente solicitar exactamente los campos que necesita del backend, reduciendo la sobrecarga de datos (over-fetching). En Python se suele implementar usando librerías como `Strawberry` o `Graphene`.
+* **GraphQL:** Permite al cliente solicitar exactamente los campos que necesita del backend, reduciendo la sobrecarga de datos (over-fetching). En Python se suele implementar usando librerías como \`Strawberry\` o \`Graphene\`.
 
 ### Seguridad en APIs Backend
 Te preguntarán cómo asegurar tus endpoints frente a las amenazas comunes del OWASP Top 10:
@@ -770,7 +770,7 @@ Te preguntarán cómo asegurar tus endpoints frente a las amenazas comunes del O
 ## 9. Ejercicio Práctico de Entrevista: Generador de Fibonacci
 Es muy probable que en las pruebas en vivo de nivel intermedio te pidan implementar la clásica secuencia de Fibonacci usando las propiedades de rendimiento de los generadores de Python que explicamos anteriormente. 
 
-A continuación se muestra la forma óptima de resolver este ejercicio utilizando `yield` para evitar consumir memoria RAM innecesaria con listas enormes de números:
+A continuación se muestra la forma óptima de resolver este ejercicio utilizando \`yield\` para evitar consumir memoria RAM innecesaria con listas enormes de números:
 
 ```python
 def fibonacci_generator(limit: int):
@@ -788,12 +788,12 @@ for num in fibonacci_generator(10):
 ```
 
 ### Explicación del funcionamiento:
-El generador mantiene en memoria únicamente el estado de las variables `a` y `b` correspondientes a los dos últimos números de la serie en cada iteración. En lugar de retornar toda la serie en una lista consumiendo memoria proporcional al límite solicitado (complejidad espacial O(N)), este código mantiene un consumo de memoria constante y óptimo (O(1)). Dominar esta explicación teórica sumará puntos de nivel senior a tu postulación técnica.
+El generador mantiene en memoria únicamente el estado de las variables \`a\` y \`b\` correspondientes a los dos últimos números de la serie en cada iteración. En lugar de retornar toda la serie en una lista consumiendo memoria proporcional al límite solicitado (complejidad espacial O(N)), este código mantiene un consumo de memoria constante y óptimo (O(1)). Dominar esta explicación teórica sumará puntos de nivel senior a tu postulación técnica.
 
 ## 10. Preguntas sobre Pruebas y Testing en Django
 El ecosistema Django cuenta con una infraestructura de pruebas excelente. En entrevistas senior, los evaluadores te preguntarán sobre cómo testear aplicaciones complejas y optimizar los tiempos de ejecución:
-* **TestCase vs TransactionTestCase:** `TestCase` es la opción estándar y más rápida, ya que ejecuta cada test dentro de una transacción de base de datos que se revierte (rollback) al finalizar, evitando persistir datos reales. `TransactionTestCase` se requiere únicamente si estás testeando lógica que realice commits explícitos a la base de datos de forma interna.
-* **Optimización con --keepdb:** Ejecutar las pruebas recreando la base de datos desde cero en cada ejecución puede ralentizar enormemente el flujo de trabajo del equipo. Demostrar que conoces el flag `--keepdb` de Django para reutilizar la base de datos de test entre ejecuciones es señal de una sólida experiencia práctica en entornos reales de integración continua.
+* **TestCase vs TransactionTestCase:** \`TestCase\` es la opción estándar y más rápida, ya que ejecuta cada test dentro de una transacción de base de datos que se revierte (rollback) al finalizar, evitando persistir datos reales. \`TransactionTestCase\` se requiere únicamente si estás testeando lógica que realice commits explícitos a la base de datos de forma interna.
+* **Optimización con --keepdb:** Ejecutar las pruebas recreando la base de datos desde cero en cada ejecución puede ralentizar enormemente el flujo de trabajo del equipo. Demostrar que conoces el flag \`--keepdb\` de Django para reutilizar la base de datos de test entre ejecuciones es señal de una sólida experiencia práctica en entornos reales de integración continua.
 
 Si deseas valorar tu sueldo objetivo o comparar las condiciones salariales de tu perfil técnico, te invitamos a usar de forma gratuita nuestra [Calculadora de Salarios IT](/salarios) o a buscar ofertas transparentes en nuestro [Buscador de Empleo IT](/trabajos/informatica-tecnologia). Asimismo, te recomendamos leer nuestro artículo especializado sobre [entrevistas de System Design](/blog/preparar-entrevista-system-design) para seguir impulsando tu carrera en tecnología.
 `,
@@ -983,7 +983,7 @@ Los procesos de selección para ingenieros de DevOps e infraestructura en Españ
 ### Fases habituales de los procesos de selección:
 1. **Entrevista de Arquitectura y Diseño:** Se te planteará un escenario de negocio real (ej: *"Tenemos un e-commerce que sufre picos masivos de tráfico en Black Friday, ¿cómo diseñarías su infraestructura en AWS para asegurar que no se caiga de forma económica?"*). Evaluarán tu capacidad para proponer balanceadores, auto-scaling, bases de datos réplica y sistemas de caché perimetral.
 2. **Live Coding / Scripting Challenge:** Retos de desarrollo sencillos en Python, Go o Bash. Por ejemplo, escribir un script que lea ficheros de logs de servidores web y agrupe los errores 500 para enviarlos a Slack o guardar alertas en un fichero estructurado.
-3. **Escenario de Depuración (Troubleshooting):** El entrevistador simulará un incidente de producción en directo (ej: *"Los usuarios no pueden subir archivos a la plataforma, ¿qué comandos ejecutarías para diagnosticar dónde está el fallo?"*). Aquí buscarán evaluar tu soltura con la terminal de Linux, comandos de red (`ping`, `curl`, `netstat`, `traceroute`) y visualización de logs.
+3. **Escenario de Depuración (Troubleshooting):** El entrevistador simulará un incidente de producción en directo (ej: *"Los usuarios no pueden subir archivos a la plataforma, ¿qué comandos ejecutarías para diagnosticar dónde está el fallo?"*). Aquí buscarán evaluar tu soltura con la terminal de Linux, comandos de red (\`ping\`, \`curl\`, \`netstat\`, \`traceroute\`) y visualización de logs.
 
 ## 7. Tendencias de Infraestructura: Cloud FinOps y GreenOps
 Con la consolidación de la computación en la nube en empresas de todos los tamaños, han surgido dos nuevas disciplinas muy cotizadas que se derivan de la ingeniería de DevOps tradicional:
@@ -1032,8 +1032,8 @@ A continuación, te enseñamos cómo optimizar tu perfil de LinkedIn paso a paso
 El titular es la línea de texto que aparece justo debajo de tu nombre. Es lo primero que ven los reclutadores en los resultados de búsqueda.
 * **Error común:** Escribir *"En búsqueda activa de empleo"*, *"Programador junior"* o *"Estudiante de ingeniería"*. Estas frases no describen tus habilidades técnicas y desperdician espacio valioso para palabras clave.
 * **Forma correcta:** Utiliza una estructura clara que combine tu rol principal, tus tecnologías fuertes y alguna especialidad.
-  * *Ejemplo:* `Frontend Engineer | React | TypeScript | Next.js | Tailwind CSS`
-  * *Ejemplo:* `Backend Developer | Java | Spring Boot | Microservicios | AWS & Kubernetes`
+  * *Ejemplo:* \`Frontend Engineer | React | TypeScript | Next.js | Tailwind CSS\`
+  * *Ejemplo:* \`Backend Developer | Java | Spring Boot | Microservicios | AWS & Kubernetes\`
 
 ---
 
@@ -1638,21 +1638,21 @@ Los mantenedores de proyectos Open Source etiquetan de forma explícita las tare
 Para que tu Pull Request (PR) sea aceptado y no rechazado de inmediato por los mantenedores, debes seguir estrictamente las directrices formales de colaboración de GitHub:
 
 ### Paso 1: Lee las Guías del Proyecto
-Antes de escribir una sola línea de código, lee con atención el archivo **`CONTRIBUTING.md`** y el archivo **`CODE_OF_CONDUCT.md`** que encontrarás en la raíz del repositorio. Estos documentos especifican cómo configurar tu entorno local, qué estilo de código seguir, qué convenciones de commits utilizar y cómo redactar tus hilos de discusión.
+Antes de escribir una sola línea de código, lee con atención el archivo **\`CONTRIBUTING.md\`** y el archivo **\`CODE_OF_CONDUCT.md\`** que encontrarás en la raíz del repositorio. Estos documentos especifican cómo configurar tu entorno local, qué estilo de código seguir, qué convenciones de commits utilizar y cómo redactar tus hilos de discusión.
 
 ### Paso 2: Realiza el Fork y Clona el Repositorio
 1. Haz clic en el botón de **"Fork"** en la parte superior derecha de la página de GitHub del proyecto para crear una copia exacta del repositorio bajo tu propia cuenta de usuario.
-2. Clona tu fork localmente en tu ordenador de trabajo: `git clone https://github.com/tu-usuario/nombre-proyecto.git`
+2. Clona tu fork localmente en tu ordenador de trabajo: \`git clone https://github.com/tu-usuario/nombre-proyecto.git\`
 3. Configura el repositorio original como remoto upstream para poder sincronizar tus cambios con la rama principal en el futuro:
-   `git remote add upstream https://github.com/creador-original/nombre-proyecto.git`
+   \`git remote add upstream https://github.com/creador-original/nombre-proyecto.git\`
 
 ### Paso 3: Crea una Rama Temática y Programa la Mejora
-Nunca trabajes directamente en la rama principal (`main`). Crea una rama descriptiva para tu tarea:
-`git checkout -b feature/correct-typo-in-docs`
-Escribe tu código, verifica que todas las pruebas existentes siguen compilando sin errores localmente y realiza commits pequeños utilizando la convención de **Commits Semánticos** (ej: `docs: correct installation typo in readme`).
+Nunca trabajes directamente en la rama principal (\`main\`). Crea una rama descriptiva para tu tarea:
+\`git checkout -b feature/correct-typo-in-docs\`
+Escribe tu código, verifica que todas las pruebas existentes siguen compilando sin errores localmente y realiza commits pequeños utilizando la convención de **Commits Semánticos** (ej: \`docs: correct installation typo in readme\`).
 
 ### Paso 4: Sube tus Cambios y Envía el Pull Request (PR)
-1. Sube tu rama a tu repositorio de GitHub: `git push origin feature/correct-typo-in-docs`
+1. Sube tu rama a tu repositorio de GitHub: \`git push origin feature/correct-typo-in-docs\`
 2. Abre la página del repositorio original. GitHub detectará de forma automática que has subido cambios y te mostrará un botón verde para crear un **"Pull Request"**.
 3. Redacta la descripción de tu Pull Request con total claridad. Explica qué problema resuelve tu aportación, cómo lo has implementado y enlaza el hilo de discusión original (ej: *"Resolves #123"*).
 
@@ -1926,7 +1926,7 @@ Escribir un Dockerfile básico es sencillo, pero para desplegar sistemas empresa
 Esta técnica te permite dividir el Dockerfile en varias fases de compilación temporales. Puedes instalar compiladores pesados y dependencias de desarrollo en la primera fase (build phase), compilar el proyecto a código ejecutable estático y, en la fase final, copiar únicamente el archivo compilado resultante a una imagen base extremadamente ligera y limpia de herramientas innecesarias. Esto reduce el peso de tu imagen final de 1GB a apenas 50MB, mejorando la velocidad de despliegue en red y minimizando la superficie de ataques.
 
 ### B. Evitar Ejecutar Contenedores como root
-Por defecto, los procesos dentro de un contenedor Docker se ejecutan con permisos de root (superusuario) en el host anfitrión. Si un atacante consigue explotar una vulnerabilidad en tu código backend y escalar privilegios, podría tomar el control total del servidor físico. Añade siempre una directiva de usuario limitado (`USER node` en Node.js o crea un usuario sin privilegios en Linux Alpine) en las últimas líneas de tu Dockerfile.
+Por defecto, los procesos dentro de un contenedor Docker se ejecutan con permisos de root (superusuario) en el host anfitrión. Si un atacante consigue explotar una vulnerabilidad en tu código backend y escalar privilegios, podría tomar el control total del servidor físico. Añade siempre una directiva de usuario limitado (\`USER node\` en Node.js o crea un usuario sin privilegios en Linux Alpine) en las últimas líneas de tu Dockerfile.
 
 ### C. Auditoría y Escaneo de Vulnerabilidades
 Integra en tus pipelines de CI/CD herramientas de escaneo de seguridad estáticas para contenedores como **Trivy** o **Snyk** para auditar de forma automática las imágenes generadas antes de enviarlas a tus registros de producción.
@@ -1944,12 +1944,12 @@ Durante el despliegue en producción, Kubernetes se conectará a este registro d
 ## 9. Docker Compose: Orquestación Simplificada para Entornos de Desarrollo
 Aunque Kubernetes es el estándar indiscutible para entornos de producción distribuidos, configurar un clúster local de K8s en tu máquina de desarrollo puede resultar excesivamente pesado y complejo. Para simplificar el desarrollo local de aplicaciones multicontenedor, la herramienta de referencia es **Docker Compose**.
 
-Docker Compose te permite definir y ejecutar aplicaciones compuestas por múltiples servicios utilizando un único archivo YAML sencillo (generalmente llamado `docker-compose.yml`). En este archivo puedes especificar:
+Docker Compose te permite definir y ejecutar aplicaciones compuestas por múltiples servicios utilizando un único archivo YAML sencillo (generalmente llamado \`docker-compose.yml\`). En este archivo puedes especificar:
 * **Servicios independientes:** Tu backend, tu frontend de React y tu base de datos PostgreSQL.
 * **Redes Compartidas (Networks):** Para permitir que tus contenedores se comuniquen entre sí de forma segura utilizando nombres de servicio en lugar de IPs variables.
 * **Volúmenes persistentes (Volumes):** Para evitar que los datos de tu base de datos se borren al detener el contenedor.
 
-Con un único comando en tu terminal (`docker compose up`), levantarás todo tu ecosistema local de desarrollo en pocos segundos.
+Con un único comando en tu terminal (\`docker compose up\`), levantarás todo tu ecosistema local de desarrollo en pocos segundos.
 
 Si deseas valorar tu sueldo objetivo o comparar las condiciones salariales de tu perfil técnico, te invitamos a usar de forma gratuita nuestra [Calculadora de Salarios IT](/salarios) o a buscar ofertas transparentes en nuestro [Buscador de Empleo IT](/trabajos/informatica-tecnologia). Asimismo, te recomendamos leer nuestro artículo especializado sobre [salario DevOps y Cloud en España](/blog/salario-devops-cloud-espana-2026) para seguir impulsando tu carrera en tecnología.
 `,
@@ -2254,14 +2254,14 @@ La pregunta reina de toda entrevista de Node.js es: **¿Cómo gestiona Node.js l
 A diferencia de los servidores web tradicionales (como Apache) que crean un nuevo hilo del sistema operativo para cada conexión entrante, Node.js ejecuta todo el código JavaScript en un único hilo principal. La magia del rendimiento asíncrono reside en el **Event Loop**, gestionado a bajo nivel por la librería **libuv** escrita en C.
 
 El Event Loop se divide en varias fases secuenciales que se ejecutan en bucle de forma continua:
-1. **Timers (Temporizadores):** Ejecuta las devoluciones de llamada (callbacks) programadas por \`setTimeout()\` y \`setInterval()\`.
+1. **Timers (Temporizadores):** Ejecuta las devoluciones de llamada (callbacks) programadas por \\`setTimeout()\\` y \\`setInterval()\\`.
 2. **Pending Callbacks:** Ejecuta callbacks de I/O del sistema que se retrasaron de la iteración anterior.
 3. **Poll (Sondeo):** Recupera nuevos eventos de I/O (lectura de disco, peticiones de red). Si el bucle de eventos entra en esta fase y no hay tareas pendientes, esperará de forma activa a que lleguen nuevos eventos.
-4. **Check (Verificación):** Ejecuta de forma inmediata callbacks programados mediante \`setImmediate()\`.
+4. **Check (Verificación):** Ejecuta de forma inmediata callbacks programados mediante \\`setImmediate()\\`.
 5. **Close Callbacks:** Ejecuta callbacks de cierre, como conexiones de sockets destruidas.
 
 ### El Thread Pool de libuv
-Aunque el motor V8 ejecuta JavaScript en un solo hilo, las operaciones pesadas del sistema (como la lectura de archivos en disco mediante el módulo \`fs\`, consultas DNS o criptografía mediante \`crypto\`) no son asíncronas de forma nativa a nivel de sistema operativo en todas las plataformas. Para evitar bloquear el hilo principal, libuv delega estas tareas a un **Thread Pool** interno (por defecto cuenta con 4 hilos) que ejecuta el trabajo en segundo plano y avisa al Event Loop en cuanto finaliza.
+Aunque el motor V8 ejecuta JavaScript en un solo hilo, las operaciones pesadas del sistema (como la lectura de archivos en disco mediante el módulo \\`fs\\`, consultas DNS o criptografía mediante \\`crypto\\`) no son asíncronas de forma nativa a nivel de sistema operativo en todas las plataformas. Para evitar bloquear el hilo principal, libuv delega estas tareas a un **Thread Pool** interno (por defecto cuenta con 4 hilos) que ejecuta el trabajo en segundo plano y avisa al Event Loop en cuanto finaliza.
 
 ---
 
@@ -2294,9 +2294,9 @@ const userResponse = createResponse({ id: 1, name: 'Alice' });
 
 ### B. Mapped Types y Utility Types
 Debes conocer y saber implementar manualmente los principales tipos de utilidad que proporciona TypeScript:
-* **\`Partial<T>\`:** Convierte todas las propiedades de un tipo en opcionales.
-* **\`Pick<T, K>\`:** Crea un nuevo tipo seleccionando un subconjunto de claves \`K\` del tipo \`T\`.
-* **\`Omit<T, K>\`:** Crea un nuevo tipo omitiendo un subconjunto de claves \`K\` del tipo \`T\`.
+* **\\`Partial<T>\\`:** Convierte todas las propiedades de un tipo en opcionales.
+* **\\`Pick<T, K>\\`:** Crea un nuevo tipo seleccionando un subconjunto de claves \\`K\\` del tipo \\`T\\`.
+* **\\`Omit<T, K>\\`:** Crea un nuevo tipo omitiendo un subconjunto de claves \\`K\\` del tipo \\`T\\`.
 
 ```typescript
 interface User {
@@ -2318,7 +2318,7 @@ const updatePayload: UserUpdatePayload = {
 ---
 
 ## 3. Ejercicio Práctico: Implementación de un Middleware en Express con TypeScript
-Un ejercicio en vivo habitual es escribir un middleware de autenticación personalizado utilizando Express y TypeScript, y configurar la declaración de tipos para extender el objeto \`Request\` de Express de forma segura:
+Un ejercicio en vivo habitual es escribir un middleware de autenticación personalizado utilizando Express y TypeScript, y configurar la declaración de tipos para extender el objeto \\`Request\\` de Express de forma segura:
 
 ```typescript
 import { Request, Response, NextFunction } from 'express';
@@ -2372,21 +2372,21 @@ En las pruebas para puestos senior, es habitual que se debatan los límites del 
 ### Causas habituales de fugas de memoria en Node.js:
 * **Variables globales accidentales:** Almacenar referencias a objetos grandes en variables globales o en el ámbito raíz de un módulo, lo que impide que el Garbage Collector libere la memoria correspondiente al no reducirse a cero el conteo de referencias.
 * **Clausuras (Closures) mal estructuradas:** Funciones internas que mantienen referencias a variables del ámbito externo de forma indefinida en segundo plano.
-* **Temporizadores activos y Event Listeners:** No limpiar callbacks programados mediante \`clearTimeout()\` o no desvincular escuchadores de eventos (\`removeListener\`) en conexiones de red o lectura de ficheros una vez procesada la petición.
+* **Temporizadores activos y Event Listeners:** No limpiar callbacks programados mediante \\`clearTimeout()\\` o no desvincular escuchadores de eventos (\\`removeListener\\`) en conexiones de red o lectura de ficheros una vez procesada la petición.
 
 ### Cómo diagnosticar fugas en entrevistas:
-Explica el uso de herramientas de perfilado como las Chrome DevTools conectadas al proceso de Node.js (ej: mediante el flag \`--inspect\`), la generación de capturas de memoria (heap dumps) en diferentes puntos de ejecución del servidor web y su comparación para identificar qué clases u objetos específicos crecen de forma descontrolada.
+Explica el uso de herramientas de perfilado como las Chrome DevTools conectadas al proceso de Node.js (ej: mediante el flag \\`--inspect\\`), la generación de capturas de memoria (heap dumps) en diferentes puntos de ejecución del servidor web y su comparación para identificar qué clases u objetos específicos crecen de forma descontrolada.
 
 ## 7. Buffers y Streams en Node.js: Procesamiento Eficiente de I/O
 En entrevistas para perfiles backend, los evaluadores te preguntarán cómo procesar archivos gigantescos (como bases de datos de texto o volcados de logs de 10GB) sin agotar la memoria RAM del servidor:
 * **Buffers:** Representan una región de memoria física reservada fuera del motor V8 para almacenar datos binarios crudos. Es idóneo para archivos pequeños que se pueden cargar por completo en memoria.
-* **Streams (Flujos de datos):** Permiten leer o escribir datos pedazo a pedazo (chunk-by-chunk) de forma asíncrona y secuencial. Se clasifican en: Readable (lectura), Writable (escritura), Duplex (lectura y escritura) y Transform (modifican los datos a medida que pasan). Utilizar \`fs.createReadStream()\` conectado mediante \`pipe()\` a un flujo de escritura mantendrá el consumo de RAM constante y mínimo (apenas unos kilobytes), sin importar el tamaño del archivo procesado.
+* **Streams (Flujos de datos):** Permiten leer o escribir datos pedazo a pedazo (chunk-by-chunk) de forma asíncrona y secuencial. Se clasifican en: Readable (lectura), Writable (escritura), Duplex (lectura y escritura) y Transform (modifican los datos a medida que pasan). Utilizar \\`fs.createReadStream()\\` conectado mediante \\`pipe()\\` a un flujo de escritura mantendrá el consumo de RAM constante y mínimo (apenas unos kilobytes), sin importar el tamaño del archivo procesado.
 
 ## 8. NestJS y Arquitecturas Modulares en TypeScript
 En proyectos de gran envergadura backend en España, la tendencia absoluta en 2026 es el uso de **NestJS**. Este framework aporta una arquitectura modular estructurada inspirada en Angular que soluciona los problemas de desorganización comunes de Express:
 * **Inyección de Dependencias (Dependency Injection):** NestJS utiliza un contenedor de inversión de control (IoC) para instanciar y vincular clases de servicio (providers) automáticamente, simplificando el mantenimiento de dependencias y el mocking en pruebas unitarias.
-* **Decoradores y Metadatos:** El uso extensivo de decoradores TypeScript (como \`@Controller()\`, \`@Get()\`, \`@Injectable()\`) permite declarar rutas, validaciones y comportamientos de forma declarativa e intuitiva.
-* **Estructura Modular:** Organizar el código backend en módulos autocontenidos (\`UserModule\`, \`AuthModule\`, \`PaymentModule\`) facilita el trabajo en paralelo de múltiples desarrolladores en bases de código gigantes.
+* **Decoradores y Metadatos:** El uso extensivo de decoradores TypeScript (como \\`@Controller()\\`, \\`@Get()\\`, \\`@Injectable()\\`) permite declarar rutas, validaciones y comportamientos de forma declarativa e intuitiva.
+* **Estructura Modular:** Organizar el código backend en módulos autocontenidos (\\`UserModule\\`, \\`AuthModule\\`, \\`PaymentModule\\`) facilita el trabajo en paralelo de múltiples desarrolladores en bases de código gigantes.
 
 Si deseas valorar tu sueldo objetivo o comparar las condiciones salariales de tu perfil técnico, te invitamos a usar de forma gratuita nuestra [Calculadora de Salarios IT](/salarios) o a buscar ofertas transparentes en nuestro [Buscador de Empleo IT](/trabajos/informatica-tecnologia). Asimismo, te recomendamos leer nuestro artículo especializado sobre [preparar una entrevista de System Design](/blog/preparar-entrevista-system-design) para seguir impulsando tu carrera en tecnología.
 `,
@@ -2460,7 +2460,7 @@ El desarrollo móvil es una especialización muy cotizada y estable. La elecció
 Un aspecto que diferencia notablemente a los programadores senior de dispositivos móviles es su preocupación constante por la eficiencia y el uso racional de los recursos de hardware limitados del teléfono inteligente del usuario:
 
 ### Áreas clave de optimización móvil:
-* **Renderización eficiente de listas:** Utilizar patrones de reciclaje de componentes visuales (como \`RecyclerView\` en Android clásico, \`LazyColumn\` en Jetpack Compose o \`UICollectionView\` en iOS) para renderizar únicamente los elementos visibles en pantalla y no sobrecargar la memoria RAM con listas interminables.
+* **Renderización eficiente de listas:** Utilizar patrones de reciclaje de componentes visuales (como \\`RecyclerView\\` en Android clásico, \\`LazyColumn\\` en Jetpack Compose o \\`UICollectionView\\` en iOS) para renderizar únicamente los elementos visibles en pantalla y no sobrecargar la memoria RAM con listas interminables.
 * **Caché y Reducción de Red:** Cachear imágenes y datos de API de forma local utilizando bases de datos eficientes (Room o Core Data) para evitar llamadas de red redundantes que agotan el plan de datos y la batería del terminal.
 * **Tamaño del binario (App Size):** Optimizar los assets gráficos de la aplicación (usando formatos vectoriales SVG o WebP comprimidos) para reducir el tamaño del instalador (APK/IPA), facilitando que los usuarios lo descarguen en redes móviles lentas.
 
@@ -2471,7 +2471,7 @@ El desarrollo móvil no termina cuando el código compila localmente de forma co
 
 ## 8. Seguridad y Cifrado de Información en Dispositivos Móviles
 La seguridad de los datos locales en el dispositivo móvil del usuario es un requisito crítico de cumplimiento legal y protección empresarial (OWASP Mobile Top 10):
-* **Almacenamiento Seguro de Credenciales:** Nunca almacenes claves de API, tokens de sesión o contraseñas en texto claro dentro del almacenamiento local básico (\`SharedPreferences\` o \`UserDefaults\`). Utiliza siempre mecanismos de cifrado por hardware que proporciona el sistema operativo, como **Keychain** en iOS y **Keystore / EncryptedSharedPreferences** en Android.
+* **Almacenamiento Seguro de Credenciales:** Nunca almacenes claves de API, tokens de sesión o contraseñas en texto claro dentro del almacenamiento local básico (\\`SharedPreferences\\` o \\`UserDefaults\\`). Utiliza siempre mecanismos de cifrado por hardware que proporciona el sistema operativo, como **Keychain** en iOS y **Keystore / EncryptedSharedPreferences** en Android.
 * **SSL Pinning:** Una técnica de seguridad de red que asocia el certificado criptográfico de tu servidor de producción directamente dentro del código de la aplicación móvil, previniendo ataques de interceptación de red de tipo Man-in-the-Middle (MitM) en redes Wi-Fi públicas.
 * **Ofuscación de Código:** Configurar compilaciones con herramientas de ofuscación de código (como **ProGuard / R8** en Android) para dificultar la ingeniería inversa de los binarios y proteger la propiedad intelectual de la aplicación.
 
@@ -2601,9 +2601,9 @@ Evita comentarios ambiguos o imperativos como *"Esto está mal"* o *"Cambia esto
 
 ### B. Clasifica la Severidad de tus Comentarios
 No todo el feedback tiene la misma prioridad. Utiliza prefijos para clasificar la severidad de tus sugerencias técnicas para que el autor sepa de inmediato qué cambios son bloqueantes:
-* **\`[BLOCKING]\`:** Problemas críticos de seguridad, bugs evidentes o fallos de arquitectura que impiden el despliegue del PR.
-* **\`[SUGGESTION]\`:** Optimizaciones de rendimiento, mejoras de legibilidad o refactorizaciones sanas que no impiden el despliegue inicial.
-* **\`[NIT]\` / \`[TYPO]\`:** Detalles de formato o corrección de textos menores que se pueden corregir de forma rápida o dejar para futuras iteraciones del código.
+* **\\`[BLOCKING]\\`:** Problemas críticos de seguridad, bugs evidentes o fallos de arquitectura que impiden el despliegue del PR.
+* **\\`[SUGGESTION]\\`:** Optimizaciones de rendimiento, mejoras de legibilidad o refactorizaciones sanas que no impiden el despliegue inicial.
+* **\\`[NIT]\\` / \\`[TYPO]\\`:** Detalles de formato o corrección de textos menores que se pueden corregir de forma rápida o dejar para futuras iteraciones del código.
 
 ---
 
@@ -2671,7 +2671,7 @@ El editor de código sigue siendo tu herramienta principal de trabajo. Aunque la
 
 ### A. Visual Studio Code (VS Code)
 VS Code se mantiene como el líder de la industria por volumen de usuarios y riqueza de su ecosistema de extensiones. Destaca por su versatilidad para desarrollo web frontend y backend, excelente soporte nativo de TypeScript y su suave integración con herramientas de contenedores.
-* **Consejo de Productividad:** Aprende los atajos de teclado clave de navegación rápida en VS Code (como \`Cmd+P\` / \`Ctrl+P\` para buscar archivos de forma rápida o \`Cmd+Shift+P\` / \`Ctrl+Shift+P\` para acceder a la paleta de comandos de forma rápida). Utilizar el ratón para moverte entre pestañas y archivos es un sumidero de concentración y tiempo.
+* **Consejo de Productividad:** Aprende los atajos de teclado clave de navegación rápida en VS Code (como \\`Cmd+P\\` / \\`Ctrl+P\\` para buscar archivos de forma rápida o \\`Cmd+Shift+P\\` / \\`Ctrl+Shift+P\\` para acceder a la paleta de comandos de forma rápida). Utilizar el ratón para moverte entre pestañas y archivos es un sumidero de concentración y tiempo.
 
 ### B. Editores Basados en Vim (Neovim)
 Para perfiles intermedios y senior que desean llevar la productividad de edición al límite absoluto, Neovim configurado como un entorno de desarrollo personalizado (PDE) mediante Lua es la opción estrella. Navegar y editar texto utilizando de forma exclusiva el teclado sin separar las manos de las teclas principales (teclas de inicio) proporciona una velocidad de edición y concentración incomparables.
@@ -2687,9 +2687,9 @@ La terminal de Linux / macOS es la consola de mandos de todo programador backend
 
 ### B. Utilidades CLI que Sustituyen Comandos Clásicos
 Los comandos tradicionales de la terminal de Linux tienen alternativas modernas escritas en Rust con mejor rendimiento y visualizaciones en color:
-* **\`bat\` en vez de \`cat\`:** Lee archivos de texto en la terminal con resaltado de sintaxis en color según el lenguaje de programación detectado de forma automática.
-* **\`eza\` en vez de \`ls\`:** Lista los archivos de directorios con vistas en color, iconos y detalles de Git estructurados de forma legible.
-* **\`fzf\` (Fuzzy Finder):** Buscador de archivos y comandos del historial interactivo extremadamente rápido que realiza búsquedas aproximadas a medida que vas escribiendo.
+* **\\`bat\\` en vez de \\`cat\\`:** Lee archivos de texto en la terminal con resaltado de sintaxis en color según el lenguaje de programación detectado de forma automática.
+* **\\`eza\\` en vez de \\`ls\\`:** Lista los archivos de directorios con vistas en color, iconos y detalles de Git estructurados de forma legible.
+* **\\`fzf\\` (Fuzzy Finder):** Buscador de archivos y comandos del historial interactivo extremadamente rápido que realiza búsquedas aproximadas a medida que vas escribiendo.
 
 ---
 
@@ -2724,7 +2724,7 @@ La productividad del programador no solo depende de su stack técnico de herrami
 Para llevar tu productividad técnica al máximo, debes identificar aquellas secuencias de comandos de terminal que ejecutas docenas de veces al día y automatizarlas mediante accesos rápidos o scripts personalizados:
 
 ### A. Configuración de Git Aliases
-Ahorra segundos en cada interacción con tu terminal configurando alias sencillos en tu archivo de configuración \`.gitconfig\`:
+Ahorra segundos en cada interacción con tu terminal configurando alias sencillos en tu archivo de configuración \\`.gitconfig\\`:
 ```ini
 [alias]
   co = checkout
@@ -2739,7 +2739,7 @@ Crea pequeños scripts en Bash o Python para automatizar el arranque de tus cont
 
 ## 8. Gestión de Configuraciones Compartidas: Dotfiles
 A lo largo de tu carrera técnica, dedicarás horas a configurar tu editor de código VS Code, tu terminal Warp o Zsh, tus scripts locales y alias favoritos. Para evitar perder esta inversión de tiempo al cambiar de ordenador de trabajo:
-* **¿Qué son los Dotfiles?:** Consiste en guardar todos tus archivos de configuración ocultos (que empiezan por un punto, ej: \`.zshrc\`, \`.gitconfig\`, \`.vimrc\`) en un repositorio de Git centralizado y público en tu cuenta de GitHub.
+* **¿Qué son los Dotfiles?:** Consiste en guardar todos tus archivos de configuración ocultos (que empiezan por un punto, ej: \\`.zshrc\\`, \\`.gitconfig\\`, \\`.vimrc\\`) en un repositorio de Git centralizado y público en tu cuenta de GitHub.
 * **Instalación Instantánea:** Utiliza scripts sencillos de enlazado simbólico (symlinks) o herramientas como Stow para clonar e instalar todo tu ecosistema de productividad y atajos de teclado en un nuevo ordenador en pocos minutos.
 
 Mantener tus configuraciones públicas en GitHub es también una excelente señal de marca personal que demuestra tu nivel de organización y pasión por la excelencia en la ingeniería.

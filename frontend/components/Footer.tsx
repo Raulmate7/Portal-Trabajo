@@ -62,7 +62,10 @@ export default function Footer() {
     { label: '📰 Noticias Tech', href: '/noticias' },
     { label: '📈 Tendencias Tech', href: '/tendencias' },
     { label: '👥 Programa de Referidos', href: '/referidos' },
+    { label: '❓ Preguntas Frecuentes', href: '/faq' },
+    { label: 'ℹ️ Sobre Nosotros', href: '/sobre-nosotros' },
   ];
+
 
   const legal = [
     { label: 'Mapa del Sitio', href: '/mapa-del-sitio' },
