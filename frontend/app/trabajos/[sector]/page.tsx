@@ -723,6 +723,54 @@ function calculateStats(jobs: any[]) {
   };
 }
 
+function getEditorialIntro(categoria: string, ciudad: string, totalCount: number, averageSalary: number | null, isEnglish: boolean) {
+  const ciudadLabel = ciudad ? (ciudad.toLowerCase() === 'remoto' ? (isEnglish ? 'remotely (100% remote work)' : 'en modalidad 100% remota (teletrabajo)') : (isEnglish ? `in ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)} and surrounding areas` : `en la zona de ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)} y alrededores`)) : (isEnglish ? 'in Spain' : 'en España');
+  
+  if (isEnglish) {
+    return [
+      <p key="p1" className="text-gray-700 leading-relaxed text-sm md:text-base mb-4">
+        Looking for active job openings specialized in <strong className="text-indigo-900">{categoria}</strong> {ciudadLabel}? You have arrived at the ideal destination. Currently, Portal Trabajo aggregates and indexes <strong className="text-indigo-900">{totalCount} active job vacancies</strong> for this specific tech profile, ensuring you can access the latest hiring opportunities and avoid expired listings.
+      </p>,
+      <p key="p2" className="text-gray-700 leading-relaxed text-sm md:text-base mb-4">
+        <strong className="text-indigo-900">{categoria}</strong> has become a cornerstone of modern software development, corporate IT systems, and digital product creation. Companies ranging from high-growth startups to Fortune 500 corporations and software factories are constantly seeking talented developers, engineers, and analysts to build, maintain, and scale applications in this ecosystem.{' '}
+        {averageSalary ? (
+          <>
+            Regarding compensation, the average annual salary for a <strong className="text-indigo-900">{categoria}</strong> professional {ciudadLabel} is estimated at <strong className="text-indigo-900">{averageSalary.toLocaleString('es-ES')}€ gross</strong>. This figure is dynamically updated based on the listings published on our portal that transparently declare their budget, providing you with a reliable market reference.
+          </>
+        ) : (
+          <>
+            Salary packages for this role are highly competitive. Although they depend heavily on seniority levels (Junior, Mid, Senior) and company funding, mastering <strong className="text-indigo-900">{categoria}</strong> remains a high-value skill that commands excellent compensation rates in the modern job market.
+          </>
+        )}
+      </p>,
+      <p key="p3" className="text-gray-700 leading-relaxed text-sm md:text-base m-0">
+        Whether you prefer the freedom of working from home, a hybrid schedule, or an on-site position, our platform curates and updates listings every 6 hours from dozens of reliable industry sources. We encourage you to browse the job cards below, analyze active salaries, and submit your application to boost your technical career.
+      </p>
+    ];
+  }
+
+  return [
+    <p key="p1" className="text-gray-700 leading-relaxed text-sm md:text-base mb-4">
+      ¿Estás buscando ofertas de empleo activas especializadas en <strong className="text-indigo-900">{categoria}</strong> {ciudadLabel}? Has llegado al lugar indicado. Actualmente, Portal Trabajo recopila e indexa un total de <strong className="text-indigo-900">{totalCount} vacantes de trabajo activas</strong> para este perfil tecnológico en particular, facilitando tu búsqueda de empleo y ahorrándote tiempo al evitar listados obsoletos o duplicados.
+    </p>,
+    <p key="p2" className="text-gray-700 leading-relaxed text-sm md:text-base mb-4">
+      El dominio de <strong className="text-indigo-900">{categoria}</strong> se ha convertido en un pilar fundamental para el desarrollo de software moderno, la infraestructura en la nube y el análisis de datos empresariales. Empresas de todos los sectores, desde startups tecnológicas en plena expansión hasta grandes corporaciones del IBEX 35 y consultoras internacionales, demandan de forma constante profesionales cualificados en esta disciplina.{' '}
+      {averageSalary ? (
+        <>
+          En cuanto a la retribución económica, el salario medio anual estimado para profesionales de <strong className="text-indigo-900">{categoria}</strong> {ciudadLabel} se sitúa en torno a los <strong className="text-indigo-900">{averageSalary.toLocaleString('es-ES')}€ brutos anuales</strong>. Esta cifra se calcula de forma dinámica basándonos en las vacantes activas de nuestro portal que especifican rango salarial, ofreciéndote una referencia real del mercado.
+        </>
+      ) : (
+        <>
+          Las bandas salariales para esta especialidad varían sensiblemente según el nivel de experiencia (junior, mid o senior) y el tamaño de la empresa contratante. No obstante, las habilidades relacionadas con <strong className="text-indigo-900">{categoria}</strong> sigue estando entre las mejor pagadas dentro del convenio de consultoría e ingeniería de software de nuestro país.
+        </>
+      )}
+    </p>,
+    <p key="p3" className="text-gray-700 leading-relaxed text-sm md:text-base m-0">
+      Tanto si buscas la flexibilidad del teletrabajo desde casa, un modelo de asistencia híbrida o un puesto presencial de oficina tradicional, nuestra plataforma actualiza y depura sus ofertas cada 6 horas para ofrecerte la máxima frescura en el contenido. Te invitamos a explorar las opciones detalladas abajo, contrastar salarios medios y postularte hoy mismo para impulsar tu trayectoria en el sector tecnológico.
+    </p>
+  ];
+}
+
 export default async function SectorPage({ 
   params, 
   searchParams 
@@ -995,30 +1043,7 @@ export default async function SectorPage({
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch mb-8 bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
         <div className="md:col-span-2 flex flex-col justify-center">
-          <p className="text-gray-700 leading-relaxed m-0">
-            {isEnglish ? (
-              <>
-                If you are looking for a <strong>{categoriaBonita}</strong> job{ciudad ? ` in ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}` : ' in Spain'}, you are in the right place. 
-                Currently we have <strong>{jobs.length} active offers</strong>. 
-                The {categoriaBonita} profile is one of the most demanded in the current tech sector.
-                Explore the vacancies below, including on-site, hybrid, and 100% remote options.
-              </>
-            ) : (
-              <>
-                Si buscas empleo de <strong>{categoriaBonita}</strong>{ciudad ? ` en ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}` : ' en España'}, estás en el lugar indicado. 
-                Actualmente contamos con <strong>{jobs.length} ofertas activas</strong>. 
-                El perfil de {categoriaBonita} es uno de los más demandados en el sector tecnológico actual.
-                Explora las vacantes a continuación, que incluyen opciones tanto presenciales en oficina como en formato híbrido o 100% remoto.
-              </>
-            )}
-          </p>
-          {TECH_DESCRIPTIONS[tec.toLowerCase()] && (
-            <p className="text-gray-500 text-xs md:text-sm mt-3 leading-relaxed border-t border-gray-100 pt-3">
-              {isEnglish 
-                ? TECH_DESCRIPTIONS[tec.toLowerCase()].en 
-                : TECH_DESCRIPTIONS[tec.toLowerCase()].es}
-            </p>
-          )}
+          {getEditorialIntro(categoriaBonita, ciudad, totalCount, stats.averageSalary, isEnglish)}
         </div>
         <div className="bg-indigo-50/70 p-5 rounded-xl border border-indigo-100 flex flex-col justify-center items-center text-center">
           <h3 className="text-xs font-bold text-indigo-900 uppercase tracking-wider m-0 mb-1">
