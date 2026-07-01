@@ -188,10 +188,20 @@ export default async function BlogPostPage({ params }: Props) {
                   {post.title}
                 </h1>
                 <div className="flex flex-wrap items-center text-gray-500 text-xs gap-x-4 gap-y-1 mt-3">
-                  <time dateTime={post.date} className="inline-flex items-center gap-1.5">
-                    <span aria-hidden="true">📅</span>
-                    {new Date(post.date).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}
-                  </time>
+                  <div className="inline-flex flex-wrap gap-x-2 gap-y-1 items-center">
+                    <time dateTime={post.date} className="inline-flex items-center gap-1.5">
+                      <span aria-hidden="true">📅</span>
+                      Publicado: {new Date(post.date).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    </time>
+                    {post.updatedAt && (
+                      <>
+                        <span className="text-gray-300">|</span>
+                        <time dateTime={post.updatedAt} className="inline-flex items-center gap-1.5 text-indigo-650 dark:text-indigo-400 font-medium">
+                          Actualizado: {new Date(post.updatedAt).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}
+                        </time>
+                      </>
+                    )}
+                  </div>
                   <span className="inline-flex items-center gap-1.5">
                     <span aria-hidden="true">✍️</span> Raúl M.
                   </span>
