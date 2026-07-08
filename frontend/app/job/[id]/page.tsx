@@ -289,13 +289,25 @@ const getJob = cache(async (id: string) => {
   }
 });
 
-async function getSimilarJobs(currentId: string, category: string | null, title: string, limit: number = 3) {
+async function getSimilarJobs(currentId: string, category: string | null, title: string, tech: string | null, limit: number = 3) {
   if (!process.env.DATABASE_URL && !process.env.DB_PROXY_URL && !process.env.MYSQL_USER) return [];
   const client = await pool.connect();
   try {
-    let sql = "SELECT id, title, title_es, company, location, salary, created_at FROM jobs WHERE id != $1 AND is_active = TRUE";
+    let sql = "SELECT id, title, title_es, company, location, salary, created_at";
     const params: (string | number)[] = [currentId];
     let paramIndex = 2;
+
+    const techFilter = tech ? `%${tech}%` : null;
+
+    if (techFilter) {
+      sql += `, (CASE WHEN title ILIKE $${paramIndex} THEN 2 WHEN description_snippet ILIKE $${paramIndex} THEN 1 ELSE 0 END) as relevance`;
+      params.push(techFilter);
+      paramIndex++;
+    } else {
+      sql += ", 0 as relevance";
+    }
+
+    sql += " FROM jobs WHERE id != $1 AND is_active = TRUE";
 
     if (category) {
       sql += ` AND category = $${paramIndex}`;
@@ -310,7 +322,13 @@ async function getSimilarJobs(currentId: string, category: string | null, title:
       }
     }
 
-    sql += ` ORDER BY created_at DESC LIMIT $${paramIndex}`;
+    if (techFilter) {
+      sql += " ORDER BY relevance DESC, created_at DESC";
+    } else {
+      sql += " ORDER BY created_at DESC";
+    }
+
+    sql += ` LIMIT $${paramIndex}`;
     params.push(limit);
 
     const res = await client.query(sql, params);
@@ -424,7 +442,10 @@ export default async function JobPage({ params, searchParams }: Props) {
     permanentRedirect(`/job/${correctSlug}${queryStr}`);
   }
 
-  const similarJobs = await getSimilarJobs(numericId, job.category, job.title, 3);
+  const detectedTec = detectTechnology(job.title, job.description_snippet || '');
+  const tecLabel = detectedTec ? (DISPLAY_NAMES[detectedTec] || detectedTec) : null;
+
+  const similarJobs = await getSimilarJobs(numericId, job.category, job.title, detectedTec, 3);
   const reactions = await getJobReactions(job.id);
 
   const hasTranslation = !!job.title_es && !isEnglish;
@@ -432,9 +453,6 @@ export default async function JobPage({ params, searchParams }: Props) {
   const displayDesc = isEnglish ? job.description_snippet : (job.description_snippet_es || job.description_snippet);
 
   const sourceLabel = extractSource(job.description_snippet);
-
-  const detectedTec = detectTechnology(job.title, job.description_snippet || '');
-  const tecLabel = detectedTec ? (DISPLAY_NAMES[detectedTec] || detectedTec) : null;
 
   const cleanLocation = job.location ? job.location.toLowerCase().trim() : '';
   const isRemoteLoc = cleanLocation.includes('remoto') || cleanLocation.includes('teletrabajo') || cleanLocation.includes('remote');
@@ -800,6 +818,11 @@ export default async function JobPage({ params, searchParams }: Props) {
             </div>
 
               <div className="p-6 md:p-8">
+                {/* Anuncio AdSense entre el título y la descripción */}
+                <div className="mb-6">
+                  <AdBanner variant="inline" />
+                </div>
+
                 <h2 className="text-xl font-bold text-gray-900 mb-4">
                   {isEnglish ? 'Job Description' : 'Descripción del puesto'}
                 </h2>
@@ -816,6 +839,11 @@ export default async function JobPage({ params, searchParams }: Props) {
                       <span>🤖</span> Oferta traducida automáticamente al español. <a href={job.url_source} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800 hover:underline font-semibold">Ver original</a>
                     </p>
                   )}
+                </div>
+
+                {/* Banner publicitario inline de alta visibilidad */}
+                <div className="mb-8">
+                  <AdBanner variant="inline" />
                 </div>
 
                 {relatedBlogPost && (

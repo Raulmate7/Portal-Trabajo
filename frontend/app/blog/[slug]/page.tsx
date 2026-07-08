@@ -9,6 +9,8 @@ import AuthorBox from '@/components/AuthorBox';
 import pool from '@/lib/db';
 import { Markdown } from '@/lib/markdown';
 import { BASE_URL } from '@/lib/constants';
+import Image from 'next/image';
+import AffiliateCourseCard from '@/components/AffiliateCourseCard';
 
 export const revalidate = 3600;
 
@@ -28,7 +30,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `${post.title} | Blog Portal Empleo`,
     description: post.excerpt,
     alternates: {
-      canonical: `/blog/${resolvedParams.slug}`,
+      canonical: `${BASE_URL}/blog/${resolvedParams.slug}`,
+      languages: {
+        'es-ES': `${BASE_URL}/blog/${resolvedParams.slug}`,
+        'en': `${BASE_URL}/blog/${resolvedParams.slug}?lang=en`,
+        'x-default': `${BASE_URL}/blog/${resolvedParams.slug}`,
+      }
     },
     openGraph: {
       title: post.title,
@@ -91,6 +98,70 @@ async function getRelatedJobs(slug: string) {
   }
 }
 
+function extractFaqsFromContent(content: string): any {
+  const headingRegex = /\n(?:##|###)\s+([^\n]+\?)/g;
+  const faqs = [];
+  let match;
+  
+  while ((match = headingRegex.exec(content)) !== null) {
+    const question = match[1].trim();
+    const startIndex = match.index + match[0].length;
+    const nextHeadingMatch = content.slice(startIndex).match(/\n(?:##|###)\s+/);
+    const endPosition = nextHeadingMatch && nextHeadingMatch.index !== undefined
+      ? startIndex + nextHeadingMatch.index
+      : content.length;
+      
+    const answerMarkdown = content.substring(startIndex, endPosition).trim();
+    const cleanAnswer = answerMarkdown
+      .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
+      .replace(/[\*\_`#]/g, '')
+      .replace(/\n+/g, ' ')
+      .substring(0, 300) + '...';
+      
+    faqs.push({
+      '@type': 'Question',
+      'name': question,
+      'acceptedAnswer': {
+        '@type': 'Answer',
+        'text': cleanAnswer
+      }
+    });
+  }
+
+  if (faqs.length === 0) return null;
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    'mainEntity': faqs
+  };
+}
+
+function detectPostTechnology(slug: string, title: string, content: string): string {
+  const techs = [
+    'react', 'node', 'python', 'java', 'typescript', 'aws', 'docker', 
+    'flutter', 'csharp', 'php', 'sql', 'go', 'rust', 'ruby', 'scala', 
+    'elixir', 'salesforce', 'cybersecurity', 'terraform', 'cobol'
+  ];
+  
+  const slugLower = slug.toLowerCase();
+  for (const tech of techs) {
+    if (slugLower.includes(tech)) return tech;
+  }
+  
+  const titleLower = title.toLowerCase();
+  for (const tech of techs) {
+    if (titleLower.includes(tech)) return tech;
+  }
+  
+  const contentLower = content.substring(0, 500).toLowerCase();
+  for (const tech of techs) {
+    if (contentLower.includes(tech)) return tech;
+  }
+  
+  return 'general';
+}
+
 export default async function BlogPostPage({ params }: Props) {
   const resolvedParams = await params;
   const post = await getPostBySlug(resolvedParams.slug);
@@ -103,11 +174,22 @@ export default async function BlogPostPage({ params }: Props) {
 
   // Dividir el contenido del post en el primer encabezado H2 para insertar publicidad contextual en medio del artículo
   let intro = post.content;
-  let rest = '';
+  let restFirst = '';
+  let restSecond = '';
   const match = post.content.match(/\n##\s+/);
   if (match && match.index !== undefined) {
     intro = post.content.substring(0, match.index);
-    rest = post.content.substring(match.index);
+    const rest = post.content.substring(match.index);
+    
+    // Buscar el segundo H2 (descartando el primero que está al inicio de `rest`)
+    const secondMatch = rest.slice(1).match(/\n##\s+/);
+    if (secondMatch && secondMatch.index !== undefined) {
+      const splitIndex = secondMatch.index + 1; // Ajuste por slice(1)
+      restFirst = rest.substring(0, splitIndex);
+      restSecond = rest.substring(splitIndex);
+    } else {
+      restFirst = rest;
+    }
   }
 
   // Extraer encabezados H2 para la tabla de contenidos (TOC)
@@ -168,9 +250,42 @@ export default async function BlogPostPage({ params }: Props) {
     }
   };
 
+  const isHowTo = post.title.toLowerCase().includes('cómo') || post.title.toLowerCase().includes('como');
+  let howToJsonLd = null;
+  if (isHowTo && headings.length > 0) {
+    howToJsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'HowTo',
+      name: post.title,
+      description: post.excerpt,
+      step: headings.map((h, idx) => ({
+        '@type': 'HowToStep',
+        position: idx + 1,
+        name: h.text,
+        url: `${BASE_URL}/blog/${resolvedParams.slug}#${h.id}`,
+        itemListElement: [
+          {
+            '@type': 'HowToDirection',
+            text: `Consulta los detalles sobre ${h.text} en nuestro artículo de empleo.`
+          }
+        ]
+      }))
+    };
+  }
+
+  const faqPageSchema = extractFaqsFromContent(post.content);
+  const detectedTech = detectPostTechnology(resolvedParams.slug, post.title, post.content);
+  const hasLearningKeywords = /\b(aprender|curso|certificaci[oó]n|formaci[oó]n|estudiar)\b/i.test(post.content);
+
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-4 md:px-8">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      {howToJsonLd && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }} />
+      )}
+      {faqPageSchema && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPageSchema) }} />
+      )}
 
       <div className="max-w-5xl mx-auto">
         <Breadcrumbs items={[
@@ -212,6 +327,18 @@ export default async function BlogPostPage({ params }: Props) {
                 </div>
               </header>
 
+              {/* Cover image optimizada con priority para LCP */}
+              <div className="relative w-full h-[250px] sm:h-[350px] rounded-2xl overflow-hidden mb-8 border border-gray-150/50 shadow-sm bg-gray-50 flex items-center justify-center">
+                <Image 
+                  src={`/blog/${resolvedParams.slug}/opengraph-image`}
+                  alt={`Imagen de portada para ${post.title}`}
+                  fill
+                  priority
+                  sizes="(max-width: 768px) 100vw, 800px"
+                  className="object-cover"
+                />
+              </div>
+
               {headings.length > 0 && (
                 <div className="mb-8 p-6 bg-indigo-50/40 rounded-2xl border border-indigo-100/60 shadow-sm">
                   <h3 className="text-sm font-bold text-indigo-950 mb-3.5 uppercase tracking-wider flex items-center gap-2">
@@ -232,15 +359,28 @@ export default async function BlogPostPage({ params }: Props) {
 
               <div className="prose prose-indigo max-w-none text-gray-700 leading-relaxed text-lg mb-8">
                 <Markdown content={intro} autoLink={true} isEnglish={false} />
-                {rest && (
+                {restFirst && (
                   <>
                     <div className="my-8">
                       <AdBanner variant="inline" />
                     </div>
-                    <Markdown content={rest} autoLink={true} isEnglish={false} />
+                    <Markdown content={restFirst} autoLink={true} isEnglish={false} />
+                  </>
+                )}
+                {restSecond && (
+                  <>
+                    <div className="my-8">
+                      <SubscribeForm location="España" />
+                    </div>
+                    <Markdown content={restSecond} autoLink={true} isEnglish={false} />
                   </>
                 )}
               </div>
+
+              {/* Tarjeta de afiliado de cursos contextual (Udemy) si el post habla de aprendizaje */}
+              {hasLearningKeywords && (
+                <AffiliateCourseCard technology={detectedTech} />
+              )}
 
               {/* Banner inline al final del artículo del blog */}
               <div className="my-8 border-t border-b border-gray-100 py-6">
@@ -275,6 +415,9 @@ export default async function BlogPostPage({ params }: Props) {
                 readingTimeMinutes={Math.max(1, Math.ceil(post.content.split(/\s+/).length / 220))}
               />
             </article>
+
+            {/* Bloque Multiplex de Recomendados al final del artículo */}
+            <AdBanner variant="multiplex" />
           </div>
 
           {/* Sidebar */}

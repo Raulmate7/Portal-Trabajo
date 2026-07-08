@@ -68,15 +68,55 @@ const EXPERIENCE_SUFFIXES: Record<string, { keywords: string[]; label: string }>
   },
 };
 
+const CONTRACT_TYPES: Record<string, { keywords: string[]; label: string }> = {
+  'contrato-indefinido': {
+    keywords: ['indefinido', 'contrato indefinido', 'puesto estable', 'permanente', 'permanent'],
+    label: 'Contrato Indefinido'
+  },
+  'contrato-temporal': {
+    keywords: ['temporal', 'contrato temporal', 'obra y servicio', 'temporary'],
+    label: 'Contrato Temporal'
+  },
+  'contrato-practicas': {
+    keywords: ['practicas', 'beca', 'becario', 'trainee', 'internship', 'en prácticas'],
+    label: 'Contrato de Prácticas'
+  },
+  'freelance': {
+    keywords: ['freelance', 'autonomo', 'autónomo', 'contractor'],
+    label: 'Freelance / Autónomo'
+  }
+};
+
 function parseSector(sectorSlug: string) {
   let tec = sectorSlug;
   let ciudad = '';
   let experiencia = '';
+  let contrato = '';
 
   for (const suffix of Object.keys(EXPERIENCE_SUFFIXES)) {
     if (tec.endsWith(`-${suffix}`)) {
       experiencia = suffix;
       tec = tec.slice(0, -(suffix.length + 1));
+      break;
+    }
+  }
+
+  for (const cKey of Object.keys(CONTRACT_TYPES)) {
+    if (tec.endsWith(`-${cKey}`)) {
+      contrato = cKey;
+      tec = tec.slice(0, -(cKey.length + 1));
+      break;
+    } else if (tec.includes(`-${cKey}-`)) {
+      contrato = cKey;
+      tec = tec.replace(`-${cKey}-`, '-');
+      break;
+    } else if (tec.startsWith(`${cKey}-`)) {
+      contrato = cKey;
+      tec = tec.slice(cKey.length + 1);
+      break;
+    } else if (tec === cKey) {
+      contrato = cKey;
+      tec = '';
       break;
     }
   }
@@ -92,10 +132,10 @@ function parseSector(sectorSlug: string) {
   }
 
   const dbCategory = categoryMap[tec];
-  return { tec, ciudad, experiencia, dbCategory };
+  return { tec, ciudad, experiencia, contrato, dbCategory };
 }
 
-async function getJobsData(tec: string, ciudad: string, dbCategory: string | undefined, experiencia: string) {
+async function getJobsData(tec: string, ciudad: string, dbCategory: string | undefined, experiencia: string, contrato: string) {
   const client = await pool.connect();
   try {
     let sql = "SELECT salary, location, title, description_snippet FROM jobs WHERE is_active = TRUE";
@@ -149,6 +189,17 @@ async function getJobsData(tec: string, ciudad: string, dbCategory: string | und
       paramsQuery.push(...expKeywords.map(k => `%${k}%`));
     }
 
+    if (contrato && CONTRACT_TYPES[contrato]) {
+      const contractKeywords = CONTRACT_TYPES[contrato].keywords;
+      const contractConditions = contractKeywords.map(() => {
+        const cond = `(title ILIKE $${paramIndex} OR description_snippet ILIKE $${paramIndex})`;
+        paramIndex++;
+        return cond;
+      }).join(' OR ');
+      sql += ` AND (${contractConditions})`;
+      paramsQuery.push(...contractKeywords.map(k => `%${k}%`));
+    }
+
     const result = await client.query(sql, paramsQuery);
     return result.rows;
   } catch (error) {
@@ -163,8 +214,8 @@ export default async function Image({ params }: Props) {
   const { sector } = await params;
   const sectorSlug = sector.toLowerCase();
   
-  const { tec, ciudad, experiencia, dbCategory } = parseSector(sectorSlug);
-  const jobs = await getJobsData(tec, ciudad, dbCategory, experiencia);
+  const { tec, ciudad, experiencia, contrato, dbCategory } = parseSector(sectorSlug);
+  const jobs = await getJobsData(tec, ciudad, dbCategory, experiencia, contrato);
 
   const totalJobs = jobs.length;
 
@@ -203,11 +254,12 @@ export default async function Image({ params }: Props) {
 
   const categoriaBonita = displayNameMap[tec] || dbCategory || tec.replace(/-/g, ' ');
   const expLabel = experiencia ? ` ${EXPERIENCE_SUFFIXES[experiencia]?.label || ''}` : '';
+  const contractLabel = contrato ? ` ${CONTRACT_TYPES[contrato]?.label || ''}` : '';
   const locLabel = ciudad 
     ? (ciudad === 'remoto' ? 'en Remoto' : `en ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}`) 
     : 'en España';
 
-  const title = `Empleo de ${categoriaBonita}${expLabel}`;
+  const title = `Empleo de ${categoriaBonita}${expLabel}${contractLabel}`;
 
   return new ImageResponse(
     (

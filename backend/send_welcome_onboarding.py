@@ -13,6 +13,23 @@ BASE_URL = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
+def get_custom_udemy_link(tech_keywords):
+    base_udemy = "https://trk.udemy.com/9VMAEj"
+    if not tech_keywords:
+        return f"{base_udemy}?subid=onboarding_general"
+    
+    techs = tech_keywords.lower()
+    if any(k in techs for k in ['react', 'frontend', 'javascript', 'typescript', 'next', 'vue', 'angular']):
+        return f"{base_udemy}?subid=onboarding_react&redirect=https%3A%2F%2Fwww.udemy.com%2Fcourse%2Freact-the-complete-guide-incl-redux%2F"
+    elif any(k in techs for k in ['python', 'data', 'machine', 'learning', 'ai', 'sql']):
+        return f"{base_udemy}?subid=onboarding_python&redirect=https%3A%2F%2Fwww.udemy.com%2Fcourse%2Fcomplete-python-bootcamp%2F"
+    elif any(k in techs for k in ['java', 'spring', 'csharp', 'php', 'backend', 'node']):
+        return f"{base_udemy}?subid=onboarding_backend&redirect=https%3A%2F%2Fwww.udemy.com%2Fcourse%2Fthe-complete-web-development-bootcamp%2F"
+    elif any(k in techs for k in ['cloud', 'devops', 'aws', 'docker', 'kubernetes']):
+        return f"{base_udemy}?subid=onboarding_devops&redirect=https%3A%2F%2Fwww.udemy.com%2Fcourse%2Fdecodingdevops%2F"
+    
+    return f"{base_udemy}?subid=onboarding_general"
+
 def get_onboarding_jobs(cur, tech_keywords):
     """Obtiene hasta 3 ofertas recientes que coincidan con las tecnologías del suscriptor."""
     params = []
@@ -98,10 +115,10 @@ def build_welcome_email(email, tech_keywords, jobs):
     </html>
     """
 
-def build_resources_email(email):
+def build_resources_email(email, tech_keywords):
     """Construye el segundo email de onboarding con recursos de calculadora salarial y CV."""
-    BOOTCAMP_LINK = "https://trk.udemy.com/9VMAEj"
-    CV_LINK = "https://ejemplo.com/afiliado-cv"
+    BOOTCAMP_LINK = get_custom_udemy_link(tech_keywords)
+    CV_LINK = f"{BASE_URL}/recursos?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_2"
     import urllib.parse
     
     bootcamp_track = f"{BASE_URL}/api/track-click?email={email}&campaign=welcome_email_2&redirect={urllib.parse.quote(BOOTCAMP_LINK)}"
@@ -246,7 +263,7 @@ def run_onboarding():
                 time_diff = datetime.now() - last_sent if last_sent else timedelta(days=5)
                 if time_diff >= timedelta(days=4):
                     print(f"💌 Enviando Email 2 (Recursos y Salarios) a: {email}...")
-                    html_body = build_resources_email(email)
+                    html_body = build_resources_email(email, tech_keywords)
                     
                     msg = MIMEMultipart()
                     msg['From'] = f"Portal Trabajo IT <{EMAIL_USER}>"

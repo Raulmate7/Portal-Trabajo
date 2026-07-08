@@ -5,6 +5,8 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { BASE_URL } from '@/lib/constants';
 
+export const revalidate = 86400; // Cache 24h (ISR)
+
 type Props = {
   params: Promise<{ slug: string }>;
 };

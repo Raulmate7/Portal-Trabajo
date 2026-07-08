@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 import { BASE_URL } from '@/lib/constants';
 import { getJobSlug } from '@/lib/slug';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 export const dynamic = 'force-dynamic';
 
@@ -176,6 +177,9 @@ export default async function JobsPage(props: Props) {
       />
       
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-4">
+          <Breadcrumbs items={breadcrumbItems} />
+        </div>
         
         {/* Buscador de Sector */}
         <div className="mb-6 max-w-md">

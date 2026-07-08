@@ -1,10 +1,34 @@
 import os
 import requests
+import re
+import unicodedata
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from db_helper import get_db_connection
 
 load_dotenv()
+
+def slugify(text):
+    if not text:
+        return ""
+    # Normalizar para eliminar acentos y caracteres especiales
+    text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('utf-8')
+    text = text.lower().strip()
+    text = re.sub(r'\s+', '-', text)           # Espacios por -
+    text = re.sub(r'[^\w\-]+', '', text)       # Elimina caracteres especiales
+    text = re.sub(r'\-\-+', '-', text)         # Evita guiones dobles
+    text = re.sub(r'^-+', '', text)             # Quita guión inicial
+    text = re.sub(r'-+$', '', text)             # Quita guión final
+    return text
+
+def get_job_slug(job_id, title, title_es, company, location):
+    title_part = slugify(title_es or title or '')
+    location_part = slugify(location) if location else ''
+    company_part = slugify(company) if company and company != 'Desconocida' else ''
+    
+    parts = [p for p in [title_part, location_part, company_part] if p]
+    slug_parts = "-".join(parts)
+    return f"{slug_parts}-{job_id}"
 
 def deactivate_expired_jobs():
     print("🧹 Iniciando LIMPIEZA, DESINDEXACIÓN y PURGA de ofertas antiguas...")
@@ -46,7 +70,7 @@ def deactivate_expired_jobs():
 
     try:
         cur.execute("""
-            SELECT id, title
+            SELECT id, title, title_es, company, location
             FROM jobs
             WHERE is_active = 1 AND created_at < %s
         """, (expiration_limit,))
@@ -72,8 +96,9 @@ def deactivate_expired_jobs():
 
         # 4. Enviar desindexación a Google
         for job in expired_jobs:
-            job_id, title = job
-            job_url = f"{frontend_url}/job/{job_id}"
+            job_id, title, title_es, company, location = job
+            job_slug = get_job_slug(job_id, title, title_es, company, location)
+            job_url = f"{frontend_url}/job/{job_slug}"
             url_list.append(job_url)
             
             payload = {

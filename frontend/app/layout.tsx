@@ -7,6 +7,7 @@ import { BASE_URL } from "@/lib/constants";
 import Header from "@/components/Header";
 import { Suspense } from "react";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import StickyMobileAd from "@/components/StickyMobileAd";
 
 
 const inter = Inter({ subsets: ["latin"] });
@@ -201,6 +202,7 @@ export default function RootLayout({
         <Footer />
         <CookieBanner />
         <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || "G-E2W8P1V7E3"} />
+        <StickyMobileAd />
       </body>
     </html>
   );

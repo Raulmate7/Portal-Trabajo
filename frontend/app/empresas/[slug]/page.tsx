@@ -12,7 +12,7 @@ import { getJobSlug } from "@/lib/slug";
 import CompanyReviewForm from "@/components/CompanyReviewForm";
 import { getCompanyReviews } from "@/app/actions";
 
-export const revalidate = 60;
+export const revalidate = 3600; // Cache de 1 hora (ISR)
 
 interface Job {
   id: string | number;
@@ -161,7 +161,25 @@ function detectCompanyTechStack(jobs: Job[]): string[] {
     .slice(0, 4);
 }
 
-function generateCompanyEditorial(companyName: string, stats: any, techStack: string[]): string {
+function generateCompanyEditorial(companyName: string, stats: any, techStack: string[], isEnglish: boolean): string {
+  if (isEnglish) {
+    const remoteText = stats.remoteRatio > 50 
+      ? 'a strong focus on remote work (telecommuting)' 
+      : (stats.remoteRatio > 15 
+        ? 'a hybrid or flexible model that combines on-site and remote work' 
+        : 'a preference for on-site or office-based positions in most of their offers');
+
+    const salaryText = stats.averageSalary 
+      ? `the estimated average salary for their positions is around ${stats.averageSalary.toLocaleString('es-ES')}€ gross per year, representing competitive compensation for the sector` 
+      : 'we currently do not have sufficient salary reference data for this company in our local database';
+
+    const techText = techStack.length > 0 
+      ? `usually search for professionals with mastery of technologies like ${techStack.join(', ')}` 
+      : 'offers opportunities across different technologies and engineering areas';
+
+    return `Working at ${companyName} represents a solid choice in today's tech market. According to vacancies analyzed recently on our platform, the organization stands out for ${remoteText}. In terms of compensation, ${remoteText}. Their recruitment processes ${techText}. This information is analyzed and updated regularly to reflect the reality of the company's hiring.`;
+  }
+
   const remoteText = stats.remoteRatio > 50 
     ? 'un fuerte enfoque en el trabajo en remoto (teletrabajo)' 
     : (stats.remoteRatio > 15 
@@ -184,12 +202,14 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
   const resolvedSearchParams = await searchParams;
   const page = typeof resolvedSearchParams.page === 'string' ? parseInt(resolvedSearchParams.page, 10) : 1;
   const isPaged = !isNaN(page) && page > 1;
+  const lang = resolvedSearchParams.lang === 'en' ? 'en' : 'es';
+  const isEnglish = lang === 'en';
 
   const allJobs = await getAllJobsByCompany(slug);
   
   if (!allJobs || allJobs.length === 0) {
     return {
-      title: 'Empresa no encontrada | Portal Trabajo',
+      title: isEnglish ? 'Company not found | IT Job Portal' : 'Empresa no encontrada | Portal Trabajo',
     };
   }
 
@@ -206,36 +226,48 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
   const reviewCount = baseReviewCount + realReviewsCount;
   const ratingValue = ((baseRatingVal * baseReviewCount + realReviewsSum) / reviewCount).toFixed(1);
 
-  let titleSeo = `Opiniones y Empleo en ${companyName} (${totalJobs} ofertas) | Portal Trabajo`;
+  let titleSeo = isEnglish
+    ? `Reviews and Jobs at ${companyName} (${totalJobs} openings) | IT Job Portal`
+    : `Opiniones y Empleo en ${companyName} (${totalJobs} ofertas) | Portal Trabajo`;
   if (isPaged) {
-    titleSeo += ` - Página ${page}`;
+    titleSeo += isEnglish ? ` - Page ${page}` : ` - Página ${page}`;
   }
 
-  const techText = topTechs ? ` Especialistas en ${topTechs}.` : '';
-  const description = `Opiniones de empleados en ${companyName}: valoración de ${ratingValue}/5 basada en ${reviewCount} reseñas. Encuentra ${totalJobs} ofertas de trabajo activas en ${companyName}.${techText} Vacantes de desarrollo de software, salarios y teletrabajo.${isPaged ? ` (Página ${page})` : ''}`;
+  const techText = topTechs 
+    ? (isEnglish ? ` Specialists in ${topTechs}.` : ` Especialistas en ${topTechs}.`)
+    : '';
+  const description = isEnglish
+    ? `Employee reviews at ${companyName}: rating ${ratingValue}/5 based on ${reviewCount} reviews. Find ${totalJobs} active tech jobs at ${companyName}.${techText} Software developer jobs, salaries, and remote work.${isPaged ? ` (Page ${page})` : ''}`
+    : `Opiniones de empleados en ${companyName}: valoración de ${ratingValue}/5 basada en ${reviewCount} reseñas. Encuentra ${totalJobs} ofertas de trabajo activas en ${companyName}.${techText} Vacantes de desarrollo de software, salarios y teletrabajo.${isPaged ? ` (Página ${page})` : ''}`;
 
+  const queryParam = isEnglish ? '?lang=en' : '';
   const metadata: Metadata = {
     title: titleSeo,
     description: description,
     alternates: {
-      canonical: `${BASE_URL}/empresas/${slug}`,
+      canonical: `${BASE_URL}/empresas/${slug}${queryParam}`,
+      languages: {
+        'es-ES': `${BASE_URL}/empresas/${slug}`,
+        'en': `${BASE_URL}/empresas/${slug}?lang=en`,
+        'x-default': `${BASE_URL}/empresas/${slug}`,
+      }
     },
     openGraph: {
-      title: `Opiniones y Ofertas de Empleo en ${companyName} - Vacantes Recientes${isPaged ? ` (Página ${page})` : ''}`,
+      title: isEnglish ? `Reviews and Job Offers at ${companyName} - Recent Openings` : `Opiniones y Ofertas de Empleo en ${companyName} - Vacantes Recientes${isPaged ? ` (Página ${page})` : ''}`,
       description: description,
-      url: `${BASE_URL}/empresas/${slug}`,
+      url: `${BASE_URL}/empresas/${slug}${queryParam}`,
       images: [
         {
           url: `${BASE_URL}/empresas/${slug}/opengraph-image`,
           width: 1200,
           height: 630,
-          alt: `Opiniones y ofertas de empleo en ${companyName}`,
+          alt: isEnglish ? `Reviews and jobs at ${companyName}` : `Opiniones y ofertas de empleo en ${companyName}`,
         },
       ],
     },
     twitter: {
       card: 'summary_large_image',
-      title: `Opiniones y Ofertas de Empleo en ${companyName} - Vacantes Recientes${isPaged ? ` (Página ${page})` : ''}`,
+      title: isEnglish ? `Reviews and Job Offers at ${companyName} - Recent Openings` : `Opiniones y Ofertas de Empleo en ${companyName} - Vacantes Recientes${isPaged ? ` (Página ${page})` : ''}`,
       description: description,
       images: [`${BASE_URL}/empresas/${slug}/opengraph-image`],
     },
@@ -254,6 +286,8 @@ export default async function CompanyPage({ params, searchParams }: Props) {
   
   const page = typeof resolvedSearchParams.page === 'string' ? parseInt(resolvedSearchParams.page, 10) : 1;
   const validPage = isNaN(page) || page < 1 ? 1 : page;
+  const lang = resolvedSearchParams.lang === 'en' ? 'en' : 'es';
+  const isEnglish = lang === 'en';
 
   const allJobs = await getAllJobsByCompany(slug);
 
@@ -264,7 +298,7 @@ export default async function CompanyPage({ params, searchParams }: Props) {
   const companyName = allJobs[0].company;
   const stats = calculateCompanyStats(allJobs);
   const techStack = detectCompanyTechStack(allJobs);
-  const editorialText = generateCompanyEditorial(companyName, stats, techStack);
+  const editorialText = generateCompanyEditorial(companyName, stats, techStack, isEnglish);
 
   const uniqueCities = Array.from(
     new Set(
@@ -285,6 +319,7 @@ export default async function CompanyPage({ params, searchParams }: Props) {
     )
   ).slice(0, 4);
 
+  const queryParam = isEnglish ? '?lang=en' : '';
   const crossLinks: { label: string; href: string }[] = [];
   if (techStack.length > 0 && uniqueCities.length > 0) {
     const topTech = techStack[0];
@@ -292,14 +327,14 @@ export default async function CompanyPage({ params, searchParams }: Props) {
     for (const city of uniqueCities) {
       if (city === 'Remoto') {
         crossLinks.push({
-          label: `Ver ofertas de ${topTech} en Remoto`,
-          href: `/trabajos/${techSlug}-remoto`
+          label: isEnglish ? `View ${topTech} jobs in Remote` : `Ver ofertas de ${topTech} en Remoto`,
+          href: `/trabajos/${techSlug}-remoto${queryParam}`
         });
       } else {
         const citySlug = city.toLowerCase().replace(/[^a-z0-9]+/g, '-');
         crossLinks.push({
-          label: `Ver ofertas de ${topTech} en ${city}`,
-          href: `/trabajos/${techSlug}-en-${citySlug}`
+          label: isEnglish ? `View ${topTech} jobs in ${city}` : `Ver ofertas de ${topTech} en ${city}`,
+          href: `/trabajos/${techSlug}-en-${citySlug}${queryParam}`
         });
       }
     }
@@ -319,8 +354,8 @@ export default async function CompanyPage({ params, searchParams }: Props) {
   const ratingValue = ((baseRatingVal * baseReviewCount + realReviewsSum) / reviewCount).toFixed(1);
 
   const breadcrumbItems = [
-    { label: 'Inicio', href: '/' },
-    { label: 'Empresas', href: '/empresas' },
+    { label: isEnglish ? 'Home' : 'Inicio', href: isEnglish ? '/?lang=en' : '/' },
+    { label: isEnglish ? 'Companies' : 'Empresas', href: isEnglish ? '/empresas?lang=en' : '/empresas' },
     { label: companyName }
   ];
 
@@ -458,12 +493,12 @@ export default async function CompanyPage({ params, searchParams }: Props) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex flex-wrap items-center gap-3.5">
           <h1 className="text-3xl font-extrabold text-gray-900">
-            Empleo en {companyName}
+            {isEnglish ? `Jobs at ${companyName}` : `Empleo en ${companyName}`}
           </h1>
-          <ShareButton title={`Empleo en ${companyName}`} company={companyName} />
+          <ShareButton title={isEnglish ? `Jobs at ${companyName}` : `Empleo en ${companyName}`} company={companyName} />
         </div>
-        <Link href="/" className="text-indigo-600 hover:underline text-sm font-medium">
-          ← Buscar otras ofertas
+        <Link href={isEnglish ? '/?lang=en' : '/'} className="text-indigo-600 hover:underline text-sm font-medium">
+          {isEnglish ? '← Search other offers' : '← Buscar otras ofertas'}
         </Link>
       </div>
       
@@ -471,13 +506,16 @@ export default async function CompanyPage({ params, searchParams }: Props) {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-stretch mb-8 bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
         <div className="md:col-span-1 flex flex-col justify-center">
           <p className="text-gray-700 leading-relaxed m-0 text-sm">
-            Listado completo de vacantes tecnológicas para incorporarte a <strong>{companyName}</strong>. 
-            Actualmente contamos con <strong>{allJobs.length} ofertas activas</strong> recopiladas en la web.
+            {isEnglish ? (
+              <>Complete list of technology vacancies to join <strong>{companyName}</strong>. We currently have <strong>{allJobs.length} active offers</strong> collected on the web.</>
+            ) : (
+              <>Listado completo de vacantes tecnológicas para incorporarte a <strong>{companyName}</strong>. Actualmente contamos con <strong>{allJobs.length} ofertas activas</strong> recopiladas en la web.</>
+            )}
           </p>
         </div>
 
         <div className="bg-amber-50/70 p-5 rounded-xl border border-amber-100 flex flex-col justify-center items-center text-center">
-          <h3 className="text-xs font-bold text-amber-900 uppercase tracking-wider m-0 mb-1.5">Valoración Empleados</h3>
+          <h3 className="text-xs font-bold text-amber-900 uppercase tracking-wider m-0 mb-1.5">{isEnglish ? 'Employee Rating' : 'Valoración Empleados'}</h3>
           <div className="flex items-center gap-0.5 mb-1.5 justify-center">
             <span className="text-2xl font-extrabold text-amber-700 mr-1.5">{ratingValue}</span>
             {[1, 2, 3, 4, 5].map((star) => (
@@ -489,23 +527,23 @@ export default async function CompanyPage({ params, searchParams }: Props) {
               </span>
             ))}
           </div>
-          <span className="text-[10px] text-gray-500">Basado en {reviewCount} opiniones</span>
+          <span className="text-[10px] text-gray-500">{isEnglish ? `Based on ${reviewCount} reviews` : `Basado en ${reviewCount} opiniones`}</span>
         </div>
         
         <div className="bg-indigo-50/70 p-5 rounded-xl border border-indigo-100 flex flex-col justify-center items-center text-center">
-          <h3 className="text-xs font-bold text-indigo-900 uppercase tracking-wider m-0 mb-1">Salario Medio Estimado</h3>
+          <h3 className="text-xs font-bold text-indigo-900 uppercase tracking-wider m-0 mb-1">{isEnglish ? 'Estimated Average Salary' : 'Salario Medio Estimado'}</h3>
           <p className="text-3xl font-extrabold text-indigo-700 m-0">
             {stats.averageSalary ? `${stats.averageSalary.toLocaleString('es-ES')}€` : 'N/A'}
           </p>
-          <span className="text-[10px] text-gray-500 mt-1">Basado en las ofertas publicadas con sueldo</span>
+          <span className="text-[10px] text-gray-500 mt-1">{isEnglish ? 'Based on job offers with visible salary' : 'Basado en las ofertas publicadas con sueldo'}</span>
         </div>
 
         <div className="bg-purple-50/70 p-5 rounded-xl border border-purple-100 flex flex-col justify-center items-center text-center">
-          <h3 className="text-xs font-bold text-purple-900 uppercase tracking-wider m-0 mb-1">Tasa de Teletrabajo</h3>
+          <h3 className="text-xs font-bold text-purple-900 uppercase tracking-wider m-0 mb-1">{isEnglish ? 'Remote Work Rate' : 'Tasa de Teletrabajo'}</h3>
           <p className="text-3xl font-extrabold text-purple-700 m-0">
             {stats.remoteRatio}%
           </p>
-          <span className="text-[10px] text-gray-500 mt-1">Porcentaje de ofertas 100% en remoto</span>
+          <span className="text-[10px] text-gray-500 mt-1">{isEnglish ? 'Percentage of 100% remote offers' : 'Porcentaje de ofertas 100% en remoto'}</span>
         </div>
       </div>
 
@@ -515,7 +553,7 @@ export default async function CompanyPage({ params, searchParams }: Props) {
           {/* Sección Editorial Dinámica (Oportunidad 2.4) */}
           <div className="bg-white rounded-xl border border-gray-150 shadow-sm p-6 mb-8">
             <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <span>📝</span> Sobre el Reclutamiento en {companyName}
+              <span>📝</span> {isEnglish ? `About Recruitment at ${companyName}` : `Sobre el Reclutamiento en ${companyName}`}
             </h2>
             <p className="text-sm text-gray-650 leading-relaxed mb-6">
               {editorialText}
@@ -523,7 +561,7 @@ export default async function CompanyPage({ params, searchParams }: Props) {
             {techStack.length > 0 && (
               <div className="mb-6">
                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5">
-                  Tecnologías más demandadas en sus ofertas:
+                  {isEnglish ? 'Most demanded technologies in their offers:' : 'Tecnologías más demandadas en sus ofertas:'}
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {techStack.map((tech) => {
@@ -531,7 +569,7 @@ export default async function CompanyPage({ params, searchParams }: Props) {
                     return (
                       <Link 
                         key={tech} 
-                        href={`/trabajos/${slug}`}
+                        href={`/trabajos/${slug}${queryParam}`}
                         className="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold px-3 py-1.5 rounded-lg border border-indigo-100/50 transition-colors"
                       >
                         {tech}
@@ -545,7 +583,7 @@ export default async function CompanyPage({ params, searchParams }: Props) {
             {crossLinks.length > 0 && (
               <div className="border-t border-gray-100 pt-4 mt-4">
                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-                  Ver ofertas relacionadas en tu zona:
+                  {isEnglish ? 'View related offers in your area:' : 'Ver ofertas relacionadas en tu zona:'}
                 </h4>
                 <div className="flex flex-wrap gap-3">
                   {crossLinks.map((link, idx) => (
@@ -564,7 +602,7 @@ export default async function CompanyPage({ params, searchParams }: Props) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {jobs.flatMap((job, index) => {
-              const card = <JobCard key={job.id} job={job} />;
+              const card = <JobCard key={job.id} job={job} lang={lang} />;
               if (index === 4) {
                 return [
                   <div key={`ad-inline-${job.id}`} className="col-span-full my-2">
@@ -580,21 +618,21 @@ export default async function CompanyPage({ params, searchParams }: Props) {
             <div className="col-span-full flex justify-between items-center pt-6">
               {validPage > 1 ? (
                 <Link
-                  href={`/empresas/${slug}?page=${validPage - 1}`}
+                  href={`/empresas/${slug}?page=${validPage - 1}${isEnglish ? '&lang=en' : ''}`}
                   className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >
-                  ← Anterior
+                  {isEnglish ? '← Previous' : '← Anterior'}
                 </Link>
               ) : (
                 <div />
               )}
-              <span className="text-sm text-gray-600">Página {validPage}</span>
+              <span className="text-sm text-gray-600">{isEnglish ? `Page ${validPage}` : `Página ${validPage}`}</span>
               {jobs.length === 20 ? (
                 <Link
-                  href={`/empresas/${slug}?page=${validPage + 1}`}
+                  href={`/empresas/${slug}?page=${validPage + 1}${isEnglish ? '&lang=en' : ''}`}
                   className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >
-                  Siguiente →
+                  {isEnglish ? 'Next →' : 'Siguiente →'}
                 </Link>
               ) : (
                 <div />
@@ -606,12 +644,14 @@ export default async function CompanyPage({ params, searchParams }: Props) {
           <div className="mt-12 space-y-8">
             <div className="bg-white rounded-xl border border-gray-150 shadow-sm p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <span>💬</span> Opiniones de Empleados en {companyName}
+                <span>💬</span> {isEnglish ? `Employee Reviews at ${companyName}` : `Opiniones de Empleados en ${companyName}`}
               </h2>
               
               {reviews.length === 0 ? (
                 <p className="text-sm text-gray-500 italic mb-2">
-                  Aún no hay opiniones de usuarios. ¡Sé el primero en compartir tu experiencia sobre el ambiente de trabajo o entrevistas en {companyName}!
+                  {isEnglish 
+                    ? `No user reviews yet. Be the first to share your experience about the work environment or interviews at ${companyName}!`
+                    : `Aún no hay opiniones de usuarios. ¡Sé el primero en compartir tu experiencia sobre el ambiente de trabajo o entrevistas en ${companyName}!`}
                 </p>
               ) : (
                 <div className="space-y-6">

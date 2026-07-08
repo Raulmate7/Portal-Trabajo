@@ -5,7 +5,7 @@ import { GLOSSARY_TERMS } from '@/lib/glosario';
 import { BASE_URL } from '@/lib/constants';
 import { getJobSlug } from '@/lib/slug';
 
-export const revalidate = 21600; // Cache por 6 horas
+export const revalidate = 7200; // Cache por 2 horas
 
 const BASE_PAGES = [
   '/trabajos/informatica-tecnologia',
@@ -19,6 +19,13 @@ const BASE_PAGES = [
   '/talento-premium',
   '/blog',
   '/trabajo-remoto',
+  '/trabajo-madrid',
+  '/trabajo-barcelona',
+  '/trabajo-valencia',
+  '/trabajo-malaga',
+  '/trabajo-sevilla',
+  '/trabajo-bilbao',
+  '/trabajo-zaragoza',
   '/trabajos/empresas-internacionales',
   '/trabajos/ingles-requerido',
   '/sobre-nosotros',
@@ -56,6 +63,12 @@ const COMPARATIVAS = [
   'node-vs-python',
   'go-vs-rust',
   'aws-vs-kubernetes',
+  'python-vs-go',
+  'kotlin-vs-swift',
+  'php-vs-node',
+  'csharp-vs-java',
+  'vue-vs-angular',
+  'docker-vs-kubernetes',
 ];
 
 function detectTechForSitemap(title: string, category: string | null): string[] {
@@ -168,6 +181,28 @@ function isHybridJob(title: string, descriptionSnippet: string | null, location:
   return text.includes('híbrido') || text.includes('hibrido') || text.includes('hybrid') || text.includes('semipresencial') || text.includes('semi-presencial');
 }
 
+const CONTRACT_KEYWORDS: Record<string, string[]> = {
+  'contrato-indefinido': ['indefinido', 'contrato indefinido', 'puesto estable', 'permanente', 'permanent'],
+  'contrato-temporal': ['temporal', 'contrato temporal', 'obra y servicio', 'temporary'],
+  'contrato-practicas': ['practicas', 'beca', 'becario', 'trainee', 'internship', 'en prácticas'],
+  'freelance': ['freelance', 'autonomo', 'autónomo', 'contractor']
+};
+
+function detectContractForSitemap(title: string, snippet: string | null): string[] {
+  const matched: string[] = [];
+  const text = `${title} ${snippet || ''}`.toLowerCase();
+  
+  for (const [key, keywords] of Object.entries(CONTRACT_KEYWORDS)) {
+    for (const kw of keywords) {
+      if (text.includes(kw)) {
+        matched.push(key);
+        break;
+      }
+    }
+  }
+  return matched;
+}
+
 // 1. Exportamos los IDs de los sitemaps disponibles dinámicamente
 export async function generateSitemaps() {
   return [
@@ -202,6 +237,7 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
         const techs = detectTechForSitemap(job.title || '', job.category || null);
         const city = detectCityForSitemap(job.location);
         const exps = detectExperienceForSitemap(job.title || '', job.description_snippet || null);
+        const contracts = detectContractForSitemap(job.title || '', job.description_snippet || null);
         const isHybrid = isHybridJob(job.title || '', job.description_snippet || null, job.location);
         
         for (const tech of techs) {
@@ -236,6 +272,18 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
               incrementCount(`/trabajos/${tech}-hibrido-en-${city}`);
             }
           }
+
+          // 5. Permutaciones de tipo de contrato
+          for (const contract of contracts) {
+            incrementCount(`/trabajos/${tech}-${contract}`);
+            if (city) {
+              if (city === 'remoto') {
+                incrementCount(`/trabajos/${tech}-${contract}-remoto`);
+              } else {
+                incrementCount(`/trabajos/${tech}-${contract}-en-${city}`);
+              }
+            }
+          }
         }
       }
 
@@ -247,7 +295,7 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
 
       const sectorPages = [...BASE_PAGES, ...activeProgrammaticPages];
       const sectorUrls = sectorPages.map((path) => {
-        const hasEnglish = path.startsWith('/trabajos/') || path.startsWith('/talento-premium');
+        const hasEnglish = path.startsWith('/trabajos/') || path.startsWith('/talento-premium') || path.startsWith('/trabajo-');
         const alternates = hasEnglish
           ? {
               languages: {
@@ -287,8 +335,14 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
         priority: 0.7,
       }));
 
-      const SALARIOS_TECNOLOGIAS = ['react', 'node', 'python', 'java', 'typescript', 'aws', 'docker', 'flutter', 'csharp', 'php', 'sql'];
-      const SALARIOS_CIUDADES = ['madrid', 'barcelona', 'valencia', 'remoto'];
+      const SALARIOS_TECNOLOGIAS = [
+        'react', 'node', 'python', 'java', 'typescript', 'aws', 'docker', 'flutter', 'csharp', 'php', 'sql',
+        'go', 'rust', 'ruby', 'scala', 'elixir', 'salesforce', 'cybersecurity', 'terraform', 'cobol'
+      ];
+      const SALARIOS_CIUDADES = [
+        'madrid', 'barcelona', 'valencia', 'remoto',
+        'sevilla', 'bilbao', 'malaga', 'zaragoza', 'alicante', 'vigo', 'coruna', 'granada'
+      ];
       const SALARIOS_NIVELES = ['junior', 'mid', 'senior'];
 
       const salaryUrls = [

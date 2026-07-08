@@ -36,5 +36,6 @@ def get_db_connection():
         database=database,
         port=port,
         charset='utf8mb4',
-        autocommit=True  # Confirmaciones automáticas para simplificar escrituras
+        autocommit=True,  # Confirmaciones automáticas para simplificar escrituras
+        connect_timeout=5
     )

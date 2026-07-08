@@ -67,6 +67,7 @@ export default async function Footer() {
     { label: 'Tarifas y Precios', href: '/precios' },
     { label: '📢 Anúnciate / Publicidad', href: '/publicidad' },
     { label: 'Blog', href: '/blog' },
+    { label: '🛠️ Herramientas', href: '/herramientas' },
     { label: '📖 Glosario IT', href: '/glosario' },
     { label: '📰 Noticias Tech', href: '/noticias' },
     { label: '📈 Tendencias Tech', href: '/tendencias' },

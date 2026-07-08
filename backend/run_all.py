@@ -110,5 +110,17 @@ exit_code = os.system(f"{python_bin} send_push_notifications.py")
 if exit_code != 0:
     print("⚠️ Advertencia: El script de notificaciones push terminó con errores.")
 
+# 7.4. Generar Artículo de Blog Semanal (Gemini + SEO)
+print("\n[7.4/7] ✍️ Comprobando y generando post de blog semanal (generate_weekly_article.py)...")
+exit_code = os.system(f"{python_bin} generate_weekly_article.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: El script de generación de blog semanal terminó con errores o no está configurado.")
+
+# 7.5. Generar Artículo de Tendencias Semanal desde la BD
+print("\n[7.5/7] 📈 Generando artículo de tendencias de empleo tech (generate_trends_post.py)...")
+exit_code = os.system(f"{python_bin} generate_trends_post.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: El script de tendencias semanales terminó con errores.")
+
 print("\n===============================================")
 print("✅ PROCESO COMPLETADO. El sistema descansa.")

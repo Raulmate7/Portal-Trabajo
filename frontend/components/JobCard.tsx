@@ -14,6 +14,7 @@ interface Job {
   category?: string | null;
   created_at?: string;
   title_es?: string | null;
+  salary?: string | null;
 }
 
 interface JobCardProps {
@@ -89,13 +90,20 @@ export default function JobCard({ job, lang }: JobCardProps) {
           </div>
         </div>
 
-        <div className="flex items-center text-sm text-gray-500 dark:text-slate-400 mb-4">
-          <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-          </svg>
-          <span className="font-medium">{job.company}</span>
-          <span className="mx-2">•</span>
-          <span>{job.location}</span>
+        <div className="flex flex-wrap items-center gap-y-1.5 text-sm text-gray-500 dark:text-slate-400 mb-4">
+          <div className="flex items-center mr-3">
+            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <span className="font-medium">{job.company}</span>
+            <span className="mx-2">•</span>
+            <span>{job.location}</span>
+          </div>
+          {job.salary && (
+            <div className="flex items-center text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100/30 dark:bg-indigo-950/20 dark:text-indigo-300 px-2 py-0.5 rounded-md shrink-0">
+              💰 {job.salary}
+            </div>
+          )}
         </div>
 
         {job.description_snippet && (
@@ -103,6 +111,31 @@ export default function JobCard({ job, lang }: JobCardProps) {
             {job.description_snippet}
           </p>
         )}
+
+        {(() => {
+          const titleLower = job.title.toLowerCase();
+          const techs = ['react', 'node', 'python', 'java', 'typescript', 'devops', 'php', 'sql', 'go', 'rust', 'angular', 'vue'];
+          let detected = null;
+          for (const t of techs) {
+            if (titleLower.includes(t)) {
+              detected = t;
+              break;
+            }
+          }
+          if (detected) {
+            return (
+              <div className="mb-4 text-xs">
+                <Link 
+                  href={`/salarios/${detected}${queryParam}`} 
+                  className="text-indigo-650 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-350 font-bold hover:underline inline-flex items-center gap-0.5"
+                >
+                  📊 {isEnglish ? `View ${detected.toUpperCase()} salaries in Spain →` : `Ver salarios de ${detected.toUpperCase()} en España →`}
+                </Link>
+              </div>
+            );
+          }
+          return null;
+        })()}
       </div>
 
       <div className="px-6 pb-6 mt-auto">

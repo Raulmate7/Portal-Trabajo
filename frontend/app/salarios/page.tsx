@@ -64,8 +64,32 @@ export default async function SalariosPage({ searchParams }: Props) {
     { label: 'Calculadora de Salarios' }
   ];
 
+  const datasetSchema = {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": "Estadísticas de Salarios IT en España - Portal Trabajo IT",
+    "description": "Estadísticas agregadas de salarios medios y percentiles de contratación para desarrolladores de software y perfiles tecnológicos en España, analizadas a partir de vacantes de empleo activas.",
+    "url": `${BASE_URL}/salarios`,
+    "creator": {
+      "@type": "Organization",
+      "name": "Portal Trabajo IT",
+      "url": BASE_URL
+    },
+    "distribution": [
+      {
+        "@type": "DataDownload",
+        "encodingFormat": "text/html",
+        "contentUrl": `${BASE_URL}/salarios`
+      }
+    ]
+  };
+
   return (
     <main className="min-h-screen bg-gray-50">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(datasetSchema) }}
+      />
       {/* Hero */}
       <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-900 text-white py-16 px-4 relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.2),transparent_50%)]" />
@@ -123,6 +147,11 @@ export default async function SalariosPage({ searchParams }: Props) {
                 Es importante tener en cuenta que no todas las ofertas publicadas en España transparentan su salario (muchas indican "salario según valía" o "a convenir"). Por tanto, las muestras reflejan el comportamiento de las empresas que sí apuestan por la transparencia salarial. Adicionalmente, factores individuales como el dominio del inglés, metodologías ágiles o habilidades de diseño de sistemas (System Design) pueden elevar tu sueldo por encima de los percentiles mostrados.
               </p>
             </div>
+          </div>
+
+          {/* Anuncio AdSense Arriba del Fold (Calculadora) */}
+          <div className="mb-4">
+            <AdBanner variant="inline" />
           </div>
 
           {/* Calculadora de Salarios con Datos Iniciales pre-cargados por SSR */}

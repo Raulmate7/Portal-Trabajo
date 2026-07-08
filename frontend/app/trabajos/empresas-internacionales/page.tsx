@@ -166,11 +166,29 @@ export default async function EmpresasInternacionalesPage() {
     }))
   };
 
+  const itemListJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Ofertas de Empleo IT de Empresas Internacionales',
+    description: 'Listado de ofertas de trabajo activas para empresas internacionales desde España (remoto)',
+    numberOfItems: jobs.length,
+    itemListElement: jobs.map((job: Job, idx: number) => ({
+      '@type': 'ListItem',
+      position: idx + 1,
+      url: `${BASE_URL}/job/${getJobSlug(job)}`,
+      name: `${job.title} - ${job.company}`
+    }))
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <script 
         type="application/ld+json" 
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} 
+      />
+      <script 
+        type="application/ld+json" 
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} 
       />
       <script 
         type="application/ld+json" 

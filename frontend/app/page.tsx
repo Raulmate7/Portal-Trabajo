@@ -250,6 +250,40 @@ export default async function Home({ searchParams }: Props) {
   const isPaged = validPage > 1;
   const hasNextPage = jobs.length === 20;
 
+  const faqItems = [
+    {
+      question: isEnglish ? 'What is IT Job Portal?' : '¿Qué es Portal Trabajo IT?',
+      answer: isEnglish 
+        ? 'It is a smart technology job aggregator in Spain. We compile and categorize open positions in real time for React, Python, Java, DevOps, etc.' 
+        : 'Es un agregador inteligente de empleo tecnológico en España. Recopilamos y categorizamos ofertas en tiempo real de React, Python, Java, DevOps, etc.'
+    },
+    {
+      question: isEnglish ? 'How often are the job offers updated?' : '¿Cómo se actualizan las ofertas de empleo?',
+      answer: isEnglish 
+        ? 'Our platform updates the database automatically every 6 hours to ensure no expired offers are shown and the newest postings are available.' 
+        : 'Nuestro portal actualiza la base de datos de manera automatizada cada 6 horas para asegurar que no haya ofertas caducadas y se muestren las más recientes.'
+    },
+    {
+      question: isEnglish ? 'Is it free to apply or post job offers?' : '¿Es gratuito publicar ofertas o postularse?',
+      answer: isEnglish 
+        ? 'Yes, applying is 100% free for developers. For employers, we offer both free listings and premium featured slots.' 
+        : 'Sí, la postulación es 100% gratuita para los desarrolladores. Para las empresas, ofrecemos opciones gratuitas y destacadas premium.'
+    }
+  ];
+
+  const faqJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    'mainEntity': faqItems.map(item => ({
+      '@type': 'Question',
+      'name': item.question,
+      'acceptedAnswer': {
+        '@type': 'Answer',
+        'text': item.answer
+      }
+    }))
+  };
+
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-slate-950">
       <script
@@ -259,6 +293,10 @@ export default async function Home({ searchParams }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       
       {/* Hero Section Premium */}
@@ -593,6 +631,25 @@ export default async function Home({ searchParams }: Props) {
               </div>
             </div>
           )}
+
+          {/* 5. Preguntas Frecuentes (FAQ Visual para SEO y E-E-A-T) */}
+          <div className="border-t border-gray-150 dark:border-slate-800/80 pt-8 mt-8">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
+              ❓ {isEnglish ? 'Frequently Asked Questions' : 'Preguntas Frecuentes sobre Portal Trabajo'}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {faqItems.map((item, idx) => (
+                <div key={idx} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm flex flex-col justify-start">
+                  <h4 className="font-bold text-gray-900 dark:text-white text-base mb-2.5">
+                    {item.question}
+                  </h4>
+                  <p className="text-xs text-gray-550 dark:text-slate-400 leading-relaxed m-0">
+                    {item.answer}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
 
         </div>
       </div>

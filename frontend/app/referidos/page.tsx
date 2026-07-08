@@ -10,6 +10,7 @@ export default function ReferidosPage() {
   const [stats, setStats] = useState<{ count: number; success: boolean } | null>(null);
   const [referralLink, setReferralLink] = useState("");
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<'candidato' | 'reclutador'>('candidato');
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -48,7 +49,7 @@ export default function ReferidosPage() {
       <div className="absolute inset-0 bg-gradient-to-br from-indigo-950/20 via-gray-950 to-purple-950/20" />
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[350px] bg-indigo-500/5 rounded-full blur-3xl" />
 
-      <div className="relative max-w-2xl mx-auto text-center mb-12">
+      <div className="relative max-w-2xl mx-auto text-center mb-8">
         <Link href="/" className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-6 text-sm">
           ← Volver al buscador
         </Link>
@@ -58,9 +59,43 @@ export default function ReferidosPage() {
             Referidos IT
           </span>
         </h1>
-        <p className="text-gray-400 text-base md:text-lg max-w-lg mx-auto">
-          Comparte tu enlace con otros programadores. Si 3 amigos se suscriben, conseguiréis acceso prioritario y ventajas premium.
+        <p className="text-gray-400 text-sm md:text-base max-w-lg mx-auto">
+          {activeTab === 'candidato'
+            ? "Comparte tu enlace con otros programadores. Si 3 amigos se suscriben, conseguiréis acceso prioritario y ventajas premium."
+            : "Comparte tu enlace con otros reclutadores o empresas. Si 3 empresas se registran, obtendrás una oferta destacada gratis (valorada en 149€)."}
         </p>
+      </div>
+
+      {/* Tabs Selector */}
+      <div className="relative max-w-xs mx-auto mb-8 bg-gray-900/80 p-1.5 rounded-2xl border border-gray-800 flex">
+        <button
+          onClick={() => {
+            setActiveTab('candidato');
+            setStats(null);
+            setReferralLink("");
+          }}
+          className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+            activeTab === 'candidato'
+              ? 'bg-gradient-to-r from-indigo-500 to-indigo-650 text-white shadow-md'
+              : 'text-gray-450 hover:text-white hover:bg-gray-800/40'
+          }`}
+        >
+          👨‍💻 Para Candidatos
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('reclutador');
+            setStats(null);
+            setReferralLink("");
+          }}
+          className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+            activeTab === 'reclutador'
+              ? 'bg-gradient-to-r from-purple-500 to-purple-650 text-white shadow-md'
+              : 'text-gray-450 hover:text-white hover:bg-gray-800/40'
+          }`}
+        >
+          🏢 Para Empresas
+        </button>
       </div>
 
       <div className="relative max-w-xl mx-auto bg-gray-900/60 border border-gray-800 rounded-3xl p-8 shadow-2xl backdrop-blur-md">
@@ -69,7 +104,7 @@ export default function ReferidosPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="ref-email" className="block text-xs font-bold text-gray-400 uppercase mb-2">
-              Tu Email de Suscriptor
+              {activeTab === 'candidato' ? "Tu Email de Suscriptor" : "Tu Email de Reclutador / Empresa"}
             </label>
             <input
               id="ref-email"
@@ -85,7 +120,11 @@ export default function ReferidosPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold hover:from-indigo-400 hover:to-purple-500 transition-all shadow-lg disabled:opacity-50 text-sm"
+            className={`w-full py-3.5 px-6 rounded-xl text-white font-bold transition-all shadow-lg disabled:opacity-50 text-sm bg-gradient-to-r ${
+              activeTab === 'candidato'
+                ? 'from-indigo-500 to-indigo-650 hover:from-indigo-400 hover:to-indigo-550'
+                : 'from-purple-500 to-purple-650 hover:from-purple-400 hover:to-purple-550'
+            }`}
           >
             {loading ? "Consultando..." : "Generar mi Enlace"}
           </button>
@@ -95,15 +134,24 @@ export default function ReferidosPage() {
           <div className="mt-8 pt-8 border-t border-gray-800 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
             {stats.success ? (
               <>
-                <div className="p-4 bg-indigo-950/30 border border-indigo-500/20 rounded-2xl flex items-center justify-between">
+                <div className={`p-4 border rounded-2xl flex items-center justify-between bg-gray-950/40 ${
+                  activeTab === 'candidato' ? 'border-indigo-500/20' : 'border-purple-500/20'
+                }`}>
                   <div className="text-left">
-                    <span className="text-xs text-indigo-300 font-bold uppercase tracking-wider block">Amigos Invitados</span>
+                    <span className={`text-xs font-bold uppercase tracking-wider block ${
+                      activeTab === 'candidato' ? 'text-indigo-300' : 'text-purple-300'
+                    }`}>
+                      {activeTab === 'candidato' ? "Amigos Invitados" : "Empresas Invitadas"}
+                    </span>
                     <span className="text-3xl font-black text-white block mt-1">{stats.count}</span>
                   </div>
                   <div className="text-right">
                     <span className="text-xs text-amber-400 font-bold uppercase tracking-wider block">Estado de Recompensa</span>
                     <span className="text-sm font-semibold block mt-1 text-gray-200">
-                      {stats.count >= 3 ? "🎉 ¡PREMIUM ACTIVADO!" : `${stats.count}/3 registrados`}
+                      {activeTab === 'candidato'
+                        ? (stats.count >= 3 ? "🎉 ¡PREMIUM ACTIVADO!" : `${stats.count}/3 registrados`)
+                        : (stats.count >= 3 ? "🎉 ¡OFERTA DESTACADA GRATIS!" : `${stats.count}/3 registradas`)
+                      }
                     </span>
                   </div>
                 </div>
@@ -133,7 +181,9 @@ export default function ReferidosPage() {
               </>
             ) : (
               <p className="text-red-400 text-sm text-center font-medium">
-                ⚠️ Ese correo no está suscrito a nuestro portal. Suscríbete en la página principal primero.
+                {activeTab === 'candidato'
+                  ? "⚠️ Ese correo no está registrado como suscriptor. Suscríbete en la página principal primero."
+                  : "⚠️ Ese correo no está registrado en nuestro portal de empresas. Regístrate en la sección de Reclutadores primero."}
               </p>
             )}
           </div>
@@ -144,17 +194,25 @@ export default function ReferidosPage() {
         <div>
           <span className="text-2xl block mb-2">🔗</span>
           <h4 className="font-bold text-gray-300 mb-1">1. Comparte</h4>
-          <p>Envía tu enlace personalizado a compañeros de profesión o compártelo en redes sociales.</p>
+          <p>Envía tu enlace personalizado a compañeros de profesión o a contactos de otras empresas tech.</p>
         </div>
         <div>
           <span className="text-2xl block mb-2">⚡</span>
-          <h4 className="font-bold text-gray-300 mb-1">2. Regístrate</h4>
-          <p>Tus amigos se suscriben gratis para recibir ofertas IT filtradas por stack.</p>
+          <h4 className="font-bold text-gray-300 mb-1">2. Registro</h4>
+          <p>
+            {activeTab === 'candidato'
+              ? "Tus amigos se suscriben gratis para recibir ofertas IT filtradas por stack."
+              : "Las empresas recomendadas se registran para publicar sus vacantes tech en el portal."}
+          </p>
         </div>
         <div>
           <span className="text-2xl block mb-2">🎁</span>
           <h4 className="font-bold text-gray-300 mb-1">3. Gana</h4>
-          <p>Cuando llegues a 3 referidos, activamos el estatus destacado y ventajas premium para todos.</p>
+          <p>
+            {activeTab === 'candidato'
+              ? "Cuando llegues a 3 referidos, activamos el estatus destacado y ventajas premium para todos."
+              : "Cuando 3 empresas se registren, recibirás un cupón de 149€ para publicar una oferta destacada gratis."}
+          </p>
         </div>
       </div>
     </main>

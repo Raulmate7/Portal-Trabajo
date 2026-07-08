@@ -45,6 +45,31 @@ export default function LoadMoreJobs({ lang = 'es', initiallyHasMore }: LoadMore
     setHasMore(initiallyHasMore);
   }, [q, location, minSalary, modality, dateRange, experience, initiallyHasMore]);
 
+  // Scroll infinito automático usando IntersectionObserver
+  useEffect(() => {
+    if (!hasMore || loading) return;
+
+    const sentinel = document.getElementById('infinite-scroll-sentinel');
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry && entry.isIntersecting) {
+          loadMore();
+        }
+      },
+      {
+        rootMargin: '400px', // Precarga ofertas cuando falten 400px para llegar al final de la lista
+      }
+    );
+
+    observer.observe(sentinel);
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasMore, loading, page, q, location, minSalary, modality, dateRange, experience, initiallyHasMore]);
+
   async function loadMore() {
     if (loading) return;
     setLoading(true);
@@ -142,6 +167,11 @@ export default function LoadMoreJobs({ lang = 'es', initiallyHasMore }: LoadMore
           </React.Fragment>
         );
       })}
+
+      {/* Centinela invisible para scroll infinito */}
+      {hasMore && (
+        <div id="infinite-scroll-sentinel" className="h-1 w-full" />
+      )}
 
       {/* Botón de Cargar Más / Spinner */}
       {hasMore && (

@@ -74,6 +74,16 @@ export default function Header() {
           {/* CTAs de Escritorio (Tema, Idioma, Publicar) */}
           <div className="hidden md:flex items-center gap-4 shrink-0">
             
+            {/* Ofertas Guardadas */}
+            <Link
+              href={`/ofertas-guardadas${queryParam}`}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-indigo-100/30 dark:border-slate-800/30 text-indigo-600 dark:text-indigo-400 text-xs font-extrabold transition-all cursor-pointer select-none active:scale-95 shadow-sm"
+              title={isEnglish ? 'Saved jobs' : 'Ofertas guardadas'}
+            >
+              <span>⭐</span>
+              <span className="hidden lg:inline">{isEnglish ? 'Saved' : 'Guardadas'}</span>
+            </Link>
+
             {/* Racha de Visitas */}
             <UserStreak lang={lang} />
 
@@ -119,6 +129,15 @@ export default function Header() {
           {/* Panel Lateral e Interacciones Móviles */}
           <div className="flex md:hidden items-center gap-2">
             
+            {/* Ofertas Guardadas Móvil */}
+            <Link
+              href={`/ofertas-guardadas${queryParam}`}
+              className="flex items-center justify-center p-2 rounded-xl bg-indigo-50 dark:bg-slate-900 text-indigo-650 dark:text-indigo-400 border border-indigo-100/20 dark:border-slate-800/20 shadow-sm cursor-pointer"
+              title={isEnglish ? 'Saved jobs' : 'Ofertas guardadas'}
+            >
+              <span>⭐</span>
+            </Link>
+
             {/* Racha Móvil */}
             <UserStreak lang={lang} />
 

@@ -11,7 +11,7 @@ import { cache } from "react";
 import { BASE_URL } from "@/lib/constants";
 import { getJobSlug, slugify } from "@/lib/slug";
 
-export const revalidate = 300;
+export const revalidate = 900; // Cache de 15 minutos (ISR)
 
 // Tipos
 interface Job {
@@ -231,11 +231,35 @@ const EXPERIENCE_SUFFIXES: Record<string, { keywords: string[]; label: string; l
   },
 };
 
+const CONTRACT_TYPES: Record<string, { keywords: string[]; label: string; labelEn: string }> = {
+  'contrato-indefinido': {
+    keywords: ['indefinido', 'contrato indefinido', 'puesto estable', 'permanente', 'permanent'],
+    label: 'Contrato Indefinido',
+    labelEn: 'Permanent Contract'
+  },
+  'contrato-temporal': {
+    keywords: ['temporal', 'contrato temporal', 'obra y servicio', 'temporary'],
+    label: 'Contrato Temporal',
+    labelEn: 'Temporary Contract'
+  },
+  'contrato-practicas': {
+    keywords: ['practicas', 'beca', 'becario', 'trainee', 'internship', 'en prácticas'],
+    label: 'Contrato de Prácticas',
+    labelEn: 'Internship'
+  },
+  'freelance': {
+    keywords: ['freelance', 'autonomo', 'autónomo', 'contractor'],
+    label: 'Freelance / Autónomo',
+    labelEn: 'Freelance / Contractor'
+  }
+};
+
 function parseSector(sectorSlug: string) {
   let tec = sectorSlug;
   let ciudad = '';
   let experiencia = '';
   let modalidad = '';
+  let contrato = '';
   let salaryMin: number | null = null;
   let salaryMax: number | null = null;
 
@@ -286,12 +310,32 @@ function parseSector(sectorSlug: string) {
     }
   }
 
+  for (const cKey of Object.keys(CONTRACT_TYPES)) {
+    if (tec.endsWith(`-${cKey}`)) {
+      contrato = cKey;
+      tec = tec.slice(0, -(cKey.length + 1));
+      break;
+    } else if (tec.includes(`-${cKey}-`)) {
+      contrato = cKey;
+      tec = tec.replace(`-${cKey}-`, '-');
+      break;
+    } else if (tec.startsWith(`${cKey}-`)) {
+      contrato = cKey;
+      tec = tec.slice(cKey.length + 1);
+      break;
+    } else if (tec === cKey) {
+      contrato = cKey;
+      tec = '';
+      break;
+    }
+  }
+
   if (tec === '') {
     tec = 'informatica-tecnologia';
   }
 
   const dbCategory = categoryMap[tec];
-  return { tec, ciudad, experiencia, modalidad, dbCategory, salaryMin, salaryMax };
+  return { tec, ciudad, experiencia, modalidad, contrato, dbCategory, salaryMin, salaryMax };
 }
 
 const getJobsCount = cache(async (
@@ -300,6 +344,7 @@ const getJobsCount = cache(async (
   dbCategory: string | undefined, 
   experiencia: string = '', 
   modalidad: string = '',
+  contrato: string = '',
   salaryMin?: number | null,
   salaryMax?: number | null
 ): Promise<number> => {
@@ -390,6 +435,17 @@ const getJobsCount = cache(async (
       paramsQuery.push(...expKeywords.map(k => `%${k}%`));
     }
 
+    if (contrato && CONTRACT_TYPES[contrato]) {
+      const contractKeywords = CONTRACT_TYPES[contrato].keywords;
+      const contractConditions = contractKeywords.map(() => {
+        const cond = `(title ILIKE $${paramIndex} OR description_snippet ILIKE $${paramIndex})`;
+        paramIndex++;
+        return cond;
+      }).join(' OR ');
+      sql += ` AND (${contractConditions})`;
+      paramsQuery.push(...contractKeywords.map(k => `%${k}%`));
+    }
+
     if (salaryMin) {
       sql += ` AND (salary_min >= $${paramIndex} OR salary_max >= $${paramIndex})`;
       paramsQuery.push(salaryMin);
@@ -421,11 +477,11 @@ export async function generateMetadata({ params, searchParams }: { params: Param
   const lang = resolvedSearchParams.lang === 'en' ? 'en' : 'es';
   const isEnglish = lang === 'en';
   
-  const { tec, ciudad, experiencia, modalidad, dbCategory, salaryMin, salaryMax } = parseSector(sectorSlug);
+  const { tec, ciudad, experiencia, modalidad, contrato, dbCategory, salaryMin, salaryMax } = parseSector(sectorSlug);
   
   const [jobs, totalCount] = await Promise.all([
-    getJobs(tec, ciudad, dbCategory, experiencia, modalidad, validPage, salaryMin, salaryMax),
-    getJobsCount(tec, ciudad, dbCategory, experiencia, modalidad, salaryMin, salaryMax)
+    getJobs(tec, ciudad, dbCategory, experiencia, modalidad, contrato, validPage, salaryMin, salaryMax),
+    getJobsCount(tec, ciudad, dbCategory, experiencia, modalidad, contrato, salaryMin, salaryMax)
   ]);
   
   const isThinPage = totalCount < 5;
@@ -438,6 +494,8 @@ export async function generateMetadata({ params, searchParams }: { params: Param
   const expLabel = experiencia ? ` ${isEnglish ? expLabelObj?.labelEn : expLabelObj?.label}` : '';
   const modLabel = modalidad === 'hibrido' ? ' híbrido' : '';
   const modLabelEn = modalidad === 'hibrido' ? ' Hybrid' : '';
+  const contractLabelObj = CONTRACT_TYPES[contrato];
+  const contractLabel = contrato ? ` ${isEnglish ? contractLabelObj?.labelEn : contractLabelObj?.label}` : '';
   const now = new Date();
 
   let salaryLabel = '';
@@ -456,17 +514,17 @@ export async function generateMetadata({ params, searchParams }: { params: Param
 
   if (isEnglish) {
     const totalText = totalCount > 0 ? `${totalCount} ` : '';
-    tituloBase = `🔥 ${totalText}${categoriaBonita}${modLabelEn}${expLabel}${salaryLabel} Jobs in Spain [${mesCapitalizado} ${anio}]`;
-    descBase = `Apply to ${totalCount > 0 ? `${totalCount} ` : ''}active ${categoriaBonita}${modLabelEn}${expLabel ? ` (${expLabel.trim()})` : ''}${salaryLabel} vacancies. Updated today.`;
+    tituloBase = `🔥 ${totalText}${categoriaBonita}${modLabelEn}${expLabel}${contractLabel}${salaryLabel} Jobs in Spain [${mesCapitalizado} ${anio}]`;
+    descBase = `Apply to ${totalCount > 0 ? `${totalCount} ` : ''}active ${categoriaBonita}${modLabelEn}${expLabel ? ` (${expLabel.trim()})` : ''}${contractLabel ? ` (${contractLabel.trim()})` : ''}${salaryLabel} vacancies. Updated today.`;
     if (ciudad) {
       const ciudadBonita = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
-      tituloBase = `🔥 ${totalText}${categoriaBonita}${modLabelEn}${expLabel}${salaryLabel} Jobs in ${ciudadBonita} [${mesCapitalizado} ${anio}]`;
+      tituloBase = `🔥 ${totalText}${categoriaBonita}${modLabelEn}${expLabel}${contractLabel}${salaryLabel} Jobs in ${ciudadBonita} [${mesCapitalizado} ${anio}]`;
       descBase += ` in ${ciudadBonita}.`;
     }
   } else {
     const totalText = totalCount > 0 ? `${totalCount} ` : '';
-    tituloBase = `🔥 ${totalText}Ofertas de Trabajo${modLabel}${expLabel} de ${categoriaBonita}${salaryLabel}`;
-    descBase = `Encuentra ${totalCount > 0 ? `${totalCount} ` : ''}ofertas de trabajo${modLabel}${expLabel ? ` para ${expLabel.trim()}` : ''} de ${categoriaBonita}${salaryLabel} actualizadas hoy.`;
+    tituloBase = `🔥 ${totalText}Ofertas de Trabajo${modLabel}${expLabel}${contractLabel} de ${categoriaBonita}${salaryLabel}`;
+    descBase = `Encuentra ${totalCount > 0 ? `${totalCount} ` : ''}ofertas de trabajo${modLabel}${expLabel ? ` para ${expLabel.trim()}` : ''}${contractLabel ? ` con ${contractLabel.trim()}` : ''} de ${categoriaBonita}${salaryLabel} actualizadas hoy.`;
     if (ciudad) {
       const ciudadBonita = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
       tituloBase += ` en ${ciudadBonita}`;
@@ -546,6 +604,7 @@ const getJobs = cache(async (
   dbCategory: string | undefined, 
   experiencia: string = '', 
   modalidad: string = '', 
+  contrato: string = '',
   page: number = 1,
   salaryMin?: number | null,
   salaryMax?: number | null
@@ -639,6 +698,17 @@ const getJobs = cache(async (
       paramsQuery.push(...expKeywords.map(k => `%${k}%`));
     }
 
+    if (contrato && CONTRACT_TYPES[contrato]) {
+      const contractKeywords = CONTRACT_TYPES[contrato].keywords;
+      const contractConditions = contractKeywords.map(() => {
+        const cond = `(title ILIKE $${paramIndex} OR description_snippet ILIKE $${paramIndex})`;
+        paramIndex++;
+        return cond;
+      }).join(' OR ');
+      sql += ` AND (${contractConditions})`;
+      paramsQuery.push(...contractKeywords.map(k => `%${k}%`));
+    }
+
     if (salaryMin) {
       sql += ` AND (salary_min >= $${paramIndex} OR salary_max >= $${paramIndex})`;
       paramsQuery.push(salaryMin);
@@ -723,51 +793,123 @@ function calculateStats(jobs: any[]) {
   };
 }
 
-function getEditorialIntro(categoria: string, ciudad: string, totalCount: number, averageSalary: number | null, isEnglish: boolean) {
+function getEditorialIntro(categoria: string, ciudad: string, totalCount: number, averageSalary: number | null, isEnglish: boolean, experiencia: string = '') {
   const ciudadLabel = ciudad ? (ciudad.toLowerCase() === 'remoto' ? (isEnglish ? 'remotely (100% remote work)' : 'en modalidad 100% remota (teletrabajo)') : (isEnglish ? `in ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)} and surrounding areas` : `en la zona de ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)} y alrededores`)) : (isEnglish ? 'in Spain' : 'en España');
   
   if (isEnglish) {
+    let p2Text = (
+      <strong className="text-indigo-900">{categoria}</strong>
+    );
+    let p2Full = null;
+    let p3Full = null;
+
+    if (experiencia === 'junior' || experiencia === 'sin-experiencia') {
+      p2Full = (
+        <p key="p2" className="text-gray-700 leading-relaxed text-sm md:text-base mb-4">
+          For Junior and entry-level professionals without prior experience in <strong className="text-indigo-900">{categoria}</strong>, the job market offers various entry-level opportunities focused on practical training and adopting development methodologies. Employers prioritize a proactive attitude, fast learning capabilities, and teamwork. Having a solid portfolio of personal projects on GitHub or completing specialized certifications can be the key differentiator to stand out.
+        </p>
+      );
+      p3Full = (
+        <p key="p3" className="text-gray-700 leading-relaxed text-sm md:text-base m-0">
+          Additionally, we recommend exploring certified training programs (available below and in the sidebar) to speed up your job search. With dedication, your first step into the <strong className="text-indigo-900">{categoria}</strong> ecosystem is within reach.
+        </p>
+      );
+    } else if (experiencia === 'senior') {
+      p2Full = (
+        <p key="p2" className="text-gray-700 leading-relaxed text-sm md:text-base mb-4">
+          For Senior professionals in <strong className="text-indigo-900">{categoria}</strong>, demand is exceptionally high, and companies compete intensely to attract top talent. At this level, beyond writing code, organizations value expertise in System Design, clean and scalable software architecture, and team leadership. Salary packages reflect this high value, commanding the top ranges in the tech industry.
+        </p>
+      );
+      p3Full = (
+        <p key="p3" className="text-gray-700 leading-relaxed text-sm md:text-base m-0">
+          To maximize your career potential, we encourage you to review our detailed salary reports and focus your interview preparation on advanced architecture and system design patterns.
+        </p>
+      );
+    } else {
+      p2Full = (
+        <p key="p2" className="text-gray-700 leading-relaxed text-sm md:text-base mb-4">
+          <strong className="text-indigo-900">{categoria}</strong> has become a cornerstone of modern software development, corporate IT systems, and digital product creation. Companies ranging from high-growth startups to Fortune 500 corporations and software factories are constantly seeking talented developers, engineers, and analysts to build, maintain, and scale applications in this ecosystem.{' '}
+          {averageSalary ? (
+            <>
+              Regarding compensation, the average annual salary for a <strong className="text-indigo-900">{categoria}</strong> professional {ciudadLabel} is estimated at <strong className="text-indigo-900">{averageSalary.toLocaleString('es-ES')}€ gross</strong>. This figure is dynamically updated based on the listings published on our portal that transparently declare their budget, providing you with a reliable market reference.
+            </>
+          ) : (
+            <>
+              Salary packages for this role are highly competitive. Although they depend heavily on seniority levels (Junior, Mid, Senior) and company funding, mastering <strong className="text-indigo-900">{categoria}</strong> remains a high-value skill that commands excellent compensation rates in the modern job market.
+            </>
+          )}
+        </p>
+      );
+      p3Full = (
+        <p key="p3" className="text-gray-700 leading-relaxed text-sm md:text-base m-0">
+          Whether you prefer the freedom of working from home, a hybrid schedule, or an on-site position, our platform curates and updates listings every 6 hours from dozens of reliable industry sources. We encourage you to browse the job cards below, analyze active salaries, and submit your application to boost your technical career.
+        </p>
+      );
+    }
+
     return [
       <p key="p1" className="text-gray-700 leading-relaxed text-sm md:text-base mb-4">
         Looking for active job openings specialized in <strong className="text-indigo-900">{categoria}</strong> {ciudadLabel}? You have arrived at the ideal destination. Currently, Portal Trabajo aggregates and indexes <strong className="text-indigo-900">{totalCount} active job vacancies</strong> for this specific tech profile, ensuring you can access the latest hiring opportunities and avoid expired listings.
       </p>,
+      p2Full,
+      p3Full
+    ];
+  }
+
+  // Español
+  let p2Full = null;
+  let p3Full = null;
+
+  if (experiencia === 'junior' || experiencia === 'sin-experiencia') {
+    p2Full = (
       <p key="p2" className="text-gray-700 leading-relaxed text-sm md:text-base mb-4">
-        <strong className="text-indigo-900">{categoria}</strong> has become a cornerstone of modern software development, corporate IT systems, and digital product creation. Companies ranging from high-growth startups to Fortune 500 corporations and software factories are constantly seeking talented developers, engineers, and analysts to build, maintain, and scale applications in this ecosystem.{' '}
+        Para los perfiles Junior y profesionales sin experiencia previa en <strong className="text-indigo-900">{categoria}</strong>, el mercado laboral {ciudadLabel} ofrece múltiples oportunidades de entrada enfocadas en la formación práctica y asimilación de buenas prácticas. Las empresas valoran de forma prioritaria la actitud proactiva, la capacidad de aprendizaje rápido y el trabajo en equipo. Tener un portfolio de proyectos personales en GitHub o haber completado cursos especializados puede ser el factor determinante para destacar frente a otros candidatos.
+      </p>
+    );
+    p3Full = (
+      <p key="p3" className="text-gray-700 leading-relaxed text-sm md:text-base m-0">
+        Adicionalmente, te recomendamos explorar cursos certificados (disponibles abajo y en la barra lateral) para acelerar tu preparación. Con paciencia y dedicación, tu primera oportunidad en el ecosistema de <strong className="text-indigo-900">{categoria}</strong> está a un paso.
+      </p>
+    );
+  } else if (experiencia === 'senior') {
+    p2Full = (
+      <p key="p2" className="text-gray-700 leading-relaxed text-sm md:text-base mb-4">
+        Para los perfiles Senior en <strong className="text-indigo-900">{categoria}</strong>, la demanda es extremadamente alta y las empresas compiten activamente por captar el mejor talento. En este nivel, además de la destreza técnica de codificación, se valoran competencias de diseño de sistemas (System Design), arquitectura de software limpia y escalable y el liderazgo de equipos. Las horquillas salariales son de las más elevadas del sector tech.
+      </p>
+    );
+    p3Full = (
+      <p key="p3" className="text-gray-700 leading-relaxed text-sm md:text-base m-0">
+        Si quieres optimizar tu negociación salarial, te recomendamos revisar el desglose detallado de percentiles en nuestro apartado de salarios y preparar tus entrevistas enfocándote en diseño de sistemas y patrones avanzados.
+      </p>
+    );
+  } else {
+    p2Full = (
+      <p key="p2" className="text-gray-700 leading-relaxed text-sm md:text-base mb-4">
+        El dominio de <strong className="text-indigo-900">{categoria}</strong> se ha convertido en un pilar fundamental para el desarrollo de software moderno, la infraestructura en la nube y el análisis de datos empresariales. Empresas de todos los sectores, desde startups tecnológicas en plena expansión hasta grandes corporaciones del IBEX 35 y consultoras internacionales, demandan de forma constante profesionales cualificados en esta disciplina.{' '}
         {averageSalary ? (
           <>
-            Regarding compensation, the average annual salary for a <strong className="text-indigo-900">{categoria}</strong> professional {ciudadLabel} is estimated at <strong className="text-indigo-900">{averageSalary.toLocaleString('es-ES')}€ gross</strong>. This figure is dynamically updated based on the listings published on our portal that transparently declare their budget, providing you with a reliable market reference.
+            En cuanto a la retribución económica, el salario medio anual estimado para profesionales de <strong className="text-indigo-900">{categoria}</strong> {ciudadLabel} se sitúa en torno a los <strong className="text-indigo-900">{averageSalary.toLocaleString('es-ES')}€ brutos anuales</strong>. Esta cifra se calcula de forma dinámica basándonos en las vacantes activas de nuestro portal que especifican rango salarial, ofreciéndote una referencia real del mercado.
           </>
         ) : (
           <>
-            Salary packages for this role are highly competitive. Although they depend heavily on seniority levels (Junior, Mid, Senior) and company funding, mastering <strong className="text-indigo-900">{categoria}</strong> remains a high-value skill that commands excellent compensation rates in the modern job market.
+            Las bandas salariales para esta especialidad varían sensiblemente según el nivel de experiencia (junior, mid o senior) y el tamaño de la empresa contratante. No obstante, las habilidades relacionadas con <strong className="text-indigo-900">{categoria}</strong> sigue estando entre las mejor pagadas dentro del convenio de consultoría e ingeniería de software de nuestro país.
           </>
         )}
-      </p>,
-      <p key="p3" className="text-gray-700 leading-relaxed text-sm md:text-base m-0">
-        Whether you prefer the freedom of working from home, a hybrid schedule, or an on-site position, our platform curates and updates listings every 6 hours from dozens of reliable industry sources. We encourage you to browse the job cards below, analyze active salaries, and submit your application to boost your technical career.
       </p>
-    ];
+    );
+    p3Full = (
+      <p key="p3" className="text-gray-700 leading-relaxed text-sm md:text-base m-0">
+        Tanto si buscas la flexibilidad del teletrabajo desde casa, un modelo de asistencia híbrida o un puesto presencial de oficina tradicional, nuestra plataforma actualiza y depura sus ofertas cada 6 horas para ofrecerte la máxima frescura en el contenido. Te invitamos a explorar las opciones detalladas abajo, contrastar salarios medios y postularte hoy mismo para impulsar tu trayectoria en el sector tecnológico.
+      </p>
+    );
   }
 
   return [
     <p key="p1" className="text-gray-700 leading-relaxed text-sm md:text-base mb-4">
       ¿Estás buscando ofertas de empleo activas especializadas en <strong className="text-indigo-900">{categoria}</strong> {ciudadLabel}? Has llegado al lugar indicado. Actualmente, Portal Trabajo recopila e indexa un total de <strong className="text-indigo-900">{totalCount} vacantes de trabajo activas</strong> para este perfil tecnológico en particular, facilitando tu búsqueda de empleo y ahorrándote tiempo al evitar listados obsoletos o duplicados.
     </p>,
-    <p key="p2" className="text-gray-700 leading-relaxed text-sm md:text-base mb-4">
-      El dominio de <strong className="text-indigo-900">{categoria}</strong> se ha convertido en un pilar fundamental para el desarrollo de software moderno, la infraestructura en la nube y el análisis de datos empresariales. Empresas de todos los sectores, desde startups tecnológicas en plena expansión hasta grandes corporaciones del IBEX 35 y consultoras internacionales, demandan de forma constante profesionales cualificados en esta disciplina.{' '}
-      {averageSalary ? (
-        <>
-          En cuanto a la retribución económica, el salario medio anual estimado para profesionales de <strong className="text-indigo-900">{categoria}</strong> {ciudadLabel} se sitúa en torno a los <strong className="text-indigo-900">{averageSalary.toLocaleString('es-ES')}€ brutos anuales</strong>. Esta cifra se calcula de forma dinámica basándonos en las vacantes activas de nuestro portal que especifican rango salarial, ofreciéndote una referencia real del mercado.
-        </>
-      ) : (
-        <>
-          Las bandas salariales para esta especialidad varían sensiblemente según el nivel de experiencia (junior, mid o senior) y el tamaño de la empresa contratante. No obstante, las habilidades relacionadas con <strong className="text-indigo-900">{categoria}</strong> sigue estando entre las mejor pagadas dentro del convenio de consultoría e ingeniería de software de nuestro país.
-        </>
-      )}
-    </p>,
-    <p key="p3" className="text-gray-700 leading-relaxed text-sm md:text-base m-0">
-      Tanto si buscas la flexibilidad del teletrabajo desde casa, un modelo de asistencia híbrida o un puesto presencial de oficina tradicional, nuestra plataforma actualiza y depura sus ofertas cada 6 horas para ofrecerte la máxima frescura en el contenido. Te invitamos a explorar las opciones detalladas abajo, contrastar salarios medios y postularte hoy mismo para impulsar tu trayectoria en el sector tecnológico.
-    </p>
+    p2Full,
+    p3Full
   ];
 }
 
@@ -787,11 +929,11 @@ export default async function SectorPage({
   const lang = resolvedSearchParams.lang === 'en' ? 'en' : 'es';
   const isEnglish = lang === 'en';
 
-  const { tec, ciudad, experiencia, modalidad, dbCategory, salaryMin, salaryMax } = parseSector(sectorSlug);
+  const { tec, ciudad, experiencia, modalidad, contrato, dbCategory, salaryMin, salaryMax } = parseSector(sectorSlug);
   
   const [jobsInitial, totalCount] = await Promise.all([
-    getJobs(tec, ciudad, dbCategory, experiencia, modalidad, validPage, salaryMin, salaryMax),
-    getJobsCount(tec, ciudad, dbCategory, experiencia, modalidad, salaryMin, salaryMax)
+    getJobs(tec, ciudad, dbCategory, experiencia, modalidad, contrato, validPage, salaryMin, salaryMax),
+    getJobsCount(tec, ciudad, dbCategory, experiencia, modalidad, contrato, salaryMin, salaryMax)
   ]);
   let jobs = jobsInitial;
   let isFallback = false;
@@ -811,6 +953,8 @@ export default async function SectorPage({
   const expLabelObj = EXPERIENCE_SUFFIXES[experiencia];
   const expLabel = experiencia ? ` ${isEnglish ? expLabelObj?.labelEn : expLabelObj?.label}` : '';
   const modLabel = modalidad === 'hibrido' ? (isEnglish ? ' Hybrid' : ' híbrido') : '';
+  const contractLabelObj = CONTRACT_TYPES[contrato];
+  const contractLabel = contrato ? ` ${isEnglish ? contractLabelObj?.labelEn : contractLabelObj?.label}` : '';
 
   let salaryLabel = '';
   if (salaryMin && salaryMax) {
@@ -820,8 +964,8 @@ export default async function SectorPage({
   }
 
   const tituloMostrado = ciudad 
-    ? (isEnglish ? `${categoriaBonita}${modLabel}${expLabel}${salaryLabel} in ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}` : `${categoriaBonita}${modLabel}${expLabel}${salaryLabel} en ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}`)
-    : `${categoriaBonita}${modLabel}${expLabel}${salaryLabel}`;
+    ? (isEnglish ? `${categoriaBonita}${modLabel}${expLabel}${contractLabel}${salaryLabel} in ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}` : `${categoriaBonita}${modLabel}${expLabel}${contractLabel}${salaryLabel} en ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}`)
+    : `${categoriaBonita}${modLabel}${expLabel}${contractLabel}${salaryLabel}`;
 
   const queryParam = isEnglish ? '?lang=en' : '';
 
@@ -1043,7 +1187,7 @@ export default async function SectorPage({
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch mb-8 bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
         <div className="md:col-span-2 flex flex-col justify-center">
-          {getEditorialIntro(categoriaBonita, ciudad, totalCount, stats.averageSalary, isEnglish)}
+          {getEditorialIntro(categoriaBonita, ciudad, totalCount, stats.averageSalary, isEnglish, experiencia)}
         </div>
         <div className="bg-indigo-50/70 p-5 rounded-xl border border-indigo-100 flex flex-col justify-center items-center text-center">
           <h3 className="text-xs font-bold text-indigo-900 uppercase tracking-wider m-0 mb-1">

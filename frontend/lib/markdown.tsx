@@ -68,12 +68,18 @@ const techSlugMap: Record<string, string> = {
   'go': 'go'
 };
 
-export function autoLinkHtml(html: string, isEnglish: boolean): string {
+export function autoLinkHtml(
+  html: string, 
+  isEnglish: boolean, 
+  context?: { linkCounts: Record<string, number>; totalLinks: number; maxTotal: number }
+): string {
   const tokens = html.split(/(<\/?[a-zA-Z0-9]+(?:\s+[^>]*)?>)/);
   let inLink = false;
   let inCode = false;
   
   const queryParam = isEnglish ? '?lang=en' : '';
+  const localCounts = context?.linkCounts || {};
+  const maxTotal = context?.maxTotal ?? 4;
 
   const processed = tokens.map(token => {
     if (token.startsWith('<') && token.endsWith('>')) {
@@ -95,9 +101,21 @@ export function autoLinkHtml(html: string, isEnglish: boolean): string {
     }
     
     return token.replace(techRegex, (matched) => {
-      const slug = techSlugMap[matched.toLowerCase()];
+      const lowerMatched = matched.toLowerCase();
+      const slug = techSlugMap[lowerMatched];
       if (slug) {
-        return `<a href="/trabajos/${slug}${queryParam}" class="text-indigo-650 hover:text-indigo-850 font-bold hover:underline">${matched}</a>`;
+        // Si no hay contexto global, permitimos enlazar libremente (mantiene compatibilidad anterior)
+        if (!context) {
+          return `<a href="/trabajos/${slug}${queryParam}" class="text-indigo-650 hover:text-indigo-850 font-bold hover:underline">${matched}</a>`;
+        }
+        
+        // Con contexto global: máx. 1 enlace por tecnología y máx. total de 4 enlaces
+        const currentCount = localCounts[lowerMatched] || 0;
+        if (currentCount < 1 && context.totalLinks < maxTotal) {
+          localCounts[lowerMatched] = currentCount + 1;
+          context.totalLinks++;
+          return `<a href="/trabajos/${slug}${queryParam}" class="text-indigo-650 hover:text-indigo-850 font-bold hover:underline">${matched}</a>`;
+        }
       }
       return matched;
     });
@@ -113,6 +131,13 @@ export function Markdown({ content, isEnglish = false, autoLink = false }: { con
   let currentBlockType: 'p' | 'ul' | 'ol' | 'table' | 'blockquote' | null = null;
   let currentLines: string[] = [];
 
+  // Contexto de enlaces compartido para evitar sobre-enlazado en todo el documento Markdown
+  const linkContext = {
+    linkCounts: {} as Record<string, number>,
+    totalLinks: 0,
+    maxTotal: 4
+  };
+
   const flushBlock = (key: string | number) => {
     if (currentLines.length === 0) return;
     
@@ -121,7 +146,7 @@ export function Markdown({ content, isEnglish = false, autoLink = false }: { con
       if (textContent) {
         let htmlContent = parseInline(textContent);
         if (autoLink) {
-          htmlContent = autoLinkHtml(htmlContent, isEnglish);
+          htmlContent = autoLinkHtml(htmlContent, isEnglish, linkContext);
         }
         blocks.push(
           <p
@@ -138,7 +163,7 @@ export function Markdown({ content, isEnglish = false, autoLink = false }: { con
             const cleanLine = line.replace(/^[\*\-]\s+/, '');
             let htmlContent = parseInline(cleanLine);
             if (autoLink) {
-              htmlContent = autoLinkHtml(htmlContent, isEnglish);
+              htmlContent = autoLinkHtml(htmlContent, isEnglish, linkContext);
             }
             return (
               <li
@@ -156,7 +181,7 @@ export function Markdown({ content, isEnglish = false, autoLink = false }: { con
             const cleanLine = line.replace(/^\d+\.\s+/, '');
             let htmlContent = parseInline(cleanLine);
             if (autoLink) {
-              htmlContent = autoLinkHtml(htmlContent, isEnglish);
+              htmlContent = autoLinkHtml(htmlContent, isEnglish, linkContext);
             }
             return (
               <li

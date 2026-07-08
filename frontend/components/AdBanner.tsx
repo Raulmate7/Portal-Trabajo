@@ -26,6 +26,15 @@ const getLinkedinLink = (url: string) => {
   }
 };
 
+const getCourseraLink = (url: string) => {
+  const affiliateId = typeof process !== 'undefined' ? (process.env.NEXT_PUBLIC_COURSERA_AFFILIATE_ID || '') : '';
+  if (affiliateId) {
+    return url.replace('TU_AFFILIATE_ID_COURSERA', affiliateId);
+  } else {
+    return url.replace(/[&?]c=TU_AFFILIATE_ID_COURSERA/, '');
+  }
+};
+
 const BOOKS = [
   {
     title: 'Libro: Código Limpio (Clean Code)',
@@ -76,39 +85,14 @@ const ADS = [
     ctaColors: 'bg-violet-600 hover:bg-violet-700 text-white',
   },
   {
-    id: 'books',
-    emoji: '📚',
-    title: 'Los mejores libros para programadores',
-    desc: 'Diseño de sistemas, Clean Code y arquitectura recomendada.',
-    cta: 'Ver Libros →',
-    href: getAmazonLink('https://www.amazon.es/s?k=libros+programacion+software&tag=TU_AMAZON_TAG'),
-    colors: 'from-amber-50 to-yellow-50 border-amber-200',
-    ctaColors: 'bg-amber-600 hover:bg-amber-700 text-white',
-  },
-  {
     id: 'cloud-cert',
     emoji: '☁️',
     title: 'Certificaciones Cloud oficiales (AWS, GCP, Azure)',
     desc: 'Consigue tu certificado en la nube con cursos de Coursera.',
     cta: 'Ver Cursos →',
-    // ACCIÓN REQUERIDA: Obtener ID de afiliado real en https://www.coursera.org/affiliate-program
-    // y sustituir 'TU_AFFILIATE_ID_COURSERA' por el ID numérico asignado.
-    href: 'https://coursera.pxf.io/c/TU_AFFILIATE_ID_COURSERA/1164968/14726',
+    href: getCourseraLink('https://coursera.pxf.io/c/TU_AFFILIATE_ID_COURSERA/1164968/14726'),
     colors: 'from-sky-50 to-cyan-50 border-sky-200',
     ctaColors: 'bg-sky-600 hover:bg-sky-700 text-white',
-  },
-  {
-    id: 'linkedin-premium',
-    emoji: '🔵',
-    title: 'LinkedIn Premium: consigue trabajo antes',
-    desc: 'Aparece antes en búsquedas de reclutadores. 1 mes gratis sin compromiso.',
-    cta: 'Probar gratis →',
-    // ACCIÓN REQUERIDA: Registrarse en el programa de afiliados de LinkedIn en Impact.com
-    // https://app.impact.com/campaign-promo-signup/LinkedIn.brand
-    // y sustituir 'TU_AFFILIATE_ID_LINKEDIN' por el ID asignado.
-    href: getLinkedinLink('https://www.linkedin.com/premium/products/?upsellOrderOrigin=aff_TU_AFFILIATE_ID_LINKEDIN'),
-    colors: 'from-blue-50 to-sky-50 border-blue-200',
-    ctaColors: 'bg-blue-700 hover:bg-blue-800 text-white',
   },
   {
     id: 'react-advanced',
@@ -116,8 +100,7 @@ const ADS = [
     title: 'Advanced React & Frontend Architecture',
     desc: 'Diseño de sistemas, patrones avanzados, rendimiento y testing en React.',
     cta: 'Ver Certificación →',
-    // ACCIÓN REQUERIDA: Mismo ID de afiliado de Coursera que cloud-cert
-    href: 'https://coursera.pxf.io/c/TU_AFFILIATE_ID_COURSERA/1164968/14726?subid=react-advanced',
+    href: getCourseraLink('https://coursera.pxf.io/c/TU_AFFILIATE_ID_COURSERA/1164968/14726?subid=react-advanced'),
     colors: 'from-indigo-50 to-purple-50 border-indigo-200',
     ctaColors: 'bg-indigo-600 hover:bg-indigo-700 text-white',
   },
@@ -127,10 +110,39 @@ const ADS = [
     title: 'GitOps & Kubernetes en Producción',
     desc: 'Escalabilidad, despliegue continuo, Docker y Kubernetes avanzado.',
     cta: 'Ver Certificación →',
-    // ACCIÓN REQUERIDA: Mismo ID de afiliado de Coursera que cloud-cert
-    href: 'https://coursera.pxf.io/c/TU_AFFILIATE_ID_COURSERA/1164968/14726?subid=devops-adv',
+    href: getCourseraLink('https://coursera.pxf.io/c/TU_AFFILIATE_ID_COURSERA/1164968/14726?subid=devops-adv'),
     colors: 'from-slate-50 to-blue-50 border-slate-200',
     ctaColors: 'bg-slate-900 hover:bg-black text-white',
+  },
+  {
+    id: 'linkedin-learning',
+    emoji: '🎓',
+    title: 'Aprende habilidades IT en LinkedIn Learning',
+    desc: 'Cursos prácticos impartidos por expertos. Primer mes gratis.',
+    cta: 'Empezar gratis →',
+    href: getLinkedinLink('https://linkedin-learning.pxf.io/c/TU_AFFILIATE_ID_LINKEDIN/1164968/14726'),
+    colors: 'from-blue-50 to-sky-50 border-blue-200',
+    ctaColors: 'bg-indigo-600 hover:bg-indigo-750 text-white',
+  },
+  {
+    id: 'domestika-tech',
+    emoji: '🎨',
+    title: 'Diseño Web y Frontend en Domestika',
+    desc: 'Figma, HTML, CSS y Javascript con profesionales del sector.',
+    cta: 'Ver Cursos →',
+    href: 'https://domestika.sjv.io/c/42bf01704253/1164968/14726?subid=domestika-tech',
+    colors: 'from-orange-50 to-rose-50 border-orange-200',
+    ctaColors: 'bg-rose-600 hover:bg-rose-700 text-white',
+  },
+  {
+    id: 'platzi-tech',
+    emoji: '💚',
+    title: 'Crece profesionalmente con Platzi',
+    desc: 'Cursos online de programación, servidores, base de datos y diseño.',
+    cta: 'Ver Planes →',
+    href: 'https://platzi.com/r/portalit/',
+    colors: 'from-green-50 to-emerald-50 border-green-200',
+    ctaColors: 'bg-emerald-600 hover:bg-emerald-700 text-white',
   },
 ];
 
@@ -167,13 +179,15 @@ export default function AdBanner({
   slot,
   tech,
   experience,
-  enableRefresh = false
+  enableRefresh = false,
+  raw = false
 }: { 
   variant?: 'sidebar' | 'inline' | 'multiplex' | 'infeed';
   slot?: string;
   tech?: string;
   experience?: string;
   enableRefresh?: boolean;
+  raw?: boolean;
 }) {
   const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
 
@@ -395,9 +409,9 @@ export default function AdBanner({
   let adIndex = 0;
   
   if (resolvedExp.includes('senior') && (resolvedTech.includes('cloud') || resolvedTech.includes('devops') || resolvedTech.includes('aws') || resolvedTech.includes('kubernetes') || resolvedTech.includes('docker'))) {
-    adIndex = 7; // devops-adv (Kubernetes y GitOps)
+    adIndex = 5; // devops-adv (Kubernetes y GitOps)
   } else if (resolvedExp.includes('senior') && (resolvedTech.includes('react') || resolvedTech.includes('next') || resolvedTech.includes('frontend'))) {
-    adIndex = 6; // react-advanced
+    adIndex = 4; // react-advanced
   } else if (
     resolvedTech.includes('cloud') ||
     resolvedTech.includes('devops') ||
@@ -409,27 +423,7 @@ export default function AdBanner({
     resolvedTech.includes('system') ||
     resolvedTech.includes('admin')
   ) {
-    adIndex = 4; // cloud-cert
-  } else if (
-    resolvedTech.includes('java') ||
-    resolvedTech.includes('php') ||
-    resolvedTech.includes('csharp') ||
-    resolvedTech.includes('kotlin') ||
-    resolvedTech.includes('scala') ||
-    resolvedTech.includes('empresas') ||
-    resolvedTech.includes('reclutador') ||
-    resolvedTech.includes('networking')
-  ) {
-    adIndex = 5; // linkedin-premium (muy útil para perfiles enterprise como Java/PHP que buscan empleo)
-  } else if (
-    resolvedTech.includes('blog') ||
-    resolvedTech.includes('orientacion') ||
-    resolvedTech.includes('cv') ||
-    resolvedTech.includes('entrevista') ||
-    resolvedTech.includes('libro') ||
-    resolvedTech.includes('book')
-  ) {
-    adIndex = 3; // books
+    adIndex = 3; // cloud-cert
   } else if (
     resolvedTech.includes('react') ||
     resolvedTech.includes('javascript') ||
@@ -460,17 +454,137 @@ export default function AdBanner({
     adIndex = new Date().getHours() % ADS.length;
   }
 
-  const rawAd = ADS[adIndex];
-  const ad = rawAd.id === 'books' ? {
-    ...rawAd,
-    title: BOOKS[bookIndex].title,
-    desc: BOOKS[bookIndex].desc,
-    href: BOOKS[bookIndex].href
-  } : rawAd;
+  let ad = ADS[adIndex];
+
+  // Mapeo contextual específico por tecnología para maximizar CTR
+  const TECH_COURSE_MAP: Record<string, typeof ad> = {
+    'react': {
+      id: 'react-advanced',
+      emoji: '⚛️',
+      title: 'Advanced React & Architecture',
+      desc: 'Patrones avanzados, rendimiento y diseño de sistemas en frontend.',
+      cta: 'Ver Curso →',
+      href: getCourseraLink('https://coursera.pxf.io/c/TU_AFFILIATE_ID_COURSERA/1164968/14726?subid=react-advanced'),
+      colors: 'from-indigo-50 to-purple-50 border-indigo-200',
+      ctaColors: 'bg-indigo-600 hover:bg-indigo-750 text-white',
+    },
+    'node': {
+      id: 'node-backend',
+      emoji: '🟢',
+      title: 'Node.js: Backend de Cero a Experto',
+      desc: 'Crea APIs robustas, autenticación y despliegue real en producción.',
+      cta: 'Ver Curso →',
+      href: `${UDEMY_LINK}?subid=node-backend&redirect=https%3A%2F%2Fwww.udemy.com%2Fcourse%2Fnode-de-cero-a-master%2F`,
+      colors: 'from-green-50 to-emerald-50 border-green-200',
+      ctaColors: 'bg-emerald-600 hover:bg-emerald-700 text-white',
+    },
+    'python': {
+      id: 'python-bootcamp',
+      emoji: '🐍',
+      title: 'Masterclass Completa de Python',
+      desc: 'Aprende programación, análisis de datos y machine learning con Python.',
+      cta: 'Empezar →',
+      href: `${UDEMY_LINK}?subid=python-bootcamp&redirect=https%3A%2F%2Fwww.udemy.com%2Fcourse%2Fcomplete-python-bootcamp%2F`,
+      colors: 'from-amber-50/40 to-yellow-50/50 border-yellow-200',
+      ctaColors: 'bg-amber-600 hover:bg-amber-700 text-white',
+    },
+    'java': {
+      id: 'java-master',
+      emoji: '☕',
+      title: 'Java Master Class & Spring Boot',
+      desc: 'El lenguaje corporativo más cotizado. De cero a arquitecto de software.',
+      cta: 'Ver Curso →',
+      href: `${UDEMY_LINK}?subid=java-master&redirect=https%3A%2F%2Fwww.udemy.com%2Fcourse%2Fjava-the-complete-reference%2F`,
+      colors: 'from-red-50 to-orange-50 border-red-200',
+      ctaColors: 'bg-red-600 hover:bg-red-700 text-white',
+    },
+    'typescript': {
+      id: 'typescript-master',
+      emoji: '🟦',
+      title: 'TypeScript: Guía Completa de Programación',
+      desc: 'Domina tipos, genéricos, clases y diseño de tipos seguros en frontend y backend.',
+      cta: 'Ver Curso →',
+      href: `${UDEMY_LINK}?subid=typescript-master&redirect=https%3A%2F%2Fwww.udemy.com%2Fcourse%2Funderstanding-typescript%2F`,
+      colors: 'from-blue-50 to-sky-50 border-blue-200',
+      ctaColors: 'bg-blue-600 hover:bg-blue-700 text-white',
+    },
+    'aws': {
+      id: 'aws-cert',
+      emoji: '☁️',
+      title: 'AWS Certified Solutions Architect',
+      desc: 'Certifícate oficialmente en la nube con mayor demanda laboral en España.',
+      cta: 'Ver Curso →',
+      href: getCourseraLink('https://coursera.pxf.io/c/TU_AFFILIATE_ID_COURSERA/1164968/14726?subid=aws-cert'),
+      colors: 'from-orange-50 to-amber-50 border-orange-200',
+      ctaColors: 'bg-orange-600 hover:bg-orange-700 text-white',
+    },
+    'docker': {
+      id: 'docker-k8s',
+      emoji: '🐳',
+      title: 'Docker y Kubernetes de Cero a Héroe',
+      desc: 'Automatiza, escala y administra contenedores en producción.',
+      cta: 'Ver Curso →',
+      href: `${UDEMY_LINK}?subid=docker-k8s&redirect=https%3A%2F%2Fwww.udemy.com%2Fcourse%2Fdocker-and-kubernetes-the-complete-guide%2F`,
+      colors: 'from-blue-50 to-cyan-50 border-cyan-200',
+      ctaColors: 'bg-cyan-600 hover:bg-cyan-700 text-white',
+    },
+    'rust': {
+      id: 'rust-lang',
+      emoji: '🦀',
+      title: 'Rust Programming: The Complete Guide',
+      desc: 'Domina la gestión de memoria sin recolector y concurrencia segura en Rust.',
+      cta: 'Ver Curso →',
+      href: `${UDEMY_LINK}?subid=rust-lang&redirect=https%3A%2F%2Fwww.udemy.com%2Fcourse%2Frust-programming%2F`,
+      colors: 'from-amber-50 to-orange-50 border-amber-200',
+      ctaColors: 'bg-amber-700 hover:bg-amber-800 text-white',
+    },
+    'go': {
+      id: 'go-lang',
+      emoji: '🐹',
+      title: 'Desarrollo Backend con Go (Golang)',
+      desc: 'Aprende el lenguaje de Google para crear microservicios ultrarrápidos.',
+      cta: 'Ver Curso →',
+      href: `${UDEMY_LINK}?subid=go-lang&redirect=https%3A%2F%2Fwww.udemy.com%2Fcourse%2Fgo-the-complete-developers-guide%2F`,
+      colors: 'from-sky-50 to-cyan-50 border-sky-200',
+      ctaColors: 'bg-sky-600 hover:bg-sky-700 text-white',
+    },
+    'php': {
+      id: 'php-laravel',
+      emoji: '🐘',
+      title: 'PHP con Laravel de Principiante a Master',
+      desc: 'Crea aplicaciones dinámicas robustas y seguras usando el framework Laravel.',
+      cta: 'Ver Curso →',
+      href: `${UDEMY_LINK}?subid=php-laravel&redirect=https%3A%2F%2Fwww.udemy.com%2Fcourse%2Fphp-with-laravel-for-beginners%2F`,
+      colors: 'from-indigo-50 to-purple-50 border-indigo-200',
+      ctaColors: 'bg-indigo-600 hover:bg-indigo-750 text-white',
+    }
+  };
+
+  // Intentar emparejar por tecnología para máxima contextualización
+  for (const [techKey, techAd] of Object.entries(TECH_COURSE_MAP)) {
+    if (resolvedTech.includes(techKey)) {
+      ad = techAd;
+      break;
+    }
+  }
 
   // Si no está configurada la variable de entorno o hay un error de carga, usar afiliación Udemy
   if (!adsenseClientId || adError) {
     if (variant === 'inline') {
+      if (raw) {
+        return (
+          <a
+            href={getUtmUrl(ad.href, ad.id, variant)}
+            target="_blank"
+            rel="noopener noreferrer sponsored"
+            className={`flex items-center justify-between w-full h-[60px] px-4 rounded-lg bg-gradient-to-r ${ad.colors} border shadow-sm text-xs font-semibold`}
+            onClick={() => sendGAEvent({ event: 'click_affiliate', value: ad.id })}
+          >
+            <span className="truncate mr-2 font-bold text-gray-900">{ad.emoji} {ad.title}</span>
+            <span className={`shrink-0 px-3 py-1 rounded text-[11px] font-bold ${ad.ctaColors}`}>{ad.cta}</span>
+          </a>
+        );
+      }
       return (
         <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-xl bg-gradient-to-r ${ad.colors} border shadow-sm`}>
           <div className="flex items-center gap-3">
@@ -585,6 +699,20 @@ export default function AdBanner({
     }
 
     // Sidebar (vertical)
+    if (raw) {
+      return (
+        <a
+          href={getUtmUrl(ad.href, ad.id, variant)}
+          target="_blank"
+          rel="noopener noreferrer sponsored"
+          className={`block p-3.5 rounded-lg bg-gradient-to-br ${ad.colors} border shadow-sm text-xs text-center`}
+          onClick={() => sendGAEvent({ event: 'click_affiliate', value: ad.id })}
+        >
+          <span className="block font-bold text-gray-900 mb-1.5">{ad.emoji} {ad.title}</span>
+          <span className={`block w-full py-1.5 rounded text-[11px] font-bold ${ad.ctaColors}`}>{ad.cta}</span>
+        </a>
+      );
+    }
     return (
       <div className={`p-5 rounded-xl bg-gradient-to-br ${ad.colors} border shadow-sm`}>
         <div className="flex items-center gap-2 mb-3">
@@ -675,6 +803,32 @@ export default function AdBanner({
   }
 
   // Renderizado del banner estándar de Google AdSense (inline / sidebar)
+  if (raw) {
+    return (
+      <div className={`w-full flex justify-center items-center overflow-hidden relative ${isLoading ? 'animate-pulse' : ''}`}>
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-gray-300 dark:text-slate-600">
+            <span className="text-[9px] uppercase tracking-wider font-medium">Cargando...</span>
+          </div>
+        )}
+        <ins
+          key={refreshKey}
+          ref={insRef}
+          className="adsbygoogle relative z-10"
+          style={{ 
+            display: 'block', 
+            width: '100%',
+            textAlign: 'center'
+          }}
+          data-ad-client={adsenseClientId}
+          data-ad-slot={adSlot}
+          data-ad-format={variant === 'inline' ? 'horizontal' : 'auto'}
+          data-full-width-responsive="true"
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="w-full overflow-hidden bg-white border border-gray-100 rounded-xl shadow-sm p-4 flex flex-col items-center">
       <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mb-2 block text-center">Anuncio</span>

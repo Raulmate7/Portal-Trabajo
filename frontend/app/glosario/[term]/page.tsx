@@ -6,10 +6,50 @@ import { notFound } from 'next/navigation';
 import { BASE_URL } from '@/lib/constants';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import AuthorBox from '@/components/AuthorBox';
+import pool from '@/lib/db';
+import JobCard from '@/components/JobCard';
+
+export const revalidate = 3600; // Cache por 1 hora
 
 type Props = {
   params: Promise<{ term: string }>;
 };
+
+async function getGlossaryTechData(tech: string) {
+  const client = await pool.connect();
+  try {
+    // 1. Obtener salario medio
+    const salaryRes = await client.query(`
+      SELECT AVG((salary_min + salary_max) / 2) as avg_sal
+      FROM jobs
+      WHERE is_active = TRUE
+        AND (title ILIKE $1 OR category ILIKE $1)
+        AND salary_min IS NOT NULL
+        AND salary_max IS NOT NULL
+        AND salary_min >= 12000
+        AND salary_max <= 150000
+    `, [`%${tech}%`]);
+    
+    // 2. Obtener 5 trabajos más recientes
+    const jobsRes = await client.query(`
+      SELECT * FROM jobs
+      WHERE is_active = TRUE
+        AND (title ILIKE $1 OR category ILIKE $1)
+      ORDER BY created_at DESC
+      LIMIT 5
+    `, [`%${tech}%`]);
+
+    return {
+      averageSalary: salaryRes.rows[0]?.avg_sal ? Math.round(parseFloat(salaryRes.rows[0].avg_sal)) : null,
+      jobs: jobsRes.rows
+    };
+  } catch (error) {
+    console.error(`Error fetching glossary tech data for ${tech}:`, error);
+    return { averageSalary: null, jobs: [] };
+  } finally {
+    client.release();
+  }
+}
 
 export async function generateStaticParams() {
   return GLOSSARY_TERMS.map((t) => ({
@@ -30,6 +70,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description: `${item.definition.slice(0, 150)}... Descubre qué significa este término y su relevancia en el mercado laboral informático.`,
     alternates: {
       canonical: `${BASE_URL}/glosario/${term}`,
+      languages: {
+        'es-ES': `${BASE_URL}/glosario/${term}`,
+        'en': `${BASE_URL}/glosario/${term}?lang=en`,
+        'x-default': `${BASE_URL}/glosario/${term}`,
+      }
     },
     openGraph: {
       title: `¿Qué es ${item.term}? | Diccionario para Programadores`,
@@ -46,6 +91,10 @@ export default async function GlossaryDetailPage({ params }: Props) {
   if (!item) {
     notFound();
   }
+
+  const techData = item.linkedJobsSlug 
+    ? await getGlossaryTechData(item.linkedJobsSlug)
+    : { averageSalary: null, jobs: [] };
 
   // Schema DefinedTerm
   const definedTermSchema = {
@@ -130,6 +179,28 @@ export default async function GlossaryDetailPage({ params }: Props) {
             slug={term} 
           />
 
+          {/* Ofertas Relacionadas Dinámicas */}
+          {techData.jobs.length > 0 && (
+            <div className="space-y-4 pt-4">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3">
+                <span>💼</span> Últimas Ofertas de Empleo de {item.term.split(' (')[0]}
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {techData.jobs.map((job: any) => (
+                  <JobCard key={job.id} job={job} />
+                ))}
+              </div>
+              <div className="text-center pt-2">
+                <Link 
+                  href={`/trabajos/${item.linkedJobsSlug}`}
+                  className="inline-flex items-center gap-1 text-sm font-bold text-indigo-650 hover:text-indigo-850 hover:underline"
+                >
+                  Ver todas las ofertas de {item.term.split(' (')[0]} →
+                </Link>
+              </div>
+            </div>
+          )}
+
           {/* Ad unit inferior */}
           <AdBanner variant="inline" />
 
@@ -138,6 +209,32 @@ export default async function GlossaryDetailPage({ params }: Props) {
         {/* Sidebar Column */}
         <div className="lg:col-span-1 space-y-6">
           
+          {/* Widget de Salario Medio Dinámico */}
+          {techData.averageSalary && (
+            <div className="bg-indigo-50/70 p-5 rounded-2xl border border-indigo-100 flex flex-col justify-center items-center text-center shadow-sm">
+              <h3 className="text-xs font-bold text-indigo-900 uppercase tracking-wider m-0 mb-1">
+                Salario Medio Estimado
+              </h3>
+              <p className="text-3xl font-extrabold text-indigo-700 m-0">
+                {techData.averageSalary.toLocaleString('es-ES')}€
+              </p>
+              <span className="text-[10px] text-gray-500 mt-1">
+                Brutos anuales en España
+              </span>
+              <span className="text-[9px] text-gray-400 mt-2">
+                Calculado en base a vacantes reales de la categoría
+              </span>
+              {item.linkedSalariesSlug && (
+                <Link
+                  href={`/salarios/${item.linkedSalariesSlug}`}
+                  className="text-[11px] font-extrabold text-indigo-650 hover:text-indigo-800 hover:underline mt-3"
+                >
+                  Ver informe completo →
+                </Link>
+              )}
+            </div>
+          )}
+
           {/* Enlaces rápidos a listados relacionados */}
           {(item.linkedJobsSlug || item.linkedSalariesSlug) && (
             <div className="bg-white p-6 rounded-2xl border border-gray-150 shadow-sm space-y-4">

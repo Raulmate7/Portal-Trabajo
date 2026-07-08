@@ -169,11 +169,29 @@ export default async function InglesRequeridoPage() {
     }))
   };
 
+  const itemListJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Ofertas de Empleo IT con Inglés Requerido',
+    description: 'Listado de ofertas de trabajo activas de informática y tecnología que requieren inglés en España',
+    numberOfItems: jobs.length,
+    itemListElement: jobs.map((job: Job, idx: number) => ({
+      '@type': 'ListItem',
+      position: idx + 1,
+      url: `${BASE_URL}/job/${getJobSlug(job)}`,
+      name: `${job.title} - ${job.company}`
+    }))
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <script 
         type="application/ld+json" 
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} 
+      />
+      <script 
+        type="application/ld+json" 
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} 
       />
       <script 
         type="application/ld+json" 

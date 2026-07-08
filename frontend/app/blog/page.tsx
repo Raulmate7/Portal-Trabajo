@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getBlogPosts } from '@/lib/blog';
 import { BASE_URL } from '@/lib/constants';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import AdBanner from '@/components/AdBanner';
 
 export const metadata: Metadata = {
   title: 'Blog de Empleo Tech | Portal Trabajo',
@@ -66,26 +67,37 @@ export default async function BlogPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {posts.map((post) => (
-          <Link key={post.slug} href={`/blog/${post.slug}`} className="group">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all h-full flex flex-col">
-              <div className="flex items-center gap-3 mb-3">
-                <time dateTime={post.date} className="text-xs text-indigo-600 font-semibold">
-                  {new Date(post.date).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}
-                </time>
-                <span className="text-gray-300">·</span>
-                <span className="text-xs text-gray-500">Raúl M.</span>
+        {posts.flatMap((post, index) => {
+          const card = (
+            <Link key={post.slug} href={`/blog/${post.slug}`} className="group">
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all h-full flex flex-col">
+                <div className="flex items-center gap-3 mb-3">
+                  <time dateTime={post.date} className="text-xs text-indigo-600 font-semibold">
+                    {new Date(post.date).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </time>
+                  <span className="text-gray-300">·</span>
+                  <span className="text-xs text-gray-500">Raúl M.</span>
+                </div>
+                <h2 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-indigo-600 transition-colors leading-snug">
+                  {post.title}
+                </h2>
+                <p className="text-gray-600 text-sm mb-6 flex-grow leading-relaxed">{post.excerpt}</p>
+                <div className="text-indigo-600 font-medium text-sm inline-flex items-center gap-1 group-hover:gap-2 transition-all">
+                  Leer artículo <span aria-hidden="true">→</span>
+                </div>
               </div>
-              <h2 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-indigo-600 transition-colors leading-snug">
-                {post.title}
-              </h2>
-              <p className="text-gray-600 text-sm mb-6 flex-grow leading-relaxed">{post.excerpt}</p>
-              <div className="text-indigo-600 font-medium text-sm inline-flex items-center gap-1 group-hover:gap-2 transition-all">
-                Leer artículo <span aria-hidden="true">→</span>
+            </Link>
+          );
+          if (index === 3) {
+            return [
+              card,
+              <div key="ad-blog-inline" className="col-span-full my-4">
+                <AdBanner variant="inline" />
               </div>
-            </div>
-          </Link>
-        ))}
+            ];
+          }
+          return [card];
+        })}
       </div>
     </div>
   );

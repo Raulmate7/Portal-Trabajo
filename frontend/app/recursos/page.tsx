@@ -57,6 +57,15 @@ export default async function RecursosPage({ searchParams }: Props) {
     }
   };
 
+  const courseraId = process.env.NEXT_PUBLIC_COURSERA_AFFILIATE_ID || '';
+  const getCourseraUrl = (url: string) => {
+    if (courseraId) {
+      return url.replace('TU_AFFILIATE_ID_COURSERA', courseraId);
+    } else {
+      return url.replace(/[&?]c=TU_AFFILIATE_ID_COURSERA/, '');
+    }
+  };
+
   const resources = {
     formacion: {
       title: isEnglish ? '🎓 Top Courses & Certifications' : '🎓 Cursos y Certificaciones',
@@ -74,7 +83,7 @@ export default async function RecursosPage({ searchParams }: Props) {
           desc: isEnglish ? 'Official career certificates from Google, IBM, Meta and AWS. Accelerate your job search.' : 'Certificados profesionales oficiales de Google, IBM, Meta y AWS. Acelera tu búsqueda de empleo.',
           tag: 'Coursera',
           cta: isEnglish ? 'View Certificates' : 'Ver Certificados',
-          href: 'https://coursera.pxf.io/c/TU_AFFILIATE_ID_COURSERA/1164968/14726?subid=recursos_page',
+          href: getCourseraUrl('https://coursera.pxf.io/c/TU_AFFILIATE_ID_COURSERA/1164968/14726?subid=recursos_page'),
           featured: false,
         }
       ]
@@ -130,27 +139,6 @@ export default async function RecursosPage({ searchParams }: Props) {
           tag: 'Hostinger',
           cta: isEnglish ? 'Get Discounted Hosting' : 'Ver Planes de Hosting',
           href: 'https://www.hostinger.es/',
-          featured: false,
-        }
-      ]
-    },
-    libros: {
-      title: isEnglish ? '📚 Recommended Tech Books' : '📚 Libros de Programación Estrella',
-      items: [
-        {
-          name: 'Designing Data-Intensive Applications',
-          desc: isEnglish ? 'The absolute bible for system design, scalability, databases and microservice architecture.' : 'La biblia absoluta sobre diseño de sistemas, escalabilidad, bases de datos y arquitectura de microservicios.',
-          tag: 'Martin Kleppmann',
-          cta: isEnglish ? 'View Book on Amazon' : 'Ver Libro en Amazon',
-          href: getAmazonUrl('https://www.amazon.es/Designing-Data-Intensive-Applications-Reliable-Maintainable/dp/1449373321?tag=TU_AMAZON_TAG'),
-          featured: false,
-        },
-        {
-          name: 'Clean Code (Código Limpio)',
-          desc: isEnglish ? 'A handbook of agile software craftsmanship. Master refactoring, clean functions and OOP.' : 'El manual imprescindible sobre artesanía del software. Domina la refactorización, funciones limpias y POO.',
-          tag: 'Robert C. Martin',
-          cta: isEnglish ? 'View Book on Amazon' : 'Ver Libro en Amazon',
-          href: getAmazonUrl('https://www.amazon.es/Clean-Code-Handbook-Software-Craftsmanship/dp/0132350882?tag=TU_AMAZON_TAG'),
           featured: false,
         }
       ]
