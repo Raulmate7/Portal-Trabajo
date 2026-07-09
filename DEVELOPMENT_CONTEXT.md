@@ -1,6 +1,6 @@
 # 📌 Contexto de Desarrollo y Arquitectura - Portal Empleo IT
 
-Este documento sirve como la fuente única de verdad para desarrolladores y asistentes de Inteligencia Artificial (como Gemini/Antigravity). Describe exhaustivamente la arquitectura, base de datos, lógica de negocio y automatizaciones del portal.
+Este documento sirve como la **fuente única de verdad** para desarrolladores y asistentes de Inteligencia Artificial. Describe exhaustivamente la arquitectura, base de datos, lógica de negocio, automatizaciones y el plan completo de tráfico y monetización implementado en el portal.
 
 > [!IMPORTANT]
 > **Para el Asistente de IA:** Lee este archivo al inicio de cada conversación para obtener el contexto completo del proyecto de forma rápida, precisa y con bajo consumo de tokens.
@@ -10,7 +10,7 @@ Este documento sirve como la fuente única de verdad para desarrolladores y asis
 ## 🛠️ 1. Stack Tecnológico y Arquitectura Distribuida
 
 > [!IMPORTANT]
-> **Arquitectura activa en producción:** El proyecto opera **exclusivamente** bajo una arquitectura **híbrida distribuida** entre Vercel y Raiola Networks. La alternativa de VPS unificado con PM2/Nginx documentada en la sección 11 está **obsoleta y no se utiliza**.
+> **Arquitectura activa en producción:** El proyecto opera **exclusivamente** bajo una arquitectura **híbrida distribuida** entre Vercel y Raiola Networks. La alternativa de VPS unificado con PM2/Nginx está **obsoleta y no se utiliza**.
 
 El proyecto opera bajo una **arquitectura híbrida distribuida**:
 1. El **Frontend (Next.js)** está alojado en **Vercel** → desplegado automáticamente desde la rama `main` de GitHub.
@@ -24,7 +24,7 @@ El proyecto opera bajo una **arquitectura híbrida distribuida**:
 | **Backend** | Python 3.10 | 🖥️ **Raiola Networks** | Scrapy, FastAPI, PyMySQL, Cloudscraper, BeautifulSoup4, Pillow (PIL). Administrado vía cPanel. |
 | **Base de Datos** | MySQL 5.7+ / 8.0 | 🖥️ **Raiola Networks** | MySQL local en Raiola. Vercel accede a ella mediante proxy HTTP (`db_proxy.php`) al no permitirse conexiones TCP directas al puerto 3306. |
 | **Automatización** | GitHub Actions | ☁️ GitHub Nube | Tareas programadas (cron) para scrapers (`run_all.py`) y envíos semanales (`mailer.py`). |
-| **Canales Externos** | Telegram, Twitter/X, LinkedIn, Mastodon, Email | Integraciones API | Difusión automatizada de vacantes mediante bots e email SMTP. |
+| **Canales Externos** | Telegram, LinkedIn, Mastodon, Email | Integraciones API | Difusión automatizada de vacantes mediante bots e email SMTP. Twitter/X desactivado por petición del usuario. |
 
 ---
 
@@ -49,7 +49,7 @@ graph TD
 ```
 
 ### Mecanismo de Seguridad y Procesamiento
-*   **Firma del Token**: Cada consulta enviada desde Vercel debe incluir la cabecera `X-Proxy-Token` con un token seguro (`a6f021f1d19d675b8e998a44d187764d`). Si el token es ausente o inválido, devuelve un error `403 Forbidden`.
+*   **Firma del Token**: Cada consulta enviada desde Vercel debe incluir la cabecera `X-Proxy-Token` con un token seguro. Si el token es ausente o inválido, devuelve un error `403 Forbidden`.
 *   **Consultas Preparadas (PDO)**: El script PHP lee un JSON con dos parámetros: `sql` (la cadena SQL de consulta) y `params` (los valores de los marcadores). Esto previene inyecciones SQL usando la preparación nativa de PDO.
 *   **Gestión de Respuestas**:
     *   Si la consulta inicia con `SELECT` o `SHOW`, ejecuta `fetchAll()` y devuelve un array JSON con las filas en la clave `rows`.
@@ -71,6 +71,8 @@ erDiagram
         timestamp created_at
         boolean is_featured
         boolean is_active
+        varchar plan
+        timestamp featured_until
         decimal salary_min
         decimal salary_max
         timestamp last_tweeted_at
@@ -104,6 +106,9 @@ erDiagram
         text tech_keywords
         text location_pref
         varchar frequency
+        int streak_days
+        timestamp streak_last_visit
+        varchar referred_by
     }
     alerts {
         varchar id PK
@@ -141,48 +146,14 @@ erDiagram
     }
 ```
 
-### DDL de las Tablas e Índices de Optimización
+### Campos Relevantes Adicionales en `jobs`
+- `plan`: Almacena el plan de la oferta destacada: `'basico'`, `'destacado_basico'`, `'destacado_pro'`, `'destacado_enterprise'`.
+- `featured_until`: `TIMESTAMP NULL` — Fecha de expiración del destaque. El webhook de Stripe lo calcula como `NOW() + 15 días` (Básico) o `NOW() + 30 días` (Pro/Enterprise).
 
-1.  **`sectors`**: Almacena los sectores tecnológicos y las palabras clave asociadas para la clasificación interna.
-    *   `id`: `INT AUTO_INCREMENT PRIMARY KEY`
-    *   `name`: `VARCHAR(255) NOT NULL` (ej. 'Informática y Tecnología')
-    *   `slug`: `VARCHAR(255) UNIQUE NOT NULL` (ej. 'informatica-tecnologia')
-    *   `keywords`: `JSON NOT NULL` (Lista JSON de términos relacionados para scrapers)
-2.  **`jobs`**: Tabla principal de ofertas de empleo.
-    *   `id`: `VARCHAR(36) PRIMARY KEY DEFAULT (UUID())`
-    *   `sector_id`: `INT`, Llave foránea que referencia a `sectors(id) ON DELETE SET NULL`
-    *   `created_at`: `TIMESTAMP DEFAULT CURRENT_TIMESTAMP`
-    *   `is_featured`: `BOOLEAN DEFAULT FALSE` (Indica si es destacada/de pago)
-    *   `is_active`: `BOOLEAN DEFAULT TRUE` (Indica si la oferta está visible)
-    *   `salary_min` & `salary_max`: `DECIMAL(12, 2)` (Salarios normalizados calculados)
-    *   `salary_currency`: `VARCHAR(10) DEFAULT 'EUR'` (Moneda: EUR, USD, GBP)
-    *   `title` & `description_snippet`: `TEXT NOT NULL` (Originales de la fuente)
-    *   `title_es` & `description_snippet_es`: `VARCHAR(255)` / `TEXT` (Traducciones al español para scrapers internacionales)
-    *   `company`: `VARCHAR(255) NOT NULL`
-    *   `location`: `VARCHAR(1000) DEFAULT 'España'`
-    *   `salary`: `VARCHAR(255)` (Cadena original de salario)
-    *   `url_source`: `VARCHAR(700) UNIQUE NOT NULL` (URL origen de la oferta, evita duplicaciones)
-    *   `category`: `VARCHAR(255) DEFAULT 'Otros'` (Backend, Frontend, Mobile, Data & AI, Cloud & DevOps, Otros)
-    *   *Timestamps de difusión*: `last_tweeted_at`, `last_linkedin_posted_at`, `last_tooted_at`, `last_instant_alert_sent_at` (`TIMESTAMP NULL`)
-3.  **`subscribers`**: Usuarios del boletín de empleo.
-    *   `id`: `VARCHAR(36) PRIMARY KEY DEFAULT (UUID())`
-    *   `email`: `VARCHAR(255) UNIQUE NOT NULL`
-    *   `created_at`: `TIMESTAMP DEFAULT CURRENT_TIMESTAMP`
-    *   `last_sent_at`: `TIMESTAMP NULL` (Última vez que se le envió la alerta diaria/semanal)
-    *   `onboarding_stage`: `INT DEFAULT 0` (Etapa de bienvenida: 0, 1, 2)
-    *   `onboarding_last_sent_at`: `TIMESTAMP NULL` (Último envío de onboarding)
-    *   `tech_keywords` & `location_pref`: `TEXT` (Keywords separadas por comas e interés de ciudad)
-    *   `frequency`: `VARCHAR(50) DEFAULT 'weekly'` (`daily` o `weekly`)
-4.  **`alerts`**: Correos registrados de alertas rápidas (almacenamiento básico complementario).
-5.  **`sponsored_jobs`**: Ofertas patrocinadas recibidas pendientes de aprobación/pago.
-6.  **`email_tracking`**: Registro de aperturas de emails.
-    *   `id`: `INT AUTO_INCREMENT PRIMARY KEY`
-    *   `email`: `VARCHAR(255) NOT NULL`
-    *   `campaign`: `VARCHAR(255) NOT NULL` (Nombre de la campaña, ej. `weekly_newsletter_2026-06-16`)
-    *   `opened_at`: `TIMESTAMP DEFAULT CURRENT_TIMESTAMP`
-7.  **`premium_leads`**: Profesionales inscritos en el canal premium.
-    *   `id`: `INT AUTO_INCREMENT PRIMARY KEY`
-    *   `name`, `email`, `stack`, `experience` (ej. Mid, Senior), `linkedin`, `created_at`.
+### Campos Relevantes Adicionales en `subscribers`
+- `streak_days`: `INT DEFAULT 0` — Días consecutivos de visitas del usuario (sistema de racha gamificado).
+- `streak_last_visit`: `TIMESTAMP NULL` — Última visita registrada para el cálculo de la racha.
+- `referred_by`: `VARCHAR(255) NULL` — Email o código del usuario que refirió al suscriptor.
 
 ### Índices Físicos en MySQL
 Para acelerar los filtros complejos de SEO y la paginación del frontend, se aplican los siguientes índices:
@@ -190,236 +161,429 @@ Para acelerar los filtros complejos de SEO y la paginación del frontend, se apl
 *   `idx_jobs_is_featured` en `jobs (is_featured)` (Priorización de ofertas patrocinadas).
 *   `idx_jobs_is_active` en `jobs (is_active)` (Exclusión rápida de expiradas).
 *   `idx_jobs_category` en `jobs (category)` (Filtros por categoría).
-*   `idx_jobs_search` (`FULLTEXT INDEX`) en `jobs (title, company, location)` (Búsquedas dinámicas del usuario en la barra de navegación).
+*   `idx_jobs_search` (`FULLTEXT INDEX`) en `jobs (title, company, location)` (Búsquedas dinámicas).
 
 ---
 
 ## 🐍 4. Shim de Base de Datos en Python (psycopg2.py)
 
-El backend en Python fue desarrollado inicialmente usando PostgreSQL (Supabase). Al migrar a MySQL en Raiola Networks, para evitar tener que reescribir docenas de scripts del backend y adaptarlos a las librerías `pymysql` o `mysql-connector`, se diseñó un **shim local transparente**.
+El backend en Python fue desarrollado inicialmente usando PostgreSQL (Supabase). Al migrar a MySQL en Raiola Networks, para evitar tener que reescribir docenas de scripts, se diseñó un **shim local transparente**.
 
 ### Funcionamiento del Patch de Importación
-Al colocar un archivo llamado `psycopg2.py` en la raíz de la carpeta `backend/` (que está en el `sys.path` de ejecución de Python), cuando cualquier script ejecuta `import psycopg2`, el intérprete carga este archivo local en lugar de la librería compilada de Postgres.
+Al colocar un archivo llamado `psycopg2.py` en la raíz de la carpeta `backend/`, cuando cualquier script ejecuta `import psycopg2`, el intérprete carga este archivo local en lugar de la librería compilada de Postgres.
 
 El shim intercepta y redirige el flujo de datos:
-1.  **Conexión**: `psycopg2.connect()` analiza la URL de conexión (DSN). Si es un formato de Postgres (`postgresql://`), extrae las credenciales y las traduce a parámetros de conexión TCP de MySQL mediante la librería `pymysql`.
-2.  **Mapeo de Variables de cPanel**: Si la conexión se ejecuta localmente (`localhost`), prioriza las variables individuales del hosting de Raiola (`MYSQL_USER`, `MYSQL_DATABASE`, `MYSQL_PASSWORD`) si están definidas.
-3.  **Traducción de Consultas al Vuelo**: El `CursorWrapper` intercepta la consulta SQL antes de enviarla a MySQL y realiza sustituciones mediante expresiones regulares:
-    *   **Case-Insensitive (`ILIKE` a `LIKE`)**: MySQL es case-insensitive por defecto con colaciones `unicode_ci`. El shim reemplaza `ILIKE` por `LIKE` automáticamente.
-    *   **Inserciones Únicas (`ON CONFLICT` a `INSERT IGNORE`)**: Traduce sentencias del tipo `INSERT INTO ... ON CONFLICT (col) DO NOTHING` al formato de MySQL `INSERT IGNORE INTO ...`.
-    *   **Filtros de Arrays (`= ANY(%s)` a `IN (%s)`)**: Traduce comprobaciones de listas del tipo `title = ANY(%s)` a la sintaxis estándar `title IN (%s, %s, ...)`, expandiendo dinámicamente la tupla de parámetros.
-    *   **Intervalos de Tiempo**: Traduce expresiones de tiempo Postgres como `INTERVAL '48 hours'` o `INTERVAL '6 days'` a la sintaxis de MySQL `INTERVAL 48 HOUR` y `INTERVAL 6 DAY`.
+1.  **Conexión**: `psycopg2.connect()` analiza la URL de conexión (DSN) y traduce los parámetros al dialecto de MySQL mediante `pymysql`.
+2.  **Mapeo de Variables de cPanel**: Si la conexión se ejecuta localmente (`localhost`), prioriza las variables individuales del hosting de Raiola (`MYSQL_USER`, `MYSQL_DATABASE`, `MYSQL_PASSWORD`).
+3.  **Traducción de Consultas al Vuelo**: El `CursorWrapper` intercepta la consulta SQL antes de enviarla a MySQL y realiza sustituciones:
+    *   **Case-Insensitive (`ILIKE` → `LIKE`)**.
+    *   **Inserciones Únicas (`ON CONFLICT` → `INSERT IGNORE`)**.
+    *   **Filtros de Arrays (`= ANY(%s)` → `IN (%s, ...)`)**.
+    *   **Intervalos de Tiempo** (Postgres `INTERVAL '48 hours'` → MySQL `INTERVAL 48 HOUR`).
 
 ---
 
 ## 🚀 5. Orquestador de Backend (run_all.py)
 
-El script `backend/run_all.py` es el orquestador maestro que ejecuta periódicamente todas las fases de sincronización, ingesta y automatizaciones del portal. Se invoca cada 6 horas mediante GitHub Actions.
+El script `backend/run_all.py` es el orquestador maestro que ejecuta periódicamente todas las fases de sincronización, ingesta y automatizaciones del portal.
 
-### Pipeline de Ejecución de 13 Fases
+### Pipeline de Ejecución Completo (15+ Fases)
 
 ```
 run_all.py
- ├─► [1/13] main.py ➔ Scrapers Internacionales (WWR, Remotive, Himalayas, etc.)
- ├─► [2/13] Scrapy (job_spider) ➔ Ingesta de Tecnoempleo (ES)
- ├─► [3/13] scraper_infoempleo.py ➔ Ingesta de Stratos (ES)
- ├─► [4/13] telegram_bot.py ➔ Publicación multicanal en Telegram
- ├─► [5/13] linkedin_bot.py ➔ Tarjeta gráfica + Post en LinkedIn
- ├─► [6/13] twitter_bot.py ➔ Tarjeta gráfica + Post en Twitter/X
- ├─► [7/13] mastodon_bot.py ➔ Post de texto en Mastodon (Fediverso)
- ├─► [8/13] index_new_jobs.py ➔ Envío a Google Indexing API (Últimas 7h)
- ├─► [9/13] ping_sitemap.py ➔ Notificación de actualización de sitemap a Google
- ├─► [10/13] deactivate_expired_jobs.py ➔ Desactiva (>30 días), desindexa y purga (>90 días)
- ├─► [11/13] send_custom_alerts.py ➔ Envío de correos diarios/semanales personalizados
- ├─► [12/13] send_welcome_onboarding.py ➔ Procesa el embudo de onboarding de emails
- └─► [13/13] send_instant_featured_alerts.py ➔ Alertas inmediatas para empleos destacados
+ ├─► [0]    Migraciones de Base de Datos (add_referred_by_column.py, add_reactions_table.py)
+ ├─► [1]    main.py → Scrapers Internacionales (WWR, Remotive, Himalayas, RemoteOK, etc.)
+ ├─► [2]    Scrapy (job_spider) → Ingesta de Tecnoempleo (ES)
+ ├─► [3]    scraper_infoempleo.py → Ingesta de Stratos (ES)
+ ├─► [4]    telegram_bot.py → Publicación multicanal en Telegram
+ ├─► [4.1]  telegram_digest.py → Digest diario en Telegram
+ ├─► [4.5]  linkedin_bot.py → Tarjeta gráfica + Post en LinkedIn (con imagen JPEG)
+ ├─► [4.6]  twitter_bot.py → OMITIDO (desactivado por petición del usuario)
+ ├─► [4.7]  mastodon_bot.py → Post de texto en Mastodon (Fediverso)
+ ├─► [5]    index_new_jobs.py → Envío a Google Indexing API (Últimas 7h)
+ ├─► [5.5]  ping_sitemap.py → Notificación de actualización de sitemap a Google
+ ├─► [6]    deactivate_expired_jobs.py → Desactiva (>30 días), desindexa, purga (>90 días)
+ ├─► [7]    send_custom_alerts.py → Emails diarios/semanales personalizados
+ ├─► [7.1]  send_welcome_onboarding.py → Embudo de bienvenida (Email 1 y Email 2)
+ ├─► [7.1.1] send_reactivation.py → Reactivación y limpieza de suscriptores inactivos
+ ├─► [7.2]  send_instant_featured_alerts.py → Alertas instantáneas por ofertas destacadas
+ ├─► [7.3]  send_push_notifications.py → Notificaciones Push web segmentadas (OneSignal)
+ ├─► [7.4]  generate_weekly_article.py → Generación de artículo de blog SEO (IA semanal)
+ ├─► [7.5]  generate_trends_post.py → Post de tendencias tecnológicas con datos reales de BD
+ ├─► [7.6]  send_streak_reminder.py → Recordatorio de racha diaria de usuario (20:00h)
+ └─► [7.7]  send_saved_jobs_reminder.py → Recordatorio de ofertas guardadas (48h)
 ```
 
 ---
 
 ## 🔍 6. Scrapers y Procesamiento de Datos del Backend
 
-El backend incluye múltiples robots especializados en capturar ofertas tecnológicas de calidad de diferentes fuentes.
-
 ### Fuentes de Ofertas Activas
-1.  **Scrapers de API (main.py)**:
-    *   `scrapers/remotive.py`: Consulta la API JSON pública de Remotive (`https://remotive.com/api/remote-jobs`).
-    *   `scrapers/himalayas.py`: Consulta la API de Himalayas (`https://himalayas.app/jobs/api`).
-    *   `scrapers/wwr.py`: Descarga y parsea el feed RSS de WeWorkRemotely (`https://weworkremotely.com/categories/remote-programming-jobs.rss`).
-    *   `scrapers/remoteok.py`: Parsea el feed RSS de RemoteOK.
-    *   `scrapers/workingnomads.py`: Consume el JSON de Working Nomads.
-    *   `scrapers/jobfluent.py` & `scrapers/pythonorg.py`: Consumen feeds locales y específicos de Python.
-2.  **Scrapy Crawler (job_spider.py)**:
-    *   Parsea de forma recursiva (hasta 5 páginas) el listado de `https://www.tecnoempleo.com/ofertas-trabajo/`.
-    *   Cuenta con una lógica avanzada de normalización de ubicaciones: limpia textos largos y detecta ciudades populares de España (Madrid, Barcelona, Valencia, etc.) para catalogarlas como "Remoto (Ciudad)" o "[Ciudad], España".
-3.  **BeautifulSoup Stratos Parser (scraper_infoempleo.py)**:
-    *   Aunque el archivo se llama `scraper_infoempleo.py` por razones de compatibilidad histórica, actualmente scrapea directamente el listado HTML de la web de la comunidad de videojuegos Stratos (`https://www.stratos-ad.com/trabajo`), parseando las tablas de ofertas mediante BeautifulSoup.
+1.  **Scrapers de API (`main.py`)**: Remotive, Himalayas, WeWorkRemotely (RSS), RemoteOK, WorkingNomads, JobFluent, Python.org.
+2.  **Scrapy Crawler (`job_spider.py`)**: Parsea recursivamente (hasta 5 páginas) el listado de `https://www.tecnoempleo.com`.
+3.  **BeautifulSoup Parser (`scraper_infoempleo.py`)**: Parsea el listado HTML de Stratos (`https://www.stratos-ad.com/trabajo`).
 
 ### Procesamiento de Lógica Interna
-*   **Clasificador de Categorías (`logic/classifier.py`)**: Asigna una de las 6 categorías (`Backend`, `Frontend`, `Data & AI`, `Cloud & DevOps`, `Mobile`, `Otros`) evaluando un sistema de puntuación con expresiones regulares sobre el título y descripción. Los títulos tienen una ponderación x3 respecto a la descripción.
-*   **Traducción Inteligente (`logic/translator.py`)**: Utiliza `deep-translator` (Google Translate gratis) para traducir títulos y resúmenes de ofertas internacionales. Posee un diccionario de protección (`protected_words`) que reemplaza tecnologías clave (como React, Spring, Node.js, AWS) por tokens (`PROTTECH0ZZ`) antes de enviar a traducir, restaurándolos posteriormente para evitar traducciones literales como "Reaccionar" o "Primavera".
-*   **Parser de Salarios (`logic/salary_parser.py`)**: Extrae salarios mínimos y máximos normalizados y detecta la moneda. Si encuentra términos como "mes" o valores inferiores a 5000, los multiplica por 12 para convertirlos en salarios anuales. Descarta valores atípicos (anualidades <5k o >500k).
-*   **Control de Duplicados**:
-    *   **Duplicados Físicos**: Comprueba que la `url_source` no exista en la BD.
-    *   **Duplicados Semánticos**: Evita registrar ofertas idénticas (mismo título y empresa) publicadas en una ventana de **48 horas**.
+*   **Clasificador de Categorías (`logic/classifier.py`)**: Asigna una de las 6 categorías (`Backend`, `Frontend`, `Data & AI`, `Cloud & DevOps`, `Mobile`, `Otros`) usando un sistema de puntuación con expresiones regulares sobre el título (ponderación x3) y descripción.
+*   **Traducción Inteligente (`logic/translator.py`)**: Usa `deep-translator` (Google Translate) para traducir ofertas internacionales. Protege tecnologías clave (React, AWS, Docker, etc.) mediante tokens previos a la traducción.
+*   **Parser de Salarios (`logic/salary_parser.py`)**: Extrae salarios mín/máx normalizados, detecta la moneda y convierte salarios mensuales a anuales (× 12). Descarta valores atípicos.
+*   **Control de Duplicados**: Por `url_source` (duplicados físicos) y por título+empresa en las últimas 48h (duplicados semánticos).
 
 ---
 
-## 📢 7. Bots de Difusión en Redes Sociales y Generador Gráfica
+## 📢 7. Bots de Difusión en Redes Sociales
 
-Una de las principales vías de captación de tráfico del portal es su automatización en redes sociales.
+### Canales de Difusión Activos
+1.  **Telegram (`telegram_bot.py`)**: Publica a `@PortalDeTrabajo` y a canales segmentados por categoría (`TELEGRAM_CHANNEL_FRONTEND`, `TELEGRAM_CHANNEL_BACKEND`, `TELEGRAM_CHANNEL_DATA_AI`, `TELEGRAM_CHANNEL_CLOUD_DEVOPS`, `TELEGRAM_CHANNEL_MOBILE`, `TELEGRAM_CHANNEL_REMOTO`).
+2.  **LinkedIn (`linkedin_bot.py`)**: Publica hasta 2 ofertas por ejecución. Genera una tarjeta gráfica JPEG (1200×630px) con **Pillow** y la sube mediante el flujo de `registerUpload` de la API de UGC Posts de LinkedIn. Si no hay ofertas nuevas, publica un artículo del blog de forma aleatoria.
+3.  **Mastodon (`mastodon_bot.py`)**: Toot de texto directo a la instancia configurada.
+4.  **Twitter/X**: Código existente pero **desactivado** en `run_all.py`.
+5.  **Fallback de contenido**: Si no hay vacantes nuevas que difundir, los bots seleccionan un artículo del blog para publicar y mantener los algoritmos de las plataformas activos.
 
-### Generador Dinámico de Tarjetas Gráficas (image_generator.py)
-Para los bots de Twitter/X y LinkedIn, el script `logic/image_generator.py` utiliza la librería **Pillow (PIL)** para generar en tiempo de ejecución una imagen publicitaria de 1200x630px en formato PNG.
-
-```
-+-------------------------------------------------------------+
-|  🚀  PORTAL TRABAJO IT  |  EMPLEO TECNOLÓGICO             | (Cabecera dorada)
-|  ---------------------------------------------------------  | (Línea de acento)
-|                                                             |
-|  Senior React Developer (Teletrabajo 100%)                  | (Título adaptado,
-|  con inglés fluido                                          |  hasta 3 líneas)
-|                                                             |
-|  🏢 Stark Industries                                        |
-|  📍 Remoto (España)   •   💰 45.000€ - 55.000€ brutos/año  | (Detalles)
-|                                                             |
-|  +---------------------------------+                        |
-|  | Postularse en portalempleoit.es |                        | (Botón Indigo)
-|  +---------------------------------+                        |
-+-------------------------------------------------------------+
-```
-
-*   **Estética Visual**: Fondo degradado oscuro (azul cobalto a morado oscuro) con un resplandor circular índigo semi-transparente en la esquina superior derecha.
-*   **Ajuste de Texto**: El título de la vacante se divide automáticamente en líneas (`wrap_text`) en función de su longitud en píxeles usando la tipografía *NotoSans-Bold* cargada del sistema.
-*   **Llamada a la Acción**: Dibuja un botón redondeado en el pie con el texto "Postularse en portalempleoit.es" centrado matemáticamente.
-
-### Canales de Difusión
-1.  **Telegram (`telegram_bot.py`)**: Filtra las ofertas creadas en las últimas 7 horas. Envía un mensaje en bloque consolidado al canal principal (`@PortalDeTrabajo`) con botones de teclado en línea. Si las variables de entorno están activas, envía las ofertas segmentadas a canales temáticos (`TELEGRAM_CHANNEL_FRONTEND`, `TELEGRAM_CHANNEL_BACKEND`, `TELEGRAM_CHANNEL_DATA_AI`, `TELEGRAM_CHANNEL_CLOUD_DEVOPS`, `TELEGRAM_CHANNEL_MOBILE`, `TELEGRAM_CHANNEL_REMOTO`).
-2.  **Twitter/X (`twitter_bot.py`)**: Selecciona hasta 3 ofertas recientes sin publicar. Genera la tarjeta publicitaria, la sube mediante la API v1.1 (`api.media_upload`), publica el tweet con hashtags calculados usando la API v2 y marca `last_tweeted_at = NOW()`.
-3.  **LinkedIn (`linkedin_bot.py`)**: Idéntico flujo. Sube la tarjeta y publica a través de la API de UGC Posts de LinkedIn (`https://api.linkedin.com/v2/ugcPosts`) para páginas de empresa o perfiles personales.
-4.  **Mastodon (`mastodon_bot.py`)**: Toot de texto directo a la instancia especificada (por defecto `mastodon.social`).
-5.  **Fallback de Contenido**: Si no hay ofertas nuevas que difundir, los bots de Twitter, LinkedIn y Mastodon seleccionan al azar un artículo formativo del blog (ej. *"Guía de salarios para programadores en España (2026)"*) y lo publican con su respectivo enlace para mantener el algoritmo de las plataformas activo.
+### Generador de Tarjetas Gráficas (`logic/image_generator.py`)
+Genera imágenes de 1200×630px con Pillow:
+- Fondo degradado oscuro (azul cobalto a morado) con resplandor índigo semitransparente.
+- Título adaptado en hasta 3 líneas automáticas.
+- Datos del puesto (empresa, ubicación, salario).
+- Botón CTA redondeado con la URL del portal.
 
 ---
 
 ## 📧 8. Correo Electrónico: Alertas, Onboarding y Newsletter
 
-El subsistema de correo electrónico utiliza la conexión SMTP segura de Gmail (`smtp.gmail.com:587`) para gestionar el ciclo de vida del suscriptor.
-
 ### 1. Onboarding de Nuevos Suscriptores (`send_welcome_onboarding.py`)
-Cuando un usuario se suscribe, entra en un flujo de bienvenida automatizado de 2 etapas:
-*   **Etapa 0 (Inmediata)**: Se le envía el **Email 1** de bienvenida ("¡Te damos la bienvenida a Portal Trabajo IT! 🚀") que incluye hasta 3 ofertas actuales personalizadas de acuerdo a sus tecnologías de interés. El estado en la BD cambia a `onboarding_stage = 1`.
-*   **Etapa 1 (A los 4 días)**: Si pasaron al menos 96 horas desde el Email 1, se le envía el **Email 2** ("Recursos recomendados y calculadora de salarios"), el cual contiene enlaces para medir su salario medio y plantillas de CV optimizadas contra filtros ATS. El estado en la BD cambia a `onboarding_stage = 2` (completado).
+Flujo automático de 2 etapas:
+*   **Email 1 (inmediato)**: Bienvenida con hasta 3 ofertas personalizadas según keywords de interés.
+*   **Email 2 (a los 4 días)**: Recursos recomendados, calculadora de salarios y plantillas de CV.
 
 ### 2. Alertas Diarias/Semanales Personalizadas (`send_custom_alerts.py`)
-*   Se ejecuta de forma periódica en busca de suscriptores con `frequency = 'daily'` (con más de 23 horas desde la última alerta) o `frequency = 'weekly'` (con más de 6 días).
-*   Realiza una consulta a la BD cruzando las keywords de interés (`tech_keywords` y `location_pref`) del usuario contra las ofertas indexadas en las últimas 24h (para diarias) o 7 días (para semanales). Si hay vacantes coincidentes, envía un correo personalizado con la lista de ofertas (hasta 8).
+Cruza `tech_keywords` y `location_pref` del suscriptor contra las vacantes indexadas en las últimas 24h (daily) o 7 días (weekly) y envía hasta 8 ofertas coincidentes.
 
 ### 3. Alertas Destacadas Instantáneas (`send_instant_featured_alerts.py`)
-*   Si una empresa publica una oferta destacada de pago (`is_featured = TRUE` y `last_instant_alert_sent_at IS NULL`), este script se despierta, busca todos los suscriptores cuyas keywords coincidan con el título del empleo destacado y les envía una alerta urgente inmediata.
+Cuando se publica una oferta con `is_featured = TRUE` y `last_instant_alert_sent_at IS NULL`, busca suscriptores cuyas keywords coincidan y les envía una alerta urgente.
 
 ### 4. Newsletter Resumen Semanal (`mailer.py`)
-*   Se ejecuta todos los lunes por la mañana.
-*   Agrupa las vacantes creadas en los últimos 7 días clasificadas por bloques temáticos con un límite de 6 ofertas por categoría.
-*   **Estructura del Email**:
-    1.  *Bloque Personalizado*: Muestra primero hasta 3 ofertas específicas para el usuario según sus keywords registradas.
-    2.  *Bloques Generales*: Listado ordenado por tecnologías (Backend, Frontend, etc.).
-    3.  *Enlaces de Monetización/Afiliados*: Cursos recomendados de Udemy (Bootcamp), plantillas de CV de afiliado y redirecciones a la calculadora de salarios.
-    4.  *Pixel de Tracking*: Inyecta una imagen invisible `<img src=".../api/track-open?email=...&campaign=..." width="1" height="1" style="display:none;" />` que registra la apertura en la tabla `email_tracking`.
+*   Se ejecuta todos los lunes.
+*   **Estructura del email**:
+    1.  *Bloque Sponsor*: Si hay empresas activas con plan Pro o Enterprise, inyecta automáticamente un bloque "⭐ Patrocinador de la Semana" al inicio.
+    2.  *Bloque Personalizado*: Hasta 3 ofertas específicas para el usuario según sus keywords.
+    3.  *Bloques Generales*: Listado por tecnologías (Backend, Frontend, Data & AI, Cloud, Mobile). Máximo 6 por categoría.
+    4.  *Afiliados en Newsletter*: Links de cursos de Udemy/Coursera adaptados a las tecnologías de interés del suscriptor, con UTM trackers dinámicos.
+    5.  *Pixel de Tracking*: Imagen `1×1` invisible para registrar aperturas en la tabla `email_tracking`.
+
+### 5. Recordatorio de Racha (`send_streak_reminder.py`)
+Envía a las 20:00h una notificación push y/o email a usuarios con racha activa que no han visitado el portal ese día.
+
+### 6. Recordatorio de Ofertas Guardadas (`send_saved_jobs_reminder.py`)
+A las 48 horas de que un usuario guarda una oferta, envía un recordatorio si la oferta sigue activa.
+
+### 7. Reactivación de Inactivos (`send_reactivation.py`)
+Identifica suscriptores que no han abierto emails en 60+ días y les envía un correo de reactivación. Si no abren en 7 días más, se marcan como inactivos o se eliminan de la lista.
 
 ---
 
-## 🌐 9. Frontend de Next.js y SEO Programático
+## 🌐 9. Frontend de Next.js: SEO Programático y Estructura
 
-El frontend está desarrollado bajo Next.js 15 y el App Router. Está altamente optimizado para el posicionamiento orgánico en buscadores (SEO).
+El frontend está desarrollado bajo Next.js 15 y el App Router, altamente optimizado para posicionamiento orgánico.
 
-### Lógica de Enrutamiento y SEO Programático (`/trabajos/[sector]`)
+### 9.1 Lógica de Enrutamiento y SEO Programático (`/trabajos/[sector]`)
 La ruta `/trabajos/[sector]/page.tsx` es el motor de indexación masivo del portal.
-*   **Parser de Parámetros (`parseSector`)**: Descompone dinámicamente un slug compuesto en sus variables de búsqueda:
-    *   *Modalidad*: Si contiene `-hibrido` (ej. `react-hibrido`), activa el filtro de teletrabajo parcial.
-    *   *Ubicación*: Busca el delimitador `-en-` para extraer la ciudad (ej. `python-en-madrid` ➔ ciudad: `madrid`) o el sufijo `-remoto` (ej. `vue-remoto` ➔ ciudad: `remoto`).
-    *   *Experiencia*: Compara el final del slug con sufijos clave: `-junior`, `-senior`, `-sin-experiencia`.
-    *   *Tecnología/Categoría*: Lo restante se mapea a palabras clave tecnológicas (React, Node, Java...) o categorías globales de la base de datos (Backend, Frontend, Data...).
-*   **Estrategia de Fallback en Casos Vacíos (`getFallbackJobs`)**:
-    Si una combinación muy específica no arroja resultados (ej. *Angular Junior en Sevilla* tiene 0 ofertas), el sistema ejecuta una estrategia de cascada para no mostrar una pantalla vacía (lo cual daña el rebote y la indexación):
-    1.  Muestra ofertas de la misma tecnología en modalidad 100% remota.
-    2.  Si no hay, muestra ofertas de esa tecnología a nivel nacional (otras ciudades).
-    3.  Si no hay, muestra ofertas generales del sector IT más recientes.
-    *   *Visual*: Muestra un banner de color ámbar alertando al usuario de que se está aplicando una búsqueda alternativa recomendada.
-*   **Generación Dinámica de Sitemap (`app/sitemap.ts`)**:
-    Debido a que el portal cuenta con miles de empleos activos e infinitas combinaciones de SEO programático, el archivo `sitemap.ts` divide las URLs en 4 sitemaps dinámicos usando la capacidad nativa de Next.js:
-    *   `sitemap 0`: Páginas estáticas base, artículos del blog y combinaciones activas calculadas sobre las últimas 8,000 ofertas (ej. si hay ofertas reales de React en Madrid, añade `/trabajos/react-en-madrid` al sitemap automáticamente).
-    *   `sitemap 1` & `sitemap 2`: Ofertas de empleo indexables (Sitemap 1: ofertas 1-8000; Sitemap 2: ofertas 8001-16000).
-    *   `sitemap 3`: Directorio indexable de empresas extraídas dinámicamente de la base de datos (`SELECT DISTINCT company`).
-*   **Redirección Permanente (`permanentRedirect`)**:
-    La ruta canónica de cada oferta es `/job/[slug]-[id]`. Si el usuario o un rastreador web intenta ingresar a una URL antigua o con slug incorrecto (ej. `/job/[id]`), la página `JobPage` calcula el slug canónico actual y efectúa un redireccionamiento HTTP 301 (`permanentRedirect`), unificando la fuerza del enlace (Link Juice).
-*   **Enlazado Interno Automático (`autoLinkDescription`)**:
-    Al renderizar la descripción del puesto, el frontend busca palabras clave tecnológicas populares (como React, AWS, TypeScript) y les añade dinámicamente un enlace `<a>` hacia su respectiva página programática de `/trabajos/[slug]`. Esto distribuye la autoridad de PageRank de forma interna automáticamente.
-*   **Desindexación Automática de Ofertas Expiradas**:
-    Si una oferta de empleo tiene más de 30 días de antigüedad o su columna `is_active` es `0`, el componente de la página inyecta la directiva de cabecera `robots: { index: false }` para que Google la desindexe. Adicionalmente, muestra un banner superior recomendando al usuario buscar alternativas activas.
+*   **Parser de Parámetros (`parseSector`)**: Descompone dinámicamente un slug compuesto en variables de búsqueda:
+    *   *Modalidad*: `-hibrido` → teletrabajo parcial.
+    *   *Ubicación*: `-en-[ciudad]` → ciudad; `-remoto` → remoto.
+    *   *Experiencia*: `-junior`, `-senior`, `-sin-experiencia`.
+    *   *Salario*: `-salario-30k-45k` → rango salarial.
+    *   *Tipo de contrato*: `-autonomo`, `-practicas`, `-media-jornada`.
+    *   *Tecnología/Categoría*: Lo restante se mapea a palabras clave tecnológicas o categorías.
+*   **Estrategia de Fallback (`getFallbackJobs`)**: Si la búsqueda devuelve 0 resultados, aplica cascada: 1) misma tecnología en remoto, 2) misma tecnología a nivel nacional, 3) sector IT general.
+*   **FAQ Schema**: Inyecta `FAQPage` JSON-LD dinámico en la parte inferior con datos reales de salarios y volumen de ofertas.
+*   **Prefetching Selectivo**: Carga inmediata (`prefetch={true}`) para las 5 primeras ofertas y destacadas; prefetch al hover para el resto de la lista.
+
+### 9.2 Sitemap Dinámico Segmentado (`app/sitemap.ts`)
+Dividido en 4 sitemaps dinámicos con revalidación cada 2h:
+*   **Sitemap 0**: Páginas estáticas, artículos de blog, combinaciones SEO activas calculadas dinámicamente sobre las últimas 8.000 ofertas.
+*   **Sitemap 1 & 2**: Ofertas de empleo indexables (1-8.000 y 8.001-16.000).
+*   **Sitemap 3**: Directorio de empresas extraído dinámicamente de la BD.
+
+### 9.3 Páginas SEO Especiales Implementadas
+
+| Ruta | Archivo | Descripción |
+| :--- | :--- | :--- |
+| `/empresas/[slug]` | `app/empresas/[slug]/page.tsx` | Perfil de empresa con listado de vacantes, salario medio local, cuota de teletrabajo y reviews de empleados. Schema JSON-LD: `Organization`, `ItemList`, `JobPosting`. |
+| `/trabajo-[ciudad]` | Rutas individuales → `CityLandingPage.tsx` | Landing editorial por ciudad (Madrid, Barcelona, Valencia, Sevilla, Bilbao) con textos dinámicos sobre el mercado local. |
+| `/glosario/[term]` | `app/glosario/[term]/page.tsx` | Definición técnica del término, Schema `DefinedTerm`, salario promedio y 5 vacantes activas relacionadas. |
+| `/salarios` | `app/salarios/page.tsx` | Calculadora interactiva de salarios IT con tabla comparativa (React, Node, Python, Java, TypeScript, DevOps, PHP, SQL) y Schema `Dataset`. |
+| `/empleo-del-dia` | `app/empleo-del-dia/page.tsx` | Landing compartible de la oferta más destacada del día con metadatos OG optimizados para viralización. |
+| `/talento-premium` | `app/talento-premium/page.tsx` | Pool de candidatos premium para empresas y reclutadores con CTA de registro y CTA B2B para headhunting. |
+| `/publicidad` | `app/publicidad/page.tsx` | Media Kit corporativo con estadísticas reales y planes de patrocinio directo. |
+| `/precios` | `app/precios/page.tsx` | Página pública de precios con los 4 planes de publicación de ofertas. |
+
+### 9.4 Hreflang y Soporte Bilingüe
+Todas las rutas programáticas principales inyectan los encabezados `alternates: { languages: { 'es': ..., 'en': ... } }` para el soporte de hreflang. El parámetro `?lang=en` activa la visualización en inglés y mueve el contenido a los títulos, descripciones y schema en inglés.
+
+### 9.5 Componentes Frontend Clave
+
+| Componente | Descripción |
+| :--- | :--- |
+| `AdBanner.tsx` | Anuncios AdSense configurable por variante (`inline`, `sidebar`, `multiplex`). Reserva alturas mínimas fijas (CLS prevention): `min-h-[50px]` y `min-h-[90px]` (inline) y `min-h-[250px]` (sidebar). Lee Slot IDs reales desde variables de entorno. |
+| `CourseAffiliate.tsx` | Bloque de afiliados contextual. Usa el diccionario `TECH_COURSE_MAP` para mostrar cursos de Coursera/LinkedIn Learning/Domestika/Platzi específicos al stack de la oferta actual. |
+| `CompanyLogo.tsx` | Logo de empresa optimizado sin `unoptimized`, delegando el caching y la optimización al Edge CDN de Vercel. |
+| `UserStreak.tsx` | Panel gamificado de racha diaria con hitos de 3, 7 y 30 días de visitas consecutivas. |
+| `PushSubscribe.tsx` | Widget de suscripción a notificaciones push (OneSignal). |
+| `SaveJobButton.tsx` | Guardado de ofertas de empleo en el perfil del usuario. |
+| `ReactionButton.tsx` | Botones de reacción (👍/👎) por oferta. |
+| `SubscribeForm.tsx` | Formulario de suscripción a la newsletter con keywords de interés y preferencia de ciudad. |
+| `RecentlyViewedTracker.tsx` | Tracker invisible que registra las últimas ofertas vistas por el usuario en localStorage. |
+| `Breadcrumbs.tsx` | Breadcrumbs accesibles con Schema JSON-LD de `BreadcrumbList`. |
 
 ---
 
-## 💳 10. Monetización: Stripe y AdSense
+## 📊 10. Categorías de Mejoras Implementadas (Plan de Tráfico y Monetización)
 
-El portal se monetiza mediante ofertas patrocinadas de empresas y anuncios automáticos de AdSense.
+Todas las categorías del plan de tráfico y monetización han sido implementadas. Estado: **✅ COMPLETO** (excepto Pinterest y YouTube Shorts de la Categoría 6).
+
+### Categoría 1 — SEO Programático ✅
+- **1.1 Slugs expandidos**: Filtros por salario, contrato, modalidad híbrida y experiencia en la misma URL.
+- **1.2 Páginas de empresa**: `/empresas/[slug]` con estadísticas locales, reviews y JSON-LD.
+- **1.3 Páginas de ciudad**: Landings editoriales dinámicas para Madrid, Barcelona, Valencia, Sevilla, Bilbao.
+- **1.4 Glosario tecnológico**: `/glosario/[term]` con Schema `DefinedTerm` y vacantes activas.
+- **1.5 Hreflang bilingüe**: `?lang=en` con alternates en todas las rutas principales.
+- **1.6 FAQ Schema**: `FAQPage` JSON-LD dinámico al pie de las páginas de sector.
+- **1.7 Sitemap segmentado**: 4 sitemaps dinámicos con ISR cada 2h + pings automáticos a Google.
+
+### Categoría 2 — Blog y Contenido Editorial ✅
+- **2.1 Cadencia automatizada**: `generate_weekly_article.py` genera posts SEO con IA semanalmente.
+- **2.2 AdBanners en el blog**: Banners horizontales a los 3 párrafos, al final y sidebar sticky.
+- **2.3 Post de tendencias**: `generate_trends_post.py` analiza crecimiento de vacantes por tecnología y publica un artículo de datos en la BD.
+- **2.4 Calculadora de salarios**: Datos en tiempo real por tecnología/ciudad con Schema `Dataset`.
+
+### Categoría 3 — Optimización de AdSense ✅
+- **3.1 Slots reales**: Variables de entorno para IDs de slot (`NEXT_PUBLIC_ADSENSE_SLOT_*`).
+- **3.2 Detalle de oferta**: Banners inline arriba de la descripción, sidebar sticky, multiplex al final.
+- **3.3 Cobertura amplia**: Banners en herramientas, glosario, tendencias, calculadora de salarios y blog.
+- **3.4 CLS Prevention**: Alturas mínimas fijas en todos los contenedores de `AdBanner.tsx`.
+
+### Categoría 4 — Afiliados ✅
+- **4.1 IDs reales**: Leídos de variables de entorno (`NEXT_PUBLIC_COURSERA_AFFILIATE_ID`, `NEXT_PUBLIC_LINKEDIN_AFFILIATE_ID`, `NEXT_PUBLIC_AMAZON_TAG`).
+- **4.2 Programas activos**: Coursera, LinkedIn Learning, Domestika, Platzi en el pool rotativo.
+- **4.3 Contextualización**: Diccionario `TECH_COURSE_MAP` en `CourseAffiliate.tsx` para mostrar el curso idóneo al stack de la oferta.
+- **4.4 Afiliados en newsletter**: Cursos de Udemy integrados con UTM trackers dinámicos en onboarding y boletín semanal.
+
+### Categoría 5 — Retención y Engagement ✅
+- **5.1 Push segmentadas**: `send_push_notifications.py` filtra por stack tecnológico y usa la API de OneSignal (variable `NEXT_PUBLIC_ONESIGNAL_APP_ID`).
+- **5.2 Recordatorios de guardadas**: `send_saved_jobs_reminder.py` a las 48h de guardar una oferta.
+- **5.3 Racha (Streak)**: Panel `UserStreak.tsx` con hitos gamificados y `send_streak_reminder.py` a las 20:00h.
+- **5.4 Empleo del día**: Landing `/empleo-del-dia` compartible con metadatos OG y widgets.
+
+### Categoría 6 — Distribución y Redes Sociales (Parcial)
+- ✅ **6.1 Frecuencia automatizada**: `run_all.py` ejecuta Telegram, LinkedIn y Mastodon en cada ciclo.
+- ✅ **6.2 LinkedIn con tarjetas gráficas**: Imágenes JPEG generadas con Pillow y subidas al flujo de assets de LinkedIn.
+- ⏳ **6.3 Pinterest**: No implementado (pendiente de crear `pinterest_bot.py`).
+- ⏳ **6.4 YouTube Shorts**: No implementado (pendiente de crear `youtube_shorts_bot.py`).
+
+### Categoría 7 — Core Web Vitals y PageSpeed ✅
+- **7.1 Logos optimizados**: `CompanyLogo.tsx` sin `unoptimized`, delegando al Edge CDN de Vercel.
+- **7.2 Prefetching selectivo**: Carga inmediata para las 5 primeras y destacadas; hover-based para el resto.
+- **7.3 CLS en AdSense**: Alturas mínimas fijas en `AdBanner.tsx` para evitar saltos de layout.
+
+### Categoría 8 — Monetización Directa B2B ✅
+- **8.1 Media Kit**: `/publicidad` con estadísticas reales (+8.700 suscriptores, +35.000 páginas vistas/mes, 42% apertura).
+- **8.2 Planes de pago**: Checkout Stripe para 3 planes de destaque (ver precios actuales abajo).
+- **8.3 Sponsors en newsletter**: `mailer.py` inyecta automáticamente el bloque "Patrocinador de la Semana" si hay activos Pro/Enterprise.
+- **8.4 Sourcing B2B**: CTA en `/talento-premium` para reclutadores y CTOs.
+
+---
+
+## 💳 11. Monetización: Stripe, Planes B2B y AdSense
+
+### Estructura de Precios B2B (Precios de Impulso de Lanzamiento)
+
+> [!IMPORTANT]
+> Los precios fueron reducidos considerablemente para incentivar la adquisición de primeras empresas anunciantes. Los importes en Stripe están codificados en **centavos de EUR**.
+
+| Plan | Duración | Precio | `unitAmount` Stripe | Beneficios |
+| :--- | :--- | :--- | :--- | :--- |
+| **Básico** | ∞ | Gratis | N/A | Listado estándar 30 días, sin destaque |
+| **Destacado Básico** | 15 días | **9 €** | `900` | Fijada en cabecera + diseño premium + badge dorado |
+| **Destacado Pro** | 30 días | **19 €** | `1900` | Todo lo anterior + Inclusión en newsletter semanal + Push alert |
+| **Enterprise** | 30 días | **49 €** | `4900` | Todo lo anterior + Newsletter exclusiva + Difusión en Telegram, LinkedIn, Mastodon |
+
+### Patrocinios Directos (Media Kit)
+
+| Formato | Precio | Descripción |
+| :--- | :--- | :--- |
+| **Newsletter Patrocinada** | **49€/envío** | Bloque editorial exclusivo (Texto + Botón CTA) al inicio del boletín semanal |
+| **Banners Nativos Web** | **79€/mes** | Banner estático en sidebar o inline en páginas de alto tráfico (sin ad-blockers) |
 
 ### Embudo de Publicación Destacada (Stripe)
-*   **Creación del Checkout (`/api/checkout/route.ts`)**: Cuando un reclutador crea una oferta destacada, el frontend envía los datos a esta API. La oferta se guarda temporalmente en la BD con `is_active = FALSE` y `is_featured = FALSE`. A continuación, se crea una sesión de pago en Stripe por valor de **39.00 EUR**, inyectando el UUID de la oferta en la clave `metadata: { jobId: ... }`. La API responde con la URL del Checkout de Stripe.
-*   **Webhook de Confirmación (`/api/webhooks/stripe/route.ts`)**: Al completarse el pago, Stripe realiza una llamada POST segura al webhook. El script verifica la firma con el `STRIPE_WEBHOOK_SECRET`, recupera el `jobId` de la metadata y activa la oferta destacándola con:
+*   **Creación del Checkout (`/api/checkout/route.ts`)**: El frontend envía los datos y el plan elegido a esta API. La oferta se guarda en la BD con `is_active = FALSE` e `is_featured = FALSE`. Se crea una sesión de pago en Stripe con el importe correspondiente y el UUID de la oferta en `metadata: { jobId: ..., plan: ... }`.
+*   **Webhook de Confirmación (`/api/webhooks/stripe/route.ts`)**: Al completarse el pago, Stripe llama al webhook. El script verifica la firma, recupera el `jobId` y el `plan`, calcula `featured_until` (15 o 30 días) y activa la oferta:
     ```sql
-    UPDATE jobs SET is_active = TRUE, is_featured = TRUE WHERE id = $1
+    UPDATE jobs
+    SET is_active = TRUE,
+        is_featured = TRUE,
+        plan = 'destacado_pro',
+        featured_until = DATE_ADD(NOW(), INTERVAL 30 DAY)
+    WHERE id = 'jobId'
     ```
+*   También notifica al canal de Telegram de administración con los datos del pago completado.
 
-### Optimización de AdSense
-*   Los anuncios automáticos de AdSense están configurados en Next.js usando la librería oficial `@next/third-parties/google` para cargarlos de forma asíncrona sin bloquear el hilo principal (minimizando penalizaciones en PageSpeed / Core Web Vitals).
-*   Los anuncios de banner se cargan dinámicamente mediante el componente `AdBanner.tsx` y se sitúan de manera estratégica en el listado de inicio (después de las ofertas 3 y 15) y en la barra lateral del detalle del puesto.
+### AdSense
+*   Cargado de forma asíncrona con `@next/third-parties/google`.
+*   Componente `AdBanner.tsx` configurable por variante (`inline`, `sidebar`, `multiplex`).
+*   Slot IDs leídos de variables de entorno (`NEXT_PUBLIC_ADSENSE_SLOT_INLINE`, `NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR`, `NEXT_PUBLIC_ADSENSE_SLOT_MULTIPLEX`).
 
 ---
 
-## ⚙️ 11. Variables de Entorno, Configuración y Despliegues
+## ⚙️ 12. Variables de Entorno, Configuración y Despliegues
 
 ### Variables del Backend (`backend/.env`)
 ```env
 DATABASE_URL=postgresql://usuario:contraseña@host:puerto/bd   # Leída por el shim
-EMAIL_USER=tu-correo@gmail.com                              # Cuenta SMTP
-EMAIL_PASSWORD=contraseña-aplicacion-gmail                   # Contraseña segura app
-TELEGRAM_TOKEN=token-de-telegram                            # Token de API Bot
-TELEGRAM_CHANNEL=@PortalDeTrabajo                           # Canal general
-FRONTEND_URL=https://portalempleoit.com                     # URL para generar enlaces
-CRON_SECRET=token-secreto-cron                              # Para autorizar desindexaciones
+MYSQL_USER=usuario_mysql                                       # Alternativa para cPanel
+MYSQL_PASSWORD=contraseña_mysql
+MYSQL_DATABASE=nombre_bd
+EMAIL_USER=tu-correo@gmail.com
+EMAIL_PASSWORD=contraseña-aplicacion-gmail
+TELEGRAM_TOKEN=token-de-telegram
+TELEGRAM_CHANNEL=@PortalDeTrabajo
+TELEGRAM_ADMIN_ID=id-chat-admin
+TELEGRAM_CHANNEL_FRONTEND=id-canal-frontend
+TELEGRAM_CHANNEL_BACKEND=id-canal-backend
+TELEGRAM_CHANNEL_DATA_AI=id-canal-data
+TELEGRAM_CHANNEL_CLOUD_DEVOPS=id-canal-cloud
+TELEGRAM_CHANNEL_MOBILE=id-canal-mobile
+TELEGRAM_CHANNEL_REMOTO=id-canal-remoto
+LINKEDIN_ACCESS_TOKEN=token-acceso-linkedin
+LINKEDIN_URN=urn:li:organization:xxxxx
+MASTODON_ACCESS_TOKEN=token-mastodon
+MASTODON_INSTANCE=https://mastodon.social
+FRONTEND_URL=https://portalempleoit.com
+CRON_SECRET=token-secreto-cron
+GEMINI_API_KEY=clave-api-gemini            # Para generate_weekly_article.py y generate_trends_post.py
 ```
 
-### Variables del Frontend (`frontend/.env.local`)
+### Variables del Frontend (`frontend/.env.local` / Vercel)
 ```env
-DATABASE_URL=postgresql://...                      # Solo si se conecta directo (desarrollo local)
-DB_PROXY_URL=https://dominio.com/db_proxy.php     # URL del proxy HTTP de producción
-DB_PROXY_TOKEN=a6f021f1d19d675b8e998a44d187764d    # Token para comunicarse con db_proxy
-GOOGLE_INDEXING_CREDENTIALS='{"type": ...}'        # JSON de cuenta de servicio de Google
-NEXT_PUBLIC_ADSENSE_CLIENT_ID=ca-pub-...           # Cliente ID de Google AdSense
-STRIPE_SECRET_KEY=sk_live_...                      # Llave privada de Stripe
-STRIPE_WEBHOOK_SECRET=whsec_...                    # Secreto para validar firmas webhook
-CRON_SECRET=token-secreto-cron                     # Firma de autorización para bots python
+DATABASE_URL=postgresql://...              # Solo si se conecta directo (desarrollo local)
+DB_PROXY_URL=https://mail.portalempleoit.com/db_proxy.php  # URL del proxy HTTP de producción
+DB_PROXY_TOKEN=token-secreto              # Token para comunicarse con db_proxy
+GOOGLE_INDEXING_CREDENTIALS='{...}'       # JSON de cuenta de servicio de Google
+NEXT_PUBLIC_ADSENSE_CLIENT_ID=ca-pub-...  # ID de cliente de Google AdSense
+NEXT_PUBLIC_ADSENSE_SLOT_INLINE=...       # Slot ID del banner inline
+NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR=...      # Slot ID del banner sidebar
+NEXT_PUBLIC_ADSENSE_SLOT_MULTIPLEX=...    # Slot ID del formato multiplex
+STRIPE_SECRET_KEY=sk_live_...             # Llave privada de Stripe
+STRIPE_WEBHOOK_SECRET=whsec_...           # Secreto para validar firmas webhook
+NEXT_PUBLIC_AMAZON_TAG=portalempleoit-21  # Tag de afiliado Amazon
+NEXT_PUBLIC_COURSERA_AFFILIATE_ID=...     # ID de afiliado Coursera
+NEXT_PUBLIC_LINKEDIN_AFFILIATE_ID=...     # ID de afiliado LinkedIn Learning
+NEXT_PUBLIC_ONESIGNAL_APP_ID=...          # App ID de OneSignal (push notifications)
+CRON_SECRET=token-secreto-cron
 ```
 
-### Flujo de Despliegue (Deployments)
+### Flujo de Despliegue
 
 > [!IMPORTANT]
-> **Arquitectura en producción activa: Vercel (Frontend) + Raiola Networks (Backend y Base de Datos).** Esta es la única metodología de despliegue vigente.
+> **Arquitectura en producción activa: Vercel (Frontend) + Raiola Networks (Backend y Base de Datos).**
 
 1.  **✅ ACTIVO — Arquitectura Distribuida (Vercel + Raiola Networks)**:
-    *   *Frontend (Vercel)*: Sincronizado automáticamente con Vercel al hacer push en la rama `main`. No requiere intervención manual.
-    *   *Backend (Raiola)*: La GitHub Action `deploy_cpanel.yml` se dispara al hacer push. Genera un directorio de distribución limpio, eliminando entornos virtuales (`venv`), módulos de node (`node_modules`) y archivos `.env` de desarrollo, y lo sube al servidor Raiola mediante FTP seguro.
-    *   *Base de Datos (Raiola)*: MySQL local en el servidor Raiola. No se despliega; es persistente y se gestiona desde cPanel.
+    *   *Frontend (Vercel)*: Push a `main` → Deploy automático en Vercel.
+    *   *Backend (Raiola)*: GitHub Action `deploy_cpanel.yml` → Genera directorio limpio (sin `venv`, `node_modules`, `.env`) y sube vía FTP seguro a Raiola.
+    *   *Base de Datos (Raiola)*: MySQL local persistente, gestionado desde cPanel.
 
 2.  **⚠️ OBSOLETO — Arquitectura VPS Unificada (PM2 + Nginx)**:
-    *   Esta opción ya **no está en uso**. Se documenta únicamente por razones históricas.
-    *   El script de shell `deploy.sh` y la plantilla `nginx.conf.template` en el root del proyecto son artefactos de esta arquitectura descartada. No deben utilizarse en el flujo de trabajo actual.
+    *   Ya **no está en uso**. `deploy.sh` y `nginx.conf.template` son artefactos históricos.
 
 ---
 
-## 🧹 12. Limpieza de Deuda Técnica y Estado de Obsolescencia
+## 🧹 13. Limpieza de Deuda Técnica y Estado de Obsolescencia
 
-El proyecto ha completado una limpieza intensiva de componentes y dependencias obsoletas:
-*   **Unificación de Clientes**: Se eliminó por completo el uso directo de Supabase SDK y la librería `pg` del frontend. Todo el frontend consulta a través del pool de conexiones unificado en `frontend/lib/db.ts` (que se conecta a MySQL directamente o vía `db_proxy.php`).
-*   **Limpieza de Archivos**: Se eliminaron los scripts redundantes de duplicación de rutas y componentes huérfanos. Para conocer la lista de archivos purgados e inactivos, consulte el reporte técnico completo en [analisis_archivos_obsoletos.md](file:///home/raul/proyecto_empleo/analisis_archivos_obsoletos.md).
+*   **Unificación de Clientes**: Eliminado por completo el uso directo de Supabase SDK y la librería `pg`. Todo el frontend consulta a través del pool unificado en `frontend/lib/db.ts`.
+*   **Limpieza de Archivos**: Eliminados scripts redundantes de duplicación de rutas y componentes huérfanos. Ver reporte completo en [analisis_archivos_obsoletos.md](file:///home/raul/proyecto_empleo/analisis_archivos_obsoletos.md).
+
+---
+
+## 📁 14. Estructura de Directorios del Proyecto
+
+```
+proyecto_empleo/
+├── frontend/                          # Next.js 15 App
+│   ├── app/
+│   │   ├── (rutas principales)/
+│   │   ├── api/
+│   │   │   ├── checkout/route.ts      # Crea sesión de Stripe
+│   │   │   ├── webhooks/stripe/       # Confirma pago y activa oferta
+│   │   │   └── track-open/            # Pixel de tracking de apertura email
+│   │   ├── blog/[slug]/               # Detalle de artículo del blog
+│   │   ├── empresas/[slug]/           # Perfil de empresa
+│   │   ├── glosario/[term]/           # Término del glosario tecnológico
+│   │   ├── job/[id]/                  # Detalle de oferta de empleo
+│   │   ├── precios/                   # Página pública de planes
+│   │   ├── publicar-oferta/           # Formulario de publicación con Stripe
+│   │   ├── publicidad/                # Media Kit para anunciantes B2B
+│   │   ├── salarios/                  # Calculadora de salarios IT
+│   │   ├── talento-premium/           # Pool de candidatos + CTA B2B
+│   │   ├── trabajo-[ciudad]/          # Landings editoriales por ciudad
+│   │   ├── trabajos/[sector]/         # Motor SEO programático (slugs complejos)
+│   │   ├── empleo-del-dia/            # Landing del empleo del día
+│   │   ├── actions.ts                 # Server Actions de Next.js
+│   │   ├── layout.tsx                 # Layout global (AdSense, hreflang)
+│   │   └── sitemap.ts                 # Sitemaps dinámicos (4 ficheros)
+│   ├── components/
+│   │   ├── AdBanner.tsx               # Anuncios AdSense + afiliados contextual
+│   │   ├── CityLandingPage.tsx        # Landings editoriales de ciudades
+│   │   ├── CompanyLogo.tsx            # Logo de empresa optimizado
+│   │   ├── CourseAffiliate.tsx        # Bloque de cursos contextual por tecnología
+│   │   ├── UserStreak.tsx             # Panel gamificado de racha diaria
+│   │   ├── PushSubscribe.tsx          # Widget de suscripción push (OneSignal)
+│   │   ├── SaveJobButton.tsx          # Botón de guardar oferta
+│   │   ├── ReactionButton.tsx         # Botones 👍/👎 por oferta
+│   │   ├── SubscribeForm.tsx          # Formulario de newsletter
+│   │   ├── RecentlyViewed.tsx         # Tracker y panel de vistas recientes
+│   │   └── Breadcrumbs.tsx            # Breadcrumbs accesibles con JSON-LD
+│   └── lib/
+│       ├── db.ts                      # Pool de conexión a BD (proxy HTTP)
+│       ├── blog.ts                    # Posts estáticos del blog y helpers
+│       ├── salarios.ts                # Lógica de cálculo de estadísticas salariales
+│       ├── slug.ts                    # Generación y parseo de slugs canónicos
+│       └── constants.ts               # BASE_URL y constantes globales
+│
+├── backend/                           # Python 3.10 (ejecutado en Raiola)
+│   ├── run_all.py                     # Orquestador maestro
+│   ├── main.py                        # Scrapers internacionales
+│   ├── psycopg2.py                    # Shim PostgreSQL → MySQL
+│   ├── mailer.py                      # Newsletter semanal + Sponsor automático
+│   ├── telegram_bot.py                # Bot de Telegram (multicanal)
+│   ├── linkedin_bot.py                # Bot de LinkedIn (con tarjeta gráfica)
+│   ├── mastodon_bot.py                # Bot de Mastodon
+│   ├── twitter_bot.py                 # Bot de Twitter (INACTIVO)
+│   ├── send_custom_alerts.py          # Alertas personalizadas diarias/semanales
+│   ├── send_welcome_onboarding.py     # Secuencia de bienvenida (2 emails)
+│   ├── send_reactivation.py           # Reactivación de suscriptores inactivos
+│   ├── send_instant_featured_alerts.py # Alertas por ofertas destacadas
+│   ├── send_push_notifications.py     # Notificaciones push (OneSignal)
+│   ├── send_streak_reminder.py        # Recordatorio de racha diaria
+│   ├── send_saved_jobs_reminder.py    # Recordatorio de ofertas guardadas (48h)
+│   ├── generate_weekly_article.py     # Generación de artículo SEO con IA (Gemini)
+│   ├── generate_trends_post.py        # Post de tendencias tech desde datos BD
+│   ├── index_new_jobs.py              # Envío a Google Indexing API
+│   ├── ping_sitemap.py                # Notificación de sitemap a Google
+│   ├── deactivate_expired_jobs.py     # Desactivación y purga de expiradas
+│   ├── scrapers/                      # Módulos de scraping (remotive, wwr, etc.)
+│   └── logic/
+│       ├── classifier.py              # Clasificador de categorías
+│       ├── translator.py              # Traductor inteligente con protección de términos
+│       ├── salary_parser.py           # Parser y normalización de salarios
+│       ├── image_generator.py         # Generador de tarjetas gráficas (Pillow)
+│       └── slug.py                    # Generación de slugs para URLs de redes sociales
+│
+├── DEVELOPMENT_CONTEXT.md             # ← ESTE ARCHIVO (fuente de verdad del proyecto)
+├── db_proxy.php                       # Puente HTTP para la BD MySQL
+├── deploy.sh                          # (OBSOLETO) Script de deploy a VPS
+└── .github/
+    └── workflows/
+        ├── run_scrapers.yml            # GitHub Action: run_all.py cada 6 horas
+        ├── mailer.yml                  # GitHub Action: newsletter semanal (lunes)
+        └── deploy_cpanel.yml          # GitHub Action: deploy al FTP de Raiola
+```
