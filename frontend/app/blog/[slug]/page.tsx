@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { getPostBySlug, getBlogPosts } from '@/lib/blog';
 import AdBanner from '@/components/AdBanner';
 import SubscribeForm from '@/components/SubscribeForm';
+import PushSubscribe from '@/components/PushSubscribe';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import AuthorBox from '@/components/AuthorBox';
 import pool from '@/lib/db';
@@ -424,6 +425,7 @@ export default async function BlogPostPage({ params }: Props) {
           <div className="lg:col-span-1 space-y-6">
             <div className="space-y-6">
               <SubscribeForm location="España" />
+              <PushSubscribe />
               <div className="lg:sticky lg:top-24">
                 <AdBanner variant="sidebar" />
               </div>

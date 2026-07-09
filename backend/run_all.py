@@ -117,10 +117,22 @@ if exit_code != 0:
     print("⚠️ Advertencia: El script de generación de blog semanal terminó con errores o no está configurado.")
 
 # 7.5. Generar Artículo de Tendencias Semanal desde la BD
-print("\n[7.5/7] 📈 Generando artículo de tendencias de empleo tech (generate_trends_post.py)...")
+print("\n[7.5/9] 📈 Generando artículo de tendencias de empleo tech (generate_trends_post.py)...")
 exit_code = os.system(f"{python_bin} generate_trends_post.py")
 if exit_code != 0:
     print("⚠️ Advertencia: El script de tendencias semanales terminó con errores.")
+
+# 7.6. Enviar Recordatorios de Racha (Usuarios a punto de perder su racha diaria)
+print("\n[7.6/9] 🔥 Enviando recordatorios de racha (send_streak_reminder.py)...")
+exit_code = os.system(f"{python_bin} send_streak_reminder.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: El script de recordatorios de racha terminó con errores.")
+
+# 7.7. Enviar Recordatorios de Ofertas Guardadas (48h después de guardar)
+print("\n[7.7/9] ⭐ Enviando recordatorios de ofertas guardadas (send_saved_jobs_reminder.py)...")
+exit_code = os.system(f"{python_bin} send_saved_jobs_reminder.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: El script de recordatorios de ofertas guardadas terminó con errores.")
 
 print("\n===============================================")
 print("✅ PROCESO COMPLETADO. El sistema descansa.")

@@ -26,6 +26,7 @@ export function JobOfTheDayWidget({ job, lang = 'es' }: { job: Job | null; lang?
   const jobSlug = getJobSlug(job);
   const queryParam = isEnglish ? '?lang=en' : '';
   const detailUrl = `/job/${jobSlug}${queryParam}`;
+  const dedicatedUrl = `/empleo-del-dia${queryParam}`;
   const displayTitle = isEnglish ? job.title : (job.title_es || job.title);
 
   return (
@@ -54,12 +55,18 @@ export function JobOfTheDayWidget({ job, lang = 'es' }: { job: Job | null; lang?
         </div>
       </div>
 
-      <div className="mt-4">
+      <div className="mt-4 flex flex-col gap-2">
         <Link 
-          href={detailUrl}
+          href={dedicatedUrl}
           className="block w-full text-center bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white text-xs font-bold py-2 rounded-xl transition-colors shadow-sm"
         >
-          {isEnglish ? 'View Details ⭐' : 'Ver Detalles ⭐'}
+          {isEnglish ? 'View & Share ⭐' : 'Ver y Compartir ⭐'}
+        </Link>
+        <Link
+          href={detailUrl}
+          className="block w-full text-center bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/20 dark:hover:bg-amber-950/30 text-amber-700 dark:text-amber-400 text-xs font-semibold py-1.5 rounded-xl transition-colors border border-amber-200/50 dark:border-amber-700/30"
+        >
+          {isEnglish ? 'Apply directly →' : 'Postularme directamente →'}
         </Link>
       </div>
     </div>

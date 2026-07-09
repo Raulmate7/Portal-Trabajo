@@ -36,6 +36,7 @@ const BASE_PAGES = [
   '/noticias',
   '/tendencias',
   '/recursos',
+  '/empleo-del-dia',
 ];
 
 
