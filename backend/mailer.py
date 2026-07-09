@@ -57,6 +57,19 @@ def send_newsletter():
         conn.close()
         return
 
+    # Buscar ofertas destacadas pro o enterprise activas (sponsors de la semana)
+    cur.execute("""
+        SELECT id, title, company, location, url_source, category, plan 
+        FROM jobs 
+        WHERE is_active = TRUE AND is_featured = TRUE 
+          AND (featured_expires_at IS NULL OR featured_expires_at > NOW())
+          AND plan IN ('destacado_pro', 'destacado_enterprise', 'destacado_premium')
+        ORDER BY created_at DESC 
+        LIMIT 3
+    """)
+    featured_jobs = cur.fetchall()
+    print(f"⭐ Encontradas {len(featured_jobs)} ofertas patrocinadas/destacadas para el boletín.")
+
     # Clasificar ofertas por categorías para el bloque estándar (máximo 6 por categoría)
     jobs_by_cat = {
         'Backend': [],
@@ -205,8 +218,34 @@ def send_newsletter():
                             </a>
                         </div>
                     """
-            # 6.2. Combinar el HTML personalizado con el estándar y reemplazar placeholders de tracking
-            final_jobs_html = (recommended_html + standard_jobs_html).replace("##EMAIL##", email).replace("##CAMPAIGN##", campaign_name)
+            # 6.1.5 Generar bloque de ofertas patrocinadas/destacadas (sponsors de la semana)
+            featured_html = ""
+            if featured_jobs:
+                featured_html = """
+                    <h2 style="color: #4338ca; border-bottom: 2px solid #4338ca40; padding-bottom: 6px; margin-top: 10px; margin-bottom: 14px; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
+                        ⭐ Patrocinador de la Semana
+                    </h2>
+                """
+                for f_job in featured_jobs:
+                    fj_id, fj_title, fj_company, fj_location, fj_url, fj_cat, fj_plan = f_job
+                    fj_cat = fj_cat or 'Otros'
+                    import urllib.parse
+                    original_fj_link = f"{base_url}/job/{get_job_slug(fj_id, fj_title, fj_location, fj_company)}?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal&utm_term={urllib.parse.quote(fj_cat)}&utm_content={fj_id}"
+                    fj_link = f"{base_url}/api/track-click?email=##EMAIL##&campaign=##CAMPAIGN##&redirect={urllib.parse.quote(original_fj_link)}"
+                    
+                    featured_html += f"""
+                        <div style="margin-bottom: 16px; padding: 16px; background-color: #f5f3ff; border: 2px solid #c7d2fe; border-left: 6px solid #6366f1; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.05);">
+                            <span style="display: inline-block; background-color: #6366f1; color: white; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: bold; text-transform: uppercase; margin-bottom: 8px;">DESTACADO</span>
+                            <h3 style="color: #1e1b4b; margin: 0 0 4px; font-size: 15px; font-weight: 800; line-height: 1.4;">{fj_title}</h3>
+                            <p style="margin: 0 0 10px; color: #4338ca; font-size: 12px; font-weight: 600;">🏢 {fj_company} &nbsp;|&nbsp; 📍 {fj_location}</p>
+                            <a href="{fj_link}" style="display: inline-block; background-color: #4338ca; color: white; padding: 8px 18px; text-decoration: none; border-radius: 6px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                Ver Oferta Destacada →
+                            </a>
+                        </div>
+                    """
+
+            # 6.2. Combinar el HTML patrocinado, el personalizado con el estándar y reemplazar placeholders de tracking
+            final_jobs_html = (featured_html + recommended_html + standard_jobs_html).replace("##EMAIL##", email).replace("##CAMPAIGN##", campaign_name)
             
             # Generar enlaces con tracking para los CTAs generales del correo
             import urllib.parse

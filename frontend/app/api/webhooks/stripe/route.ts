@@ -37,8 +37,8 @@ export async function POST(request: Request) {
       const client = await pool.connect();
       try {
         let days = 30;
-        if (plan === 'destacado_7d') {
-          days = 7;
+        if (plan === 'destacado_basico') {
+          days = 15;
         }
 
         // Activar la oferta, marcarla como destacada y establecer expiración de destacado
@@ -46,11 +46,12 @@ export async function POST(request: Request) {
           UPDATE jobs 
           SET is_active = TRUE, 
               is_featured = TRUE,
-              featured_expires_at = DATE_ADD(NOW(), INTERVAL ${days} DAY)
+              featured_expires_at = DATE_ADD(NOW(), INTERVAL ${days} DAY),
+              plan = $2
           WHERE id = $1
         `;
-        await client.query(query, [jobId]);
-        console.log(`✅ Oferta ID ${jobId} activada y destacada exitosamente por ${days} días.`);
+        await client.query(query, [jobId, plan]);
+        console.log(`✅ Oferta ID ${jobId} activada y destacada exitosamente por ${days} días con el Plan ${plan}.`);
       } catch (dbErr) {
         console.error(`❌ Error en la base de datos al activar oferta ID ${jobId}:`, dbErr);
         return NextResponse.json({ error: 'Error interno en la BD' }, { status: 500 });

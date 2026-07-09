@@ -40,18 +40,18 @@ export async function POST(request: Request) {
     }
 
     // 2. Determinar precio y datos del producto según el plan elegido
-    let unitAmount = 3900; // Por defecto 39€ (Estándar 30 días)
-    let planName = 'Oferta Destacada Estándar - Portal Trabajo IT';
-    let planDesc = `Destaca tu oferta "${title}" en la parte superior y búsquedas del portal durante 30 días.`;
+    let unitAmount = 7900; // Por defecto 79€ (Destacado Pro 30 días)
+    let planName = 'Oferta Destacada Pro - Portal Trabajo IT';
+    let planDesc = `Destaca tu oferta "${title}" durante 30 días + Inclusión en la newsletter semanal.`;
 
-    if (plan === 'destacado_7d') {
-      unitAmount = 1900; // 19€ (Básico 7 días)
+    if (plan === 'destacado_basico') {
+      unitAmount = 3900; // 39€ (Básico 15 días)
       planName = 'Oferta Destacada Básica - Portal Trabajo IT';
-      planDesc = `Destaca tu oferta "${title}" en la parte superior y búsquedas del portal durante 7 días.`;
-    } else if (plan === 'destacado_premium') {
-      unitAmount = 7900; // 79€ (Premium 30 días + newsletter + Telegram + redes)
-      planName = 'Oferta Destacada Premium - Portal Trabajo IT';
-      planDesc = `Destaca tu oferta "${title}" durante 30 días + Difusión en Boletín, Telegram y Redes Sociales.`;
+      planDesc = `Destaca tu oferta "${title}" en la parte superior y búsquedas del portal durante 15 días.`;
+    } else if (plan === 'destacado_enterprise') {
+      unitAmount = 19900; // 199€ (Enterprise 30 días + newsletter + Telegram + redes)
+      planName = 'Oferta Destacada Enterprise - Portal Trabajo IT';
+      planDesc = `Destaca tu oferta "${title}" durante 30 días + Boletín exclusivo + Difusión en Telegram y Redes Sociales.`;
     }
 
     // 3. Crear la sesión de checkout en Stripe referenciando el jobId

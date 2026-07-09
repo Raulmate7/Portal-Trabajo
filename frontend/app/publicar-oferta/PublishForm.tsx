@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { submitSponsoredJob } from "@/app/actions";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -10,10 +10,17 @@ export default function PublishForm() {
   const success = searchParams.get("success") === "true";
   const canceled = searchParams.get("canceled") === "true";
   const free = searchParams.get("free") === "true";
+  const urlPlan = searchParams.get("plan");
 
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
-  const [selectedPlan, setSelectedPlan] = useState<"basico" | "destacado_7d" | "destacado_30d" | "destacado_premium">("destacado_30d");
+  const [selectedPlan, setSelectedPlan] = useState<"basico" | "destacado_basico" | "destacado_pro" | "destacado_enterprise">("destacado_pro");
+
+  useEffect(() => {
+    if (urlPlan && ["basico", "destacado_basico", "destacado_pro", "destacado_enterprise"].includes(urlPlan)) {
+      setSelectedPlan(urlPlan as any);
+    }
+  }, [urlPlan]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -80,7 +87,7 @@ export default function PublishForm() {
             Tu oferta de empleo ya está activa y visible para miles de desarrolladores en nuestro listado regular del buscador.
           </p>
           <p className="text-gray-400 text-sm max-w-md mx-auto mb-8">
-            Si deseas darle el máximo alcance y colocarla arriba, puedes destacarla por 39€ en futuras ofertas.
+            Si deseas darle el máximo alcance y colocarla arriba, puedes destacarla eligiendo uno de nuestros planes premium.
           </p>
           <Link href="/" className="inline-block px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all">
             Ir al Buscador
@@ -135,13 +142,20 @@ export default function PublishForm() {
     );
   }
 
+  const getPlanPrice = () => {
+    if (selectedPlan === "destacado_basico") return "39€";
+    if (selectedPlan === "destacado_pro") return "79€";
+    if (selectedPlan === "destacado_enterprise") return "199€";
+    return "Gratis";
+  };
+
   return (
     <div className="p-8 md:p-12 rounded-3xl bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800 shadow-2xl">
       <h2 className="text-2xl md:text-3xl font-black text-center mb-2">
         Publicar tu oferta
       </h2>
       <p className="text-gray-400 text-center mb-8 text-sm">
-        Rellena los datos y nos pondremos en contacto contigo para activarla.
+        Rellena los datos de tu oferta y selecciona el plan de visibilidad.
       </p>
 
       {/* Plan Selector */}
@@ -165,55 +179,55 @@ export default function PublishForm() {
           <span className="text-lg font-black shrink-0">Gratis</span>
         </button>
 
-        {/* Plan Destacado 7 Días */}
+        {/* Plan Destacado Básico */}
         <button
           type="button"
-          onClick={() => setSelectedPlan("destacado_7d")}
+          onClick={() => setSelectedPlan("destacado_basico")}
           className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center justify-between gap-4 ${
-            selectedPlan === "destacado_7d"
+            selectedPlan === "destacado_basico"
               ? "border-amber-500 bg-amber-500/10 text-white"
               : "border-gray-800 hover:border-gray-700 text-gray-300"
           }`}
         >
           <div>
-            <span className="block text-sm font-bold">⚡ Destacado Rápido</span>
-            <span className="block text-xs text-gray-400 mt-0.5">Diseño destacado con bordes y fijado arriba durante 7 días</span>
-          </div>
-          <span className="text-lg font-black text-amber-400 shrink-0">19€</span>
-        </button>
-
-        {/* Plan Destacado 30 Días */}
-        <button
-          type="button"
-          onClick={() => setSelectedPlan("destacado_30d")}
-          className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center justify-between gap-4 ${
-            selectedPlan === "destacado_30d"
-              ? "border-amber-500 bg-amber-500/10 text-white"
-              : "border-gray-800 hover:border-gray-700 text-gray-300"
-          }`}
-        >
-          <div>
-            <span className="block text-sm font-bold">⭐ Destacado Estándar</span>
-            <span className="block text-xs text-gray-400 mt-0.5">Diseño destacado, fijado arriba por 30 días y alertas push</span>
+            <span className="block text-sm font-bold">⚡ Destacado Básico</span>
+            <span className="block text-xs text-gray-400 mt-0.5">Fijada arriba en búsquedas y diseño premium durante 15 días</span>
           </div>
           <span className="text-lg font-black text-amber-400 shrink-0">39€</span>
         </button>
 
-        {/* Plan Destacado Premium */}
+        {/* Plan Destacado Pro */}
         <button
           type="button"
-          onClick={() => setSelectedPlan("destacado_premium")}
+          onClick={() => setSelectedPlan("destacado_pro")}
           className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center justify-between gap-4 ${
-            selectedPlan === "destacado_premium"
+            selectedPlan === "destacado_pro"
+              ? "border-amber-500 bg-amber-500/10 text-white"
+              : "border-gray-800 hover:border-gray-700 text-gray-300"
+          }`}
+        >
+          <div>
+            <span className="block text-sm font-bold">⭐ Destacado Pro</span>
+            <span className="block text-xs text-gray-400 mt-0.5">Destaque 30d + Inclusión en la Newsletter semanal (+8.700 devs)</span>
+          </div>
+          <span className="text-lg font-black text-amber-400 shrink-0">79€</span>
+        </button>
+
+        {/* Plan Destacado Enterprise */}
+        <button
+          type="button"
+          onClick={() => setSelectedPlan("destacado_enterprise")}
+          className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center justify-between gap-4 ${
+            selectedPlan === "destacado_enterprise"
               ? "border-purple-500 bg-purple-500/10 text-white"
               : "border-gray-800 hover:border-gray-700 text-gray-300"
           }`}
         >
           <div>
-            <span className="block text-sm font-bold">🚀 Destacado Premium</span>
-            <span className="block text-xs text-gray-400 mt-0.5">Destaque 30d + Envío Boletín Semanal + Telegram + Redes Sociales</span>
+            <span className="block text-sm font-bold">🚀 Enterprise</span>
+            <span className="block text-xs text-gray-400 mt-0.5">Destaque 30d + Newsletter exclusiva + Telegram + Redes Sociales</span>
           </div>
-          <span className="text-lg font-black text-purple-400 shrink-0">79€</span>
+          <span className="text-lg font-black text-purple-400 shrink-0">199€</span>
         </button>
       </div>
 
@@ -371,11 +385,11 @@ export default function PublishForm() {
             ? "Enviando..."
             : selectedPlan === "basico"
             ? "Solicitar oferta Básica (Gratis)"
-            : `Pagar y Destacar Oferta (${selectedPlan === "destacado_7d" ? "19€" : selectedPlan === "destacado_30d" ? "39€" : "79€"}) 💳`}
+            : `Pagar y Destacar Oferta (${getPlanPrice()}) 💳`}
         </button>
 
         <p className="text-center text-gray-500 text-xs mt-3">
-          Te contactaremos por email para confirmar y activar tu oferta.
+          Procesamiento de pago seguro mediante Stripe.
         </p>
       </form>
     </div>

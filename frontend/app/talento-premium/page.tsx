@@ -157,8 +157,37 @@ export default async function TalentoPremiumPage({ searchParams }: Props) {
         <PremiumForm />
       </section>
 
+      {/* Sección B2B para Empresas */}
+      <section className="border-t border-gray-900 bg-gray-950 py-16 px-4">
+        <div className="max-w-4xl mx-auto text-center">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-semibold mb-6 uppercase tracking-wider">
+            💼 Soluciones para Empresas
+          </span>
+          <h2 className="text-2xl md:text-3xl font-black mb-4">
+            ¿Buscas Talento Tecnológico Senior?
+          </h2>
+          <p className="text-gray-400 text-sm max-w-xl mx-auto mb-8 leading-relaxed">
+            Accede de forma directa y confidencial a nuestra bolsa de candidatos pre-filtrados y con alta experiencia en React, Python, Java, Node.js y DevOps. Evita intermediarios y costes abusivos de headhunting.
+          </p>
+          <div className="flex flex-wrap justify-center gap-4">
+            <a
+              href="mailto:publicidad@portalempleoit.com?subject=Acceso%20Empresas%20-%20Talento%20Premium"
+              className="px-6 py-3 bg-indigo-650 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm transition-all shadow-md shadow-indigo-500/10 cursor-pointer"
+            >
+              Contactar con Soporte Empresas
+            </a>
+            <Link
+              href="/publicidad"
+              className="px-6 py-3 border border-gray-750 text-white font-bold rounded-xl text-sm hover:bg-gray-800 transition-all"
+            >
+              Ver Formatos de Publicidad
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Footer mínimo */}
-      <footer className="text-center py-8 text-gray-600 text-sm border-t border-gray-800">
+      <footer className="text-center py-8 text-gray-600 text-sm border-t border-gray-900">
         <Link href="/" className="text-indigo-400 hover:underline">
           ← Volver al Portal de Empleo
         </Link>
