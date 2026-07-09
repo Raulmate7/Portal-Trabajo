@@ -215,8 +215,8 @@ export default async function JobsPage(props: Props) {
             <div className="space-y-4">
               {jobs && jobs.length > 0 ? (
                 <>
-                  {jobs.map((job: any) => (
-                    <JobCard key={job.id} job={job} />
+                  {jobs.map((job: any, index: number) => (
+                    <JobCard key={job.id} job={job} prefetch={index < 5} />
                   ))}
 
                   {/* Controles de Paginación */}

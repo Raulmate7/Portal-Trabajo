@@ -253,8 +253,8 @@ export default async function RemoteLandingPage({ searchParams }: Props) {
             {jobs && jobs.length > 0 ? (
               <>
                 <div className="space-y-4">
-                  {jobs.map((job: any) => (
-                    <JobCard key={job.id} job={job} />
+                  {jobs.map((job: any, index: number) => (
+                    <JobCard key={job.id} job={job} prefetch={index < 5} />
                   ))}
                 </div>
 

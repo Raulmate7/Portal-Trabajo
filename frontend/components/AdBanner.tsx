@@ -804,8 +804,11 @@ export default function AdBanner({
 
   // Renderizado del banner estándar de Google AdSense (inline / sidebar)
   if (raw) {
+    const rawMinH = variant === 'inline' 
+      ? 'min-h-[50px] md:min-h-[90px]' 
+      : 'min-h-[250px]';
     return (
-      <div className={`w-full flex justify-center items-center overflow-hidden relative ${isLoading ? 'animate-pulse' : ''}`}>
+      <div className={`w-full flex justify-center items-center overflow-hidden relative ${rawMinH} ${isLoading ? 'animate-pulse' : ''}`}>
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-gray-300 dark:text-slate-600">
             <span className="text-[9px] uppercase tracking-wider font-medium">Cargando...</span>
@@ -829,17 +832,17 @@ export default function AdBanner({
     );
   }
 
+  const wrapperMinH = variant === 'inline' 
+    ? 'min-h-[50px] md:min-h-[90px]' 
+    : 'min-h-[250px] md:min-h-[300px]';
+
   return (
     <div className="w-full overflow-hidden bg-white border border-gray-100 rounded-xl shadow-sm p-4 flex flex-col items-center">
       <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mb-2 block text-center">Anuncio</span>
       <div 
         className={`w-full flex justify-center items-center overflow-hidden transition-all duration-300 relative bg-gradient-to-r from-gray-50 via-gray-100 to-gray-50 rounded-lg border border-gray-100/50 ${
           isLoading ? 'animate-pulse' : ''
-        } ${
-          variant === 'inline' 
-            ? 'min-h-[90px] md:min-h-[250px] max-h-[280px]' 
-            : 'min-h-[250px] md:min-h-[300px]'
-        }`}
+        } ${wrapperMinH}`}
       >
         {/* Fondo elegante del placeholder que se tapará cuando cargue el anuncio */}
         {isLoading && (

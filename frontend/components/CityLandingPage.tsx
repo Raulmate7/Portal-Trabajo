@@ -315,7 +315,7 @@ export default async function CityLandingPage({ citySlug, cityName, searchParams
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {jobs.flatMap((job: any, index: number) => {
-                    const card = <JobCard key={job.id} job={job} lang={lang} />;
+                    const card = <JobCard key={job.id} job={job} lang={lang} prefetch={index < 5} />;
                     if (index === 3) {
                       return [
                         <div key={`ad-inline-${job.id}`} className="col-span-full my-2">

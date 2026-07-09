@@ -1248,7 +1248,7 @@ export default async function SectorPage({
             {jobs && jobs.length > 0 ? (
               <>
                 {jobs.flatMap((job: Job, index: number) => {
-                  const card = <JobCard key={job.id} job={job as Job} lang={lang} />;
+                  const card = <JobCard key={job.id} job={job as Job} lang={lang} prefetch={index < 5} />;
                   if (index === 3) {
                     return [
                       <div key={`ad-infeed-1-${job.id}`} className="my-2">

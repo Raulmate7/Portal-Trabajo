@@ -295,8 +295,8 @@ export default async function EmpresasInternacionalesPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {jobs.length > 0 ? (
-                jobs.map((job) => (
-                  <JobCard key={job.id} job={job as any} lang="es" />
+                jobs.map((job, index) => (
+                  <JobCard key={job.id} job={job as any} lang="es" prefetch={index < 5} />
                 ))
               ) : (
                 <div className="col-span-full text-center py-16 bg-gray-50 rounded-2xl border border-dashed border-gray-300">

@@ -423,7 +423,7 @@ export default async function Home({ searchParams }: Props) {
                             <CompanyLogo company={job.company} size={12} />
                             <div className="flex-grow w-full flex flex-col md:flex-row justify-between md:items-start gap-4">
                               <div className="w-full">
-                                <Link href={detailUrl}>
+                                <Link href={detailUrl} prefetch={index < 5 ? true : false}>
                                   <h3 className="text-xl font-semibold text-indigo-900 dark:text-indigo-400 hover:text-indigo-650 dark:hover:text-indigo-300 transition-colors">
                                     {displayJobTitle}
                                   </h3>
@@ -443,9 +443,10 @@ export default async function Home({ searchParams }: Props) {
                                   <span className="bg-gray-50 dark:bg-slate-850 px-2 py-1 rounded border border-gray-200 dark:border-slate-800">📅 {new Date(job.created_at).toLocaleDateString()}</span>
                                 </div>
                               </div>
-
+ 
                               <Link 
                                 href={detailUrl}
+                                prefetch={index < 5 ? true : false}
                                 className="px-5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/30 dark:hover:bg-indigo-950/60 dark:text-indigo-300 font-semibold rounded-lg transition-colors text-center shrink-0 cursor-pointer"
                               >
                                 {isEnglish ? 'View offer' : 'Ver oferta'}

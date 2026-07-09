@@ -43,7 +43,7 @@ export default function FeaturedJobCard({ job, lang }: { job: FeaturedJob; lang?
         <div className="flex gap-4 items-start w-full">
           <CompanyLogo company={job.company} size={12} />
           <div className="w-full">
-          <Link href={detailUrl}>
+          <Link href={detailUrl} prefetch={true}>
             <h2 className="text-xl font-bold text-gray-900 group-hover:text-amber-700 transition-colors">
               {displayTitle}
             </h2>
@@ -78,6 +78,7 @@ export default function FeaturedJobCard({ job, lang }: { job: FeaturedJob; lang?
 
         <Link
           href={detailUrl}
+          prefetch={true}
           className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-bold rounded-xl hover:from-amber-600 hover:to-yellow-600 transition-all text-center shrink-0 shadow-md shadow-amber-200/50 hover:shadow-lg"
         >
           {isEnglish ? 'View Job ⭐' : 'Ver oferta ⭐'}

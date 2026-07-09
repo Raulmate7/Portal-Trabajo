@@ -20,9 +20,10 @@ interface Job {
 interface JobCardProps {
   job: Job;
   lang?: string;
+  prefetch?: boolean;
 }
 
-export default function JobCard({ job, lang }: JobCardProps) {
+export default function JobCard({ job, lang, prefetch }: JobCardProps) {
   const isEnglish = lang === 'en';
 
   const getCategoryColor = (cat: string | null | undefined) => {
@@ -141,6 +142,7 @@ export default function JobCard({ job, lang }: JobCardProps) {
       <div className="px-6 pb-6 mt-auto">
         <Link 
           href={detailUrl} 
+          prefetch={prefetch}
           className="block w-full text-center bg-gray-900 hover:bg-black text-white dark:bg-indigo-650 dark:hover:bg-indigo-700 font-medium py-2.5 px-4 rounded-lg transition-colors duration-200"
         >
           {isEnglish ? 'View Job' : 'Ver Oferta'}
