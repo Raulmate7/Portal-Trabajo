@@ -143,9 +143,9 @@ export default function PublishForm() {
   }
 
   const getPlanPrice = () => {
-    if (selectedPlan === "destacado_basico") return "39€";
-    if (selectedPlan === "destacado_pro") return "79€";
-    if (selectedPlan === "destacado_enterprise") return "199€";
+    if (selectedPlan === "destacado_basico") return "9€";
+    if (selectedPlan === "destacado_pro") return "19€";
+    if (selectedPlan === "destacado_enterprise") return "49€";
     return "Gratis";
   };
 
@@ -193,7 +193,7 @@ export default function PublishForm() {
             <span className="block text-sm font-bold">⚡ Destacado Básico</span>
             <span className="block text-xs text-gray-400 mt-0.5">Fijada arriba en búsquedas y diseño premium durante 15 días</span>
           </div>
-          <span className="text-lg font-black text-amber-400 shrink-0">39€</span>
+          <span className="text-lg font-black text-amber-400 shrink-0">9€</span>
         </button>
 
         {/* Plan Destacado Pro */}
@@ -210,7 +210,7 @@ export default function PublishForm() {
             <span className="block text-sm font-bold">⭐ Destacado Pro</span>
             <span className="block text-xs text-gray-400 mt-0.5">Destaque 30d + Inclusión en la Newsletter semanal (+8.700 devs)</span>
           </div>
-          <span className="text-lg font-black text-amber-400 shrink-0">79€</span>
+          <span className="text-lg font-black text-amber-400 shrink-0">19€</span>
         </button>
 
         {/* Plan Destacado Enterprise */}
@@ -227,7 +227,7 @@ export default function PublishForm() {
             <span className="block text-sm font-bold">🚀 Enterprise</span>
             <span className="block text-xs text-gray-400 mt-0.5">Destaque 30d + Newsletter exclusiva + Telegram + Redes Sociales</span>
           </div>
-          <span className="text-lg font-black text-purple-400 shrink-0">199€</span>
+          <span className="text-lg font-black text-purple-400 shrink-0">49€</span>
         </button>
       </div>
 

@@ -40,16 +40,16 @@ export async function POST(request: Request) {
     }
 
     // 2. Determinar precio y datos del producto según el plan elegido
-    let unitAmount = 7900; // Por defecto 79€ (Destacado Pro 30 días)
+    let unitAmount = 1900; // Por defecto 19€ (Destacado Pro 30 días)
     let planName = 'Oferta Destacada Pro - Portal Trabajo IT';
     let planDesc = `Destaca tu oferta "${title}" durante 30 días + Inclusión en la newsletter semanal.`;
 
     if (plan === 'destacado_basico') {
-      unitAmount = 3900; // 39€ (Básico 15 días)
+      unitAmount = 900; // 9€ (Básico 15 días)
       planName = 'Oferta Destacada Básica - Portal Trabajo IT';
       planDesc = `Destaca tu oferta "${title}" en la parte superior y búsquedas del portal durante 15 días.`;
     } else if (plan === 'destacado_enterprise') {
-      unitAmount = 19900; // 199€ (Enterprise 30 días + newsletter + Telegram + redes)
+      unitAmount = 4900; // 49€ (Enterprise 30 días + newsletter + Telegram + redes)
       planName = 'Oferta Destacada Enterprise - Portal Trabajo IT';
       planDesc = `Destaca tu oferta "${title}" durante 30 días + Boletín exclusivo + Difusión en Telegram y Redes Sociales.`;
     }

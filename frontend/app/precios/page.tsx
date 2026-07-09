@@ -88,7 +88,7 @@ export default function PreciosPage() {
               <span className="text-xs font-bold uppercase tracking-wider text-amber-500/70 block mb-1">Destaque Corto</span>
               <h2 className="text-xl font-extrabold text-white">Destacado Básico</h2>
               <div className="flex items-end gap-1 mt-3">
-                <span className="text-3xl font-black text-amber-400">39€</span>
+                <span className="text-3xl font-black text-amber-400">9€</span>
                 <span className="text-gray-500 text-xs ml-2 mb-1">/ 15 días</span>
               </div>
             </div>
@@ -117,11 +117,11 @@ export default function PreciosPage() {
               href="/publicar-oferta?plan=destacado_basico"
               className="mt-6 text-center py-2.5 px-4 rounded-xl border border-amber-500/50 text-amber-400 font-bold hover:bg-amber-500/10 transition-all text-sm"
             >
-              Destacar por 39€
+              Destacar por 9€
             </Link>
           </div>
 
-          {/* Plan Destacado Pro (79€) */}
+          {/* Plan Destacado Pro (19€) */}
           <div className="relative bg-gradient-to-br from-gray-900 to-gray-950 border-2 border-amber-500 rounded-2xl p-6 flex flex-col shadow-xl shadow-amber-500/5 hover:scale-[1.01] transition-all">
             <div className="absolute -top-3.5 left-6">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-white text-[10px] font-bold shadow-md uppercase tracking-wider">
@@ -132,7 +132,7 @@ export default function PreciosPage() {
               <span className="text-xs font-bold uppercase tracking-wider text-amber-500 block mb-1">Mayor Conversión</span>
               <h2 className="text-xl font-extrabold text-white">Destacado Pro</h2>
               <div className="flex items-end gap-1 mt-3">
-                <span className="text-3xl font-black text-amber-400">79€</span>
+                <span className="text-3xl font-black text-amber-400">19€</span>
                 <span className="text-gray-500 text-xs ml-2 mb-1">/ 30 días</span>
               </div>
             </div>
@@ -161,17 +161,17 @@ export default function PreciosPage() {
               href="/publicar-oferta?plan=destacado_pro"
               className="mt-6 text-center py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-gray-900 font-black hover:from-amber-400 hover:to-yellow-400 transition-all shadow-lg shadow-amber-500/20 text-sm"
             >
-              Destacar por 79€
+              Destacar por 19€
             </Link>
           </div>
 
-          {/* Plan Destacado Enterprise (199€) */}
+          {/* Plan Destacado Enterprise (49€) */}
           <div className="bg-gray-900/60 border border-purple-500/40 rounded-2xl p-6 flex flex-col hover:border-purple-500 transition-all">
             <div className="mb-6">
               <span className="text-xs font-bold uppercase tracking-wider text-purple-400 block mb-1">Cobertura Total</span>
               <h2 className="text-xl font-extrabold text-white">Enterprise</h2>
               <div className="flex items-end gap-1 mt-3">
-                <span className="text-3xl font-black text-purple-400">199€</span>
+                <span className="text-3xl font-black text-purple-400">49€</span>
                 <span className="text-gray-500 text-xs ml-2 mb-1">/ 30 días</span>
               </div>
             </div>
@@ -200,7 +200,7 @@ export default function PreciosPage() {
               href="/publicar-oferta?plan=destacado_enterprise"
               className="mt-6 text-center py-2.5 px-4 rounded-xl border border-purple-500 text-purple-400 font-bold hover:bg-purple-500/10 transition-all text-sm"
             >
-              Contratar por 199€
+              Contratar por 49€
             </Link>
           </div>
         </div>

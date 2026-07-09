@@ -78,9 +78,9 @@ export default function PublicidadPage() {
                 Aumenta el volumen de candidatos y obtén difusión automatizada en la newsletter semanal y redes sociales.
               </p>
               <ul className="text-xs text-gray-500 space-y-2 mb-6 list-disc list-inside">
-                <li>Básico (39€) — 15 días destacado</li>
-                <li>Pro (79€) — 30 días destacado + Newsletter</li>
-                <li>Enterprise (199€) — Destaque 30d + Newsletter exclusiva + Social push</li>
+                <li>Básico (9€) — 15 días destacado</li>
+                <li>Pro (19€) — 30 días destacado + Newsletter</li>
+                <li>Enterprise (49€) — Destaque 30d + Newsletter exclusiva + Social push</li>
               </ul>
             </div>
             <Link
@@ -103,7 +103,7 @@ export default function PublicidadPage() {
               </p>
               <ul className="text-xs text-gray-500 space-y-2 mb-6 list-disc list-inside">
                 <li>Bloque editorial exclusivo (Texto + Botón CTA)</li>
-                <li>150€ por envío único</li>
+                <li>49€ por envío único</li>
                 <li>Excelente tasa de click-through (CTR) de programadores</li>
               </ul>
             </div>
@@ -111,7 +111,7 @@ export default function PublicidadPage() {
               href="mailto:publicidad@portalempleoit.com?subject=Reserva%20de%20Newsletter%20Patrocinada"
               className="block w-full text-center py-2.5 px-4 rounded-xl border border-purple-500 text-purple-400 font-bold hover:bg-purple-500/10 transition-all text-xs"
             >
-              Reservar Espacio (150€)
+              Reservar Espacio (49€)
             </a>
           </div>
 
@@ -128,14 +128,14 @@ export default function PublicidadPage() {
               <ul className="text-xs text-gray-500 space-y-2 mb-6 list-disc list-inside">
                 <li>Visibilidad continua sin ad-blockers (anuncios nativos)</li>
                 <li>Enlace directo con UTM de tracking</li>
-                <li>Tarifa plana mensual (250€/mes)</li>
+                <li>Tarifa plana mensual (79€/mes)</li>
               </ul>
             </div>
             <a
               href="mailto:publicidad@portalempleoit.com?subject=Interés%20en%20Banners%20Nativos"
               className="block w-full text-center py-2.5 px-4 rounded-xl border border-gray-750 text-white font-bold hover:bg-gray-800 transition-all text-xs"
             >
-              Contratar Banner (250€/mes)
+              Contratar Banner (79€/mes)
             </a>
           </div>
         </div>
