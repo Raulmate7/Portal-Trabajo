@@ -29,7 +29,7 @@ export default function StickyMobileAd() {
 
   if (!isVisible) return null;
 
-  const slotId = process.env.NEXT_PUBLIC_ADSENSE_SLOT_MOBILE_ANCHOR;
+  const slotId = process.env.NEXT_PUBLIC_ADSENSE_SLOT_MOBILE_ANCHOR || '3344556677';
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-gray-200 dark:border-slate-800 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] md:hidden py-2 px-4 transition-all duration-300 animate-fade-in pb-[max(0.5rem,env(safe-area-inset-bottom))]">

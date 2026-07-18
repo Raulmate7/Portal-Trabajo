@@ -3,9 +3,14 @@ import pool from '@/lib/db';
 import { BLOG_POSTS } from '@/lib/blog';
 import { GLOSSARY_TERMS } from '@/lib/glosario';
 import { BASE_URL } from '@/lib/constants';
-import { getJobSlug } from '@/lib/slug';
+import { getJobSlug, slugify } from '@/lib/slug';
 
 export const revalidate = 7200; // Cache por 2 horas
+
+// Fecha límite de lanzamiento del portal — se usa como lastModified de páginas estáticas
+// para no reportar "hoy" a Googlebot (evita re-crawls innecesarios de crawl budget).
+// Actualizar manualmente solo cuando haya cambios estructurales significativos.
+const SITE_LAST_STRUCTURAL_UPDATE = new Date('2026-07-01');
 
 const BASE_PAGES = [
   '/trabajos/informatica-tecnologia',
@@ -19,6 +24,12 @@ const BASE_PAGES = [
   '/talento-premium',
   '/blog',
   '/trabajo-remoto',
+  '/trabajo-remoto-usa',
+  '/trabajo-remoto-uk',
+  '/trabajo-remoto-alemania',
+  '/trabajo-remoto-europa',
+  '/mejores-ofertas-semana',
+  '/ofertas-hoy',
   '/trabajo-madrid',
   '/trabajo-barcelona',
   '/trabajo-valencia',
@@ -31,12 +42,39 @@ const BASE_PAGES = [
   '/sobre-nosotros',
   '/faq',
   '/orientacion-profesional',
-  '/ofertas-guardadas',
   '/glosario',
   '/noticias',
   '/tendencias',
   '/recursos',
   '/empleo-del-dia',
+  '/newsletter',
+  '/entrevistas',
+  '/entrevistas/react',
+  '/entrevistas/python',
+  '/entrevistas/java',
+  '/entrevistas/typescript',
+  '/entrevistas/node',
+  '/entrevistas/aws',
+  '/entrevistas/docker',
+  '/entrevistas/angular',
+  '/entrevistas/vue',
+  '/entrevistas/php',
+  '/entrevistas/go',
+  '/entrevistas/sql',
+  '/entrevistas/csharp',
+  '/ranking-empresas-it',
+  '/comparar-ofertas',
+  '/recursos/plantillas-cv',
+  '/recursos/guia-entrevistas',
+  '/recursos/portfolio',
+  '/informe-mercado-it',
+  '/afiliados-empresa',
+  '/precios',
+  '/publicidad',
+  '/mapa-empleo',
+  '/trabajo-freelance-it',
+  '/practicas-informatica',
+  '/trabajo-media-jornada-it',
 ];
 
 
@@ -70,6 +108,29 @@ const COMPARATIVAS = [
   'csharp-vs-java',
   'vue-vs-angular',
   'docker-vs-kubernetes',
+  'react-vs-vue',
+  'typescript-vs-javascript',
+  'node-vs-go',
+  'python-vs-rust',
+  'aws-vs-azure',
+  'devops-vs-sre',
+  'terraform-vs-ansible',
+  'react-native-vs-flutter',
+  'flutter-vs-react-native',
+  'java-vs-kotlin',
+  'php-vs-laravel',
+  'sql-vs-nosql',
+  'mysql-vs-postgresql',
+  'mongodb-vs-postgresql',
+  'scrum-vs-kanban',
+  'nextjs-vs-react',
+  'angular-vs-react',
+  'java-vs-spring-boot',
+  'csharp-vs-net',
+  'rust-vs-go',
+  'elixir-vs-ruby',
+  'scala-vs-java',
+  'aws-vs-terraform',
 ];
 
 function detectTechForSitemap(title: string, category: string | null): string[] {
@@ -149,17 +210,7 @@ function detectCityForSitemap(location: string | null): string | null {
   return null;
 }
 
-function slugify(text: string) {
-  return text
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')           // Reemplaza espacios con -
-    .replace(/[^\w\-]+/g, '')       // Elimina caracteres especiales
-    .replace(/\-\-+/g, '-')         // Evita guiones dobles
-    .replace(/^-+/, '')             // Quita guión inicial
-    .replace(/-+$/, '');            // Quita guión final
-}
+
 
 function detectExperienceForSitemap(title: string, snippet: string | null): string[] {
   const matched: string[] = [];
@@ -225,7 +276,7 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
     // ----------------------------------------------------
     if (sitemapId === 0) {
       // Obtenemos solo las últimas 8.000 ofertas de empleo para detectar combinaciones dinámicas activas rápidamente
-      const jobsRes = await client.query("SELECT title, category, location, LEFT(description_snippet, 300) AS description_snippet FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 8000");
+      const jobsRes = await client.query("SELECT title, category, location, salary_min, salary_max, LEFT(description_snippet, 300) AS description_snippet FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 8000");
       const jobs = jobsRes.rows;
 
       const pageCounts = new Map<string, number>();
@@ -241,6 +292,9 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
         const contracts = detectContractForSitemap(job.title || '', job.description_snippet || null);
         const isHybrid = isHybridJob(job.title || '', job.description_snippet || null, job.location);
         
+        const min = job.salary_min ? Math.round(parseFloat(job.salary_min.toString())) : null;
+        const max = job.salary_max ? Math.round(parseFloat(job.salary_max.toString())) : null;
+
         for (const tech of techs) {
           // 1. Página principal de la tecnología (ej: /trabajos/react)
           incrementCount(`/trabajos/${tech}`);
@@ -285,6 +339,50 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
               }
             }
           }
+
+          // 6. Permutaciones de rango salarial
+          if (min) {
+            if (min >= 30000) {
+              incrementCount(`/trabajos/${tech}-salario-mas-de-30k`);
+              if (city) {
+                if (city === 'remoto') incrementCount(`/trabajos/${tech}-salario-mas-de-30k-remoto`);
+                else incrementCount(`/trabajos/${tech}-en-${city}-salario-mas-de-30k`);
+              }
+            }
+            if (min >= 40000) {
+              incrementCount(`/trabajos/${tech}-salario-mas-de-40k`);
+              if (city) {
+                if (city === 'remoto') incrementCount(`/trabajos/${tech}-salario-mas-de-40k-remoto`);
+                else incrementCount(`/trabajos/${tech}-en-${city}-salario-mas-de-40k`);
+              }
+            }
+            if (min >= 50000) {
+              incrementCount(`/trabajos/${tech}-salario-mas-de-50k`);
+              if (city) {
+                if (city === 'remoto') incrementCount(`/trabajos/${tech}-salario-mas-de-50k-remoto`);
+                else incrementCount(`/trabajos/${tech}-en-${city}-salario-mas-de-50k`);
+              }
+            }
+          }
+          if (min && max) {
+            const minK = Math.round(min / 1000);
+            const maxK = Math.round(max / 1000);
+            
+            if (minK >= 30 && maxK <= 50) {
+              incrementCount(`/trabajos/${tech}-salario-30k-50k`);
+              if (city) {
+                if (city === 'remoto') incrementCount(`/trabajos/${tech}-salario-30k-50k-remoto`);
+                else incrementCount(`/trabajos/${tech}-en-${city}-salario-30k-50k`);
+              }
+            }
+            if (minK >= 40 && maxK <= 60) {
+              incrementCount(`/trabajos/${tech}-salario-40k-60k`);
+              if (city) {
+                if (city === 'remoto') incrementCount(`/trabajos/${tech}-salario-40k-60k-remoto`);
+                else incrementCount(`/trabajos/${tech}-en-${city}-salario-40k-60k`);
+              }
+            }
+          }
         }
       }
 
@@ -294,24 +392,86 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
         return count >= 5;
       });
 
-      const sectorPages = [...BASE_PAGES, ...activeProgrammaticPages];
+      // Generar subpáginas de empresas contratantes para las tecnologías activas
+      const activeCompaniesSubpages: string[] = [];
+      for (const path of activeProgrammaticPages) {
+        if (path.startsWith('/trabajos/')) {
+          const parts = path.split('/');
+          if (parts.length === 3) {
+            const sector = parts[2];
+            const isBaseSector = !sector.includes('-en-') && !sector.endsWith('-remoto') && !sector.includes('-junior') && !sector.includes('-senior') && !sector.includes('-salario') && !sector.includes('-contrato') && !sector.includes('-hibrido');
+            if (isBaseSector) {
+              activeCompaniesSubpages.push(`/trabajos/${sector}/empresas`);
+            }
+          }
+        }
+      }
+
+      // 7. Empleadores por sector (Oportunidad 1.2)
+      const activeEmployersPages: string[] = [];
+      const technologies = [
+        'react', 'node', 'python', 'java', 'typescript', 'javascript', 'aws', 'docker', 'kubernetes', 'backend', 'frontend', 'fullstack'
+      ];
+      for (const tech of technologies) {
+        activeEmployersPages.push(`/empleadores/${tech}`);
+      }
+
+      // 8. Convertirse en (Oportunidad 1.5)
+      const activeConvertirsePages: string[] = [];
+      const professions = [
+        'frontend-developer', 'backend-developer', 'devops-engineer', 'data-scientist', 'mobile-developer', 'fullstack-developer'
+      ];
+      for (const prof of professions) {
+        activeConvertirsePages.push(`/convertirse-en/${prof}`);
+      }
+
+      // 9. Query news/trends posts from the database (Oportunidad 1.3)
+      let newsUrls: any[] = [];
+      try {
+        const newsRes = await client.query("SELECT slug, date FROM blog_posts WHERE slug LIKE 'tendencias-%' OR author = 'Sistema de Tendencias IT' ORDER BY date DESC");
+        newsUrls = newsRes.rows.map((row: any) => ({
+          url: `${BASE_URL}/noticias/${row.slug}`,
+          lastModified: new Date(row.date),
+          changeFrequency: 'weekly' as const,
+          priority: 0.7,
+        }));
+      } catch (e) {
+        console.error("Error querying sitemap news:", e);
+      }
+
+      const sectorPages = [
+        ...BASE_PAGES, 
+        ...activeProgrammaticPages, 
+        ...activeCompaniesSubpages,
+        ...activeEmployersPages,
+        ...activeConvertirsePages
+      ];
       const sectorUrls = sectorPages.map((path) => {
-        const hasEnglish = path.startsWith('/trabajos/') || path.startsWith('/talento-premium') || path.startsWith('/trabajo-');
-        const alternates = hasEnglish
+        const isSectorBasePage = path.startsWith('/trabajos/') && !path.endsWith('/empresas');
+        const alternates = isSectorBasePage
           ? {
               languages: {
-                es: `${BASE_URL}${path}`,
-                en: `${BASE_URL}${path}?lang=en`,
+                'es-ES': `${BASE_URL}${path}`,
+                'en': `${BASE_URL}${path.replace('/trabajos/', '/en/trabajos/')}`,
+                'x-default': `${BASE_URL}${path}`,
               }
             }
-          : undefined;
+          : (path.startsWith('/trabajos/') || path.startsWith('/talento-premium') || path.startsWith('/trabajo-')
+            ? {
+                languages: {
+                  'es-ES': `${BASE_URL}${path}`,
+                  'en': `${BASE_URL}${path}?lang=en`,
+                  'x-default': `${BASE_URL}${path}`,
+                }
+              }
+            : undefined);
 
         // Páginas estáticas base del portal
         if (BASE_PAGES.includes(path)) {
           return {
             url: `${BASE_URL}${path}`,
-            lastModified: new Date(),
-            changeFrequency: 'daily' as const,
+            lastModified: SITE_LAST_STRUCTURAL_UPDATE,
+            changeFrequency: 'weekly' as const,
             priority: 0.9,
             alternates,
           };
@@ -355,15 +515,15 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
         },
         ...SALARIOS_TECNOLOGIAS.map(tech => ({
           url: `${BASE_URL}/salarios/${tech}`,
-          lastModified: new Date(),
-          changeFrequency: 'weekly' as const,
+          lastModified: SITE_LAST_STRUCTURAL_UPDATE,
+          changeFrequency: 'monthly' as const,
           priority: 0.8,
         })),
         ...SALARIOS_TECNOLOGIAS.flatMap(tech => 
           SALARIOS_CIUDADES.map(city => ({
             url: `${BASE_URL}/salarios/${tech}/${city}`,
-            lastModified: new Date(),
-            changeFrequency: 'weekly' as const,
+            lastModified: SITE_LAST_STRUCTURAL_UPDATE,
+            changeFrequency: 'monthly' as const,
             priority: 0.8,
           }))
         ),
@@ -371,8 +531,8 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
           SALARIOS_CIUDADES.flatMap(city =>
             SALARIOS_NIVELES.map(level => ({
               url: `${BASE_URL}/salarios/${tech}/${city}/${level}`,
-              lastModified: new Date(),
-              changeFrequency: 'weekly' as const,
+              lastModified: SITE_LAST_STRUCTURAL_UPDATE,
+              changeFrequency: 'monthly' as const,
               priority: 0.75,
             }))
           )
@@ -388,8 +548,8 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
 
       const comparisonUrls = COMPARATIVAS.map((slug) => ({
         url: `${BASE_URL}/comparar/${slug}`,
-        lastModified: new Date(),
-        changeFrequency: 'weekly' as const,
+        lastModified: SITE_LAST_STRUCTURAL_UPDATE,
+        changeFrequency: 'monthly' as const,
         priority: 0.7,
       }));
 
@@ -401,8 +561,9 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
           priority: 1.0,
           alternates: {
             languages: {
-              es: BASE_URL,
-              en: `${BASE_URL}?lang=en`,
+              'es-ES': BASE_URL,
+              'en': `${BASE_URL}/en`,
+              'x-default': BASE_URL,
             }
           }
         },
@@ -411,6 +572,7 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
         ...salaryUrls,
         ...glossaryUrls,
         ...comparisonUrls,
+        ...newsUrls,
       ];
     }
 
@@ -437,8 +599,9 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
           priority: isOld ? 0.4 : 0.8,
           alternates: {
             languages: {
-              es: `${BASE_URL}/job/${jobSlug}`,
-              en: `${BASE_URL}/job/${jobSlug}?lang=en`,
+              'es-ES': `${BASE_URL}/job/${jobSlug}`,
+              'en': `${BASE_URL}/job/${jobSlug}?lang=en`,
+              'x-default': `${BASE_URL}/job/${jobSlug}`,
             }
           }
         };
@@ -468,8 +631,9 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
           priority: isOld ? 0.4 : 0.8,
           alternates: {
             languages: {
-              es: `${BASE_URL}/job/${jobSlug}`,
-              en: `${BASE_URL}/job/${jobSlug}?lang=en`,
+              'es-ES': `${BASE_URL}/job/${jobSlug}`,
+              'en': `${BASE_URL}/job/${jobSlug}?lang=en`,
+              'x-default': `${BASE_URL}/job/${jobSlug}`,
             }
           }
         };
@@ -481,18 +645,54 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
     // ----------------------------------------------------
     if (sitemapId === 3) {
       const compRes = await client.query(
-        "SELECT DISTINCT company FROM jobs WHERE company IS NOT NULL AND company != 'Desconocida'"
+        "SELECT DISTINCT company, category FROM jobs WHERE company IS NOT NULL AND company != 'Desconocida'"
       );
-      const companies = compRes.rows;
+      const rows = compRes.rows;
 
-      return companies.map((c: any) => ({
-        url: `${BASE_URL}/empresas/${slugify(c.company)}`,
+      const companySlugs: string[] = Array.from(new Set(rows.map((r: any) => slugify(r.company))));
+      const companyUrls = companySlugs.map((slug: string) => ({
+        url: `${BASE_URL}/empresas/${slug}`,
         lastModified: new Date(),
         changeFrequency: 'weekly' as const,
-        // Prioridad reducida: las páginas de empresa son thin content (solo listan ofertas).
-        // No deben competir en prioridad con las páginas de categoría principales (0.85-0.9).
         priority: 0.55,
+        alternates: {
+          languages: {
+            'es-ES': `${BASE_URL}/empresas/${slug}`,
+            'en': `${BASE_URL}/empresas/${slug}?lang=en`,
+            'x-default': `${BASE_URL}/empresas/${slug}`,
+          }
+        }
       }));
+
+      const categorySlugMap: Record<string, string> = {
+        'Backend': 'backend',
+        'Frontend': 'frontend',
+        'Data & AI': 'data-ai',
+        'Cloud & DevOps': 'cloud-devops',
+        'Mobile': 'mobile',
+        'Otros': 'otros'
+      };
+
+      const categoryUrls = rows.map((r: any) => {
+        const companySlug = slugify(r.company);
+        const catSlug = r.category ? categorySlugMap[r.category] : null;
+        if (!catSlug) return null;
+        return {
+          url: `${BASE_URL}/empresas/${companySlug}/${catSlug}`,
+          lastModified: new Date(),
+          changeFrequency: 'weekly' as const,
+          priority: 0.55,
+          alternates: {
+            languages: {
+              'es-ES': `${BASE_URL}/empresas/${companySlug}/${catSlug}`,
+              'en': `${BASE_URL}/empresas/${companySlug}/${catSlug}?lang=en`,
+              'x-default': `${BASE_URL}/empresas/${companySlug}/${catSlug}`,
+            }
+          }
+        };
+      }).filter(Boolean) as any[];
+
+      return [...companyUrls, ...categoryUrls];
     }
 
     // Retornamos array vacío para IDs no válidos

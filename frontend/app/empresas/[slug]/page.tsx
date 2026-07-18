@@ -3,12 +3,13 @@ import JobCard from "@/components/JobCard";
 import SubscribeForm from "@/components/SubscribeForm";
 import AdBanner from "@/components/AdBanner";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import StickyDesktopAd from "@/components/StickyDesktopAd";
 import Link from "next/link";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ShareButton from "@/components/ShareButton";
 import { BASE_URL } from "@/lib/constants";
-import { getJobSlug } from "@/lib/slug";
+import { getJobSlug, slugify } from "@/lib/slug";
 import CompanyReviewForm from "@/components/CompanyReviewForm";
 import { getCompanyReviews } from "@/app/actions";
 
@@ -38,6 +39,7 @@ const techSlugMap: Record<string, string> = {
   'Vue': 'vue',
   'Node.js': 'node',
   'Python': 'python',
+  'java': 'java',
   'Java': 'java',
   'TypeScript': 'typescript',
   'JavaScript': 'javascript',
@@ -55,16 +57,57 @@ const techSlugMap: Record<string, string> = {
   'Spring Boot': 'java'
 };
 
+const categorySlugMap: Record<string, string> = {
+  'backend': 'Backend',
+  'frontend': 'Frontend',
+  'data-ai': 'Data & AI',
+  'cloud-devops': 'Cloud & DevOps',
+  'mobile': 'Mobile',
+  'otros': 'Otros'
+};
+
+const categoryNamesEs: Record<string, string> = {
+  'backend': 'Backend',
+  'frontend': 'Frontend',
+  'data-ai': 'Datos e Inteligencia Artificial',
+  'cloud-devops': 'Cloud y DevOps',
+  'mobile': 'Móviles',
+  'otros': 'Otros Roles'
+};
+
+const categoryNamesEn: Record<string, string> = {
+  'backend': 'Backend',
+  'frontend': 'Frontend',
+  'data-ai': 'Data and AI',
+  'cloud-devops': 'Cloud and DevOps',
+  'mobile': 'Mobile',
+  'otros': 'Other Roles'
+};
+
 async function getAllJobsByCompany(companySlug: string) {
   const client = await pool.connect();
   try {
+    // 1. Obtener todas las empresas distintas que tienen ofertas activas
+    const resCompanies = await client.query(
+      "SELECT DISTINCT company FROM jobs WHERE is_active = TRUE AND company IS NOT NULL AND company != 'Desconocida'"
+    );
+    
+    // 2. Encontrar la empresa cuyo slug coincide con el buscado en JS
+    const targetCompany = resCompanies.rows.find(
+      (row: any) => slugify(row.company) === companySlug
+    );
+    
+    if (!targetCompany) {
+      return [];
+    }
+
+    // 3. Consultar las ofertas usando el nombre exacto de la empresa
     const sql = `
       SELECT * FROM jobs 
-      WHERE is_active = TRUE AND (REGEXP_REPLACE(LOWER(company), '[^a-z0-9]+', '-') = $1 
-         OR LOWER(company) = REPLACE($1, '-', ' '))
+      WHERE is_active = TRUE AND company = $1
       ORDER BY created_at DESC
     `;
-    const res = await client.query(sql, [companySlug]);
+    const res = await client.query(sql, [targetCompany.company]);
     return res.rows as Job[];
   } catch (error) {
     console.error("Error cargando ofertas de la empresa:", error);
@@ -340,6 +383,16 @@ export default async function CompanyPage({ params, searchParams }: Props) {
     }
   }
 
+  const categoryCounts = allJobs.reduce((acc: Record<string, number>, job) => {
+    if (job.category) {
+      const slug = Object.entries(categorySlugMap).find(([_, dbCat]) => dbCat === job.category)?.[0];
+      if (slug) {
+        acc[slug] = (acc[slug] || 0) + 1;
+      }
+    }
+    return acc;
+  }, {});
+
   // Paginación en memoria
   const limit = 20;
   const offset = (validPage - 1) * limit;
@@ -580,6 +633,28 @@ export default async function CompanyPage({ params, searchParams }: Props) {
               </div>
             )}
 
+            {Object.keys(categoryCounts).length > 0 && (
+              <div className="border-t border-gray-100 pt-4 mt-4">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5">
+                  {isEnglish ? 'Browse jobs by department:' : 'Filtrar ofertas por departamento:'}
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(categoryCounts).map(([catSlug, count]) => {
+                    const label = isEnglish ? categoryNamesEn[catSlug] : categoryNamesEs[catSlug];
+                    return (
+                      <Link 
+                        key={catSlug} 
+                        href={`/empresas/${slug}/${catSlug}${queryParam}`}
+                        className="text-xs bg-indigo-50/50 hover:bg-indigo-150 text-indigo-800 font-bold px-3 py-1.5 rounded-lg border border-indigo-100/40 transition-colors"
+                      >
+                        {label} ({count})
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {crossLinks.length > 0 && (
               <div className="border-t border-gray-100 pt-4 mt-4">
                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
@@ -697,10 +772,11 @@ export default async function CompanyPage({ params, searchParams }: Props) {
         <div className="lg:col-span-1 space-y-6">
           <SubscribeForm location={companyName} />
           <div className="lg:sticky lg:top-24">
-            <AdBanner variant="sidebar" />
+            <AdBanner variant="sidebar" enableRefresh={true} />
           </div>
         </div>
       </div>
+      <StickyDesktopAd />
     </div>
   );
 }

@@ -6,50 +6,13 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import AdBanner from '@/components/AdBanner';
 import { BASE_URL } from '@/lib/constants';
 import { getJobSlug } from '@/lib/slug';
+import { TECH_DETAILS, DISPLAY_CITIES } from '@/lib/salarios';
 
 export const revalidate = 3600; // Cache 1 hora
 
 interface Props {
   params: Promise<{ tecnologia: string; ciudad: string }>;
 }
-
-const TECH_DETAILS: Record<string, { label: string; icon: string; desc: string; baseAvg: number }> = {
-  'react': { label: 'React', icon: '⚛️', desc: 'Desarrollador/a Frontend experto en React, hooks, estado y componentes.', baseAvg: 41000 },
-  'node': { label: 'Node.js', icon: '🟩', desc: 'Desarrollador/a Backend enfocado en Node.js, Express, NestJS y APIs.', baseAvg: 43000 },
-  'python': { label: 'Python', icon: '🐍', desc: 'Programador/a Python para ciencia de datos, inteligencia artificial o desarrollo backend.', baseAvg: 44000 },
-  'java': { label: 'Java', icon: '☕', desc: 'Desarrollador/a Java Enterprise, Spring Boot y microservicios.', baseAvg: 45000 },
-  'typescript': { label: 'TypeScript', icon: '🔷', desc: 'Desarrollador/a de software especializado en tipado estático con TypeScript.', baseAvg: 43000 },
-  'aws': { label: 'AWS', icon: '☁️', desc: 'Ingeniero/a Cloud de Amazon Web Services, infraestructura y serverless.', baseAvg: 48000 },
-  'docker': { label: 'Docker', icon: '🐳', desc: 'Ingeniero/a DevOps enfocado en contenerización con Docker, CI/CD y despliegue.', baseAvg: 47000 },
-  'flutter': { label: 'Flutter', icon: '📱', desc: 'Desarrollador/a Mobile de aplicaciones nativas híbridas con Flutter y Dart.', baseAvg: 39000 },
-  'csharp': { label: 'C# / .NET', icon: '🔵', desc: 'Programador/a C# y arquitectura .NET para aplicaciones robustas.', baseAvg: 42000 },
-  'php': { label: 'PHP', icon: '🐘', desc: 'Desarrollador/a web con PHP, Laravel o Symfony.', baseAvg: 36000 },
-  'sql': { label: 'SQL', icon: '🗃️', desc: 'Analista de datos o Administrador de Bases de Datos (DBA) especialista en SQL.', baseAvg: 38000 },
-  'go': { label: 'Go', icon: '🐹', desc: 'Desarrollador/a Go (Golang) para backend, microservicios y sistemas de alta concurrencia.', baseAvg: 46000 },
-  'rust': { label: 'Rust', icon: '🦀', desc: 'Programador/a Rust enfocado en rendimiento, seguridad de memoria y sistemas críticos.', baseAvg: 50000 },
-  'ruby': { label: 'Ruby', icon: '💎', desc: 'Desarrollador/a Ruby, principalmente enfocado en Ruby on Rails.', baseAvg: 41000 },
-  'scala': { label: 'Scala', icon: '🔴', desc: 'Programador/a Scala para procesamiento de datos distribuido y backend funcional.', baseAvg: 48000 },
-  'elixir': { label: 'Elixir', icon: '💧', desc: 'Desarrollador/a Elixir y Phoenix para sistemas distribuidos y tolerantes a fallos.', baseAvg: 45000 },
-  'salesforce': { label: 'Salesforce', icon: '☁️', desc: 'Desarrollador/a o Administrador/a Salesforce, Apex, Visualforce y LWC.', baseAvg: 38000 },
-  'cybersecurity': { label: 'Ciberseguridad', icon: '🛡️', desc: 'Especialista en ciberseguridad, seguridad de la información, auditoría y hacking ético.', baseAvg: 44000 },
-  'terraform': { label: 'Terraform', icon: '🏗️', desc: 'Ingeniero/a DevOps especializado en Infraestructura como Código (IaC) con Terraform.', baseAvg: 48000 },
-  'cobol': { label: 'COBOL', icon: '💾', desc: 'Programador/a COBOL para sistemas heredados, banca y gran empresa.', baseAvg: 36000 },
-};
-
-const DISPLAY_CITIES: Record<string, { label: string; factor: number }> = {
-  'madrid': { label: 'Madrid', factor: 1.05 },
-  'barcelona': { label: 'Barcelona', factor: 1.02 },
-  'valencia': { label: 'Valencia', factor: 0.92 },
-  'sevilla': { label: 'Sevilla', factor: 0.88 },
-  'bilbao': { label: 'Bilbao', factor: 0.98 },
-  'malaga': { label: 'Málaga', factor: 0.95 },
-  'zaragoza': { label: 'Zaragoza', factor: 0.89 },
-  'alicante': { label: 'Alicante', factor: 0.90 },
-  'vigo': { label: 'Vigo', factor: 0.88 },
-  'coruna': { label: 'A Coruña', factor: 0.92 },
-  'granada': { label: 'Granada', factor: 0.85 },
-  'remoto': { label: 'Remoto', factor: 1.10 },
-};
 
 async function getSalaryStatsForTechAndCity(techSlug: string, citySlug: string) {
   const techInfo = TECH_DETAILS[techSlug];
@@ -143,7 +106,7 @@ async function getSalaryStatsForTechAndCity(techSlug: string, citySlug: string) 
 async function getRecentJobs(techLabel: string, citySlug: string) {
   const client = await pool.connect();
   try {
-    let sql = "SELECT id, title, title_es, company, location, salary FROM jobs WHERE is_active = TRUE AND title ILIKE $1";
+    let sql = "SELECT id, title, title_es, company, location, salary, salary_min, salary_max FROM jobs WHERE is_active = TRUE AND title ILIKE $1";
     const params = [`%${techLabel}%`];
     
     if (citySlug === 'remoto') {
@@ -186,7 +149,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title,
     description,
     alternates: {
-      canonical: `/salarios/${techSlug}/${citySlug}`,
+      canonical: `${BASE_URL}/salarios/${techSlug}/${citySlug}`,
     },
     openGraph: {
       title,
@@ -201,22 +164,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-const STATIC_TECHS = ['react', 'node', 'python', 'java', 'typescript', 'aws', 'php'];
-
 export async function generateStaticParams() {
-  const cities = ['madrid', 'barcelona', 'valencia', 'remoto'];
   const params = [];
-  
-  for (const tech of STATIC_TECHS) {
-    for (const city of cities) {
-      params.push({
-        tecnologia: tech,
-        ciudad: city,
-      });
+  for (const tech in TECH_DETAILS) {
+    for (const city in DISPLAY_CITIES) {
+      params.push({ tecnologia: tech, ciudad: city });
     }
   }
-  return params;
+  const LIMIT = 300;
+  return params.slice(0, LIMIT);
+  
 }
+export const dynamicParams = true;
 
 function formatEur(val: number | null): string {
   if (val === null) return 'N/D';

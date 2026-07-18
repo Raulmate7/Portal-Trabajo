@@ -3,7 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import UserStreak from './UserStreak';
+import dynamic from 'next/dynamic';
+const UserStreak = dynamic(() => import('./UserStreak'), {
+  ssr: false,
+  loading: () => <div className="w-20 h-8 rounded-xl bg-indigo-50/50 dark:bg-slate-900/50 animate-pulse" />
+});
 
 export default function Header() {
   const searchParams = useSearchParams();

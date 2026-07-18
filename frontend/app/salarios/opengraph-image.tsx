@@ -7,6 +7,8 @@ export const size = {
   height: 630,
 };
 export const contentType = 'image/png';
+export const revalidate = 86400; // Cache 24 horas (CDN)
+
 
 async function getAverageITSalary() {
   const client = await pool.connect();

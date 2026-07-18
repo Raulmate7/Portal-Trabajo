@@ -13,6 +13,11 @@ print(f"⚙️ Usando ejecutable: {python_bin}")
 print("\n[0/5] 🛠️ Ejecutando Migraciones de Base de Datos...")
 os.system(f"{python_bin} add_referred_by_column.py")
 os.system(f"{python_bin} add_reactions_table.py")
+os.system(f"{python_bin} add_pinterest_threads_columns.py")
+os.system(f"{python_bin} add_referrals_notified_count.py")
+os.system(f"{python_bin} add_metrics_columns.py")
+os.system(f"{python_bin} add_company_email_to_jobs.py")
+os.system(f"{python_bin} add_b2b_monetization_tables.py")
 
 # 1. Ejecutar el Scraper Internacional (WWR, Remotive, JobFluent, RemoteOK, WorkingNomads, Himalayas, Python.org)
 print("\n[1/5] 🌎 Ejecutando Scrapers Internacionales (main.py)...")
@@ -63,6 +68,30 @@ print("\n[4.7/7] 🐘 Publicando ofertas en Mastodon (mastodon_bot.py)...")
 exit_code = os.system(f"{python_bin} mastodon_bot.py")
 if exit_code != 0:
     print("⚠️ Advertencia: Mastodon bot terminó con errores.")
+
+# 4.8. Publicar en Pinterest
+print("\n[4.8/7] 📌 Publicando ofertas en Pinterest (pinterest_bot.py)...")
+exit_code = os.system(f"{python_bin} pinterest_bot.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: Pinterest bot terminó con errores.")
+
+# 4.9. Publicar en Threads (Meta)
+print("\n[4.9/7] 🧵 Publicando ofertas en Threads (threads_bot.py)...")
+exit_code = os.system(f"{python_bin} threads_bot.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: Threads bot terminó con errores.")
+
+# 4.10. Publicar en YouTube Shorts
+print("\n[4.10/7] 🎬 Publicando ofertas en YouTube Shorts (youtube_shorts_bot.py)...")
+exit_code = os.system(f"{python_bin} youtube_shorts_bot.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: YouTube Shorts bot terminó con errores.")
+
+# 4.11. Publicar en TikTok (video short)
+print("\n[4.11/7] 📱 Publicando ofertas en TikTok (tiktok_bot.py)...")
+exit_code = os.system(f"{python_bin} tiktok_bot.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: TikTok bot terminó con errores.")
 
 # 5. Indexar en Google
 print("\n[5/7] 🔍 Enviando nuevas ofertas a Google Indexing API (index_new_jobs.py)...")
@@ -122,6 +151,12 @@ exit_code = os.system(f"{python_bin} generate_trends_post.py")
 if exit_code != 0:
     print("⚠️ Advertencia: El script de tendencias semanales terminó con errores.")
 
+# 7.5.1. Generar Press Release (datos exclusivos)
+print("\\n[7.5.1/9] 📰 Generando press release (generate_press_release.py)...")
+exit_code = os.system(f"{python_bin} generate_press_release.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: El script de press release terminó con errores.")
+
 # 7.6. Enviar Recordatorios de Racha (Usuarios a punto de perder su racha diaria)
 print("\n[7.6/9] 🔥 Enviando recordatorios de racha (send_streak_reminder.py)...")
 exit_code = os.system(f"{python_bin} send_streak_reminder.py")
@@ -133,6 +168,12 @@ print("\n[7.7/9] ⭐ Enviando recordatorios de ofertas guardadas (send_saved_job
 exit_code = os.system(f"{python_bin} send_saved_jobs_reminder.py")
 if exit_code != 0:
     print("⚠️ Advertencia: El script de recordatorios de ofertas guardadas terminó con errores.")
+
+# 7.8. Enviar Notificaciones de Referidos
+print("\n[7.8/9] 👥 Enviando notificaciones de referidos (send_referral_notifications.py)...")
+exit_code = os.system(f"{python_bin} send_referral_notifications.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: El script de notificaciones de referidos terminó con errores.")
 
 print("\n===============================================")
 print("✅ PROCESO COMPLETADO. El sistema descansa.")

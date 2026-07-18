@@ -5,6 +5,7 @@ import AdBanner from "@/components/AdBanner";
 import SubscribeForm from "@/components/SubscribeForm";
 import { Metadata } from "next";
 import { BASE_URL } from "@/lib/constants";
+import { slugify } from "@/lib/slug";
 
 export const revalidate = 300; // Cache 5 min
 
@@ -48,18 +49,6 @@ interface CompanyItem {
   jobCount: number;
   averageSalary: number | null;
   remoteRatio: number;
-}
-
-function slugify(text: string) {
-  return text
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')           // Reemplaza espacios con -
-    .replace(/[^\w\-]+/g, '')       // Elimina caracteres especiales
-    .replace(/\-\-+/g, '-')         // Evita guiones dobles
-    .replace(/^-+/, '')             // Quita guión inicial
-    .replace(/-+$/, '');            // Quita guión final
 }
 
 function parseCompanyStats(salaries: (string | null)[], locations: (string | null)[]) {

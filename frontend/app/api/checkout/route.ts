@@ -10,7 +10,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { title, company, location, salary, description_snippet, url_source, category, plan = 'destacado_30d' } = body;
+    const { title, company, location, salary, description_snippet, url_source, category, plan = 'destacado_30d', affiliate_code } = body;
 
     if (!title || !company || !url_source) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
@@ -80,6 +80,7 @@ export async function POST(request: Request) {
       metadata: {
         jobId: String(jobId),
         plan: String(plan),
+        affiliate_code: affiliate_code ? String(affiliate_code) : '',
       },
     });
 

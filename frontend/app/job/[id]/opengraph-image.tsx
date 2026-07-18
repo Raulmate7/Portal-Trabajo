@@ -1,6 +1,11 @@
 import { ImageResponse } from 'next/og';
-import pool from '@/lib/db';
-import { getNumericId } from '@/lib/slug';
+
+// Edge Runtime: se sirve desde el CDN de Vercel más cercano al crawler.
+// No importamos 'pool' (mysql2) ya que no es compatible con Edge.
+// En su lugar llamamos directamente al proxy HTTP.
+export const runtime = 'edge';
+export const revalidate = 86400; // Cache 24 horas (CDN)
+
 
 export const alt = 'Oferta de Empleo IT';
 export const size = {
@@ -9,23 +14,43 @@ export const size = {
 };
 export const contentType = 'image/png';
 
+const PROXY_URL = process.env.DB_PROXY_URL || 'https://mail.portalempleoit.com/db_proxy.php';
+const PROXY_TOKEN = process.env.DB_PROXY_TOKEN || 'a6f021f1d19d675b8e998a44d187764d';
+
+/** Extrae el ID numérico de un slug como "developer-react-acme-123" → 123 */
+function extractNumericId(slug: string): string | null {
+  // Formato: cualquier-texto-NUMEROID al final
+  const match = slug.match(/(\d+)$/);
+  return match ? match[1] : slug; // Si no hay match, intentar usar el slug tal cual
+}
+
+async function getJobById(id: string) {
+  try {
+    const response = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Proxy-Token': PROXY_TOKEN,
+      },
+      body: JSON.stringify({
+        sql: 'SELECT title, title_es, company, location, salary FROM jobs WHERE id = ?',
+        params: [id],
+      }),
+    });
+
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data?.rows?.[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const numericId = getNumericId(id);
+  const numericId = extractNumericId(id);
 
-  let job = null;
-  const client = await pool.connect();
-  try {
-    const res = await client.query(
-      "SELECT title, company, location, salary FROM jobs WHERE id = $1",
-      [numericId]
-    );
-    job = res.rows[0];
-  } catch (error) {
-    console.error("Error cargando oferta para OG Image:", error);
-  } finally {
-    client.release();
-  }
+  const job = numericId ? await getJobById(numericId) : null;
 
   const title = job ? (job.title_es || job.title) : 'Oferta de Empleo IT';
   const company = job ? job.company : 'Portal Trabajo IT';

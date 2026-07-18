@@ -2,7 +2,9 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getPostBySlug, getBlogPosts } from '@/lib/blog';
+import { getClusterBySlug } from '@/lib/blog-clusters';
 import AdBanner from '@/components/AdBanner';
+import StickyDesktopAd from '@/components/StickyDesktopAd';
 import SubscribeForm from '@/components/SubscribeForm';
 import PushSubscribe from '@/components/PushSubscribe';
 import Breadcrumbs from '@/components/Breadcrumbs';
@@ -172,6 +174,15 @@ export default async function BlogPostPage({ params }: Props) {
   }
 
   const relatedJobs = await getRelatedJobs(resolvedParams.slug);
+  const cluster = getClusterBySlug(resolvedParams.slug);
+  const clusterPosts = cluster
+    ? await Promise.all(
+        cluster.slugs
+          .filter(s => s !== resolvedParams.slug)
+          .slice(0, 3)
+          .map(s => getPostBySlug(s))
+      ).then(results => results.filter(Boolean))
+    : [];
 
   // Dividir el contenido del post en el primer encabezado H2 para insertar publicidad contextual en medio del artículo
   let intro = post.content;
@@ -214,7 +225,7 @@ export default async function BlogPostPage({ params }: Props) {
 
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'BlogPosting',
+    '@type': ['BlogPosting', 'NewsArticle'],
     headline: post.title,
     description: post.excerpt,
     image: {
@@ -244,7 +255,7 @@ export default async function BlogPostPage({ params }: Props) {
       }
     },
     datePublished: new Date(post.date).toISOString(),
-    dateModified: post.updatedAt ? new Date(post.updatedAt).toISOString() : new Date().toISOString(),
+    dateModified: post.updatedAt ? new Date(post.updatedAt).toISOString() : new Date(post.date).toISOString(),
     mainEntityOfPage: {
       '@type': 'WebPage',
       '@id': `${BASE_URL}/blog/${resolvedParams.slug}`
@@ -371,6 +382,9 @@ export default async function BlogPostPage({ params }: Props) {
                 {restSecond && (
                   <>
                     <div className="my-8">
+                      <AdBanner variant="inline" />
+                    </div>
+                    <div className="my-8">
                       <SubscribeForm location="España" />
                     </div>
                     <Markdown content={restSecond} autoLink={true} isEnglish={false} />
@@ -415,6 +429,35 @@ export default async function BlogPostPage({ params }: Props) {
                 slug={resolvedParams.slug}
                 readingTimeMinutes={Math.max(1, Math.ceil(post.content.split(/\s+/).length / 220))}
               />
+
+              {/* Bloque de artículos del mismo cluster (Pillar + Cluster linking) */}
+              {clusterPosts.length > 0 && (
+                <div className="mt-8 pt-6 border-t border-gray-100">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-lg">{cluster?.emoji}</span>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-wider text-indigo-500">Serie: {cluster?.topic}</p>
+                      <h3 className="text-base font-bold text-gray-900">Artículos relacionados de esta serie</h3>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {clusterPosts.map((related: any) => (
+                      <Link
+                        key={related.slug}
+                        href={`/blog/${related.slug}`}
+                        className="flex items-start gap-3 p-4 rounded-xl border border-gray-100 hover:border-indigo-200 hover:bg-indigo-50/30 transition-all group"
+                      >
+                        <span className="text-indigo-400 text-xl mt-0.5 flex-shrink-0">📄</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-gray-900 text-sm group-hover:text-indigo-700 transition-colors leading-snug">{related.title}</p>
+                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{related.excerpt}</p>
+                        </div>
+                        <span className="text-indigo-400 group-hover:translate-x-0.5 transition-transform text-xs flex-shrink-0 mt-1">→</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
             </article>
 
             {/* Bloque Multiplex de Recomendados al final del artículo */}
@@ -427,12 +470,13 @@ export default async function BlogPostPage({ params }: Props) {
               <SubscribeForm location="España" />
               <PushSubscribe />
               <div className="lg:sticky lg:top-24">
-                <AdBanner variant="sidebar" />
+                <AdBanner variant="sidebar" enableRefresh={true} />
               </div>
             </div>
           </div>
         </div>
       </div>
+      <StickyDesktopAd />
     </main>
   );
 }

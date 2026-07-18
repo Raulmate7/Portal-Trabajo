@@ -6,7 +6,64 @@ import mysql from 'mysql2/promise';
  */
 const useProxy = !!process.env.DB_PROXY_URL;
 const proxyUrl = process.env.DB_PROXY_URL || 'https://mail.portalempleoit.com/db_proxy.php';
-const proxyToken = process.env.DB_PROXY_TOKEN || 'a6f021f1d19d675b8e998a44d187764d';
+const proxyToken = process.env.DB_PROXY_TOKEN || '';
+if (useProxy && !proxyToken) {
+  console.warn('⚠️ Warning: DB_PROXY_URL is set but DB_PROXY_TOKEN is empty.');
+}
+
+// ─── Caché In-Memory con TTL ──────────────────────────────────────────────────
+// Reduce las llamadas al proxy para queries frecuentes de solo-lectura.
+// El TTL por defecto es de 5 minutos. La caché se comparte dentro del mismo
+// proceso serverless mientras Vercel mantenga la instancia activa.
+
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
+
+interface CacheEntry {
+  data: any;
+  expiresAt: number;
+}
+
+const queryCache = new Map<string, CacheEntry>();
+
+/** Normaliza una query SQL para usarla como clave de caché */
+function normalizeSql(sql: string): string {
+  return sql.replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+/**
+ * Determina si una query es cacheable.
+ * Solo se cachean SELECTs sin parámetros (o con parámetros de tablas estáticas)
+ * que no dependan de IDs específicos de usuario/oferta.
+ */
+function isCacheable(sql: string, params: any[]): boolean {
+  const s = sql.trim().toLowerCase();
+  if (!s.startsWith('select')) return false;
+  // No cachear si tiene parámetros (queries dinámicas por ID/ciudad etc.)
+  if (params.length > 0) return false;
+  return true;
+}
+
+function getCached(key: string): any | null {
+  const entry = queryCache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) {
+    queryCache.delete(key);
+    return null;
+  }
+  return entry.data;
+}
+
+function setCache(key: string, data: any): void {
+  // Limpiar entradas expiradas si la caché crece demasiado
+  if (queryCache.size > 200) {
+    const now = Date.now();
+    for (const [k, v] of queryCache.entries()) {
+      if (now > v.expiresAt) queryCache.delete(k);
+    }
+  }
+  queryCache.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS });
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 let poolConnection: mysql.Pool | null = null;
 if (!useProxy) {
@@ -24,6 +81,7 @@ if (!useProxy) {
         connectTimeout: 10000,
       });
 }
+
 
 // Códigos de error típicos de fallos de conexión
 const CONNECTION_ERRORS = [
@@ -124,6 +182,26 @@ async function executeQuery(conn: mysql.Pool | mysql.PoolConnection | null, sql:
 const pool = {
   // Método directo de consulta en el pool
   async query(sql: string, params: any[] = []) {
+    // Intentar servir desde caché in-memory para queries frecuentes sin parámetros
+    if (isCacheable(sql, params)) {
+      const cacheKey = normalizeSql(sql);
+      const cached = getCached(cacheKey);
+      if (cached) {
+        return cached;
+      }
+      try {
+        const result = await executeQuery(poolConnection, sql, params);
+        setCache(cacheKey, result);
+        return result;
+      } catch (error: any) {
+        if (CONNECTION_ERRORS.includes(error?.code)) {
+          console.warn('⚠️ Base de datos inaccesible en query(). Devolviendo filas vacías:', error.message);
+          return { rows: [] };
+        }
+        throw error;
+      }
+    }
+
     try {
       return await executeQuery(poolConnection, sql, params);
     } catch (error: any) {
@@ -134,6 +212,7 @@ const pool = {
       throw error;
     }
   },
+
 
   // Método connect para adquirir un cliente de forma compatible con PG
   async connect() {

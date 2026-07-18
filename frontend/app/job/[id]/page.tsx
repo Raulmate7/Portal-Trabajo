@@ -18,9 +18,11 @@ import ReactionButton from '@/components/ReactionButton';
 import { getJobReactions } from '@/app/actions';
 import ApplyButton from '@/components/ApplyButton';
 import CompanyLogo from '@/components/CompanyLogo';
+import Image from 'next/image';
 import { RecentlyViewedTracker } from '@/components/RecentlyViewed';
+import StickyDesktopAd from '@/components/StickyDesktopAd';
 
-export const revalidate = 60;
+export const revalidate = 3600; // Cache de 1 hora — las ofertas individuales no cambian con frecuencia; las nuevas se indexan vía Google Indexing API
 
 const TECNOLOGIAS = [
   'react', 'angular', 'vue', 'node', 'python', 'java', 'php', 'csharp', 'ruby', 'go', 
@@ -280,7 +282,14 @@ const getJob = cache(async (id: string) => {
   const client = await pool.connect();
   try {
     const res = await client.query("SELECT * FROM jobs WHERE id = $1", [id]);
-    return res.rows[0] ?? null;
+    const job = res.rows[0] ?? null;
+    if (job) {
+      // Incrementar impresiones de forma asíncrona no bloqueante
+      client.query("UPDATE jobs SET impressions_count = COALESCE(impressions_count, 0) + 1 WHERE id = $1", [id]).catch(e => {
+        console.error('Error incrementing impressions:', e);
+      });
+    }
+    return job;
   } catch (error) {
     console.error('Error cargando oferta:', error);
     return null;
@@ -293,7 +302,7 @@ async function getSimilarJobs(currentId: string, category: string | null, title:
   if (!process.env.DATABASE_URL && !process.env.DB_PROXY_URL && !process.env.MYSQL_USER) return [];
   const client = await pool.connect();
   try {
-    let sql = "SELECT id, title, title_es, company, location, salary, created_at";
+    let sql = "SELECT id, title, title_es, company, location, salary, salary_min, salary_max, created_at";
     const params: (string | number)[] = [currentId];
     let paramIndex = 2;
 
@@ -527,65 +536,32 @@ export default async function JobPage({ params, searchParams }: Props) {
     ? job.company 
     : (sourceLabel && sourceLabel !== 'Internet' ? sourceLabel : 'Portal Trabajo IT');
 
-  let postalCode = '28001';
-  let streetAddress = 'Calle Gran Vía, 1';
   let addressRegion = 'Madrid';
 
   const cleanLocForAddress = (job.location || '').toLowerCase();
   if (cleanLocForAddress.includes('barcelona') || cleanLocForAddress.includes('bcn')) {
     addressRegion = 'Barcelona';
-    postalCode = '08001';
-    streetAddress = 'La Rambla, 1';
   } else if (cleanLocForAddress.includes('valencia')) {
     addressRegion = 'Valencia';
-    postalCode = '46001';
-    streetAddress = 'Plaza del Ayuntamiento, 1';
   } else if (cleanLocForAddress.includes('sevilla')) {
     addressRegion = 'Sevilla';
-    postalCode = '41001';
-    streetAddress = 'Avenida de la Constitución, 1';
   } else if (cleanLocForAddress.includes('bilbao')) {
     addressRegion = 'Bizkaia';
-    postalCode = '48001';
-    streetAddress = 'Gran Vía de Don Diego López de Haro, 1';
   } else if (cleanLocForAddress.includes('málaga') || cleanLocForAddress.includes('malaga')) {
     addressRegion = 'Málaga';
-    postalCode = '29001';
-    streetAddress = 'Calle Larios, 1';
   }
 
-  let fallbackSalaryObj: any = null;
-  if (!baseSalaryObj) {
-    let estMin = 30000;
-    let estMax = 45000;
+  const jobLocationObj: any = {
+    '@type': 'Place',
+    address: { 
+      '@type': 'PostalAddress', 
+      addressCountry: countryCode 
+    },
+  };
 
-    const tLower = job.title.toLowerCase();
-    if (tLower.includes('senior') || tLower.includes('sr') || tLower.includes('lead') || tLower.includes('principal') || tLower.includes('architect')) {
-      estMin = 45000;
-      estMax = 70000;
-    } else if (tLower.includes('junior') || tLower.includes('becario') || tLower.includes('trainee') || tLower.includes('jr') || tLower.includes('prácticas') || tLower.includes('sin experiencia')) {
-      estMin = 22000;
-      estMax = 30000;
-    }
-
-    if (detectedTec === 'react' || detectedTec === 'typescript' || detectedTec === 'node') {
-      estMin = Math.round(estMin * 1.05);
-      estMax = Math.round(estMax * 1.05);
-    } else if (detectedTec === 'aws' || detectedTec === 'docker' || detectedTec === 'kubernetes' || detectedTec === 'cloud' || detectedTec === 'devops') {
-      estMin = Math.round(estMin * 1.15);
-      estMax = Math.round(estMax * 1.15);
-    }
-
-    fallbackSalaryObj = {
-      "@type": "MonetaryAmount",
-      "currency": job.salary_currency || "EUR",
-      "value": {
-        "@type": "QuantitativeValue",
-        "minValue": estMin,
-        "maxValue": estMax,
-        "unitText": "YEAR"
-      }
-    };
+  if (!isRemote) {
+    jobLocationObj.address.addressLocality = job.location || 'Madrid';
+    jobLocationObj.address.addressRegion = addressRegion;
   }
 
   const jsonLd: any = {
@@ -604,17 +580,7 @@ export default async function JobPage({ params, searchParams }: Props) {
       name: hiringOrgName,
       value: `job-${job.id}`
     },
-    jobLocation: {
-      '@type': 'Place',
-      address: { 
-        '@type': 'PostalAddress', 
-        addressLocality: job.location || 'Madrid', 
-        addressRegion: addressRegion,
-        postalCode: postalCode,
-        streetAddress: streetAddress,
-        addressCountry: countryCode 
-      },
-    },
+    jobLocation: jobLocationObj,
     employmentType: employmentTypes,
     directApply: true,
     industry: "Information Technology",
@@ -640,8 +606,6 @@ export default async function JobPage({ params, searchParams }: Props) {
     const currency = job.salary_currency || 'EUR';
     baseSalaryObj.currency = currency;
     jsonLd.baseSalary = baseSalaryObj;
-  } else if (fallbackSalaryObj) {
-    jsonLd.baseSalary = fallbackSalaryObj;
   }
 
   // Beneficios para trabajo remoto
@@ -749,12 +713,19 @@ export default async function JobPage({ params, searchParams }: Props) {
     ]
   };
 
+  // VideoObject schema disabled due to lack of actual video ID in database (avoiding Google penalty for mock URLs)
+  const videoJsonLd: any = null;
+
+
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-4 md:px-8">
       <RecentlyViewedTracker job={{ id: job.id, title: displayTitle, company: job.company, location: job.location, salary: job.salary }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+      {videoJsonLd && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(videoJsonLd) }} />
+      )}
 
       <div className="max-w-5xl mx-auto">
         <Breadcrumbs 
@@ -818,10 +789,7 @@ export default async function JobPage({ params, searchParams }: Props) {
             </div>
 
               <div className="p-6 md:p-8">
-                {/* Anuncio AdSense entre el título y la descripción */}
-                <div className="mb-6">
-                  <AdBanner variant="inline" />
-                </div>
+
 
                 <h2 className="text-xl font-bold text-gray-900 mb-4">
                   {isEnglish ? 'Job Description' : 'Descripción del puesto'}
@@ -847,21 +815,32 @@ export default async function JobPage({ params, searchParams }: Props) {
                 </div>
 
                 {relatedBlogPost && (
-                  <div className="mb-8 p-5 bg-gradient-to-br from-indigo-50 via-indigo-50/70 to-white border border-indigo-100 rounded-2xl shadow-sm flex items-start gap-4 hover:shadow-md transition-shadow">
-                    <span className="text-2xl shrink-0">📖</span>
-                    <div>
-                      <h4 className="font-extrabold text-indigo-950 text-sm mb-1">
-                        {isEnglish ? 'Recommended Career Guide:' : 'Guía de Empleo Recomendada:'}
-                      </h4>
-                      <Link 
-                        href={`/blog/${relatedBlogPost.slug}${queryParam}`}
-                        className="text-base font-bold text-indigo-705 hover:text-indigo-900 hover:underline"
-                      >
+                  <div className="mb-8 p-6 bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-950 border border-indigo-800/80 rounded-3xl shadow-lg flex flex-col md:flex-row items-center gap-5 hover:shadow-xl transition-all">
+                    <div className="relative w-full md:w-48 h-32 md:h-28 rounded-2xl overflow-hidden shrink-0 bg-indigo-950 border border-indigo-800/60">
+                      <Image
+                        src={`/blog/${relatedBlogPost.slug}/opengraph-image`}
+                        alt={relatedBlogPost.title}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                        sizes="(max-width: 768px) 100vw, 192px"
+                      />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block mb-1">
+                        💡 {isEnglish ? 'BEFORE YOU APPLY, READ THIS:' : 'ANTES DE APLICAR, LEE ESTO:'}
+                      </span>
+                      <h4 className="text-base font-black text-white leading-snug mb-1">
                         {relatedBlogPost.title}
-                      </Link>
-                      <p className="text-xs text-gray-600 mt-1.5 leading-relaxed font-normal">
+                      </h4>
+                      <p className="text-xs text-indigo-200 leading-relaxed font-normal mb-3 line-clamp-2">
                         {relatedBlogPost.excerpt}
                       </p>
+                      <Link 
+                        href={`/blog/${relatedBlogPost.slug}${queryParam}`}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 transition-all text-xs font-bold text-white rounded-xl shadow-sm cursor-pointer"
+                      >
+                        {isEnglish ? 'Read practical guide →' : 'Leer guía práctica →'}
+                      </Link>
                     </div>
                   </div>
                 )}
@@ -902,7 +881,7 @@ export default async function JobPage({ params, searchParams }: Props) {
                     )}
                   </p>
                   <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                    <ApplyButton url={job.url_source} company={job.company} title={displayTitle} lang={lang} />
+                    <ApplyButton url={job.url_source} company={job.company} title={displayTitle} lang={lang} jobId={job.id} />
                     <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-center">
                       <SaveJobButton job={job} variant="detail" />
                       <ReactionButton jobId={job.id} initialLikes={reactions.likes} initialDislikes={reactions.dislikes} />
@@ -914,10 +893,7 @@ export default async function JobPage({ params, searchParams }: Props) {
               </div>
             </div>
 
-            {/* Banner publicitario inline adicional antes de recomendados */}
-            <div className="my-6">
-              <AdBanner variant="inline" />
-            </div>
+
 
             {/* Ofertas Recomendadas */}
             {similarJobs && similarJobs.length > 0 && (
@@ -965,7 +941,7 @@ export default async function JobPage({ params, searchParams }: Props) {
               <PushSubscribe />
               <ReferralWidget lang={lang} />
               <div className="lg:sticky lg:top-24">
-                <AdBanner variant="sidebar" />
+                <AdBanner variant="sidebar" enableRefresh={true} />
               </div>
             </div>
           </div>
@@ -998,10 +974,10 @@ export default async function JobPage({ params, searchParams }: Props) {
             <div>
               <h4 className="font-semibold text-gray-700 mb-2">{isEnglish ? 'Jobs by Location' : 'Empleos por Ubicación'}</h4>
               <ul className="space-y-2">
-                <li><Link href={`/trabajos/informatica-tecnologia-remoto${queryParam}`} className="hover:text-indigo-650 hover:underline">{isEnglish ? '100% Remote Jobs' : 'Trabajo 100% Remoto'}</Link></li>
-                <li><Link href={`/trabajos/informatica-tecnologia-en-madrid${queryParam}`} className="hover:text-indigo-650 hover:underline">{isEnglish ? 'Jobs in Madrid' : 'Trabajo en Madrid'}</Link></li>
-                <li><Link href={`/trabajos/informatica-tecnologia-en-barcelona${queryParam}`} className="hover:text-indigo-650 hover:underline">{isEnglish ? 'Jobs in Barcelona' : 'Trabajo en Barcelona'}</Link></li>
-                <li><Link href={`/trabajos/informatica-tecnologia-en-valencia${queryParam}`} className="hover:text-indigo-650 hover:underline">{isEnglish ? 'Jobs in Valencia' : 'Trabajo en Valencia'}</Link></li>
+                <li><Link href={`/trabajo-remoto${queryParam}`} className="hover:text-indigo-650 hover:underline">{isEnglish ? '100% Remote Jobs' : 'Trabajo 100% Remoto'}</Link></li>
+                <li><Link href={`/trabajo-madrid${queryParam}`} className="hover:text-indigo-650 hover:underline">{isEnglish ? 'Jobs in Madrid' : 'Trabajo en Madrid'}</Link></li>
+                <li><Link href={`/trabajo-barcelona${queryParam}`} className="hover:text-indigo-650 hover:underline">{isEnglish ? 'Jobs in Barcelona' : 'Trabajo en Barcelona'}</Link></li>
+                <li><Link href={`/trabajo-valencia${queryParam}`} className="hover:text-indigo-650 hover:underline">{isEnglish ? 'Jobs in Valencia' : 'Trabajo en Valencia'}</Link></li>
               </ul>
             </div>
             <div>
@@ -1016,6 +992,7 @@ export default async function JobPage({ params, searchParams }: Props) {
           </div>
         </div>
 
+        <StickyDesktopAd />
       </div>
     </main>
   );

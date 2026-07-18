@@ -1,7 +1,9 @@
+"use client";
 import React from 'react';
 import Link from 'next/link';
 import { getJobSlug } from '@/lib/slug';
 import SaveJobButton from './SaveJobButton';
+import CompareJobButton from './CompareJobButton';
 import CompanyLogo from './CompanyLogo';
 
 interface Job {
@@ -15,6 +17,8 @@ interface Job {
   created_at?: string;
   title_es?: string | null;
   salary?: string | null;
+  salary_min?: number | null;
+  salary_max?: number | null;
 }
 
 interface JobCardProps {
@@ -25,6 +29,30 @@ interface JobCardProps {
 
 export default function JobCard({ job, lang, prefetch }: JobCardProps) {
   const isEnglish = lang === 'en';
+  const [compatScore, setCompatScore] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const rawKws = localStorage.getItem('subscriber_tech_keywords');
+      if (rawKws) {
+        const kws = rawKws.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
+        if (kws.length > 0) {
+          const title = job.title.toLowerCase();
+          const desc = (job.description_snippet || '').toLowerCase();
+          let matched = 0;
+          for (const kw of kws) {
+            if (title.includes(kw) || desc.includes(kw)) {
+              matched++;
+            }
+          }
+          if (matched > 0) {
+            const score = kws.length === 1 ? 100 : Math.round((matched / kws.length) * 100);
+            setCompatScore(score > 0 ? Math.max(50, score) : null);
+          }
+        }
+      }
+    }
+  }, [job.title, job.description_snippet]);
 
   const getCategoryColor = (cat: string | null | undefined) => {
     const category = cat ? cat.toLowerCase() : 'otros';
@@ -64,6 +92,11 @@ export default function JobCard({ job, lang, prefetch }: JobCardProps) {
                 {displayTitle}
               </h3>
               <div className="flex flex-wrap gap-1.5">
+                {compatScore !== null && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-300 dark:border-indigo-900/50 uppercase tracking-wider shrink-0">
+                    🎯 {compatScore}% {isEnglish ? 'match' : 'compatible'}
+                  </span>
+                )}
                 {isRecent && (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-900/50 uppercase tracking-wider shrink-0">
                     {isEnglish ? '🆕 Recent' : '🆕 Reciente'}
@@ -87,7 +120,10 @@ export default function JobCard({ job, lang, prefetch }: JobCardProps) {
             <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${getCategoryColor(job.category)}`}>
               {job.category || (isEnglish ? 'General' : 'General')}
             </span>
-            <SaveJobButton job={job} />
+            <div className="flex items-center gap-1.5">
+              <CompareJobButton job={job} />
+              <SaveJobButton job={job} />
+            </div>
           </div>
         </div>
 
@@ -100,11 +136,34 @@ export default function JobCard({ job, lang, prefetch }: JobCardProps) {
             <span className="mx-2">•</span>
             <span>{job.location}</span>
           </div>
-          {job.salary && (
-            <div className="flex items-center text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100/30 dark:bg-indigo-950/20 dark:text-indigo-300 px-2 py-0.5 rounded-md shrink-0">
-              💰 {job.salary}
-            </div>
-          )}
+          {(() => {
+            const hasSalaryStr = job.salary && job.salary !== 'Consultar' && job.salary !== 'Negotiable' && job.salary !== 'Ver salario';
+            let displaySalary = job.salary;
+            if (!hasSalaryStr && job.salary_min && job.salary_max) {
+              const minK = Math.round(job.salary_min / 1000);
+              const maxK = Math.round(job.salary_max / 1000);
+              displaySalary = `${minK}k - ${maxK}k €/año`;
+            } else if (!hasSalaryStr && job.salary_min) {
+              const minK = Math.round(job.salary_min / 1000);
+              displaySalary = isEnglish ? `From ${minK}k €/yr` : `Desde ${minK}k €/año`;
+            } else if (!hasSalaryStr && job.salary_max) {
+              const maxK = Math.round(job.salary_max / 1000);
+              displaySalary = isEnglish ? `Up to ${maxK}k €/yr` : `Hasta ${maxK}k €/año`;
+            }
+            
+            if (displaySalary && displaySalary !== 'Consultar' && displaySalary !== 'Negotiable') {
+              return (
+                <div className="flex items-center text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100/30 dark:bg-indigo-950/20 dark:text-indigo-300 px-2 py-0.5 rounded-md shrink-0">
+                  💰 {displaySalary}
+                </div>
+              );
+            }
+            return (
+              <div className="flex items-center text-xs font-semibold bg-gray-50 text-gray-500 border border-gray-100 dark:bg-slate-800/40 dark:text-slate-450 px-2 py-0.5 rounded-md shrink-0">
+                💰 {isEnglish ? 'Negotiable' : 'Consultar'}
+              </div>
+            );
+          })()}
         </div>
 
         {job.description_snippet && (

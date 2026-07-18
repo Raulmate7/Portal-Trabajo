@@ -12,6 +12,10 @@ export default function robots(): MetadataRoute.Robots {
           // Rutas privadas o sin valor SEO
           '/api/',
           '/ofertas-guardadas',
+          '/mi-perfil',
+          '/empresa-dashboard',
+          '/redirect/',
+          '/ref/',
           // Páginas paginadas (no deben indexarse)
           '/*?page=',
           '/*?*page=',
@@ -45,7 +49,8 @@ export default function robots(): MetadataRoute.Robots {
     ],
     sitemap: [
       `${BASE_URL}/sitemap.xml`,
-      `${BASE_URL}/sitemap-images.xml`
+      `${BASE_URL}/sitemap-images.xml`,
+      `${BASE_URL}/sitemap-news.xml`
     ],
   }
 }

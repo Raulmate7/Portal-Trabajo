@@ -6,35 +6,13 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import AdBanner from '@/components/AdBanner';
 import JobCard from '@/components/JobCard';
 import { BASE_URL } from '@/lib/constants';
+import { TECH_DETAILS } from '@/lib/salarios';
 
 export const revalidate = 3600; // Cache de 1 hora (ISR)
 
 interface Props {
   params: Promise<{ tecnologia: string }>;
 }
-
-const TECH_DETAILS: Record<string, { label: string; icon: string; desc: string }> = {
-  'react': { label: 'React', icon: '⚛️', desc: 'Desarrollador/a Frontend experto en React, hooks, estado y componentes.' },
-  'node': { label: 'Node.js', icon: '🟩', desc: 'Desarrollador/a Backend enfocado en Node.js, Express, NestJS y APIs.' },
-  'python': { label: 'Python', icon: '🐍', desc: 'Programador/a Python para ciencia de datos, inteligencia artificial o desarrollo backend.' },
-  'java': { label: 'Java', icon: '☕', desc: 'Desarrollador/a Java Enterprise, Spring Boot y microservicios.' },
-  'typescript': { label: 'TypeScript', icon: '🔷', desc: 'Desarrollador/a de software especializado en tipado estático con TypeScript.' },
-  'aws': { label: 'AWS', icon: '☁️', desc: 'Ingeniero/a Cloud de Amazon Web Services, infraestructura y serverless.' },
-  'docker': { label: 'Docker', icon: '🐳', desc: 'Ingeniero/a DevOps enfocado en contenerización con Docker, CI/CD y despliegue.' },
-  'flutter': { label: 'Flutter', icon: '📱', desc: 'Desarrollador/a Mobile de aplicaciones nativas híbridas con Flutter y Dart.' },
-  'csharp': { label: 'C# / .NET', icon: '🔵', desc: 'Programador/a C# y arquitectura .NET para aplicaciones robustas.' },
-  'php': { label: 'PHP', icon: '🐘', desc: 'Desarrollador/a web con PHP, Laravel o Symfony.' },
-  'sql': { label: 'SQL', icon: '🗃️', desc: 'Analista de datos o Administrador de Bases de Datos (DBA) especialista en SQL.' },
-  'go': { label: 'Go', icon: '🐹', desc: 'Desarrollador/a Go (Golang) para backend, microservicios y sistemas de alta concurrencia.' },
-  'rust': { label: 'Rust', icon: '🦀', desc: 'Programador/a Rust enfocado en rendimiento, seguridad de memoria y sistemas críticos.' },
-  'ruby': { label: 'Ruby', icon: '💎', desc: 'Desarrollador/a Ruby, principalmente enfocado en Ruby on Rails.' },
-  'scala': { label: 'Scala', icon: '🔴', desc: 'Programador/a Scala para procesamiento de datos distribuido y backend funcional.' },
-  'elixir': { label: 'Elixir', icon: '💧', desc: 'Desarrollador/a Elixir y Phoenix para sistemas distribuidos y tolerantes a fallos.' },
-  'salesforce': { label: 'Salesforce', icon: '☁️', desc: 'Desarrollador/a o Administrador/a Salesforce, Apex, Visualforce y LWC.' },
-  'cybersecurity': { label: 'Ciberseguridad', icon: '🛡️', desc: 'Especialista en ciberseguridad, seguridad de la información, auditoría y hacking ético.' },
-  'terraform': { label: 'Terraform', icon: '🏗️', desc: 'Ingeniero/a DevOps especializado en Infraestructura como Código (IaC) con Terraform.' },
-  'cobol': { label: 'COBOL', icon: '💾', desc: 'Programador/a COBOL para sistemas heredados, banca y gran empresa.' },
-};
 
 async function getSalaryStatsForTech(techSlug: string) {
   const techInfo = TECH_DETAILS[techSlug];
@@ -153,7 +131,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title,
     description,
     alternates: {
-      canonical: `/salarios/${techSlug}`,
+      canonical: `${BASE_URL}/salarios/${techSlug}`,
     },
     openGraph: {
       title,
@@ -168,7 +146,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-const STATIC_TECHS = ['react', 'node', 'python', 'java', 'typescript', 'aws', 'php'];
+const STATIC_TECHS = [
+  'react', 'node', 'python', 'java', 'typescript', 'aws', 'docker', 'flutter', 'csharp', 'php', 'sql',
+  'go', 'rust', 'ruby', 'scala', 'elixir', 'salesforce', 'cybersecurity', 'terraform', 'cobol'
+];
 
 export async function generateStaticParams() {
   return STATIC_TECHS.map((key) => ({

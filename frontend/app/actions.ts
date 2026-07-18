@@ -11,6 +11,7 @@ export async function subscribeUser(formData: FormData) {
   const locationPref = (formData.get('location_pref') as string || '').trim();
   const frequency = (formData.get('frequency') as string || 'weekly').trim();
   const referredBy = (formData.get('referred_by') as string || '').trim().toLowerCase() || null;
+  const operator = (formData.get('operator') as string || 'OR').toUpperCase();
 
   if (!email) {
     return { message: 'Por favor, escribe un email.', success: false };
@@ -18,14 +19,17 @@ export async function subscribeUser(formData: FormData) {
 
   const client = await pool.connect();
   try {
+    const jsonVal = JSON.stringify({ keywords: techKeywords.split(',').map((s: string) => s.trim()).filter(Boolean), operator });
+    
     await client.query(
-      `INSERT INTO subscribers (email, tech_keywords, location_pref, frequency, referred_by, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO subscribers (email, tech_keywords, location_pref, frequency, referred_by, created_at, tech_keywords_json)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON DUPLICATE KEY UPDATE
          tech_keywords = VALUES(tech_keywords),
          location_pref = VALUES(location_pref),
-         frequency = VALUES(frequency)`,
-      [email, techKeywords, locationPref, frequency, referredBy, new Date().toISOString()]
+         frequency = VALUES(frequency),
+         tech_keywords_json = VALUES(tech_keywords_json)`,
+      [email, techKeywords, locationPref, frequency, referredBy, new Date().toISOString(), jsonVal]
     );
 
     revalidatePath(pathname);
@@ -139,8 +143,8 @@ export async function submitSponsoredJob(formData: FormData) {
     if (plan === 'basico') {
       const jobId = crypto.randomUUID();
       await client.query(
-        `INSERT INTO jobs (id, title, company, location, salary, description_snippet, url_source, category, is_active, is_featured, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE, FALSE, NOW())`,
+        `INSERT INTO jobs (id, title, company, location, salary, description_snippet, url_source, category, is_active, is_featured, company_email, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE, FALSE, $9, NOW())`,
         [
           jobId,
           job_title,
@@ -149,7 +153,8 @@ export async function submitSponsoredJob(formData: FormData) {
           job_salary || 'Consultar',
           job_description || '',
           job_url,
-          'Otros'
+          'Otros',
+          company_email
         ]
       );
     }
@@ -315,4 +320,246 @@ export async function getCompanyReviews(companySlug: string) {
     client.release();
   }
 }
+
+export async function generateRecruiterLoginLink(email: string) {
+  if (!email || !email.includes('@')) {
+    return { success: false, message: 'Por favor, proporciona un correo válido.' };
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+  const client = await pool.connect();
+  try {
+    // Verificar si el reclutador tiene ofertas (en jobs o en sponsored_jobs)
+    const checkJobs = await client.query(
+      "SELECT COUNT(*) as count FROM jobs WHERE company_email = $1",
+      [cleanEmail]
+    );
+    const checkSponsored = await client.query(
+      "SELECT COUNT(*) as count FROM sponsored_jobs WHERE company_email = $1",
+      [cleanEmail]
+    );
+
+    const totalJobs = parseInt(checkJobs.rows[0]?.count || '0', 10) + parseInt(checkSponsored.rows[0]?.count || '0', 10);
+    
+    if (totalJobs === 0) {
+      return { 
+        success: false, 
+        message: 'No encontramos ofertas de empleo asociadas a este correo. Asegúrate de usar el mismo email que usaste para publicar.' 
+      };
+    }
+
+    // Generar token seguro sin estado
+    const secret = process.env.CRON_SECRET || 'portal-trabajo-cron-secret-2026';
+    const token = crypto.createHash('md5').update(cleanEmail + secret).digest('hex');
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://portalempleoit.com';
+    const loginLink = `/empresa-dashboard?email=${encodeURIComponent(cleanEmail)}&token=${token}`;
+
+    console.log(`🔑 Recruiter login link generated: ${cleanEmail} -> ${loginLink}`);
+
+    return { 
+      success: true, 
+      message: '¡Enlace de acceso generado con éxito!', 
+      loginLink 
+    };
+
+  } catch (error) {
+    console.error("Error generating recruiter login:", error);
+    return { success: false, message: 'Ocurrió un error al procesar tu solicitud.' };
+  } finally {
+    client.release();
+  }
+}
+
+export async function getRecruiterJobs(email: string, token: string) {
+  if (!email || !token) {
+    return { success: false, error: 'Parámetros inválidos.' };
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+  const secret = process.env.CRON_SECRET || 'portal-trabajo-cron-secret-2026';
+  const expectedToken = crypto.createHash('md5').update(cleanEmail + secret).digest('hex');
+
+  if (token !== expectedToken) {
+    return { success: false, error: 'Acceso no autorizado. El token de inicio de sesión no es válido o ha expirado.' };
+  }
+
+  const client = await pool.connect();
+  try {
+    // Obtener empleos activos
+    const jobsRes = await client.query(
+      `SELECT id, title, company, created_at, is_active, impressions_count, clicks_count 
+       FROM jobs 
+       WHERE company_email = $1 
+       ORDER BY created_at DESC`,
+      [cleanEmail]
+    );
+
+    // Obtener solicitudes patrocinadas (pendientes o aprobadas)
+    const sponsoredRes = await client.query(
+      `SELECT id, company_name, job_title, plan, status, created_at 
+       FROM sponsored_jobs 
+       WHERE company_email = $1 
+       ORDER BY created_at DESC`,
+      [cleanEmail]
+    );
+
+    return { 
+      success: true, 
+      jobs: jobsRes.rows || [], 
+      sponsoredJobs: sponsoredRes.rows || [] 
+    };
+
+  } catch (error) {
+    console.error("Error fetching recruiter jobs:", error);
+    return { success: false, error: 'Error cargando las ofertas de empleo.' };
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Registra o recupera el código de afiliado para un reclutador.
+ */
+export async function registerRecruiterAffiliate(email: string) {
+  if (!email || !email.includes('@')) {
+    return { success: false, error: 'Por favor, proporciona un correo válido.' };
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+  const client = await pool.connect();
+
+  try {
+    // 1. Comprobar si ya está registrado
+    const checkRes = await client.query(
+      "SELECT affiliate_code FROM recruiter_affiliates WHERE recruiter_email = $1 LIMIT 1",
+      [cleanEmail]
+    );
+
+    if (checkRes.rows && checkRes.rows.length > 0) {
+      const code = checkRes.rows[0].affiliate_code;
+      // Obtener estadísticas de referidos
+      const statsRes = await client.query(
+        "SELECT referred_company_name, commission_paid, created_at FROM recruiter_affiliates WHERE recruiter_email = $1 AND referred_company_name IS NOT NULL",
+        [cleanEmail]
+      );
+
+      return {
+        success: true,
+        code,
+        referrals: statsRes.rows || [],
+      };
+    }
+
+    // 2. Si no existe, crear un nuevo código aleatorio de afiliado
+    const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const newCode = `RECR-${randomSuffix}`;
+
+    await client.query(
+      "INSERT INTO recruiter_affiliates (recruiter_email, affiliate_code) VALUES ($1, $2)",
+      [cleanEmail, newCode]
+    );
+
+    return {
+      success: true,
+      code: newCode,
+      referrals: [],
+    };
+
+  } catch (error) {
+    console.error("Error en registerRecruiterAffiliate:", error);
+    return { success: false, error: 'Error procesando tu solicitud de afiliado.' };
+  } finally {
+    client.release();
+  }
+}
+
+export async function validateCandidateToken(email: string, token: string) {
+  if (!email || !token) return { success: false };
+  const cleanEmail = email.trim().toLowerCase();
+  const secret = process.env.CRON_SECRET || 'portal-trabajo-cron-secret-2026';
+  const expectedToken = crypto.createHash('md5').update(cleanEmail + secret).digest('hex');
+  if (token !== expectedToken) return { success: false };
+  
+  const client = await pool.connect();
+  try {
+    const res = await client.query("SELECT email FROM subscribers WHERE email = $1 LIMIT 1", [cleanEmail]);
+    if (res.rows && res.rows.length > 0) {
+      return { success: true };
+    }
+    return { success: false, message: 'No estás registrado como suscriptor.' };
+  } catch (error) {
+    return { success: false };
+  } finally {
+    client.release();
+  }
+}
+
+export async function getSubscriberPreferences(email: string, token: string) {
+  const validation = await validateCandidateToken(email, token);
+  if (!validation.success) return { success: false, error: 'No autorizado' };
+  
+  const client = await pool.connect();
+  try {
+    const res = await client.query(
+      "SELECT email, tech_keywords, location_pref, frequency, tech_keywords_json FROM subscribers WHERE email = $1 LIMIT 1",
+      [email.trim().toLowerCase()]
+    );
+    return { success: true, subscriber: res.rows[0] };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  } finally {
+    client.release();
+  }
+}
+
+export async function updateSubscriberPreferences(
+  email: string, 
+  token: string, 
+  techKeywords: string, 
+  locationPref: string, 
+  frequency: string, 
+  techKeywordsJson: string
+) {
+  const validation = await validateCandidateToken(email, token);
+  if (!validation.success) return { success: false, error: 'No autorizado' };
+  
+  const client = await pool.connect();
+  try {
+    await client.query(
+      `UPDATE subscribers 
+       SET tech_keywords = $1, location_pref = $2, frequency = $3, tech_keywords_json = $4
+       WHERE email = $5`,
+      [techKeywords, locationPref, frequency, techKeywordsJson, email.trim().toLowerCase()]
+    );
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  } finally {
+    client.release();
+  }
+}
+
+export async function generateCandidateLoginLink(email: string) {
+  if (!email || !email.includes('@')) {
+    return { success: false, message: 'Por favor, proporciona un correo válido.' };
+  }
+  const cleanEmail = email.trim().toLowerCase();
+  const client = await pool.connect();
+  try {
+    const res = await client.query("SELECT email FROM subscribers WHERE email = $1 LIMIT 1", [cleanEmail]);
+    if (!res.rows || res.rows.length === 0) {
+      return { success: false, message: 'Este correo electrónico no está registrado en el boletín. ¡Regístrate gratis primero!' };
+    }
+    
+    const secret = process.env.CRON_SECRET || 'portal-trabajo-cron-secret-2026';
+    const token = crypto.createHash('md5').update(cleanEmail + secret).digest('hex');
+    const loginLink = `/mi-perfil?email=${encodeURIComponent(cleanEmail)}&token=${token}`;
+    return { success: true, message: '¡Enlace de acceso generado con éxito!', loginLink };
+  } catch (error) {
+    return { success: false, message: 'Ocurrió un error al procesar tu solicitud.' };
+  } finally {
+    client.release();
+  }
+}
+
 

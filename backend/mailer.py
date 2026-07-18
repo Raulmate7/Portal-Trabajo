@@ -57,6 +57,96 @@ def send_newsletter():
         conn.close()
         return
 
+    # --- INICIO RUNDOWN SEMANAL (TENDENCIAS MERCADO IT) ---
+    # A. Top 3 tecnologías demandadas (por conteo de coincidencias en título de la última semana)
+    tech_counts = {
+        'React': 0, 'Node.js': 0, 'Python': 0, 'Java': 0, 'TypeScript': 0,
+        'Angular': 0, 'Vue.js': 0, 'PHP': 0, 'DevOps/Cloud': 0
+    }
+    for job in all_jobs:
+        title = (job[1] or '').lower()
+        if 'react' in title: tech_counts['React'] += 1
+        if 'node' in title: tech_counts['Node.js'] += 1
+        if 'python' in title: tech_counts['Python'] += 1
+        if 'java' in title and 'javascript' not in title: tech_counts['Java'] += 1
+        if 'typescript' in title: tech_counts['TypeScript'] += 1
+        if 'angular' in title: tech_counts['Angular'] += 1
+        if 'vue' in title: tech_counts['Vue.js'] += 1
+        if 'php' in title: tech_counts['PHP'] += 1
+        if 'devops' in title or 'aws' in title or 'cloud' in title: tech_counts['DevOps/Cloud'] += 1
+    
+    top_techs = sorted([(k, v) for k, v in tech_counts.items() if v > 0], key=lambda x: x[1], reverse=True)[:3]
+
+    # B. Empresa más contratante de la semana
+    company_counts = {}
+    for job in all_jobs:
+        comp = job[2]
+        if comp and comp.strip():
+            company_counts[comp] = company_counts.get(comp, 0) + 1
+    top_company_row = sorted(company_counts.items(), key=lambda x: x[1], reverse=True)
+    top_company_name = top_company_row[0][0] if top_company_row else None
+    top_company_count = top_company_row[0][1] if top_company_row else 0
+
+    # C. Oferta con mejor salario de la semana
+    cur.execute("""
+        SELECT title, company, salary
+        FROM jobs
+        WHERE created_at > %s AND is_active = TRUE AND salary IS NOT NULL AND salary != '' AND salary != 'Consultar'
+    """, (search_window,))
+    salary_rows = cur.fetchall()
+    
+    top_salary_job = None
+    max_salary_val = 0
+    for s_title, s_company, salary_str in salary_rows:
+        try:
+            import re
+            clean_str = salary_str.replace('.', '').replace(' ', '')
+            numbers = re.findall(r'\d+', clean_str)
+            if numbers:
+                val = max(int(n) for n in numbers)
+                if val > 0 and val < 5000:
+                    val = val * 12 # Mensual a anual
+                if val > max_salary_val and val <= 180000:
+                    max_salary_val = val
+                    top_salary_job = (s_title, s_company, salary_str)
+        except Exception:
+            continue
+
+    # Construir el bloque HTML del Rundown Semanal
+    rundown_html = ""
+    if top_techs or top_company_name or top_salary_job:
+        rundown_html = """
+        <div style="margin-bottom: 24px; padding: 20px; background-color: #faf5ff; border: 1px dashed #c084fc; border-radius: 12px;">
+            <h3 style="color: #6b21a8; margin: 0 0 12px 0; font-size: 15px; font-weight: 850; text-transform: uppercase; letter-spacing: 0.5px;">
+                📊 El Rundown Semanal del Mercado IT
+            </h3>
+            <ul style="margin: 0; padding: 0; list-style: none; font-size: 13px; color: #581c87; line-height: 1.6;">
+        """
+        if top_techs:
+            tech_items = [f"<strong>{t[0]}</strong> ({t[1]} ofertas)" for t in top_techs]
+            rundown_html += f"""
+                <li style="margin-bottom: 8px;">
+                    🚀 <strong>Tecnologías más demandadas:</strong> {', '.join(tech_items)}.
+                </li>
+            """
+        if top_company_name:
+            rundown_html += f"""
+                <li style="margin-bottom: 8px;">
+                    🏢 <strong>Líder de contratación:</strong> <strong>{top_company_name}</strong> ha publicado {top_company_count} ofertas de empleo esta semana.
+                </li>
+            """
+        if top_salary_job:
+            rundown_html += f"""
+                <li style="margin-bottom: 0;">
+                    💰 <strong>Sueldo top de la semana:</strong> {top_salary_job[2]} para la posición <em>{top_salary_job[0]}</em> en <strong>{top_salary_job[1]}</strong>.
+                </li>
+            """
+        rundown_html += """
+            </ul>
+        </div>
+        """
+    # --- FIN RUNDOWN SEMANAL ---
+
     # Buscar ofertas destacadas pro o enterprise activas (sponsors de la semana)
     cur.execute("""
         SELECT id, title, company, location, url_source, category, plan 
@@ -278,6 +368,7 @@ def send_newsletter():
                         </div>
 
                         <div style="padding: 24px;">
+                            {rundown_html}
                             {final_jobs_html}
 
                             <!-- Banner Bootcamp (Afiliado) -->

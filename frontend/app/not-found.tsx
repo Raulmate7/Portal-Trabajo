@@ -1,32 +1,21 @@
 import Link from 'next/link';
 import AdBanner from '@/components/AdBanner';
-import CompanyLogo from '@/components/CompanyLogo';
-import pool from '@/lib/db';
-import { getJobSlug } from '@/lib/slug';
 
-async function getRecentJobs() {
-  const client = await pool.connect();
-  try {
-    const res = await client.query(`
-      SELECT * FROM jobs 
-      WHERE is_active = TRUE 
-      ORDER BY created_at DESC 
-      LIMIT 6
-    `);
-    return res.rows;
-  } catch (error) {
-    console.error("Error fetching jobs in 404:", error);
-    return [];
-  } finally {
-    client.release();
-  }
-}
+export default function NotFound() {
+  const webPageSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Página no encontrada (404) | Portal Trabajo IT",
+    "description": "La página solicitada no está disponible. Explora ofertas de empleo tecnológico y desarrollo de software actualizadas en España.",
+    "url": "https://portalempleoit.com/404"
+  };
 
-export default async function NotFound() {
-  const recentJobs = await getRecentJobs();
-  
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-slate-950 py-16 px-4">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageSchema) }}
+      />
       <div className="max-w-3xl mx-auto text-center space-y-10">
         
         {/* Encabezado 404 */}
@@ -57,40 +46,34 @@ export default async function NotFound() {
           </div>
         </div>
 
-        {/* Listado de Últimas Ofertas de Empleo */}
-        {recentJobs.length > 0 && (
-          <div className="space-y-4 text-left animate-in fade-in duration-300">
-            <h3 className="text-base font-bold text-gray-800 dark:text-slate-200 flex items-center gap-2 px-1">
-              <span>⚡</span> Últimas Ofertas IT Publicadas:
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {recentJobs.map((job: any) => {
-                const jobSlug = getJobSlug(job);
-                const detailUrl = `/job/${jobSlug}`;
-                
-                return (
-                  <div key={job.id} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-100 dark:border-slate-800/60 hover:shadow-md transition-all flex gap-3.5 items-start">
-                    <CompanyLogo company={job.company} size={10} />
-                    <div className="space-y-1">
-                      <Link href={detailUrl}>
-                        <h4 className="text-sm font-extrabold text-indigo-900 dark:text-indigo-400 hover:text-indigo-650 dark:hover:text-indigo-300 transition-colors line-clamp-1 leading-tight">
-                          {job.title}
-                        </h4>
-                      </Link>
-                      <p className="text-xs font-semibold text-gray-650 dark:text-slate-350">{job.company}</p>
-                      <div className="flex gap-2 text-[10px] text-gray-500 dark:text-slate-400 pt-1">
-                        <span>📍 {job.location}</span>
-                        <span>•</span>
-                        <span>💰 {job.salary || 'Consultar'}</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+        {/* Categorías populares recomendadas */}
+        <div className="space-y-4 text-left animate-in fade-in duration-300">
+          <h3 className="text-base font-bold text-gray-800 dark:text-slate-200 flex items-center gap-2 px-1">
+            <span>⚡</span> Explora ofertas por categoría popular:
+          </h3>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {[
+              { label: 'React', slug: 'react', emoji: '⚛️' },
+              { label: 'Node.js', slug: 'node', emoji: '🟢' },
+              { label: 'Python', slug: 'python', emoji: '🐍' },
+              { label: 'Java', slug: 'java', emoji: '☕' },
+              { label: 'TypeScript', slug: 'typescript', emoji: '🟦' },
+              { label: 'DevOps / Cloud', slug: 'cloud', emoji: '☁️' }
+            ].map((tech) => (
+              <Link
+                key={tech.slug}
+                href={`/trabajos/${tech.slug}`}
+                className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-100 dark:border-slate-800/65 hover:shadow-md transition-all flex items-center gap-3 hover:border-indigo-200/50 dark:hover:border-indigo-950/50"
+              >
+                <span className="text-2xl">{tech.emoji}</span>
+                <span className="text-sm font-extrabold text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                  {tech.label}
+                </span>
+              </Link>
+            ))}
           </div>
-        )}
+        </div>
 
         {/* Enlaces Rápidos y Navegación */}
         <div className="flex flex-wrap justify-center gap-3">

@@ -127,7 +127,7 @@ async function getCityData(ciudadSlug: string) {
 
     // 4. List of 10 most recent jobs in that city
     const jobsRes = await client.query(
-      `SELECT * FROM jobs 
+      `SELECT id, title, title_es, company, location, salary, salary_min, salary_max, created_at, url_source, description_snippet, category, is_featured FROM jobs 
        WHERE is_active = TRUE AND location LIKE $1
        ORDER BY created_at DESC 
        LIMIT 10`,

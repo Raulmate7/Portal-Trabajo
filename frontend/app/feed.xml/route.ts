@@ -58,12 +58,23 @@ export async function GET(request: Request) {
         ? job.description_snippet.replace(/\[Fuente:.*?\]/, '').trim()
         : 'Ver detalles de la oferta de empleo en Portal Trabajo IT.';
 
+      // Enriquecer la descripción con enlaces patrocinados / de interés para monetizar lectores de RSS
+      const adCta = `
+<br/><br/>
+--------------------------------------------------<br/>
+🚀 <b>Enlaces útiles en Portal Trabajo IT:</b><br/>
+💰 <a href="${BASE_URL}/salarios">¿Está tu sueldo acorde al mercado? Usa nuestra Calculadora de Salarios IT</a><br/>
+🎓 <a href="https://trk.udemy.com/9VMAEj">Mejora tu stack profesional con cursos recomendados en Udemy (Descuentos)</a><br/>
+📬 <a href="${BASE_URL}/newsletter">Suscríbete gratis a nuestra Newsletter Semanal de Empleo IT</a>
+`;
+      const fullDescription = `📍 ${job.location} · ${desc}${adCta}`;
+
       return `
     <item>
       <title><![CDATA[${job.title} — ${job.company}${salaryText}]]></title>
       <link>${BASE_URL}/job/${job.id}</link>
       <guid isPermaLink="true">${BASE_URL}/job/${job.id}</guid>
-      <description><![CDATA[📍 ${job.location} · ${desc}]]></description>
+      <description><![CDATA[${fullDescription}]]></description>
       <pubDate>${new Date(job.created_at).toUTCString()}</pubDate>
       <category><![CDATA[${job.location}]]></category>
       <source url="${BASE_URL}">Portal Trabajo IT</source>

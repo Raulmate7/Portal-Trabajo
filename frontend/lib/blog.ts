@@ -1,4 +1,5 @@
 import pool from './db';
+import { cache } from 'react';
 
 export interface BlogPost {
   slug: string;
@@ -2748,6 +2749,107 @@ Si deseas valorar tu sueldo objetivo o comparar las condiciones salariales de tu
 `,
     date: '2026-07-01',
     author: 'Equipo Portal Empleo',
+  },
+  {
+    slug: 'guia-salarios-python-2026',
+    title: 'Guía Completa de Salarios Python en España (2026)',
+    excerpt: '¿Cuánto cobra un desarrollador Python en España en 2026? Analizamos la evolución salarial, percentiles junior, mid y senior, diferencias regionales y las especialidades más cotizadas como Data Science e IA.',
+    content: `
+El lenguaje de programación Python se ha consolidado como uno de los pilares del desarrollo de software a nivel global y, de forma muy especial, en el mercado tecnológico en España. Su versatilidad le permite dominar áreas clave de alta demanda como la Inteligencia Artificial, el Machine Learning, el análisis de datos (Data Science) y el desarrollo backend web con frameworks como FastAPI y Django.
+
+En esta guía exhaustiva analizamos cuánto cobra un desarrollador Python en España en 2026, desglosando la información por nivel de experiencia, principales ciudades y áreas de especialización, utilizando datos reales recopilados a partir de miles de ofertas de empleo activas en nuestro portal.
+
+---
+
+## 1. Salario Medio General y Percentiles de Mercado
+
+La retribución media para profesionales especializados en Python en España se sitúa actualmente en **43.000€ brutos anuales**. No obstante, esta cifra agregada esconde una gran dispersión en función del nivel de responsabilidad y especialización técnica.
+
+Para comprender mejor la distribución del mercado, es preciso recurrir a los percentiles salariales:
+
+* **Percentil 25 (P25 - Perfiles Junior):** **28.000€ brutos anuales**. Representa el salario de entrada para desarrolladores con menos de dos años de experiencia práctica.
+* **Percentil 50 (Mediana - Perfiles Mid):** **42.000€ brutos anuales**. Corresponde a programadores autónomos técnicamente con entre 2 y 5 años de trayectoria profesional.
+* **Percentil 75 (P75 - Perfiles Senior):** **62.000€ brutos anuales**. Sueldo de referencia para ingenieros con amplia experiencia en arquitectura y liderazgo técnico.
+* **Límite Superior (Empresas de Producto Top / Remoto):** **+75.000€ brutos anuales**. Salarios alcanzados en startups consolidadas o teletrabajando para compañías multinacionales europeas.
+
+---
+
+## 2. Diferencias Salariales por Nivel de Experiencia
+
+La experiencia es el factor que mayor impacto directo tiene sobre la nómina en el ecosistema de desarrollo de software:
+
+### Junior (0 a 2 años de experiencia)
+El rango salarial oscila entre los **24.000€ y los 32.000€ brutos al año**. En esta etapa inicial, los reclutadores valoran especialmente el dominio de los fundamentos del lenguaje, la familiaridad con sistemas de control de versiones como Git y una buena base matemática si el perfil se orienta hacia los datos.
+
+### Mid-Level (2 a 5 años de experiencia)
+La retribución media se mueve en la horquilla de los **35.000€ a los 48.000€ brutos al año**. Se espera que un programador de nivel intermedio sea autónomo diseñando APIs robustas, integrando bases de datos relacionales y optimizando la eficiencia de algoritmos pesados en entornos de producción.
+
+### Senior (+5 años de experiencia)
+Los sueldos parten desde los **55.000€ y pueden superar holgadamente los 70.000€ brutos anuales**. Un perfil senior en Python debe poseer competencias avanzadas en el diseño de arquitecturas distribuidas (microservicios), automatización de infraestructuras cloud (AWS/Docker/CI-CD) y, opcionalmente, diseño de pipelines complejos de ingeniería de datos.
+
+---
+
+## 3. Comparativa por Ciudades y Trabajo en Remoto
+
+El coste de la vida local y la densidad de empresas de corte tecnológico en España determinan notables diferencias geográficas en los salarios:
+
+1. **Trabajo en Remoto (Teletrabajo):** Es la modalidad con mejores retribuciones. La media para posiciones 100% remotas se sitúa en los **48.000€ brutos anuales**, impulsada por la competencia de empresas internacionales.
+2. **Madrid:** La capital de España concentra el mayor número de ofertas corporativas y financieras. El salario medio es de **45.000€ brutos/año**.
+3. **Barcelona:** Sigue de cerca a Madrid con un ecosistema de startups y hubs tecnológicos muy dinámico, con una retribución media de **43.000€ brutos/año**.
+4. **Valencia y Málaga:** Ciudades en plena expansión de talento tecnológico que ofrecen una excelente relación calidad de vida/salario. La media se sitúa en los **36.000€ brutos/año**.
+
+Si deseas comparar el sueldo de tu perfil tecnológico según tu experiencia concreta y localización, te invitamos a explorar nuestra [Calculadora de Salarios Python](/salarios/python) interactiva con datos actualizados diariamente. Adicionalmente, puedes encontrar y aplicar a vacantes de empleo transparentes y contrastadas en nuestro [Buscador de Empleo Python](/trabajos/python).
+`,
+    date: '2026-07-10',
+    author: 'Equipo Portal Empleo',
+  },
+  {
+    slug: 'guia-salarios-react-2026',
+    title: 'Guía Completa de Salarios React y Frontend en España (2026)',
+    excerpt: '¿Cuánto cobra un desarrollador React en España en 2026? Comparamos los rangos salariales de perfiles frontend junior, mid y senior, la demanda de TypeScript y Next.js, y los salarios por ciudades.',
+    content: `
+El desarrollo frontend ha dejado de ser un complemento estético del software para convertirse en una disciplina de ingeniería compleja de alto impacto. En este escenario, React sigue siendo la biblioteca de JavaScript más demandada en España y el estándar indiscutible de las aplicaciones web modernas interactivas de alto rendimiento.
+
+En esta guía detallada analizamos la retribución económica de los desarrolladores React y perfiles frontend en España durante 2026, evaluando percentiles, experiencia y la cotización de tecnologías complementarias clave como Next.js y TypeScript.
+
+---
+
+## 1. Salario Medio y Percentiles Frontend
+
+El salario promedio bruto anual de un programador React en España es de **38.000€**. Si bien la base salarial es ligeramente inferior a perfiles de infraestructura (DevOps/Cloud), la cantidad y frecuencia de ofertas activas compensa esta brecha con una alta rotación y progresión rápida.
+
+* **Percentil 25 (P25 - Junior):** **25.000€ brutos anuales**. Sueldo de entrada para recién graduados de carreras técnicas o bootcamps de desarrollo web.
+* **Percentil 50 (Mediana - Mid):** **38.000€ brutos anuales**. Escala salarial habitual para profesionales con autonomía técnica en maquetación y consumo de APIs.
+* **Percentil 75 (P75 - Senior):** **55.000€ brutos anuales**. Compensación media para ingenieros capaces de liderar la arquitectura de aplicaciones SPA/SSR complejas.
+* **Top de Mercado (Remoto / Product Companies):** **+65.000€ brutos anuales**.
+
+---
+
+## 2. Factores de Aumento Salarial: TypeScript, Next.js y CSS Moderno
+
+El dominio puro de React ya no es suficiente para acceder a los percentiles superiores del mercado. Las ofertas con salarios más elevados solicitan habitualmente conocimientos avanzados de:
+
+* **TypeScript:** La adopción de tipado estático en el frontend es prácticamente universal en proyectos grandes. Los reclutadores priorizan perfiles que estructuran código tipado seguro para prevenir errores antes del tiempo de ejecución.
+* **Next.js (App Router):** La migración de React clásico hacia arquitecturas de renderizado en el servidor (SSR) y generación estática (SSG) para optimizar el rendimiento y el SEO ha disparado los salarios de programadores que dominan Next.js.
+* **Rendimiento Web (Core Web Vitals):** El conocimiento práctico en la optimización de métricas de velocidad de carga del navegador (LCP, CLS, INP) tiene un valor inmenso para marcas de comercio electrónico o portales de alto tráfico que dependen del posicionamiento en buscadores.
+
+---
+
+## 3. Rangos de Sueldo por Experiencia
+
+### Frontend Junior (React)
+El sueldo medio oscila entre los **22.000€ y los 28.000€ brutos al año**. Se espera conocimiento en HTML5, CSS semántico, fundamentos sólidos de JavaScript y comprensión de las bases de React (hooks básicos y props).
+
+### Frontend Mid-Level (React)
+La horquilla económica habitual se sitúa entre los **32.000€ y los 44.000€ brutos al año**. El programador debe ser capaz de gestionar el estado global (Context, Redux Toolkit, Zustand), optimizar renders y realizar pruebas unitarias con Jest o Vitest.
+
+### Frontend Senior (React)
+Sueldos de **50.000€ a 68.000€ brutos anuales**. Se requiere dominio en el diseño de sistemas de diseño de componentes escalables, optimizaciones de build (Vite/Webpack), configuraciones de micro-frontends y experiencia liderando equipos técnicos de desarrollo de producto.
+
+Si estás interesado en evaluar y comparar con precisión la retribución económica de tu rol técnico, puedes hacer uso gratuito de nuestra [Calculadora de Salarios React](/salarios/react) interactiva. De igual forma, te invitamos a buscar y aplicar a ofertas de empleo en desarrollo web frontend y React con salarios transparentes en nuestro [Buscador de Empleo React](/trabajos/react).
+`,
+    date: '2026-07-10',
+    author: 'Equipo Portal Empleo',
   }
 ];
 
@@ -2764,7 +2866,7 @@ export const BLOG_POSTS: BlogPost[] = STATIC_BLOG_POSTS.map(post => {
   };
 });
 
-export async function getBlogPosts(): Promise<BlogPost[]> {
+export const getBlogPosts = cache(async (): Promise<BlogPost[]> => {
   const currentYear = new Date().getFullYear().toString();
   try {
     const res = await pool.query(
@@ -2790,7 +2892,7 @@ export async function getBlogPosts(): Promise<BlogPost[]> {
   }
   
   return BLOG_POSTS;
-}
+});
 
 export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
   const posts = await getBlogPosts();

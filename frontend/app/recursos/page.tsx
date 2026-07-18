@@ -113,12 +113,28 @@ export default async function RecursosPage({ searchParams }: Props) {
       title: isEnglish ? '📄 ATS-Optimized Resume Builders' : '📄 Creación de CV y Empleo',
       items: [
         {
-          name: 'Enhancv Resume Templates',
-          desc: isEnglish ? 'Create a professional tech resume optimized to pass recruiter ATS automatic filters easily.' : 'Crea un currículum técnico profesional optimizado para superar los filtros ATS automáticos de reclutadores.',
-          tag: 'Enhancv',
-          cta: isEnglish ? 'Create Tech CV' : 'Diseñar Currículum',
-          href: 'https://enhancv.com/',
+          name: isEnglish ? 'ATS Resume Templates' : 'Plantillas de CV optimizadas para ATS',
+          desc: isEnglish ? 'Download our free professional tech resume templates designed to pass recruiter filters easily.' : 'Descarga nuestras plantillas gratuitas de currículum técnico optimizadas para superar los filtros ATS de los reclutadores.',
+          tag: 'Portal Empleo',
+          cta: isEnglish ? 'View Templates' : 'Ver Plantillas',
+          href: '/recursos/plantillas-cv' + queryParam,
           featured: true,
+        },
+        {
+          name: isEnglish ? 'Technical Interview Prep Guide' : 'Guía de Preparación para Entrevistas',
+          desc: isEnglish ? 'Tips and strategies to pass tech interviews in Spain. Focus on junior, mid, and senior levels.' : 'Consejos y estrategias prácticas para superar entrevistas técnicas en España. Enfoque para junior, mid y senior.',
+          tag: 'Portal Empleo',
+          cta: isEnglish ? 'Read Guide' : 'Leer Guía',
+          href: '/recursos/guia-entrevistas' + queryParam,
+          featured: false,
+        },
+        {
+          name: isEnglish ? 'GitHub Portfolio Guide' : 'Cómo diseñar tu Portfolio en GitHub',
+          desc: isEnglish ? 'Step-by-step guide to build a developer portfolio that impresses engineering managers.' : 'Guía paso a paso para crear un portafolio de programador que llame la atención de líderes técnicos.',
+          tag: 'Portal Empleo',
+          cta: isEnglish ? 'Read Guide' : 'Leer Guía',
+          href: '/recursos/portfolio' + queryParam,
+          featured: false,
         }
       ]
     },

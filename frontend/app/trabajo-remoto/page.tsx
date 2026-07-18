@@ -20,7 +20,7 @@ async function getRemoteJobs(page: number = 1) {
   const client = await pool.connect();
   try {
     const sql = `
-      SELECT * FROM jobs 
+      SELECT id, title, title_es, company, location, salary, salary_min, salary_max, created_at, url_source, description_snippet, category, is_featured FROM jobs 
       WHERE is_active = TRUE 
         AND (location ILIKE '%remoto%' OR location ILIKE '%remote%' OR location ILIKE '%teletrabajo%')
       ORDER BY created_at DESC 

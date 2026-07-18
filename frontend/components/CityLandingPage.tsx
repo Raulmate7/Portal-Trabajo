@@ -23,7 +23,7 @@ async function getCityJobs(city: string, page: number = 1) {
   const client = await pool.connect();
   try {
     const sql = `
-      SELECT * FROM jobs 
+      SELECT id, title, title_es, company, location, salary, created_at, url_source, description_snippet, category, is_featured FROM jobs 
       WHERE is_active = TRUE 
         AND location ILIKE $1
       ORDER BY created_at DESC 

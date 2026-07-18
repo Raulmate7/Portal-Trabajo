@@ -10,6 +10,7 @@ import { Metadata } from "next";
 import { cache } from "react";
 import { BASE_URL } from "@/lib/constants";
 import { getJobSlug, slugify } from "@/lib/slug";
+import StickyDesktopAd from "@/components/StickyDesktopAd";
 
 export const revalidate = 900; // Cache de 15 minutos (ISR)
 
@@ -514,16 +515,16 @@ export async function generateMetadata({ params, searchParams }: { params: Param
 
   if (isEnglish) {
     const totalText = totalCount > 0 ? `${totalCount} ` : '';
-    tituloBase = `🔥 ${totalText}${categoriaBonita}${modLabelEn}${expLabel}${contractLabel}${salaryLabel} Jobs in Spain [${mesCapitalizado} ${anio}]`;
+    tituloBase = `${totalText}${categoriaBonita}${modLabelEn}${expLabel}${contractLabel}${salaryLabel} Jobs in Spain [${mesCapitalizado} ${anio}] 🔥`;
     descBase = `Apply to ${totalCount > 0 ? `${totalCount} ` : ''}active ${categoriaBonita}${modLabelEn}${expLabel ? ` (${expLabel.trim()})` : ''}${contractLabel ? ` (${contractLabel.trim()})` : ''}${salaryLabel} vacancies. Updated today.`;
     if (ciudad) {
       const ciudadBonita = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
-      tituloBase = `🔥 ${totalText}${categoriaBonita}${modLabelEn}${expLabel}${contractLabel}${salaryLabel} Jobs in ${ciudadBonita} [${mesCapitalizado} ${anio}]`;
+      tituloBase = `${totalText}${categoriaBonita}${modLabelEn}${expLabel}${contractLabel}${salaryLabel} Jobs in ${ciudadBonita} [${mesCapitalizado} ${anio}] 🔥`;
       descBase += ` in ${ciudadBonita}.`;
     }
   } else {
     const totalText = totalCount > 0 ? `${totalCount} ` : '';
-    tituloBase = `🔥 ${totalText}Ofertas de Trabajo${modLabel}${expLabel}${contractLabel} de ${categoriaBonita}${salaryLabel}`;
+    tituloBase = `${totalText}Ofertas de Trabajo${modLabel}${expLabel}${contractLabel} de ${categoriaBonita}${salaryLabel} 🔥`;
     descBase = `Encuentra ${totalCount > 0 ? `${totalCount} ` : ''}ofertas de trabajo${modLabel}${expLabel ? ` para ${expLabel.trim()}` : ''}${contractLabel ? ` con ${contractLabel.trim()}` : ''} de ${categoriaBonita}${salaryLabel} actualizadas hoy.`;
     if (ciudad) {
       const ciudadBonita = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
@@ -556,8 +557,9 @@ export async function generateMetadata({ params, searchParams }: { params: Param
     ? { index: false, follow: true } 
     : { index: !isThinPage, follow: true };
 
-  const queryParam = isEnglish ? '?lang=en' : '';
-  const canonicalUrl = `${BASE_URL}/trabajos/${sectorSlug}${queryParam}`;
+  const canonicalUrl = isEnglish 
+    ? `${BASE_URL}/en/trabajos/${sectorSlug}` 
+    : `${BASE_URL}/trabajos/${sectorSlug}`;
 
   return {
     title: isEnglish ? `${tituloSeo} | IT Job Portal` : `${tituloSeo} | Portal Trabajo`,
@@ -568,7 +570,7 @@ export async function generateMetadata({ params, searchParams }: { params: Param
       canonical: canonicalUrl,
       languages: {
         'es-ES': `${BASE_URL}/trabajos/${sectorSlug}`,
-        'en': `${BASE_URL}/trabajos/${sectorSlug}?lang=en`,
+        'en': `${BASE_URL}/en/trabajos/${sectorSlug}`,
         'x-default': `${BASE_URL}/trabajos/${sectorSlug}`,
       },
       types: {
@@ -613,7 +615,7 @@ const getJobs = cache(async (
   const offset = (page - 1) * limit;
   const client = await pool.connect();
   try {
-    let sql = "SELECT * FROM jobs WHERE is_active = TRUE";
+    let sql = "SELECT id, title, title_es, company, location, salary, salary_min, salary_max, created_at, url_source, description_snippet, category, is_featured FROM jobs WHERE is_active = TRUE";
     const paramsQuery: any[] = [];
     let paramIndex = 1;
 
@@ -735,21 +737,21 @@ const getJobs = cache(async (
 
 async function getFallbackJobs(tec: string, ciudad: string, dbCategory: string | undefined, page: number = 1) {
   if (ciudad && ciudad !== 'remoto') {
-    const remoteJobs = await getJobs(tec, 'remoto', dbCategory, '', '', page);
+    const remoteJobs = await getJobs(tec, 'remoto', dbCategory, '', '', '', page);
     if (remoteJobs.length > 0) {
       return { jobs: remoteJobs, type: 'remote' };
     }
   }
 
   if (ciudad) {
-    const nationalJobs = await getJobs(tec, '', dbCategory, '', '', page);
+    const nationalJobs = await getJobs(tec, '', dbCategory, '', '', '', page);
     if (nationalJobs.length > 0) {
       return { jobs: nationalJobs, type: 'national' };
     }
   }
 
   if (tec !== 'informatica-tecnologia') {
-    const generalJobs = await getJobs('informatica-tecnologia', '', undefined, '', '', page);
+    const generalJobs = await getJobs('informatica-tecnologia', '', undefined, '', '', '', page);
     if (generalJobs.length > 0) {
       return { jobs: generalJobs, type: 'general' };
     }
@@ -797,7 +799,7 @@ function getEditorialIntro(categoria: string, ciudad: string, totalCount: number
   const ciudadLabel = ciudad ? (ciudad.toLowerCase() === 'remoto' ? (isEnglish ? 'remotely (100% remote work)' : 'en modalidad 100% remota (teletrabajo)') : (isEnglish ? `in ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)} and surrounding areas` : `en la zona de ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)} y alrededores`)) : (isEnglish ? 'in Spain' : 'en España');
   
   if (isEnglish) {
-    let p2Text = (
+    const p2Text = (
       <strong className="text-indigo-900">{categoria}</strong>
     );
     let p2Full = null;
@@ -1079,12 +1081,39 @@ export default async function SectorPage({
     name: isEnglish ? `${tituloMostrado} Vacancies` : `Ofertas de empleo de ${tituloMostrado}`,
     description: isEnglish ? `List of tech job offers for ${tituloMostrado} in Spain` : `Listado de ofertas de trabajo para ${tituloMostrado} en España`,
     numberOfItems: jobs.length,
-    itemListElement: jobs.map((job: Job, idx: number) => ({
-      '@type': 'ListItem',
-      position: idx + 1,
-      url: `${BASE_URL}/job/${getJobSlug(job)}`,
-      name: `${job.title} - ${job.company}`
-    }))
+    itemListElement: jobs.map((job: Job, idx: number) => {
+      const item: any = {
+        '@type': 'ListItem',
+        position: idx + 1,
+        url: `${BASE_URL}/job/${getJobSlug(job)}`,
+        name: `${job.title} - ${job.company}`
+      };
+      
+      // Inyectar schema JobPosting para los primeros 5 puestos para rich snippets en Google
+      if (idx < 5) {
+        item.item = {
+          '@type': 'JobPosting',
+          'title': job.title,
+          'description': job.description_snippet || (isEnglish ? `Job vacancy for ${job.title} at ${job.company}` : `Oferta de empleo para ${job.title} en ${job.company}`),
+          'datePosted': job.created_at,
+          'validThrough': new Date(new Date(job.created_at).getTime() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+          'hiringOrganization': {
+            '@type': 'Organization',
+            'name': job.company || 'Desconocida',
+            'sameAs': job.company ? `${BASE_URL}/empresas/${slugify(job.company)}` : undefined
+          },
+          'jobLocation': {
+            '@type': 'Place',
+            'address': {
+              '@type': 'PostalAddress',
+              'addressLocality': job.location || 'España',
+              'addressCountry': 'ES'
+            }
+          }
+        };
+      }
+      return item;
+    })
   };
 
   const uniqueCompanies = Array.from(new Set(jobs.map((j: Job) => j.company).filter((c: string | null | undefined) => c && c !== 'Desconocida'))).slice(0, 3);
@@ -1202,17 +1231,30 @@ export default async function SectorPage({
           <span className="text-[10px] text-gray-400 mt-2">
             {isEnglish ? 'Based on active offers with visible salary' : 'Basado en ofertas actuales con sueldo visible'}
           </span>
-          <Link
-            href={
-              ['react', 'node', 'python', 'java', 'typescript', 'aws', 'docker', 'flutter', 'csharp', 'php', 'sql'].includes(tec.toLowerCase()) 
-                ? `/salarios/${tec.toLowerCase()}` 
-                : '/salarios'
-            }
-            className="text-[11px] font-extrabold text-indigo-650 hover:text-indigo-800 hover:underline mt-3"
-          >
-            {isEnglish ? 'View detailed report →' : 'Ver informe de salarios →'}
-          </Link>
+          <div className="flex flex-col gap-2 mt-3">
+            <Link
+              href={
+                ['react', 'node', 'python', 'java', 'typescript', 'aws', 'docker', 'flutter', 'csharp', 'php', 'sql'].includes(tec.toLowerCase()) 
+                  ? `/salarios/${tec.toLowerCase()}` 
+                  : '/salarios'
+              }
+              className="text-[11px] font-extrabold text-indigo-650 hover:text-indigo-800 hover:underline"
+            >
+              {isEnglish ? 'View detailed report →' : 'Ver informe de salarios →'}
+            </Link>
+            <Link
+              href={`/trabajos/${sectorSlug}/empresas${queryParam}`}
+              className="text-[11px] font-extrabold text-indigo-650 hover:text-indigo-800 hover:underline"
+            >
+              {isEnglish ? 'View hiring companies →' : 'Ver empresas contratantes →'}
+            </Link>
+          </div>
         </div>
+      </div>
+
+      {/* Leaderboard Banner */}
+      <div className="mb-6">
+        <AdBanner variant="leaderboard" />
       </div>
 
       {ad && !ciudad && (
@@ -1319,7 +1361,7 @@ export default async function SectorPage({
           <PushSubscribe />
           <ReferralWidget lang={lang} />
           <div className="lg:sticky lg:top-24">
-            <AdBanner variant="sidebar" />
+            <AdBanner variant="sidebar" enableRefresh={true} />
           </div>
         </div>
       </div>
@@ -1360,6 +1402,39 @@ export default async function SectorPage({
           </div>
         </div>
       )}
+
+      <StickyDesktopAd />
     </div>
   );
 }
+
+export async function generateStaticParams() {
+  const technologies = [
+    'react', 'node', 'python', 'java', 'typescript', 'javascript', 'aws', 'docker', 'kubernetes', 'backend', 'frontend', 'fullstack'
+  ];
+  const experiences = ['junior', 'senior', 'sin-experiencia'];
+  const cities = ['remoto', 'madrid', 'barcelona'];
+
+  const paths = [];
+
+  // Technologies
+  for (const tech of technologies) {
+    paths.push({ sector: tech });
+
+    // Tech + Experience
+    for (const exp of experiences) {
+      paths.push({ sector: `${tech}-${exp}` });
+    }
+
+    // Tech + City
+    paths.push({ sector: `${tech}-remoto` });
+    for (const city of cities) {
+      if (city !== 'remoto') {
+        paths.push({ sector: `${tech}-en-${city}` });
+      }
+    }
+  }
+
+  return paths;
+}
+

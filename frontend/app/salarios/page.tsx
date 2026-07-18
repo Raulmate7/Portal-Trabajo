@@ -84,11 +84,31 @@ export default async function SalariosPage({ searchParams }: Props) {
     ]
   };
 
+  const webApplicationSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Calculadora de Salarios IT España",
+    "url": `${BASE_URL}/salarios`,
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web Browser",
+    "browserRequirements": "Requires JavaScript. Requires HTML5.",
+    "description": "Calculadora interactiva de salarios tecnológicos en España. Permite analizar sueldos por tecnología, región y nivel de experiencia basada en datos reales de ofertas de trabajo activas.",
+    "creator": {
+      "@type": "Organization",
+      "name": "Portal Trabajo IT",
+      "url": BASE_URL
+    }
+  };
+
   return (
     <main className="min-h-screen bg-gray-50">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(datasetSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(webApplicationSchema) }}
       />
       {/* Hero */}
       <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-900 text-white py-16 px-4 relative overflow-hidden">
@@ -258,7 +278,7 @@ export default async function SalariosPage({ searchParams }: Props) {
         {/* Barra lateral con anuncio AdSense Sticky */}
         <div className="lg:col-span-1 space-y-6">
           <div className="lg:sticky lg:top-24">
-            <AdBanner variant="sidebar" />
+            <AdBanner variant="sidebar" enableRefresh={true} />
           </div>
         </div>
       </div>

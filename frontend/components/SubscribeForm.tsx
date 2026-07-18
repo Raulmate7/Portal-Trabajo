@@ -47,6 +47,7 @@ export default function SubscribeForm({
   });
 
   const [frequency, setFrequency] = useState<'daily' | 'weekly'>('weekly');
+  const [operator, setOperator] = useState<'OR' | 'AND'>('OR');
   const [referredBy, setReferredBy] = useState<string>('');
   const emailRef = useRef<HTMLInputElement>(null);
   const [ctaVariant, setCtaVariant] = useState<'A' | 'B'>('A');
@@ -83,6 +84,7 @@ export default function SubscribeForm({
     formData.append('tech_keywords', selectedTech.join(','));
     formData.append('location_pref', remoteOnly ? 'remoto' : '');
     formData.append('frequency', frequency);
+    formData.append('operator', operator);
     formData.append('referred_by', referredBy);
 
     const result = await subscribeUser(formData);
@@ -91,6 +93,8 @@ export default function SubscribeForm({
       setStatus('success');
       setMessage(result.message);
       if (emailRef.current) emailRef.current.value = '';
+      // Guardar palabras clave para compatibilidad local
+      localStorage.setItem('subscriber_tech_keywords', selectedTech.join(','));
       // Evento de GA4 para registrar la conversión y su respectiva variante A/B
       sendGAEvent({ event: 'newsletter_signup', value: ctaVariant });
     } else {
@@ -202,6 +206,27 @@ export default function SubscribeForm({
                   <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${remoteOnly ? 'left-4' : 'left-0.5'}`} />
                 </button>
                 <label htmlFor="remote-toggle" className="text-xs text-gray-300 cursor-pointer">Solo ofertas en remoto</label>
+              </div>
+
+              {/* Lógica de filtrado */}
+              <div>
+                <label className="text-xs text-gray-400 font-medium mb-1 block">🔍 Lógica de coincidencia</label>
+                <div className="flex gap-2">
+                  {['OR', 'AND'].map((op) => (
+                    <button
+                      key={op}
+                      type="button"
+                      onClick={() => setOperator(op as 'OR' | 'AND')}
+                      className={`flex-grow-0 flex-1 text-xs py-1.5 rounded-lg border font-medium transition-all ${
+                        operator === op
+                          ? 'bg-indigo-600 border-indigo-500 text-white'
+                          : 'bg-gray-700 border-gray-600 text-gray-300 hover:border-indigo-500'
+                      }`}
+                    >
+                      {op === 'OR' ? 'Alguna (OR)' : 'Todas (AND)'}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Frecuencia */}

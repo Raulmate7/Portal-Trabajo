@@ -41,6 +41,7 @@ export default function PublishForm() {
     } else {
       // Flujo de Stripe para Plan Destacado
       try {
+        const refCode = searchParams.get("ref");
         const jobData = {
           title: formData.get("job_title"),
           company: formData.get("company_name"),
@@ -50,6 +51,7 @@ export default function PublishForm() {
           url_source: formData.get("job_url"),
           category: "Otros",
           plan: selectedPlan,
+          affiliate_code: refCode || undefined,
         };
 
         const res = await fetch("/api/checkout", {

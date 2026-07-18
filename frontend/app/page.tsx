@@ -16,7 +16,7 @@ import { RecentlyViewedList } from "@/components/RecentlyViewed";
 import { JobOfTheDayWidget, TrendingTechWidget, ReferralWidget } from "@/components/Widgets";
 import { getBlogPosts } from "@/lib/blog";
 
-export const revalidate = 60; // Reducimos para actualizar los widgets con mayor frecuencia
+export const revalidate = 300; // Cache de 5 minutos para reducir consultas frecuentes a BD
 
 type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
@@ -94,33 +94,60 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
     if (techSlug) {
       // La búsqueda coincide con una tecnología conocida: apuntar a la página programática canónica
+      let sectorSlug = '';
       if (citySlug) {
-        // /trabajos/react-en-madrid o /trabajos/react-remoto
-        const programmaticPath = citySlug === 'remoto'
-          ? `/trabajos/${techSlug}-remoto`
-          : `/trabajos/${techSlug}-en-${citySlug}`;
-        canonicalUrl = isEnglish ? `${BASE_URL}${programmaticPath}?lang=en` : `${BASE_URL}${programmaticPath}`;
+        sectorSlug = citySlug === 'remoto'
+          ? `${techSlug}-remoto`
+          : `${techSlug}-en-${citySlug}`;
       } else {
-        // /trabajos/react
-        canonicalUrl = isEnglish ? `${BASE_URL}/trabajos/${techSlug}?lang=en` : `${BASE_URL}/trabajos/${techSlug}`;
+        sectorSlug = techSlug;
       }
+      
+      canonicalUrl = isEnglish 
+        ? `${BASE_URL}/en/trabajos/${sectorSlug}` 
+        : `${BASE_URL}/trabajos/${sectorSlug}`;
+
+      metadata.alternates = {
+        canonical: canonicalUrl,
+        languages: {
+          'es-ES': `${BASE_URL}/trabajos/${sectorSlug}`,
+          'en': `${BASE_URL}/en/trabajos/${sectorSlug}`,
+          'x-default': `${BASE_URL}/trabajos/${sectorSlug}`,
+        },
+        types: {
+          'application/rss+xml': `${BASE_URL}/feed.xml`,
+        },
+      };
+      return metadata;
     } else {
-      // Búsqueda libre sin tecnología conocida: canonical a la URL de búsqueda
-      canonicalUrl = `${BASE_URL}/?q=${encodeURIComponent(q)}&location=${encodeURIComponent(loc)}${queryParam}`;
+      // Búsqueda libre sin tecnología conocida: canonical apunta a la home para no desperdiciar crawl budget
+      // y se marca la página como no indexable para evitar que Google indexe queries basura/spam.
+      canonicalUrl = isEnglish ? `${BASE_URL}/?lang=en` : `${BASE_URL}/`;
+      metadata.alternates = {
+        canonical: canonicalUrl,
+        languages: {
+          'es-ES': `${BASE_URL}/`,
+          'en': `${BASE_URL}/en`,
+          'x-default': `${BASE_URL}/`,
+        },
+        types: {
+          'application/rss+xml': `${BASE_URL}/feed.xml`,
+        },
+      };
+      metadata.robots = { index: false, follow: true };
+      return metadata;
     }
   } else if (isEnglish) {
-    canonicalUrl = `${BASE_URL}/?lang=en`;
+    canonicalUrl = `${BASE_URL}/en`;
   }
 
-  const baseLangUrl = q || loc 
-    ? `${BASE_URL}/?q=${encodeURIComponent(q)}&location=${encodeURIComponent(loc)}` 
-    : `${BASE_URL}/`;
+  const baseLangUrl = `${BASE_URL}/`;
 
   const metadataAlternates: any = {
     canonical: canonicalUrl,
     languages: {
       'es-ES': baseLangUrl,
-      'en': `${baseLangUrl}${q || loc ? '&' : '?'}lang=en`,
+      'en': `${BASE_URL}/en`,
       'x-default': baseLangUrl,
     },
     types: {
@@ -241,8 +268,14 @@ export default async function Home({ searchParams }: Props) {
     'name': 'Portal Trabajo IT',
     'url': BASE_URL,
     'logo': `${BASE_URL}/logo.png`,
+    'description': 'Agregador de empleo tecnológico en España. Vacantes de React, Python, Java, DevOps, Data Science y más. Actualizado cada 6 horas.',
     'sameAs': [
-      'https://t.me/PortalDeTrabajo'
+      'https://t.me/PortalDeTrabajo',
+      'https://www.linkedin.com/company/portal-trabajo-it',
+      'https://www.pinterest.es/portalempleoit',
+      'https://www.threads.net/@portalempleoit',
+      'https://mastodon.social/@portalempleoit',
+      'https://www.youtube.com/@PortalEmpleoIT',
     ]
   };
 
@@ -357,6 +390,11 @@ export default async function Home({ searchParams }: Props) {
               <SearchFilters />
             </Suspense>
 
+            {/* Leaderboard Banner */}
+            <div className="my-4">
+              <AdBanner variant="leaderboard" />
+            </div>
+
             {/* Ofertas Destacadas */}
             {featuredJobs.length > 0 && (
               <div className="space-y-4 pt-2">
@@ -408,13 +446,13 @@ export default async function Home({ searchParams }: Props) {
                         {/* AdSense inline in-feed */}
                         {index === 5 && (
                           <div className="my-4">
-                            <AdBanner variant="inline" />
+                            <AdBanner variant="infeed" />
                           </div>
                         )}
                         {/* Segundo AdSense inline in-feed */}
                         {index === 15 && (
                           <div className="my-4">
-                            <AdBanner variant="inline" />
+                            <AdBanner variant="infeed" />
                           </div>
                         )}
 

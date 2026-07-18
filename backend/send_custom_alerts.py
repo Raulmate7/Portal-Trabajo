@@ -14,7 +14,7 @@ EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
 
-def get_jobs_for_subscriber(cur, tech_keywords: str, location_pref: str, hours: int = 24):
+def get_jobs_for_subscriber(cur, keywords, operator, location_pref: str, hours: int = 24):
     """Busca ofertas en la BD que coincidan con los filtros del suscriptor."""
     params = []
     sql = """
@@ -25,12 +25,11 @@ def get_jobs_for_subscriber(cur, tech_keywords: str, location_pref: str, hours: 
     params.append(datetime.now() - timedelta(hours=hours))
 
     # Filtro de tecnología (busca en el título)
-    if tech_keywords and tech_keywords.strip():
-        keywords = [k.strip() for k in tech_keywords.split(',') if k.strip()]
-        if keywords:
-            keyword_conditions = " OR ".join([f"title ILIKE %s" for _ in keywords])
-            sql += f" AND ({keyword_conditions})"
-            params.extend([f"%{kw}%" for kw in keywords])
+    if keywords:
+        op = " AND " if operator.upper() == "AND" else " OR "
+        keyword_conditions = op.join([f"title ILIKE %s" for _ in keywords])
+        sql += f" AND ({keyword_conditions})"
+        params.extend([f"%{kw}%" for kw in keywords])
 
     # Filtro de ubicación
     if location_pref and location_pref.strip():
@@ -145,7 +144,7 @@ def send_custom_alerts():
 
     # 2. Obtener suscriptores con sus preferencias (filtrando por frecuencia y último envío)
     cur.execute("""
-        SELECT email, tech_keywords, location_pref, frequency
+        SELECT email, tech_keywords, location_pref, frequency, tech_keywords_json
         FROM subscribers
         WHERE email IS NOT NULL
           AND (
@@ -185,13 +184,28 @@ def send_custom_alerts():
     skip_count = 0
     error_count = 0
 
-    for (email, tech_keywords, location_pref, frequency) in subscribers:
+    for (email, tech_keywords, location_pref, frequency, tech_keywords_json) in subscribers:
         try:
             # Calcular ventana de tiempo según frecuencia
             hours = 24 if frequency == "daily" else 168
 
+            # Parsear keywords y operator de JSON o fallback a la columna plana
+            import json
+            keywords = []
+            operator = "OR"
+            if tech_keywords_json:
+                try:
+                    data = json.loads(tech_keywords_json)
+                    keywords = data.get("keywords", [])
+                    operator = data.get("operator", "OR")
+                except Exception:
+                    pass
+            
+            if not keywords and tech_keywords:
+                keywords = [k.strip() for k in tech_keywords.split(',') if k.strip()]
+
             # Buscar ofertas para este suscriptor
-            jobs = get_jobs_for_subscriber(cur, tech_keywords or "", location_pref or "", hours)
+            jobs = get_jobs_for_subscriber(cur, keywords, operator, location_pref or "", hours)
 
             if not jobs:
                 skip_count += 1

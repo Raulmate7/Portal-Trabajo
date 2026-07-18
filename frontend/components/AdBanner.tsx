@@ -182,7 +182,7 @@ export default function AdBanner({
   enableRefresh = false,
   raw = false
 }: { 
-  variant?: 'sidebar' | 'inline' | 'multiplex' | 'infeed';
+  variant?: 'sidebar' | 'inline' | 'multiplex' | 'infeed' | 'leaderboard';
   slot?: string;
   tech?: string;
   experience?: string;
@@ -194,6 +194,8 @@ export default function AdBanner({
   // Slot ID por defecto si no se especifica uno personalizado
   const defaultSlot = variant === 'inline'
     ? (process.env.NEXT_PUBLIC_ADSENSE_SLOT_INLINE || '9876543210')
+    : variant === 'leaderboard'
+    ? (process.env.NEXT_PUBLIC_ADSENSE_SLOT_LEADERBOARD || '2233445566')
     : variant === 'multiplex'
     ? (process.env.NEXT_PUBLIC_ADSENSE_SLOT_MULTIPLEX || '1122334455')
     : variant === 'infeed'
@@ -203,7 +205,7 @@ export default function AdBanner({
   const adSlot = slot || defaultSlot;
 
   // Detección de Slots placeholders
-  const isDummySlot = adSlot === '9876543210' || adSlot === '1122334455' || adSlot === '1234567890';
+  const isDummySlot = adSlot === '9876543210' || adSlot === '1122334455' || adSlot === '1234567890' || adSlot === '2233445566' || adSlot === '3344556677';
   const shouldTryAdsense = !!adsenseClientId && !isDummySlot;
 
   const [refreshKey, setRefreshKey] = useState(0);
@@ -350,16 +352,16 @@ export default function AdBanner({
                 }, 5000);
               }
 
-              // Ad Refresh a los 30s (si está habilitado explícitamente)
+              // Ad Refresh a los 45s (si está habilitado explícitamente)
               if (enableRefresh && refreshCountRef.current < 5) {
                 if (timerRef.current) clearTimeout(timerRef.current);
                 timerRef.current = setTimeout(() => {
                   const inactiveTime = Date.now() - lastActivityRef.current;
-                  if (inactiveTime < 30000) {
+                  if (inactiveTime < 45000) {
                     refreshCountRef.current += 1;
                     setRefreshKey(prev => prev + 1);
                   }
-                }, 30000);
+                }, 45000);
               }
             } else {
               // Limpiar timers al salir de pantalla
@@ -570,7 +572,7 @@ export default function AdBanner({
 
   // Si no está configurada la variable de entorno o hay un error de carga, usar afiliación Udemy
   if (!adsenseClientId || adError) {
-    if (variant === 'inline') {
+    if (variant === 'inline' || variant === 'leaderboard') {
       if (raw) {
         return (
           <a
@@ -742,7 +744,8 @@ export default function AdBanner({
         <div 
           className={`w-full flex justify-center items-center overflow-hidden transition-all duration-300 relative bg-gradient-to-r from-gray-50 via-gray-100 to-gray-50 dark:from-slate-800 dark:via-slate-800/80 dark:to-slate-800 rounded-lg border border-gray-100/50 dark:border-slate-800/50 ${
             isLoading ? 'animate-pulse' : ''
-          } min-h-[250px] flex-grow`}
+          } flex-grow`}
+          style={{ minHeight: '250px' }}
         >
           {isLoading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-gray-300 dark:text-slate-650">
@@ -773,7 +776,10 @@ export default function AdBanner({
     return (
       <div className="w-full overflow-hidden bg-white border border-gray-100 rounded-xl shadow-sm p-4 mt-8 flex flex-col items-center">
         <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mb-2 block text-center">Contenido Patrocinado</span>
-        <div className={`w-full flex justify-center items-center overflow-hidden min-h-[250px] relative bg-gradient-to-r from-gray-50 via-gray-100 to-gray-50 rounded-lg border border-gray-100/50 ${isLoading ? 'animate-pulse' : ''}`}>
+        <div 
+          className={`w-full flex justify-center items-center overflow-hidden relative bg-gradient-to-r from-gray-50 via-gray-100 to-gray-50 rounded-lg border border-gray-100/50 ${isLoading ? 'animate-pulse' : ''}`}
+          style={{ minHeight: '250px' }}
+        >
           {/* Fondo elegante del placeholder que se tapará cuando cargue el anuncio */}
           {isLoading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-gray-300">
@@ -802,13 +808,53 @@ export default function AdBanner({
     );
   }
 
+  // Renderizado del formato Leaderboard de AdSense
+  if (variant === 'leaderboard') {
+    return (
+      <div className="w-full overflow-hidden bg-white border border-gray-100 rounded-xl shadow-sm p-4 flex flex-col items-center">
+        <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mb-2 block text-center">Anuncio</span>
+        <div 
+          className={`w-full flex justify-center items-center overflow-hidden transition-all duration-300 relative bg-gradient-to-r from-gray-50 via-gray-100 to-gray-50 rounded-lg border border-gray-100/50 ${
+            isLoading ? 'animate-pulse' : ''
+          }`}
+          style={{ minHeight: '90px', maxWidth: '728px' }}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-gray-300">
+              <span className="text-xl mb-1">📢</span>
+              <span className="text-[9px] uppercase tracking-wider font-medium">Cargando anuncio...</span>
+            </div>
+          )}
+          <ins
+            key={refreshKey}
+            ref={insRef}
+            className="adsbygoogle relative z-10"
+            style={{ 
+              display: 'inline-block', 
+              width: '728px',
+              height: '90px',
+              textAlign: 'center'
+            }}
+            data-ad-client={adsenseClientId}
+            data-ad-slot={adSlot}
+            data-ad-format="horizontal"
+            data-full-width-responsive="false"
+          />
+        </div>
+      </div>
+    );
+  }
+
   // Renderizado del banner estándar de Google AdSense (inline / sidebar)
   if (raw) {
-    const rawMinH = variant === 'inline' 
-      ? 'min-h-[50px] md:min-h-[90px]' 
-      : 'min-h-[250px]';
+    const rawMinHStyle = variant === 'inline' 
+      ? { minHeight: '90px' } 
+      : { minHeight: '250px' };
     return (
-      <div className={`w-full flex justify-center items-center overflow-hidden relative ${rawMinH} ${isLoading ? 'animate-pulse' : ''}`}>
+      <div 
+        className={`w-full flex justify-center items-center overflow-hidden relative ${isLoading ? 'animate-pulse' : ''}`}
+        style={rawMinHStyle}
+      >
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-gray-300 dark:text-slate-600">
             <span className="text-[9px] uppercase tracking-wider font-medium">Cargando...</span>
@@ -832,9 +878,9 @@ export default function AdBanner({
     );
   }
 
-  const wrapperMinH = variant === 'inline' 
-    ? 'min-h-[50px] md:min-h-[90px]' 
-    : 'min-h-[250px] md:min-h-[300px]';
+  const wrapperMinHStyle = variant === 'inline' 
+    ? { minHeight: '90px' } 
+    : { minHeight: '250px' };
 
   return (
     <div className="w-full overflow-hidden bg-white border border-gray-100 rounded-xl shadow-sm p-4 flex flex-col items-center">
@@ -842,7 +888,8 @@ export default function AdBanner({
       <div 
         className={`w-full flex justify-center items-center overflow-hidden transition-all duration-300 relative bg-gradient-to-r from-gray-50 via-gray-100 to-gray-50 rounded-lg border border-gray-100/50 ${
           isLoading ? 'animate-pulse' : ''
-        } ${wrapperMinH}`}
+        }`}
+        style={wrapperMinHStyle}
       >
         {/* Fondo elegante del placeholder que se tapará cuando cargue el anuncio */}
         {isLoading && (

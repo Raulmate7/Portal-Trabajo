@@ -29,19 +29,56 @@ const labelMap: Record<string, string> = {
   'flutter': 'Flutter',
   'kotlin': 'Kotlin',
   'swift': 'Swift',
-  'sql': 'SQL'
+  'sql': 'SQL',
+  'docker': 'Docker',
+  'scala': 'Scala',
+  'elixir': 'Elixir',
+  'salesforce': 'Salesforce',
+  'cybersecurity': 'Ciberseguridad',
+  'terraform': 'Terraform',
+  'cobol': 'COBOL'
 };
 
 export async function generateStaticParams() {
-  return [
-    { slug: 'react-vs-angular' },
-    { slug: 'vue-vs-react' },
-    { slug: 'python-vs-java' },
-    { slug: 'javascript-vs-typescript' },
-    { slug: 'node-vs-python' },
-    { slug: 'go-vs-rust' },
-    { slug: 'aws-vs-kubernetes' },
+  const comparativas = [
+    'react-vs-angular',
+    'vue-vs-react',
+    'python-vs-java',
+    'javascript-vs-typescript',
+    'node-vs-python',
+    'go-vs-rust',
+    'aws-vs-kubernetes',
+    'python-vs-go',
+    'kotlin-vs-swift',
+    'php-vs-node',
+    'csharp-vs-java',
+    'vue-vs-angular',
+    'docker-vs-kubernetes',
+    'react-vs-vue',
+    'typescript-vs-javascript',
+    'node-vs-go',
+    'python-vs-rust',
+    'aws-vs-azure',
+    'devops-vs-sre',
+    'terraform-vs-ansible',
+    'react-native-vs-flutter',
+    'flutter-vs-react-native',
+    'java-vs-kotlin',
+    'php-vs-laravel',
+    'sql-vs-nosql',
+    'mysql-vs-postgresql',
+    'mongodb-vs-postgresql',
+    'scrum-vs-kanban',
+    'nextjs-vs-react',
+    'angular-vs-react',
+    'java-vs-spring-boot',
+    'csharp-vs-net',
+    'rust-vs-go',
+    'elixir-vs-ruby',
+    'scala-vs-java',
+    'aws-vs-terraform',
   ];
+  return comparativas.map(slug => ({ slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

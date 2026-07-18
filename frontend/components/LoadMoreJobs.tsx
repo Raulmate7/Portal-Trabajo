@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import CompanyLogo from './CompanyLogo';
 import AdBanner from './AdBanner';
+import JobCardSkeleton from './JobCardSkeleton';
 import { getJobSlug } from '@/lib/slug';
 
 interface Job {
@@ -14,6 +15,8 @@ interface Job {
   company: string;
   location: string;
   salary?: string | null;
+  salary_min?: number | null;
+  salary_max?: number | null;
   created_at: string;
 }
 
@@ -146,9 +149,29 @@ export default function LoadMoreJobs({ lang = 'es', initiallyHasMore }: LoadMore
                       >
                         📍 {job.location}
                       </a>
-                      <span className="bg-gray-50 dark:bg-slate-850 px-2 py-1 rounded border border-gray-200 dark:border-slate-800">
-                        💰 {job.salary || (isEnglish ? 'Negotiable' : 'Consultar')}
-                      </span>
+                      {(() => {
+                        const hasSalaryStr = job.salary && job.salary !== 'Consultar' && job.salary !== 'Negotiable' && job.salary !== 'Ver salario';
+                        let displaySalary = job.salary;
+                        if (!hasSalaryStr && job.salary_min && job.salary_max) {
+                          const minK = Math.round(job.salary_min / 1000);
+                          const maxK = Math.round(job.salary_max / 1000);
+                          displaySalary = `${minK}k - ${maxK}k €/año`;
+                        } else if (!hasSalaryStr && job.salary_min) {
+                          const minK = Math.round(job.salary_min / 1000);
+                          displaySalary = isEnglish ? `From ${minK}k €/yr` : `Desde ${minK}k €/año`;
+                        } else if (!hasSalaryStr && job.salary_max) {
+                          const maxK = Math.round(job.salary_max / 1000);
+                          displaySalary = isEnglish ? `Up to ${maxK}k €/yr` : `Hasta ${maxK}k €/año`;
+                        }
+                        if (!displaySalary) {
+                          displaySalary = isEnglish ? 'Negotiable' : 'Consultar';
+                        }
+                        return (
+                          <span className="bg-gray-50 dark:bg-slate-850 px-2 py-1 rounded border border-gray-200 dark:border-slate-800">
+                            💰 {displaySalary}
+                          </span>
+                        );
+                      })()}
                       <span className="bg-gray-50 dark:bg-slate-850 px-2 py-1 rounded border border-gray-200 dark:border-slate-800">
                         📅 {new Date(job.created_at).toLocaleDateString()}
                       </span>
@@ -173,22 +196,24 @@ export default function LoadMoreJobs({ lang = 'es', initiallyHasMore }: LoadMore
         <div id="infinite-scroll-sentinel" className="h-1 w-full" />
       )}
 
-      {/* Botón de Cargar Más / Spinner */}
-      {hasMore && (
+      {/* Skeleton Loading — se muestra mientras se carga la siguiente página */}
+      {loading && (
+        <div className="space-y-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <JobCardSkeleton key={`skeleton-${i}`} />
+          ))}
+        </div>
+      )}
+
+      {/* Botón de Cargar Más (solo visible cuando no está cargando y hay más) */}
+      {hasMore && !loading && (
         <div className="flex justify-center pt-4">
           <button
             onClick={loadMore}
             disabled={loading}
             className="px-6 py-3 bg-white dark:bg-slate-900 hover:bg-gray-50 dark:hover:bg-slate-850 border border-gray-300 dark:border-slate-800 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-200 transition-colors shadow-sm disabled:opacity-60 cursor-pointer flex items-center gap-2"
           >
-            {loading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-indigo-200 border-t-indigo-650 rounded-full animate-spin" />
-                <span>{isEnglish ? 'Loading...' : 'Cargando...'}</span>
-              </>
-            ) : (
-              <span>{isEnglish ? 'Load more offers' : 'Cargar más ofertas'}</span>
-            )}
+            <span>{isEnglish ? 'Load more offers' : 'Cargar más ofertas'}</span>
           </button>
         </div>
       )}

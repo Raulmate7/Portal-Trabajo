@@ -1,6 +1,7 @@
 import { GLOSSARY_TERMS } from '@/lib/glosario';
 import Link from 'next/link';
 import AdBanner from '@/components/AdBanner';
+import StickyDesktopAd from '@/components/StickyDesktopAd';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { BASE_URL } from '@/lib/constants';
@@ -272,6 +273,7 @@ export default async function GlossaryDetailPage({ params }: Props) {
         </div>
 
       </div>
+      <StickyDesktopAd />
     </main>
   );
 }

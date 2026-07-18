@@ -133,7 +133,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     title,
     description,
     alternates: {
-      canonical: `/salarios/resultado?${qs}`,
+      canonical: `${BASE_URL}/salarios/resultado?${qs}`,
     },
     openGraph: {
       title,

@@ -8,6 +8,9 @@ import Header from "@/components/Header";
 import { Suspense } from "react";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import StickyMobileAd from "@/components/StickyMobileAd";
+import CompareFloatingPill from "@/components/CompareFloatingPill";
+import InAppNotification from "@/components/InAppNotification";
+import ExitIntentPopup from "@/components/ExitIntentPopup";
 
 
 const inter = Inter({ subsets: ["latin"] });
@@ -74,7 +77,7 @@ export const metadata: Metadata = {
     canonical: BASE_URL,
     languages: {
       'es-ES': BASE_URL,
-      'en': `${BASE_URL}/?lang=en`,
+      'en': `${BASE_URL}/en`,
       'x-default': BASE_URL,
     },
     types: {
@@ -201,8 +204,11 @@ export default function RootLayout({
         </div>
         <Footer />
         <CookieBanner />
+        <ExitIntentPopup />
         <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || "G-E2W8P1V7E3"} />
         <StickyMobileAd />
+        <CompareFloatingPill />
+        <InAppNotification />
       </body>
     </html>
   );

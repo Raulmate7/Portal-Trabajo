@@ -179,7 +179,7 @@ export default async function EmpleoDelDiaPage() {
 
                 {/* Action buttons */}
                 <div className="flex flex-wrap gap-3 items-center">
-                  <ApplyButton url={job.url_source} company={job.company} title={displayTitle} lang="es" />
+                  <ApplyButton url={job.url_source} company={job.company} title={displayTitle} lang="es" jobId={job.id} />
                   <Link
                     href={detailUrl}
                     className="px-5 py-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-bold rounded-xl transition-all backdrop-blur-sm"
@@ -250,7 +250,7 @@ export default async function EmpleoDelDiaPage() {
                   WhatsApp
                 </a>
 
-                <ShareButton url={jobUrl} title={`🔥 ${displayTitle} en ${job.company}`} />
+                <ShareButton title={displayTitle} company={job.company} />
               </div>
             </div>
 

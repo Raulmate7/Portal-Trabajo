@@ -4,17 +4,54 @@ import urllib.parse as urlparse
 import pymysql
 import re
 
-# Exponer excepciones estándar de psycopg2 para evitar errores de importación
-class Error(Exception): pass
-class Warning(Exception): pass
-class InterfaceError(Error): pass
-class DatabaseError(Error): pass
-class InternalError(DatabaseError): pass
-class OperationalError(DatabaseError): pass
-class ProgrammingError(DatabaseError): pass
-class IntegrityError(DatabaseError): pass
-class DataError(DatabaseError): pass
-class NotSupportedError(DatabaseError): pass
+# Intentar importar psycopg2 real para exponer sus atributos y excepciones si está disponible
+try:
+    import sys
+    import os
+    orig_path = list(sys.path)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    sys.path = [p for p in sys.path if os.path.abspath(p) != current_dir]
+    
+    # Resolver conflicto de importacion circular usando el cache sys.modules
+    this_module = sys.modules.pop('psycopg2', None)
+    try:
+        import psycopg2 as _real_psycopg2
+        # Exponer excepciones reales
+        Error = _real_psycopg2.Error
+        Warning = _real_psycopg2.Warning
+        InterfaceError = _real_psycopg2.InterfaceError
+        DatabaseError = _real_psycopg2.DatabaseError
+        InternalError = _real_psycopg2.InternalError
+        OperationalError = _real_psycopg2.OperationalError
+        ProgrammingError = _real_psycopg2.ProgrammingError
+        IntegrityError = _real_psycopg2.IntegrityError
+        DataError = _real_psycopg2.DataError
+        NotSupportedError = _real_psycopg2.NotSupportedError
+        HAS_REAL_PSYCOPG2 = True
+    except ImportError as e:
+        _real_psycopg2 = None
+        HAS_REAL_PSYCOPG2 = False
+    finally:
+        # Restaurar sys.modules y sys.path
+        if this_module:
+            sys.modules['psycopg2'] = this_module
+        sys.path = orig_path
+except Exception:
+    _real_psycopg2 = None
+    HAS_REAL_PSYCOPG2 = False
+
+if not HAS_REAL_PSYCOPG2:
+    # Exponer excepciones de fallback
+    class Error(Exception): pass
+    class Warning(Exception): pass
+    class InterfaceError(Error): pass
+    class DatabaseError(Error): pass
+    class InternalError(DatabaseError): pass
+    class OperationalError(DatabaseError): pass
+    class ProgrammingError(DatabaseError): pass
+    class IntegrityError(DatabaseError): pass
+    class DataError(DatabaseError): pass
+    class NotSupportedError(DatabaseError): pass
 
 def parse_db_url(db_url):
     # Regex para extraer credenciales, soportando contraseñas con caracteres especiales
@@ -38,11 +75,18 @@ def parse_db_url(db_url):
 
 def connect(dsn=None, **kwargs):
     """
-    Función mock de psycopg2.connect que desvía la conexión a MySQL
-    usando pymysql de forma transparente.
+    Función de conexión inteligente: desvía a PostgreSQL real si se
+    detecta una URL postgresql/postgres, o a MySQL si es localhost o mysql URL.
     """
     db_url = dsn or kwargs.get('dsn') or kwargs.get('database_url') or os.getenv("DATABASE_URL")
     
+    if db_url and (db_url.startswith("postgresql://") or db_url.startswith("postgres://")):
+        if HAS_REAL_PSYCOPG2:
+            print("🔌 Conectando a PostgreSQL usando psycopg2 real...")
+            return _real_psycopg2.connect(dsn=db_url, **kwargs)
+        else:
+            print("⚠️ Detectada URL de PostgreSQL pero psycopg2 real no está instalado. Usando shim de MySQL.")
+
     if db_url and (db_url.startswith("postgresql://") or db_url.startswith("postgres://") or db_url.startswith("mysql://")):
         host, user, password, database, port = parse_db_url(db_url)
     else:

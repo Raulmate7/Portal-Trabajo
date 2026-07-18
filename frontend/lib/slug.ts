@@ -1,6 +1,8 @@
 export function slugify(text: string): string {
   return text
     .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Elimina acentos
     .toLowerCase()
     .trim()
     .replace(/\s+/g, '-')           // Reemplaza espacios con -
@@ -9,6 +11,7 @@ export function slugify(text: string): string {
     .replace(/^-+/, '')             // Quita guión inicial
     .replace(/-+$/, '');            // Quita guión final
 }
+
 
 export function getJobSlug(job: {
   id: string | number;

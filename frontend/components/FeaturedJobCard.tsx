@@ -9,6 +9,8 @@ interface FeaturedJob {
   company: string;
   location: string;
   salary?: string | null;
+  salary_min?: number | null;
+  salary_max?: number | null;
   created_at: string;
 }
 
@@ -26,6 +28,23 @@ export default function FeaturedJobCard({ job, lang }: { job: FeaturedJob; lang?
   const detailUrl = `/job/${jobSlug}${queryParam}`;
 
   const displayTitle = isEnglish ? job.title : (job.title_es || job.title);
+
+  const hasSalaryStr = job.salary && job.salary !== 'Consultar' && job.salary !== 'Negotiable';
+  let displaySalary = job.salary;
+  if (!hasSalaryStr && job.salary_min && job.salary_max) {
+    const minK = Math.round(job.salary_min / 1000);
+    const maxK = Math.round(job.salary_max / 1000);
+    displaySalary = `${minK}k - ${maxK}k €/año`;
+  } else if (!hasSalaryStr && job.salary_min) {
+    const minK = Math.round(job.salary_min / 1000);
+    displaySalary = isEnglish ? `From ${minK}k €/yr` : `Desde ${minK}k €/año`;
+  } else if (!hasSalaryStr && job.salary_max) {
+    const maxK = Math.round(job.salary_max / 1000);
+    displaySalary = isEnglish ? `Up to ${maxK}k €/yr` : `Hasta ${maxK}k €/año`;
+  }
+  if (!displaySalary) {
+    displaySalary = isEnglish ? 'Negotiable' : 'Consultar';
+  }
 
   return (
     <div className="relative bg-gradient-to-br from-amber-50 via-white to-yellow-50 p-6 rounded-2xl border-2 border-amber-300/70 shadow-lg shadow-amber-100/50 hover:shadow-xl hover:shadow-amber-200/50 transition-all duration-300 group">
@@ -45,7 +64,7 @@ export default function FeaturedJobCard({ job, lang }: { job: FeaturedJob; lang?
           <div className="w-full">
           <Link href={detailUrl} prefetch={true}>
             <h2 className="text-xl font-bold text-gray-900 group-hover:text-amber-700 transition-colors">
-              {displayTitle}
+               {displayTitle}
             </h2>
           </Link>
           <div className="flex items-center gap-2 mt-1">
@@ -67,7 +86,7 @@ export default function FeaturedJobCard({ job, lang }: { job: FeaturedJob; lang?
               📍 {job.location}
             </span>
             <span className="bg-amber-50 px-2 py-1 rounded border border-amber-200 text-amber-800">
-              💰 {job.salary || (isEnglish ? 'Negotiable' : 'Consultar')}
+              💰 {displaySalary}
             </span>
             <span className="bg-gray-50 px-2 py-1 rounded">
               📅 {new Date(job.created_at).toLocaleDateString()}

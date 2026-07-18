@@ -69,6 +69,7 @@ export default function SalariosCalculator({ initialData, initialParams }: Salar
   const [tech, setTech] = useState(initialParams.tech);
   const [location, setLocation] = useState(initialParams.location);
   const [experience, setExperience] = useState(initialParams.experience);
+  const [currentSalary, setCurrentSalary] = useState('');
   const [data, setData] = useState<SalaryData | null>(initialData);
   const [loading, setLoading] = useState(false);
   const [queried, setQueried] = useState(true); // Siempre activo al iniciar con datos pre-cargados
@@ -163,6 +164,28 @@ export default function SalariosCalculator({ initialData, initialParams }: Salar
             {EXPERIENCE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
+      </div>
+
+      {/* Comparativa salarial — ¿Cuánto cobro vs. cuánto debería? */}
+      <div className="bg-amber-50/70 border border-amber-200/60 rounded-xl p-4 mb-4">
+        <label className="block text-xs font-semibold text-amber-800 mb-2 flex items-center gap-1.5">
+          <span>💡</span> ¿Cuánto cobras actualmente? <span className="text-amber-600 font-normal">(opcional)</span>
+        </label>
+        <div className="flex items-center gap-2">
+          <input
+            id="sal-current"
+            type="number"
+            min="0"
+            max="200000"
+            step="1000"
+            placeholder="Ej: 38000"
+            value={currentSalary}
+            onChange={e => setCurrentSalary(e.target.value)}
+            className="flex-1 px-3 py-2.5 rounded-lg border border-amber-200 text-sm focus:ring-2 focus:ring-amber-400 focus:border-transparent bg-white"
+          />
+          <span className="text-sm text-amber-700 font-semibold flex-shrink-0">€ brutos/año</span>
+        </div>
+        <p className="text-xs text-amber-600 mt-1.5">Compararemos tu salario actual con la media del mercado para tu perfil.</p>
       </div>
       <button
         id="sal-calculate-btn"
@@ -260,6 +283,56 @@ export default function SalariosCalculator({ initialData, initialParams }: Salar
                   </div>
                 ))}
               </div>
+
+              {/* Comparativa cuánto cobro vs cuánto debería */}
+              {currentSalary && data?.average && (() => {
+                const current = parseInt(currentSalary, 10);
+                if (isNaN(current) || current <= 0) return null;
+                const market = data.average;
+                const diff = market - current;
+                const pct = Math.round((diff / market) * 100);
+                const isUnder = diff > 0;
+                const currentBar = Math.min(100, Math.round((current / Math.max(current, market)) * 100));
+                const marketBar = Math.min(100, Math.round((market / Math.max(current, market)) * 100));
+                return (
+                  <div className={`rounded-2xl p-6 border ${isUnder ? 'bg-red-50/60 border-red-200' : 'bg-emerald-50/60 border-emerald-200'}`}>
+                    <h3 className={`font-bold text-base mb-1 ${isUnder ? 'text-red-900' : 'text-emerald-900'}`}>
+                      {isUnder ? `⚠️ Podrías cobrar un ${Math.abs(pct)}% más` : `✅ Estás por encima de la media (${Math.abs(pct)}%)`}
+                    </h3>
+                    <p className={`text-xs mb-4 ${isUnder ? 'text-red-700' : 'text-emerald-700'}`}>
+                      {isUnder
+                        ? `Tu salario actual (${current.toLocaleString('es-ES')}€) está por debajo de la media de mercado (${market.toLocaleString('es-ES')}€). La diferencia es de ${Math.abs(diff).toLocaleString('es-ES')}€ anuales.`
+                        : `Tu salario actual (${current.toLocaleString('es-ES')}€) está por encima de la media de mercado (${market.toLocaleString('es-ES')}€). ¡Bien posicionado!`
+                      }
+                    </p>
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex justify-between text-xs font-semibold mb-1">
+                          <span className="text-gray-600">Tu salario actual</span>
+                          <span className="text-gray-900">{current.toLocaleString('es-ES')}€</span>
+                        </div>
+                        <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                          <div className="h-full bg-gray-500 rounded-full" style={{ width: `${currentBar}%` }} />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-xs font-semibold mb-1">
+                          <span className={isUnder ? 'text-red-700' : 'text-emerald-700'}>Media del mercado</span>
+                          <span className={`font-bold ${isUnder ? 'text-red-900' : 'text-emerald-900'}`}>{market.toLocaleString('es-ES')}€</span>
+                        </div>
+                        <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${isUnder ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${marketBar}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                    {isUnder && (
+                      <p className="text-xs text-red-600 mt-4 font-medium">
+                        💡 Consejo: Si llevas más de 1 año en tu empresa actual sin subida, es buen momento para negociar o explorar el mercado.
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* CTA */}
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 flex flex-col md:flex-row items-center gap-4">

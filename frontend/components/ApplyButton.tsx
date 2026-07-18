@@ -10,9 +10,10 @@ interface ApplyButtonProps {
   company: string;
   title: string;
   lang?: string;
+  jobId?: string | number;
 }
 
-export default function ApplyButton({ url, company, title, lang }: ApplyButtonProps) {
+export default function ApplyButton({ url, company, title, lang, jobId }: ApplyButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -34,7 +35,12 @@ export default function ApplyButton({ url, company, title, lang }: ApplyButtonPr
 
   const handleDirectRedirect = () => {
     sendGAEvent({ event: 'click_apply', value: 'direct', company, job_title: title });
-    window.open(url, '_blank', 'noopener,noreferrer');
+    if (jobId) {
+      const queryParam = isEnglish ? '?lang=en' : '';
+      window.open(`/redirect/${jobId}${queryParam}`, '_blank', 'noopener,noreferrer');
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
     handleCloseModal();
   };
 
@@ -79,7 +85,12 @@ export default function ApplyButton({ url, company, title, lang }: ApplyButtonPr
       sendGAEvent({ event: 'generate_lead', value: 'apply_modal', company, job_title: title });
       
       setTimeout(() => {
-        window.open(url, '_blank', 'noopener,noreferrer');
+        if (jobId) {
+          const queryParam = isEnglish ? '?lang=en' : '';
+          window.open(`/redirect/${jobId}${queryParam}`, '_blank', 'noopener,noreferrer');
+        } else {
+          window.open(url, '_blank', 'noopener,noreferrer');
+        }
         handleCloseModal();
       }, 1500);
     } else {

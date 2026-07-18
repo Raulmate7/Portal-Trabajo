@@ -13,7 +13,7 @@ export async function getJobs(filters: FilterOptions, page: number = 1, limit: n
   const offset = (page - 1) * limit;
   const client = await pool.connect();
   try {
-    let sql = "SELECT * FROM jobs WHERE (is_featured = FALSE OR is_featured IS NULL) AND is_active = TRUE";
+    let sql = "SELECT id, title, title_es, company, location, salary, salary_min, salary_max, created_at, url_source, description_snippet, category, is_featured FROM jobs WHERE (is_featured = FALSE OR is_featured IS NULL) AND is_active = TRUE";
     const params: any[] = [];
     let paramIndex = 1;
 
@@ -81,7 +81,7 @@ export async function getJobs(filters: FilterOptions, page: number = 1, limit: n
 export async function getFeaturedJobs(filters: FilterOptions, limit: number = 3) {
   const client = await pool.connect();
   try {
-    let sql = "SELECT * FROM jobs WHERE is_featured = TRUE AND is_active = TRUE";
+    let sql = "SELECT id, title, title_es, company, location, salary, salary_min, salary_max, created_at, url_source, description_snippet, category, is_featured FROM jobs WHERE is_featured = TRUE AND is_active = TRUE";
     const params: any[] = [];
     let paramIndex = 1;
 
@@ -149,7 +149,7 @@ export async function getFeaturedJobs(filters: FilterOptions, limit: number = 3)
 export async function getJobsCount() {
   const client = await pool.connect();
   try {
-    const result = await client.query("SELECT COUNT(*) FROM jobs WHERE is_active = TRUE AND (is_featured = FALSE OR is_featured IS NULL)");
+    const result = await client.query("SELECT COUNT(*) AS count FROM jobs WHERE is_active = TRUE");
     return parseInt(result.rows[0].count, 10);
   } catch (error) {
     console.error("Error counting jobs:", error);

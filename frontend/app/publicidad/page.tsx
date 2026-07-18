@@ -1,16 +1,45 @@
-import { Metadata } from 'next';
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
 
-export const metadata: Metadata = {
-  title: 'Publicidad y Patrocinios IT — Media Kit B2B | Portal Trabajo IT',
-  description:
-    'Llega de forma directa a una audiencia de más de 8.700 profesionales de la programación y la tecnología en España. Descubre nuestros formatos publicitarios.',
-  alternates: {
-    canonical: '/publicidad',
-  },
-};
-
 export default function PublicidadPage() {
+  // Form newsletter sponsor states
+  const [companyName, setCompanyName] = useState('');
+  const [companyEmail, setCompanyEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  async function handleSponsorCheckout(e: React.FormEvent) {
+    e.preventDefault();
+    if (!companyName.trim() || !companyEmail.trim()) return;
+
+    setLoading(true);
+    setErrorMsg('');
+
+    try {
+      const response = await fetch('/api/checkout/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company_name: companyName.trim(),
+          company_email: companyEmail.trim().toLowerCase(),
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok && data.url) {
+        window.location.href = data.url; // Redirigir a Stripe Checkout
+      } else {
+        setErrorMsg(data.error || 'Ocurrió un error al procesar la reserva.');
+      }
+    } catch (err) {
+      setErrorMsg('Error de red. Inténtalo de nuevo.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-gray-950 text-white flex flex-col justify-between">
       {/* Header / Hero */}
@@ -64,7 +93,7 @@ export default function PublicidadPage() {
       {/* Formatos de Publicidad B2B */}
       <section className="max-w-5xl mx-auto px-4 py-12 w-full">
         <h2 className="text-xl md:text-2xl font-bold mb-10 text-center text-gray-250">Formatos y Canales de Patrocinio</h2>
-        <div className="grid md:grid-cols-3 gap-8 items-stretch">
+        <div className="grid md:grid-cols-3 gap-8 items-stretch mb-12">
           
           {/* Formato 1: Ofertas Destacadas */}
           <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-8 flex flex-col justify-between hover:border-gray-700 transition-all">
@@ -102,13 +131,13 @@ export default function PublicidadPage() {
                 Promociona bootcamps, cursos, eventos, herramientas SaaS o servicios de tu marca directamente en la bandeja de entrada de 8.700+ profesionales de la tecnología.
               </p>
               <ul className="text-xs text-gray-500 space-y-2 mb-6 list-disc list-inside">
-                <li>Bloque editorial exclusivo (Texto + Botón CTA)</li>
+                <li>Bloque de texto editorial exclusivo + Botón CTA</li>
                 <li>49€ por envío único</li>
                 <li>Excelente tasa de click-through (CTR) de programadores</li>
               </ul>
             </div>
             <a
-              href="mailto:publicidad@portalempleoit.com?subject=Reserva%20de%20Newsletter%20Patrocinada"
+              href="#comprar-newsletter"
               className="block w-full text-center py-2.5 px-4 rounded-xl border border-purple-500 text-purple-400 font-bold hover:bg-purple-500/10 transition-all text-xs"
             >
               Reservar Espacio (49€)
@@ -139,10 +168,55 @@ export default function PublicidadPage() {
             </a>
           </div>
         </div>
+
+        {/* Formulario de Compra Directa: Newsletter Patrocinada (G1) */}
+        <div id="comprar-newsletter" className="max-w-xl mx-auto bg-gray-900/60 border border-purple-500/30 rounded-3xl p-8 shadow-xl relative scroll-mt-24">
+          <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+            <span>✉️</span> Compra Directa: Patrocinio de Newsletter
+          </h3>
+          <p className="text-gray-450 text-xs mb-6">
+            Introduce el nombre de tu empresa y correo de contacto. Te redirigiremos de forma segura a la pasarela Stripe para completar el pago de 49€. Una vez completado, nos pondremos en contacto contigo para redactar el anuncio.
+          </p>
+
+          <form onSubmit={handleSponsorCheckout} className="space-y-4">
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">Nombre de la Empresa</label>
+              <input
+                type="text"
+                required
+                placeholder="Empresa Tech S.L."
+                value={companyName}
+                onChange={e => setCompanyName(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-gray-950 border border-gray-800 text-white placeholder-gray-550 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-xs"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">Email de Contacto</label>
+              <input
+                type="email"
+                required
+                placeholder="contacto@empresa.com"
+                value={companyEmail}
+                onChange={e => setCompanyEmail(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-gray-950 border border-gray-800 text-white placeholder-gray-550 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-xs"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 bg-gradient-to-r from-purple-500 to-indigo-650 hover:from-purple-400 hover:to-indigo-550 text-white font-bold rounded-xl transition-all shadow-lg shadow-purple-500/10 disabled:opacity-60 text-xs cursor-pointer"
+            >
+              {loading ? 'Redirigiendo a Stripe...' : 'Comprar Patrocinio de Newsletter (49€) →'}
+            </button>
+          </form>
+
+          {errorMsg && <p className="text-red-400 text-xs text-center mt-4 font-medium">{errorMsg}</p>}
+        </div>
       </section>
 
       {/* CTA final de contacto */}
-      <section className="max-w-3xl mx-auto px-4 py-16 w-full text-center">
+      <section className="max-w-3xl mx-auto px-4 py-12 w-full text-center">
         <div className="bg-gradient-to-br from-indigo-900/30 to-purple-900/20 border border-gray-800/80 rounded-3xl p-8 md:p-12 shadow-2xl">
           <h2 className="text-2xl md:text-3xl font-black mb-4">¿Quieres nuestro Media Kit completo en PDF?</h2>
           <p className="text-gray-400 text-sm max-w-md mx-auto mb-8 leading-relaxed">
