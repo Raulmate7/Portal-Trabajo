@@ -7,7 +7,7 @@ import { Metadata } from "next";
 import { BASE_URL } from "@/lib/constants";
 import { slugify } from "@/lib/slug";
 
-export const revalidate = 300; // Cache 5 min
+export const revalidate = 1800; // Cache 30 min — el directorio de empresas no cambia con alta frecuencia
 
 export const metadata: Metadata = {
   title: 'Directorio de Empresas IT en España | Portal Trabajo',
@@ -148,7 +148,16 @@ export default async function EmpresasDirectoryPage() {
     { label: 'Empresas' }
   ];
 
-
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: breadcrumbItems.map((item, idx) => ({
+      '@type': 'ListItem',
+      position: idx + 1,
+      name: item.label,
+      item: item.href ? `${BASE_URL}${item.href}` : undefined
+    }))
+  };
   
   const itemListJsonLd = {
     '@context': 'https://schema.org',
@@ -166,6 +175,10 @@ export default async function EmpresasDirectoryPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <script 
+        type="application/ld+json" 
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} 
+      />
       <script 
         type="application/ld+json" 
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} 

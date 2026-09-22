@@ -23,6 +23,23 @@ if (empty($sql)) {
     exit;
 }
 
+// === VALIDACIÓN DE SEGURIDAD SQL ===
+$sql_upper = strtoupper(trim($sql));
+// Blacklist (Rechazar inmediatamente consultas destructivas)
+if (preg_match('/\b(DROP|DELETE|ALTER|TRUNCATE|GRANT|REVOKE)\b/', $sql_upper)) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Operación SQL no permitida por políticas de seguridad.']);
+    exit;
+}
+// Whitelist (Solo permitir SELECT, INSERT, UPDATE, SHOW)
+if (!preg_match('/^(SELECT|INSERT|UPDATE|SHOW)\b/', $sql_upper)) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Tipo de consulta SQL no soportada.']);
+    exit;
+}
+// ====================================
+
+
 // Credenciales locales de MySQL en Raiola
 $host = 'localhost';
 $db = 'ecosier2_PortalEmpleo';

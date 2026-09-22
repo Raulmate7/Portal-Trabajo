@@ -39,6 +39,20 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
       title,
       description,
       url: `${BASE_URL}/herramientas`,
+      images: [
+        {
+          url: `${BASE_URL}/og-image.png`,
+          width: 1200,
+          height: 630,
+          alt: 'Herramientas para Programadores y Recursos Tech',
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [`${BASE_URL}/og-image.png`],
     }
   };
 }
@@ -148,15 +162,40 @@ export default async function HerramientasPage({ searchParams }: Props) {
             : 'Certificados profesionales oficiales de Google, IBM, Meta y AWS. Acelera tu búsqueda de empleo y destaca.',
           tag: 'Coursera',
           cta: isEnglish ? 'View Certificates' : 'Ver Certificados',
-          href: getCourseraUrl('https://coursera.pxf.io/c/TU_AFFILIATE_ID_COURSERA/1164968/14726?subid=herramientas_page'),
-          featured: false,
         }
       ]
     }
   };
 
+  const allTools = Object.values(tools).flatMap(s => s.items);
+  const toolsItemListSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    'name': isEnglish ? 'Developer Tools & Resources' : 'Herramientas para Programadores y Recursos Tech',
+    'description': isEnglish 
+      ? 'Discover the best developer utilities, IDEs, cloud hosting providers, and technical training platforms.' 
+      : 'Descubre las mejores utilidades de desarrollo, IDEs de programación, servidores cloud, bases de datos y plataformas formativas.',
+    'numberOfItems': allTools.length,
+    'itemListElement': allTools.map((t, idx) => ({
+      '@type': 'ListItem',
+      'position': idx + 1,
+      'item': {
+        '@type': 'SoftwareApplication',
+        'name': t.name,
+        'description': t.desc,
+        'applicationCategory': 'DeveloperApplication',
+        'operatingSystem': 'All',
+        'url': t.href
+      }
+    }))
+  };
+
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-slate-950 pb-16">
+      <script 
+        type="application/ld+json" 
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(toolsItemListSchema) }} 
+      />
       {/* Hero Header */}
       <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-950 text-white py-16 px-4 relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.25),transparent_50%)]" />

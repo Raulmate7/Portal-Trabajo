@@ -14,6 +14,7 @@ import { Markdown } from '@/lib/markdown';
 import { BASE_URL } from '@/lib/constants';
 import Image from 'next/image';
 import AffiliateCourseCard from '@/components/AffiliateCourseCard';
+import ReadingProgressBar from '@/components/ReadingProgressBar';
 
 export const revalidate = 3600;
 
@@ -39,6 +40,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         'en': `${BASE_URL}/blog/${resolvedParams.slug}?lang=en`,
         'x-default': `${BASE_URL}/blog/${resolvedParams.slug}`,
       }
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+        'max-video-preview': -1,
+      },
     },
     openGraph: {
       title: post.title,
@@ -291,6 +303,13 @@ export default async function BlogPostPage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-4 md:px-8">
+      <ReadingProgressBar />
+      <link 
+        rel="alternate" 
+        type="application/rss+xml" 
+        title="Portal Trabajo IT — Feed de Noticias y Artículos Tech" 
+        href={`${BASE_URL}/feed.xml`} 
+      />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {howToJsonLd && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }} />

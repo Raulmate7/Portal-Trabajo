@@ -508,7 +508,7 @@ Todas las categorías del plan han sido **completamente implementadas** y verifi
 ### Categoría H — SEO Internacional y Técnico ✅ COMPLETO
 
 - **H1**: Subdirectorio `/en/trabajos/[sector]` — Ruta física Next.js que hereda `SectorPage` forzando `lang='en'`. Los hreflang en `/trabajos/[sector]` apuntan a `/en/trabajos/${sectorSlug}` en lugar de `?lang=en`.
-- **H2**: `robots.ts` — `Google-Extended` no bloqueado (permite AI Overviews de Google). Bots de IA de terceros bloqueados. Schema `SpeakableSpecification` en `/job/[id]` para búsquedas por voz.
+- **H2**: `robots.ts` — Completamente abierto para bots de IA (`GPTBot`, `Claude-Web`, etc.) para permitir descubrimiento por inteligencia artificial. Archivo `/llms.txt` implementado (estándar emergente para proveer contexto estructurado a IAs). Schema `SpeakableSpecification` en `/job/[id]` para búsquedas por voz.
 - **H3**: Schema `VideoObject` condicional en `/job/[id]` — Se inyecta JSON-LD de `VideoObject` si `job.last_youtube_posted_at` no es nulo, generando rich snippets de vídeo en Google.
 
 ---
@@ -648,62 +648,84 @@ proyecto_empleo/
 │   │   ├── blog/                      # Blog de empleo tech
 │   │   │   ├── [slug]/                # Detalle de artículo del blog + cluster navigation
 │   │   │   └── loading.tsx            # Skeleton animado de carga del blog
-│   │   ├── comparar/[slug]/           # Comparativas salariales (ampliadas a 15+ techs)
+│   │   ├── comparar/                  # Hub central e índice de comparativas tech (27+ slugs)
+│   │   ├── comparar/[slug]/           # Comparativas salariales y tecnológicas (React vs Angular, etc.)
 │   │   ├── comparar-ofertas/          # Herramienta de comparación de ofertas guardadas
+│   │   ├── convertirse-en/            # Hub central de guías de carrera IT (6 roadmaps)
+│   │   ├── convertirse-en/[profesion]/ # Hoja de ruta profesional con HowTo y salarios
 │   │   ├── empleo-del-dia/            # Landing del empleo del día
 │   │   ├── empresa-dashboard/         # Panel B2B de métricas para reclutadores
-│   │   ├── empresas/[slug]/           # Perfil de empresa
+│   │   ├── empresas/[slug]/           # Perfil de empresa (EmployerAggregateRating schema)
 │   │   ├── empresas/[slug]/[categoria]/ # Subcategoría de empresa SSG
+│   │   ├── empresas-remotas/          # Landing ranking de empresas con más teletrabajo
 │   │   ├── en/trabajos/[sector]/      # Ruta en inglés limpia (H1)
+│   │   ├── en/entrevistas/[tech]/     # Preguntas de entrevista en inglés (hreflang)
+│   │   ├── en/glosario/[term]/        # Glosario en inglés (hreflang)
+│   │   ├── ca/trabajo-barcelona/      # Landing en Catalán (Feina Barcelona)
+│   │   ├── eu/trabajo-bilbao/         # Landing en Euskera (Informatika lanak Bilbao)
+│   │   ├── eventos-it/                # Directorio de Eventos y Conferencias IT (Event schema)
 │   │   ├── entrevistas/               # Índice de preguntas de entrevista
-│   │   ├── entrevistas/[tech]/        # Preguntas por tecnología (FAQPage + Article)
+│   │   ├── entrevistas/[tech]/        # Preguntas por tecnología (FAQPage + Article + OpenGraph image)
 │   │   ├── afiliados-empresa/         # Programa de afiliados B2B
 │   │   ├── informe-mercado-it/        # Landing de informe descargable
-│   │   ├── glosario/                  # Glosario tecnológico IT
-│   │   │   ├── [term]/                # Término del glosario
+│   │   ├── glosario/                  # Glosario tecnológico IT (93+ términos, DefinedTermSet)
+│   │   │   ├── [term]/                # Término del glosario con ofertas y salarios inline
 │   │   │   └── loading.tsx            # Skeleton animado de carga del glosario
-│   │   ├── job/[id]/                  # Detalle de oferta (VideoObject + Speakable schema)
+│   │   ├── herramientras/             # Catálogo de herramientas dev (SoftwareApplication + ItemList)
+│   │   ├── job/[id]/                  # Detalle de oferta (VideoObject + Speakable + FAQ schema)
 │   │   │   ├── loading.tsx            # Skeleton de carga de oferta
 │   │   │   └── error.tsx              # Boundary de error de oferta
 │   │   ├── mejores-ofertas-semana/    # Top vacantes semanales
 │   │   ├── newsletter/                # Landing SEO de captación de newsletter
 │   │   ├── ofertas-hoy/               # Vacantes indexadas en las últimas 24h
+│   │   ├── practicas-informatica/     # Landing de becas y primer empleo IT (FAQs ampliadas)
 │   │   ├── precios/                   # Página pública de planes + Candidato Premium
 │   │   ├── publicar-oferta/           # Formulario de publicación con Stripe (ref capture)
 │   │   ├── publicidad/                # Media Kit + checkout newsletter directo
+│   │   ├── ranking-empresas-it/       # Ranking general de empresas tech
 │   │   ├── redirect/[id]/             # Página intermedia con anuncio
-│   │   ├── salarios/                  # Calculadora de salarios IT
+│   │   ├── salarios/                  # Calculadora de salarios IT (Dataset + WebApp schema)
+│   │   ├── salarios/[tecnologia]/     # Hub de salario por tecnología (20+ techs en SSG)
+│   │   ├── salarios/por-nivel/        # Breakdown salarial por experiencia (Junior/Mid/Senior/Lead)
+│   │   ├── salarios/por-empresa/      # Ranking salarial por empresa reclutadora
 │   │   ├── salarios/[tecnologia]/[ciudad]/[nivel]/ # Páginas SSG de salario
 │   │   ├── talento-premium/           # Pool de candidatos + CTA B2B
+│   │   ├── tendencias/                # Tendencias de contratación tech (Dataset schema)
 │   │   ├── trabajo-[ciudad]/          # Landings editoriales por ciudad
+│   │   ├── trabajo-[ciudad]/[tech]/   # Landings ciudad + tecnología (450 combinaciones SSG)
+│   │   ├── trabajo-remoto/            # Landing de empleo remoto (HowTo + ItemList schema, ISR 300s)
 │   │   ├── trabajo-remoto-{usa,uk,alemania,europa}/ # Landings internacionales
-│   │   ├── trabajos/[sector]/         # Motor SEO programático (slugs complejos)
+│   │   ├── trabajos/[sector]/         # Motor SEO programático (slugs complejos, interlinking entrevistas)
 │   │   │   ├── empresas/              # Ranking de empresas por stack
 │   │   │   ├── loading.tsx            # Skeleton de carga del listado
 │   │   │   └── error.tsx              # Boundary de error de sector
-│   │   ├── actions.ts                 # Server Actions (subscribeUser, registerRecruiterAffiliate...)
+│   │   ├── api/widget/vacantes-count/ # Widget embebible con datos BD en tiempo real y CORS (*)
+│   │   ├── actions.ts                 # Server Actions (subscribeUser, submitCompanyReview, getCompanyReviews...)
 │   │   ├── error.tsx                  # Error boundary raíz global
 │   │   ├── loading.tsx                # Skeleton animado raíz
 │   │   ├── not-found.tsx              # Página 404 con schema WebPage y retención
-│   │   ├── layout.tsx                 # Layout global (AdSense, hreflang, preload LCP)
+│   │   ├── layout.tsx                 # Layout global con ClientOnlyWidgets
 │   │   ├── robots.ts                  # robots.txt (bloquea IA bots, permite Google-Extended)
-│   │   └── sitemap.ts                 # Sitemaps dinámicos (5 ficheros, 60+ páginas estáticas)
+│   │   └── sitemap.ts                 # Sitemaps dinámicos (5 ficheros, 450 ciudad+tech landings, 60+ páginas estáticas)
 │   ├── components/
-│   │   ├── AdBanner.tsx               # Anuncios AdSense + ad refresh + minHeight fijo (CLS)
+│   │   ├── AISearchBar.tsx            # Búsqueda conversacional IA con useTransition (INP < 200ms)
+│   │   ├── ClientOnlyWidgets.tsx      # Wrapper cliente para componentes no críticos sin SSR
+│   │   ├── AdBanner.tsx               # Banners AdSense/Afiliados + Activity Listener Singleton
 │   │   ├── ApplyButton.tsx            # Botón de aplicar (redirige a /redirect/[jobId])
 │   │   ├── Breadcrumbs.tsx            # Breadcrumbs accesibles con JSON-LD
-│   │   ├── CityLandingPage.tsx        # Landings editoriales de ciudades
+│   │   ├── CityLandingPage.tsx        # Landings editoriales de ciudades con FAQPage & JobPosting JSON-LD
 │   │   ├── CompanyLogo.tsx            # Logo de empresa optimizado
 │   │   ├── CompareJobButton.tsx       # Botón de comparación de ofertas
 │   │   ├── CompareFloatingPill.tsx    # Barra flotante de ofertas comparadas
-│   │   ├── CourseAffiliate.tsx        # Bloque de cursos contextual por tecnología
+│   │   ├── CookieBanner.tsx           # Banner de cookies
+│   │   ├── CourseAffiliate.tsx        # Bloque de cursos contextual con schema dual ['Course', 'LearningResource']
 │   │   ├── ExitIntentPopup.tsx        # Popup de captura al intentar salir
 │   │   ├── FeaturedJobCard.tsx        # Tarjeta destacada con rango salarial dinámico
-│   │   ├── Footer.tsx                 # Pie de página dinámico programático
-│   │   ├── Header.tsx                 # Cabecera global (UserStreak via next/dynamic, w-20 skeleton)
+│   │   ├── Footer.tsx                 # Pie de página con consultas SQL cacheadas en unstable_cache
+│   │   ├── Header.tsx                 # Cabecera global con enlaces a /entrevistas y /convertirse-en
 │   │   ├── InAppNotification.tsx      # Notificaciones flotantes in-app
 │   │   ├── JobCard.tsx                # Tarjeta de oferta con rango salarial dinámico
-│   │   ├── JobCardSkeleton.tsx        # Skeleton generico de tarjeta de trabajo
+│   │   ├── JobCardSkeleton.tsx        # Skeleton genérico de tarjeta de trabajo
 │   │   ├── LoadMoreJobs.tsx           # Scroll infinito con formateador salarial
 │   │   ├── PushSubscribe.tsx          # Widget de suscripción push (OneSignal)
 │   │   ├── ReactionButton.tsx         # Botones 👍/👎 por oferta
@@ -714,20 +736,27 @@ proyecto_empleo/
 │   │   ├── SalariosCalculator.tsx     # Calculadora salarial con comparativa "cobras vs. mercado"
 │   │   ├── SaveJobButton.tsx          # Botón de guardar oferta
 │   │   ├── StickyDesktopAd.tsx        # Banner sticky lateral (desktop xl+)
+│   │   ├── StickyMobileAd.tsx         # Banner sticky inferior móvil
 │   │   ├── SubscribeForm.tsx          # Formulario de newsletter
 │   │   └── UserStreak.tsx             # Panel gamificado de racha diaria
 │   └── lib/
 │       ├── blog-clusters.ts           # Definición de clusters de contenido editorial
-│       ├── blog.ts                    # Posts estáticos del blog y helpers (envelto en cache())
-│       ├── constants.ts               # BASE_URL y constantes globales
+│       ├── blog.ts                    # Posts del blog con helper getLatestBlogPosts(n) con LIMIT N
+│       ├── certificaciones.ts         # Índice y guías de certificaciones IT (AWS, K8s, GCP, Ciberseguridad)
+│       ├── comparativas.ts            # Comparativas de stacks tecnológicos (X vs Y)
 │       ├── me.ts                      # Datos estructurados y perfil del proyecto
-│       ├── db.ts                      # Pool de conexión a BD (proxy HTTP)
-│       ├── entrevistas.ts             # Banco de preguntas de entrevista por tech
+│       ├── convertirse.ts             # Hub de guías de carrera IT ("Cómo convertirse en")
+│       ├── db.ts                      # Pool de conexión a BD (proxy HTTP) con caché in-memory de 5 min
+│       ├── entrevistas.ts             # Banco de preguntas de entrevista por tech (Junior, Mid, Senior)
+│       ├── eventos.ts                 # Directorio de eventos y conferencias IT en España
+│       ├── glosario.ts                # Glosario IT ampliado con 154+ términos y grafos
+│       ├── newsletter-archive.ts      # Archivo histórico de boletines semanales
 │       ├── salarios.ts                # Lógica de cálculo de estadísticas salariales
-│       └── slug.ts                    # Generación y parseo de slugs canónicos
+│       ├── slug.ts                    # Generación y parseo de slugs canónicos
+│       └── test-nivel.ts              # Quizzes interactivos por tecnología para tests de nivel
 │
 ├── backend/                           # Python 3.10 (ejecutado en Raiola)
-│   ├── run_all.py                     # Orquestador maestro (18+ fases)
+│   ├── run_all.py                     # Orquestador maestro (20+ fases)
 │   ├── main.py                        # Scrapers internacionales
 │   ├── psycopg2.py                    # Shim PostgreSQL → MySQL
 │   ├── mailer.py                      # Newsletter semanal + Sponsor automático
@@ -737,7 +766,6 @@ proyecto_empleo/
 │   ├── pinterest_bot.py               # Bot de Pinterest (API v5)
 │   ├── threads_bot.py                 # Bot de Threads (Meta Graph API)
 │   ├── youtube_shorts_bot.py          # Bot de YouTube Shorts (Pillow + ffmpeg)
-│   ├── twitter_bot.py                 # Bot de Twitter (INACTIVO)
 │   ├── send_custom_alerts.py          # Alertas personalizadas diarias/semanales
 │   ├── send_welcome_onboarding.py     # Secuencia de bienvenida (2 emails)
 │   ├── send_reactivation.py           # Reactivación de suscriptores inactivos
@@ -746,17 +774,16 @@ proyecto_empleo/
 │   ├── send_streak_reminder.py        # Recordatorio de racha diaria
 │   ├── send_saved_jobs_reminder.py    # Recordatorio de ofertas guardadas (48h)
 │   ├── send_referral_notifications.py # Notificaciones de progreso de referidos
-│   ├── generate_weekly_article.py     # Generación de artículo SEO con IA (Gemini)
+│   ├── generate_weekly_article.py     # Generación de artículo SEO con IA (Gemini, intervalo 12h + 35 temas)
+│   ├── generate_news_post.py          # Generador de Noticias IT de actualidad para Google News
+│   ├── generate_podcast_script.py     # Generador de guiones de Podcast audio ('El Mercado IT')
+│   ├── refresh_old_articles.py        # Revalidación automática de artículos evergreen antiguos
+│   ├── monitor_search_console.py      # Auditoría de salud de indexación y sitemaps
 │   ├── generate_trends_post.py        # Post de tendencias tech desde datos BD
 │   ├── generate_market_report.py      # Generación de informe de mercado IT descargable
 │   ├── index_new_jobs.py              # Envío a Google Indexing API
 │   ├── ping_sitemap.py                # Notificación de sitemap a Google
 │   ├── deactivate_expired_jobs.py     # Desactivación y purga de expiradas
-│   ├── add_b2b_monetization_tables.py # Migración de tablas B2B (G1-G4)
-│   ├── add_metrics_columns.py         # Migración: impressions_count, clicks_count en jobs
-│   ├── add_company_email_to_jobs.py   # Migración: company_email en jobs
-│   ├── add_pinterest_threads_columns.py # Migración: columnas last_*_posted_at
-│   ├── add_referrals_notified_count.py  # Migración: referrals_notified_count en subscribers
 │   ├── scrapers/                      # Módulos de scraping (remotive, wwr, etc.)
 │   └── logic/
 │       ├── classifier.py              # Clasificador de categorías
@@ -790,3 +817,15 @@ proyecto_empleo/
 | **G — Monetización B2B Directa** | Newsletter Sólo, Candidato Premium, Informes de Mercado, Programa de Afiliados | ✅ COMPLETO |
 | **H — SEO Técnico & Indexación** | Ruta `/en/` limpia, Google-Extended permitido, VideoObject schema, Google News Sitemap (`/sitemap-news.xml`), `WebPage` 404, `NewsArticle` Discover, `HowTo` schemas, `JobPosting` embebidos en ItemList | ✅ COMPLETO |
 | **I — UX & Transparencia** | Formateador de rangos salariales `salary_min`/`max` en `JobCard`, `FeaturedJobCard`, `LoadMoreJobs`; boundaries `error.tsx` en rutas críticas | ✅ COMPLETO |
+| **J — Auditoría Tráfico (Fases 1-6)** | Glosario a 93 términos, generador de blog a 2d, `max-image-preview: large` para Discover, `EmployerAggregateRating` schema en empresas, comparativas por ciudad, `/empresas-remotas`, RSS auto-discovery en city/tech/blog, `Dataset` & `WebApplication` schema en `/salarios`, IT Salary Guide, `Occupation` schema en sectores, OpenGraph/Twitter cards dinámicos en `/comparar` y `/salarios/[tech]`, widget conversión en blog, Sitelinks Search Box schema | ✅ COMPLETO |
+| **K — Auditoría Tráfico (P1 Críticos)** | Enlaces `/entrevistas` y `/convertirse-en` en Header y Footer, URL canónica absoluta en `/practicas-informatica`, `DefinedTermSet` JSON-LD en `/glosario`, creación del hub índice `/comparar`, registro en `sitemap.ts` | ✅ COMPLETO |
+| **L — Auditoría Tráfico (P2 & P3)** | `Dataset` schema en `/tendencias`, `SoftwareApplication` & `ItemList` schema en `/herramientas`, H1 + `HowTo`/`ItemList` schema en `/trabajo-remoto`, OpenGraph/Twitter images en `/ranking-empresas-it`, `/herramientas`, `/tendencias`, `/practicas-informatica`, interlinking contextual de entrevistas en `/trabajos/[sector]`, nuevas landings `/salarios/por-nivel`, `/salarios/por-empresa`, hub de guías `/convertirse-en`, FAQs ampliadas en `/practicas-informatica` | ✅ COMPLETO |
+| **M — Rendimiento & Core Web Vitals (P4)** | Dynamic imports con `ssr: false` para 5 componentes no críticos (`CookieBanner`, `ExitIntentPopup`, `StickyMobileAd`, `CompareFloatingPill`, `InAppNotification`), caching con `unstable_cache` (1h TTL) en `Footer.tsx`, helper eficiente `getLatestBlogPosts(3)` con LIMIT N en BD, singleton de listeners de `window` con ref-counting en `AdBanner.tsx`, `compress: true` y cabeceras de caché inmutable (`/_next/static/`) en `next.config.ts` | ✅ COMPLETO |
+| **N — Tráfico Prioridad Crítica (N1–N5)** | Rutas `/en/entrevistas/[tech]` y `/en/glosario/[term]` con `hreflang` cruzado, Hub salarial `/salarios/[tecnologia]` sincronizado en SSG (20 techs), frecuencia del blog IA acelerada a 12h + 5 nuevos temas de alto tráfico, OpenGraph images dinámicas (`opengraph-image.tsx`) para Discover en `/entrevistas` y `/glosario`, expansión masiva de landings ciudad+tech de 70 a 450 combinaciones SSG (15 ciudades × 30 tecnologías) registradas en `sitemap.ts`. | ✅ COMPLETO |
+| **O — Tráfico Prioridad Alta (O1–O5)** | Noticiero IT diario (`generate_news_post.py` en `run_all.py` 7.5.2) alimentando `sitemap-news.xml`, interlinking dinámico de vacantes e informes en `/glosario/[term]`, sistema de reseñas en BD (`company_reviews` + `CompanyReviewForm` / `getCompanyReviews`), landings regionales en Catalán (`/ca/trabajo-barcelona`) y Euskera (`/eu/trabajo-bilbao`), FAQPage & JobPosting JSON-LD dinámicos en `CityLandingPage.tsx`. | ✅ COMPLETO |
+| **P — Tráfico Prioridad Media (P1–P5)** | Ampliación de `sitemap-images.xml` con nodos de imágenes de entrevistas y glosario, Telegram mantenido como canal único de difusión (WhatsApp excluido por petición), perfiles de autor E-E-A-T enriquecidos (`AUTHOR_META` con `RM`, `AG`, `CR` y `Person` JSON-LD), schema `['Course', 'LearningResource']` en `CourseAffiliate.tsx`, módulo de auto-revalidación de artículos evergreen (`refresh_old_articles.py` en `run_all.py` 7.4.1). | ✅ COMPLETO |
+| **Q — Tráfico Prioridad Baja: Integraciones (Q1–Q4)** | Endpoint `GET /api/widget/vacantes-count` con datos MySQL en tiempo real y cabeceras CORS (`*`), módulo de auditoría de indexación (`monitor_search_console.py` en `run_all.py` 5.6), componente de búsqueda conversacional IA (`AISearchBar.tsx`) traducido a slugs SEO, generador de guiones de Podcast semanal ('El Mercado IT', `generate_podcast_script.py` en `run_all.py` 7.5.3). | ✅ COMPLETO |
+| **R, S, T — Core Web Vitals, Schemas y Eventos (R1, S1, T1)** | Optimización de INP (< 200ms) usando React 19 `useTransition` en `AISearchBar.tsx` y wrapper cliente `ClientOnlyWidgets.tsx` en `layout.tsx`, esquemas JSON-LD `JobPosting` individuales en landings de ciudad, directorio de Eventos y Conferencias IT en España (`/eventos-it` + `Event` JSON-LD schema + `lib/eventos.ts`) registrado en `sitemap.ts`. | ✅ COMPLETO |
+| **U — Nuevas Mejoras Prioritarias (U1–U14)** | Glosario ampliado a 154+ términos (U1), landings ciudad×tech expandidas en sitemap (U2), hub "Cómo convertirse en" a 39 profesiones (U3), banco de entrevistas a 16 tecnologías (U4), archivo de newsletter público indexable (U5), comparativas X vs Y en `/comparar/[slug]` (U6), hub de certificaciones IT `/certificaciones` (U7), dashboard de alertas `/alertas-mercado` (U8), quizzes de test de nivel `/test-nivel/[tech]` (U9), Google for Jobs enriquecido en `JobPosting` (U10), mapa interactivo `/mapa-empleo` (U11), badge `VerifiedBadge` (U12), generador de widget `/herramientas/widget-empleo` (U13), y portal API docs `/api-docs` (U14). | ✅ COMPLETO |
+| **T — Mejoras Técnicas Transversales (T1–T5)** | Prefetching declarativo `prefetch={true}` en Header (T1), `display: 'swap'` y `preload: true` en fuente Inter de `layout.tsx` (T2), auditoría automatizada de Schemas JSON-LD en `monitor_search_console.py` (T3), canonicals absolutos dinámicos con `BASE_URL` en layouts servidor (T4), y calibración de estrategias ISR/TTFB (T5). | ✅ COMPLETO |
+

@@ -38,6 +38,12 @@ export default async function BlogPage() {
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-5xl min-h-screen">
+      <link 
+        rel="alternate" 
+        type="application/rss+xml" 
+        title="Portal Trabajo IT — Feed de Noticias y Artículos Tech" 
+        href={`${BASE_URL}/feed.xml`} 
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(blogJsonLd) }}
@@ -48,7 +54,7 @@ export default async function BlogPage() {
         { label: 'Blog' },
       ]} />
       
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-12 border-b border-gray-100 dark:border-slate-900/50 pb-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-gray-100 dark:border-slate-900/50 pb-8">
         <div>
           <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight mb-2">
             Blog de Empleo Tech
@@ -64,6 +70,27 @@ export default async function BlogPage() {
         >
           <span>📡</span> Suscribirse por RSS
         </a>
+      </div>
+
+      {/* Widget de Tendencias & Herramientas de Conversión */}
+      <div className="mb-10 p-6 bg-gradient-to-r from-indigo-950 via-indigo-900 to-slate-900 rounded-3xl text-white shadow-md flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="space-y-2 text-left">
+          <span className="text-[10px] font-black uppercase tracking-wider text-amber-300 bg-amber-400/20 border border-amber-400/30 px-2.5 py-1 rounded-full">
+            🔥 Tendencias & Salarios 2026
+          </span>
+          <h3 className="text-xl font-extrabold text-white">¿Estás cobrando acorde a tu mercado?</h3>
+          <p className="text-xs text-indigo-200 max-w-xl">
+            Compara tu retribución con datos en tiempo real de vacantes activas en España en nuestra calculadora salarial gratuita.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 shrink-0">
+          <Link href="/salarios" className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs rounded-xl shadow-sm transition-all">
+            💰 Calculadora Salarial
+          </Link>
+          <Link href="/empresas-remotas" className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-sm transition-all">
+            🏠 Empresas Remoto
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

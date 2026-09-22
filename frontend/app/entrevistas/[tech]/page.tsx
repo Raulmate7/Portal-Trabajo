@@ -33,6 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       canonical: `${BASE_URL}/entrevistas/${tech}`,
       languages: {
         'es-ES': `${BASE_URL}/entrevistas/${tech}`,
+        'en': `${BASE_URL}/en/entrevistas/${tech}`,
         'x-default': `${BASE_URL}/entrevistas/${tech}`,
       }
     },

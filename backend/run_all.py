@@ -18,6 +18,7 @@ os.system(f"{python_bin} add_referrals_notified_count.py")
 os.system(f"{python_bin} add_metrics_columns.py")
 os.system(f"{python_bin} add_company_email_to_jobs.py")
 os.system(f"{python_bin} add_b2b_monetization_tables.py")
+os.system(f"{python_bin} add_bluesky_column.py")
 
 # 1. Ejecutar el Scraper Internacional (WWR, Remotive, JobFluent, RemoteOK, WorkingNomads, Himalayas, Python.org)
 print("\n[1/5] 🌎 Ejecutando Scrapers Internacionales (main.py)...")
@@ -93,15 +94,29 @@ exit_code = os.system(f"{python_bin} tiktok_bot.py")
 if exit_code != 0:
     print("⚠️ Advertencia: TikTok bot terminó con errores.")
 
+# 4.12. Publicar en Bluesky (AT Protocol)
+print("\n[4.12/7] 🦋 Publicando ofertas en Bluesky (bluesky_bot.py)...")
+exit_code = os.system(f"{python_bin} bluesky_bot.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: Bluesky bot terminó con errores.")
+
 # 5. Indexar en Google
 print("\n[5/7] 🔍 Enviando nuevas ofertas a Google Indexing API (index_new_jobs.py)...")
 exit_code = os.system(f"{python_bin} index_new_jobs.py")
 if exit_code != 0:
     print("⚠️ Advertencia: El script de indexación terminó con errores.")
 
+# 5.1 Indexar en Bing y Seznam mediante IndexNow
+print("\n[5.1/7] 🚀 Enviando URLs a IndexNow (index_now.py)...")
+os.system(f"{python_bin} index_now.py")
+
 # 5.5 Ping a Google Sitemap
 print("\n[5.5/7] 📡 Avisando a Google del nuevo Sitemap (ping_sitemap.py)...")
 os.system(f"{python_bin} ping_sitemap.py")
+
+# 5.6 Auditoría de Indexación y Search Console
+print("\n[5.6/7] 🔍 Auditando salud de indexación (monitor_search_console.py)...")
+os.system(f"{python_bin} monitor_search_console.py")
 
 # 6. Desactivar y Desindexar ofertas expiradas (>30 días)
 print("\n[6/7] 🧹 Limpiando y desindexando ofertas expiradas (deactivate_expired_jobs.py)...")
@@ -145,6 +160,12 @@ exit_code = os.system(f"{python_bin} generate_weekly_article.py")
 if exit_code != 0:
     print("⚠️ Advertencia: El script de generación de blog semanal terminó con errores o no está configurado.")
 
+# 7.4.1. Revalidar Artículos Evergreen Antiguos
+print("\n[7.4.1/9] 🔄 Revalidando artículos evergreen antiguos (refresh_old_articles.py)...")
+exit_code = os.system(f"{python_bin} refresh_old_articles.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: El script de revalidación evergreen terminó con errores.")
+
 # 7.5. Generar Artículo de Tendencias Semanal desde la BD
 print("\n[7.5/9] 📈 Generando artículo de tendencias de empleo tech (generate_trends_post.py)...")
 exit_code = os.system(f"{python_bin} generate_trends_post.py")
@@ -152,10 +173,28 @@ if exit_code != 0:
     print("⚠️ Advertencia: El script de tendencias semanales terminó con errores.")
 
 # 7.5.1. Generar Press Release (datos exclusivos)
-print("\\n[7.5.1/9] 📰 Generando press release (generate_press_release.py)...")
+print("\n[7.5.1/9] 📰 Generando press release (generate_press_release.py)...")
 exit_code = os.system(f"{python_bin} generate_press_release.py")
 if exit_code != 0:
     print("⚠️ Advertencia: El script de press release terminó con errores.")
+
+# 7.5.2. Generar Noticia de Actualidad IT (Google News feed)
+print("\n[7.5.2/9] 📰 Generando noticia IT diaria para Google News (generate_news_post.py)...")
+exit_code = os.system(f"{python_bin} generate_news_post.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: El script de noticias IT terminó con errores.")
+
+# 7.5.3. Generar Guion de Podcast Semanal ('El Mercado IT')
+print("\n[7.5.3/9] 🎙️ Generando guion de podcast semanal (generate_podcast_script.py)...")
+exit_code = os.system(f"{python_bin} generate_podcast_script.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: El script de podcast terminó con errores.")
+
+# 7.5.4. Generar Informe del Mercado IT
+print("\n[7.5.4/9] 📊 Generando informe del mercado IT (generate_market_report.py)...")
+exit_code = os.system(f"{python_bin} generate_market_report.py")
+if exit_code != 0:
+    print("⚠️ Advertencia: El script de informe del mercado IT terminó con errores.")
 
 # 7.6. Enviar Recordatorios de Racha (Usuarios a punto de perder su racha diaria)
 print("\n[7.6/9] 🔥 Enviando recordatorios de racha (send_streak_reminder.py)...")

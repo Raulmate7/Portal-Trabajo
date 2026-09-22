@@ -1,21 +1,27 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import CookieBanner from "@/components/CookieBanner";
 import Footer from "@/components/Footer";
 import { BASE_URL } from "@/lib/constants";
 import Header from "@/components/Header";
 import { Suspense } from "react";
 import { GoogleAnalytics } from "@next/third-parties/google";
-import StickyMobileAd from "@/components/StickyMobileAd";
-import CompareFloatingPill from "@/components/CompareFloatingPill";
-import InAppNotification from "@/components/InAppNotification";
-import ExitIntentPopup from "@/components/ExitIntentPopup";
+import ClientOnlyWidgets from "@/components/ClientOnlyWidgets";
 
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  preload: true,
+  variable: "--font-inter",
+});
+
+export const viewport = {
+  themeColor: "#4f46e5",
+};
 
 export const metadata: Metadata = {
+  manifest: "/manifest.json",
   metadataBase: new URL(BASE_URL),
   title: {
     default: "Portal Trabajo IT | Ofertas de Empleo Tech en España",
@@ -44,7 +50,13 @@ export const metadata: Metadata = {
   robots: {
     index: true,
     follow: true,
-    googleBot: { index: true, follow: true },
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
   },
   openGraph: {
     type: "website",
@@ -102,16 +114,40 @@ export default function RootLayout({
       <head>
         <meta name="impact-site-verification" content="2348664d-36c1-45a5-8a74-a2dd472c4343" />
         {/* Preconexión y dns-prefetch para servicios de terceros externos */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://logo.clearbit.com" />
         <link rel="preconnect" href="https://pagead2.googlesyndication.com" />
         <link rel="preconnect" href="https://adservice.google.com" />
         <link rel="preconnect" href="https://cdn.onesignal.com" />
+        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
         <link rel="dns-prefetch" href="https://logo.clearbit.com" />
         <link rel="dns-prefetch" href="https://pagead2.googlesyndication.com" />
         <link rel="dns-prefetch" href="https://adservice.google.com" />
         <link rel="dns-prefetch" href="https://tpc.googlesyndication.com" />
         <link rel="dns-prefetch" href="https://cdn.onesignal.com" />
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+
+        {/* WebSite Schema para Google Sitelinks Search Box */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "name": "Portal Trabajo IT",
+              "url": BASE_URL,
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": {
+                  "@type": "EntryPoint",
+                  "urlTemplate": `${BASE_URL}/trabajos/informatica-tecnologia?q={search_term_string}`
+                },
+                "query-input": "required name=search_term_string"
+              }
+            })
+          }}
+        />
         {/* Inicializador de Tema Oscuro para evitar flash de color */}
         <script
           id="theme-initializer"
@@ -203,12 +239,24 @@ export default function RootLayout({
           {children}
         </div>
         <Footer />
-        <CookieBanner />
-        <ExitIntentPopup />
+        <ClientOnlyWidgets />
+        {/* Service Worker PWA */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').then(function(registration) {
+                    console.log('SW registered: ', registration.scope);
+                  }, function(err) {
+                    console.log('SW registration failed: ', err);
+                  });
+                });
+              }
+            `,
+          }}
+        />
         <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || "G-E2W8P1V7E3"} />
-        <StickyMobileAd />
-        <CompareFloatingPill />
-        <InAppNotification />
       </body>
     </html>
   );

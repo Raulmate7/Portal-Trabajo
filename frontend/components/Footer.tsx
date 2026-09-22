@@ -1,16 +1,106 @@
 import Link from 'next/link';
 import pool from '@/lib/db';
+import { unstable_cache } from 'next/cache';
+
+// ─── Funciones cacheadas con TTL de 1 hora ────────────────────────────────────
+// Evitan ejecutar SQL en cada request de usuario para datos que cambian poco.
+const getCachedJobsCount = unstable_cache(
+  async () => {
+    try {
+      const res = await pool.query("SELECT COUNT(*) as count FROM jobs WHERE is_active = TRUE");
+      return parseInt(res.rows[0]?.count || '12450', 10);
+    } catch {
+      return 12450;
+    }
+  },
+  ['footer-jobs-count'],
+  { revalidate: 3600, tags: ['footer'] }
+);
+
+const getCachedProgrammaticLinks = unstable_cache(
+  async () => {
+    const DEFAULT_LINKS = [
+      { label: 'React en Madrid', href: '/trabajos/react-en-madrid' },
+      { label: 'React Remoto', href: '/trabajos/react-remoto' },
+      { label: 'Java en Barcelona', href: '/trabajos/java-en-barcelona' },
+      { label: 'Java Remoto', href: '/trabajos/java-remoto' },
+      { label: 'Python Remoto', href: '/trabajos/python-remoto' },
+      { label: 'DevOps Remoto', href: '/trabajos/devops-remoto' },
+      { label: 'Fullstack Remoto', href: '/trabajos/fullstack-remoto' },
+      { label: 'Angular en Madrid', href: '/trabajos/angular-en-madrid' },
+      { label: 'Node Remoto', href: '/trabajos/node-remoto' },
+      { label: 'QA Engineer Remoto', href: '/trabajos/qa-engineer-remoto' },
+    ];
+    try {
+      const jobsRes = await pool.query(
+        "SELECT title, category, location FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 150"
+      );
+      const jobs = jobsRes.rows || [];
+      const candidates = new Map<string, { label: string; href: string; count: number }>();
+
+      const POPULAR_TECHS = [
+        { name: 'React', slug: 'react', keywords: ['react'] },
+        { name: 'Angular', slug: 'angular', keywords: ['angular'] },
+        { name: 'Vue', slug: 'vue', keywords: ['vue'] },
+        { name: 'Node', slug: 'node', keywords: ['node', 'nodejs'] },
+        { name: 'Python', slug: 'python', keywords: ['python'] },
+        { name: 'Java', slug: 'java', keywords: ['java'] },
+        { name: 'PHP', slug: 'php', keywords: ['php'] },
+        { name: 'DevOps', slug: 'devops', keywords: ['devops', 'dev ops', 'site reliability'] },
+        { name: 'TypeScript', slug: 'typescript', keywords: ['typescript'] },
+        { name: 'Fullstack', slug: 'fullstack', keywords: ['fullstack', 'full stack'] },
+        { name: 'QA Engineer', slug: 'qa-engineer', keywords: ['qa', 'tester'] },
+        { name: 'Data Analyst', slug: 'data-analyst', keywords: ['data analyst', 'analista de datos'] },
+      ];
+      const POPULAR_CITIES = [
+        { name: 'Madrid', slug: 'madrid', keywords: ['madrid'] },
+        { name: 'Barcelona', slug: 'barcelona', keywords: ['barcelona'] },
+        { name: 'Valencia', slug: 'valencia', keywords: ['valencia'] },
+        { name: 'Bilbao', slug: 'bilbao', keywords: ['bilbao'] },
+        { name: 'Sevilla', slug: 'sevilla', keywords: ['sevilla'] },
+        { name: 'Málaga', slug: 'malaga', keywords: ['malaga', 'málaga'] },
+        { name: 'Remoto', slug: 'remoto', keywords: ['remoto', 'remote', 'teletrabajo'] },
+      ];
+
+      for (const job of jobs) {
+        const titleLower = (job.title || '').toLowerCase();
+        const locLower = (job.location || '').toLowerCase();
+        const tech = POPULAR_TECHS.find(t => t.keywords.some(k => titleLower.includes(k)));
+        if (!tech) continue;
+        const city = POPULAR_CITIES.find(c => c.keywords.some(k => locLower.includes(k)));
+        if (!city) continue;
+        const key = `${tech.slug}-${city.slug}`;
+        const existing = candidates.get(key);
+        if (existing) {
+          existing.count++;
+        } else {
+          const label = city.slug === 'remoto' ? `${tech.name} Remoto` : `${tech.name} en ${city.name}`;
+          const href = city.slug === 'remoto' ? `/trabajos/${tech.slug}-remoto` : `/trabajos/${tech.slug}-en-${city.slug}`;
+          candidates.set(key, { label, href, count: 1 });
+        }
+      }
+      if (candidates.size > 0) {
+        const sorted = Array.from(candidates.values()).sort((a, b) => b.count - a.count).slice(0, 15);
+        if (sorted.length >= 5) return sorted.map(item => ({ label: item.label, href: item.href }));
+      }
+    } catch (e) {
+      console.error("Error generating dynamic footer links:", e);
+    }
+    return DEFAULT_LINKS;
+  },
+  ['footer-programmatic-links'],
+  { revalidate: 3600, tags: ['footer'] }
+);
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default async function Footer() {
   const currentYear = new Date().getFullYear();
-  let activeJobsCount = 12450;
-  
-  try {
-    const res = await pool.query("SELECT COUNT(*) as count FROM jobs WHERE is_active = TRUE");
-    activeJobsCount = parseInt(res.rows[0]?.count || '12450', 10);
-  } catch (e) {
-    console.error("Error loading jobs count for footer:", e);
-  }
+
+  // Datos cacheados: solo se ejecuta SQL una vez por hora por el servidor
+  const [activeJobsCount, programmaticLinks] = await Promise.all([
+    getCachedJobsCount(),
+    getCachedProgrammaticLinks(),
+  ]);
 
   const categories = [
     { label: 'Desarrollo Frontend', href: '/trabajos/frontend' },
@@ -20,94 +110,19 @@ export default async function Footer() {
     { label: 'Desarrollo Mobile', href: '/trabajos/mobile' },
   ];
 
-  let programmaticLinks = [
-    { label: 'React en Madrid', href: '/trabajos/react-en-madrid' },
-    { label: 'React Remoto', href: '/trabajos/react-remoto' },
-    { label: 'Java en Barcelona', href: '/trabajos/java-en-barcelona' },
-    { label: 'Java Remoto', href: '/trabajos/java-remoto' },
-    { label: 'Python Remoto', href: '/trabajos/python-remoto' },
-    { label: 'DevOps Remoto', href: '/trabajos/devops-remoto' },
-    { label: 'Fullstack Remoto', href: '/trabajos/fullstack-remoto' },
-    { label: 'Angular en Madrid', href: '/trabajos/angular-en-madrid' },
-    { label: 'Node Remoto', href: '/trabajos/node-remoto' },
-    { label: 'QA Engineer Remoto', href: '/trabajos/qa-engineer-remoto' },
-  ];
-
-  try {
-    const jobsRes = await pool.query(
-      "SELECT title, category, location FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 150"
-    );
-    const jobs = jobsRes.rows || [];
-    const candidates = new Map<string, { label: string; href: string; count: number }>();
-    
-    const POPULAR_TECHS = [
-      { name: 'React', slug: 'react', keywords: ['react'] },
-      { name: 'Angular', slug: 'angular', keywords: ['angular'] },
-      { name: 'Vue', slug: 'vue', keywords: ['vue'] },
-      { name: 'Node', slug: 'node', keywords: ['node', 'nodejs'] },
-      { name: 'Python', slug: 'python', keywords: ['python'] },
-      { name: 'Java', slug: 'java', keywords: ['java'] },
-      { name: 'PHP', slug: 'php', keywords: ['php'] },
-      { name: 'DevOps', slug: 'devops', keywords: ['devops', 'dev ops', 'site reliability'] },
-      { name: 'TypeScript', slug: 'typescript', keywords: ['typescript'] },
-      { name: 'Fullstack', slug: 'fullstack', keywords: ['fullstack', 'full stack'] },
-      { name: 'QA Engineer', slug: 'qa-engineer', keywords: ['qa', 'tester'] },
-      { name: 'Data Analyst', slug: 'data-analyst', keywords: ['data analyst', 'analista de datos'] },
-    ];
-
-    const POPULAR_CITIES = [
-      { name: 'Madrid', slug: 'madrid', keywords: ['madrid'] },
-      { name: 'Barcelona', slug: 'barcelona', keywords: ['barcelona'] },
-      { name: 'Valencia', slug: 'valencia', keywords: ['valencia'] },
-      { name: 'Bilbao', slug: 'bilbao', keywords: ['bilbao'] },
-      { name: 'Sevilla', slug: 'sevilla', keywords: ['sevilla'] },
-      { name: 'Málaga', slug: 'malaga', keywords: ['malaga', 'málaga'] },
-      { name: 'Remoto', slug: 'remoto', keywords: ['remoto', 'remote', 'teletrabajo'] },
-    ];
-
-    for (const job of jobs) {
-      const titleLower = (job.title || '').toLowerCase();
-      const locLower = (job.location || '').toLowerCase();
-      
-      const tech = POPULAR_TECHS.find(t => t.keywords.some(k => titleLower.includes(k)));
-      if (!tech) continue;
-      
-      const city = POPULAR_CITIES.find(c => c.keywords.some(k => locLower.includes(k)));
-      if (!city) continue;
-      
-      const key = `${tech.slug}-${city.slug}`;
-      const existing = candidates.get(key);
-      
-      if (existing) {
-        existing.count++;
-      } else {
-        const label = city.slug === 'remoto' 
-          ? `${tech.name} Remoto` 
-          : `${tech.name} en ${city.name}`;
-        const href = city.slug === 'remoto'
-          ? `/trabajos/${tech.slug}-remoto`
-          : `/trabajos/${tech.slug}-en-${city.slug}`;
-        candidates.set(key, { label, href, count: 1 });
-      }
-    }
-
-    if (candidates.size > 0) {
-      const sorted = Array.from(candidates.values())
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 15);
-      if (sorted.length >= 5) {
-        programmaticLinks = sorted.map(item => ({ label: item.label, href: item.href }));
-      }
-    }
-  } catch (e) {
-    console.error("Error generating dynamic footer links:", e);
-  }
-
   const navigation = [
     { label: 'Inicio', href: '/' },
     { label: 'Buscador de Empleo', href: '/trabajos/informatica-tecnologia' },
     { label: '💻 Trabajo Remoto', href: '/trabajo-remoto' },
-    { label: '💰 Calculadora de Salarios', href: '/salarios' },
+    { label: '🏠 Empresas en Remoto', href: '/empresas-remotas' },
+    {label: '💰 Calculadora de Salarios', href: '/salarios' },
+    { label: '📊 Salarios por Nivel de Experiencia', href: '/salarios/por-nivel' },
+    { label: '🏢 Salarios por Empresa', href: '/salarios/por-empresa' },
+    { label: '📘 Guía de Salarios IT', href: '/recursos/guia-salarios-it' },
+    { label: '🎯 Preguntas de Entrevistas', href: '/entrevistas' },
+    { label: '🎓 Hub de Guías de Carrera IT', href: '/convertirse-en' },
+    { label: '🎓 Prácticas y Becas IT', href: '/practicas-informatica' },
+    { label: '⚖️ Directorio de Comparativas', href: '/comparar' },
     { label: '🏢 Directorio de Empresas', href: '/empresas' },
     { label: 'Talento Premium', href: '/talento-premium' },
     { label: 'Publicar Oferta', href: '/publicar-oferta' },

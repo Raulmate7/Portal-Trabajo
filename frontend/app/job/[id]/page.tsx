@@ -12,7 +12,7 @@ import PushSubscribe from '@/components/PushSubscribe';
 import { ReferralWidget } from '@/components/Widgets';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { BASE_URL } from '@/lib/constants';
-import { getJobSlug, getNumericId } from '@/lib/slug';
+import { getJobSlug, getNumericId, slugify } from '@/lib/slug';
 import SaveJobButton from '@/components/SaveJobButton';
 import ReactionButton from '@/components/ReactionButton';
 import { getJobReactions } from '@/app/actions';
@@ -28,7 +28,8 @@ const TECNOLOGIAS = [
   'react', 'angular', 'vue', 'node', 'python', 'java', 'php', 'csharp', 'ruby', 'go', 
   'javascript', 'typescript', 'aws', 'docker', 'kubernetes', 'backend', 'frontend', 
   'data', 'cloud', 'mobile', 'nextjs', 'flutter', 'kotlin', 'swift', 'sql', 'salesforce', 
-  'cybersecurity'
+  'cybersecurity', 'graphql', 'redis', 'mongodb', 'django', 'fastapi', 'spring-boot',
+  'laravel', 'spark', 'kafka', 'linux', 'azure', 'gcp', 'jenkins', 'ansible'
 ];
 
 const DISPLAY_NAMES: Record<string, string> = {
@@ -58,7 +59,21 @@ const DISPLAY_NAMES: Record<string, string> = {
   'frontend': 'Frontend',
   'data': 'Data',
   'cloud': 'Cloud',
-  'mobile': 'Mobile'
+  'mobile': 'Mobile',
+  'graphql': 'GraphQL',
+  'redis': 'Redis',
+  'mongodb': 'MongoDB',
+  'django': 'Django',
+  'fastapi': 'FastAPI',
+  'spring-boot': 'Spring Boot',
+  'laravel': 'Laravel',
+  'spark': 'Apache Spark',
+  'kafka': 'Apache Kafka',
+  'linux': 'Linux',
+  'azure': 'Azure',
+  'gcp': 'Google Cloud',
+  'jenkins': 'Jenkins',
+  'ansible': 'Ansible'
 };
 
 function textToHtml(text: string | null | undefined): string {
@@ -481,7 +496,39 @@ export default async function JobPage({ params, searchParams }: Props) {
   const datePosted = new Date(job.created_at);
   const validThroughDate = new Date(datePosted.getTime() + 45 * 24 * 60 * 60 * 1000);
 
-  const baseSalaryObj = parseSalarySchema(job.salary);
+  let baseSalaryObj = null;
+  if (job.salary_min || job.salary_max) {
+    const minVal = job.salary_min ? Math.round(parseFloat(job.salary_min.toString())) : null;
+    const maxVal = job.salary_max ? Math.round(parseFloat(job.salary_max.toString())) : null;
+    const currency = job.salary_currency || 'EUR';
+    
+    if (minVal && maxVal && minVal >= 1000 && maxVal <= 1000000) {
+      baseSalaryObj = {
+        "@type": "MonetaryAmount",
+        "currency": currency,
+        "value": {
+          "@type": "QuantitativeValue",
+          "minValue": minVal,
+          "maxValue": maxVal,
+          "unitText": "YEAR"
+        }
+      };
+    } else if ((minVal || maxVal) && (minVal || maxVal)! >= 1000) {
+      baseSalaryObj = {
+        "@type": "MonetaryAmount",
+        "currency": currency,
+        "value": {
+          "@type": "QuantitativeValue",
+          "value": minVal || maxVal,
+          "unitText": "YEAR"
+        }
+      };
+    }
+  }
+  
+  if (!baseSalaryObj) {
+    baseSalaryObj = parseSalarySchema(job.salary);
+  }
 
   let countryCode = 'ES';
   const cleanLocationForLd = job.location ? job.location.toLowerCase().trim() : '';
@@ -709,6 +756,18 @@ export default async function JobPage({ params, searchParams }: Props) {
             ? `The job is located in ${job.location || 'remote (telecommuting)'}.`
             : `El empleo está ubicado en ${job.location || 'remoto (teletrabajo)'}.`
         }
+      },
+      {
+        '@type': 'Question',
+        'name': isEnglish
+          ? `How can I apply for this position at ${hiringOrgName}?`
+          : `¿Cómo puedo inscribirme a esta oferta en ${hiringOrgName}?`,
+        'acceptedAnswer': {
+          '@type': 'Answer',
+          'text': isEnglish
+            ? `Click on the 'Apply for Job' button to access the candidacy form and send your resume directly.`
+            : `Haz clic en el botón 'Solicitar Empleo' para acceder al proceso de candidaturas e inscribirte directamente.`
+        }
       }
     ]
   };
@@ -845,30 +904,64 @@ export default async function JobPage({ params, searchParams }: Props) {
                   </div>
                 )}
 
-                {/* Enlaces de Interlinking de SEO */}
-                {detectedTec && tecLabel && (
-                  <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-100 text-sm text-gray-600 leading-relaxed mb-8">
-                    <span className="font-bold text-gray-700 block mb-1">
-                      {isEnglish ? '🔍 Related Searches:' : '🔍 Búsquedas Relacionadas:'}
-                    </span>
-                    {isEnglish ? 'Looking for more opportunities? Explore jobs for ' : '¿Buscas más oportunidades? Explora ofertas de '}
-                    <Link href={sectorUrl!} className="text-indigo-600 hover:text-indigo-800 font-semibold hover:underline capitalize">
-                      {tecLabel}
-                    </Link>
-                    {job.location && (
+                {/* Enlaces de Interlinking Contextual de SEO */}
+                <div className="mt-6 p-5 bg-gradient-to-r from-gray-50 to-indigo-50/40 rounded-2xl border border-gray-200/80 text-sm text-gray-700 leading-relaxed mb-8 shadow-sm">
+                  <span className="font-extrabold text-indigo-950 block mb-2 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                    <span>🔍</span> {isEnglish ? 'Related Navigation & Resources' : 'Navegación y Recursos Relacionados'}
+                  </span>
+                  <div className="flex flex-wrap gap-2.5 text-xs font-semibold">
+                    {job.company && job.company !== 'Desconocida' && (
+                      <Link 
+                        href={`/empresas/${slugify(job.company)}${queryParam}`}
+                        className="px-3 py-1.5 bg-white border border-indigo-100 rounded-lg text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all shadow-2xs"
+                      >
+                        🏢 {isEnglish ? `View all ${job.company} jobs` : `Ver todas las ofertas de ${job.company}`}
+                      </Link>
+                    )}
+                    {detectedTec && tecLabel && (
                       <>
-                        {isEnglish ? ' or ' : ' o '}
-                        <Link href={sectorLocationUrl!} className="text-indigo-600 hover:text-indigo-800 font-semibold hover:underline capitalize">
-                          {tecLabel} {isRemoteLoc ? (isEnglish ? 'remote' : 'en remoto') : (isEnglish ? `in ${job.location}` : `en ${job.location}`)}
+                        <Link 
+                          href={sectorUrl!}
+                          className="px-3 py-1.5 bg-white border border-indigo-100 rounded-lg text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all shadow-2xs"
+                        >
+                          💻 {isEnglish ? `Jobs for ${tecLabel}` : `Ofertas de ${tecLabel}`}
+                        </Link>
+                        {sectorLocationUrl && (
+                          <Link 
+                            href={sectorLocationUrl}
+                            className="px-3 py-1.5 bg-white border border-indigo-100 rounded-lg text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all shadow-2xs"
+                          >
+                            📍 {tecLabel} {isRemoteLoc ? (isEnglish ? 'remote' : 'en remoto') : (isEnglish ? `in ${job.location}` : `en ${job.location}`)}
+                          </Link>
+                        )}
+                        <Link 
+                          href={`/salarios/${detectedTec}${queryParam}`}
+                          className="px-3 py-1.5 bg-white border border-indigo-100 rounded-lg text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all shadow-2xs"
+                        >
+                          💰 {isEnglish ? `${tecLabel} Salaries` : `Salarios de ${tecLabel}`}
+                        </Link>
+                        <Link 
+                          href={`/entrevistas/${detectedTec}${queryParam}`}
+                          className="px-3 py-1.5 bg-white border border-indigo-100 rounded-lg text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all shadow-2xs"
+                        >
+                          🎯 {isEnglish ? `${tecLabel} Interview Questions` : `Preguntas de Entrevista ${tecLabel}`}
+                        </Link>
+                        <Link 
+                          href={`/trabajos/${detectedTec}-mid${queryParam}`}
+                          className="px-3 py-1.5 bg-white border border-indigo-100 rounded-lg text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all shadow-2xs"
+                        >
+                          📈 {isEnglish ? `${tecLabel} Mid-Level Jobs` : `Ofertas ${tecLabel} Mid-Level`}
+                        </Link>
+                        <Link 
+                          href={`/glosario/${detectedTec}${queryParam}`}
+                          className="px-3 py-1.5 bg-white border border-indigo-100 rounded-lg text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all shadow-2xs"
+                        >
+                          📖 {isEnglish ? `${tecLabel} Glossary` : `Glosario: Qué es ${tecLabel}`}
                         </Link>
                       </>
                     )}
-                    . {isEnglish ? 'You can also view all offers for ' : ' También puedes ver todas las ofertas de y para '}
-                    <Link href="/trabajos/informatica-tecnologia" className="text-indigo-600 hover:text-indigo-800 font-semibold hover:underline">
-                      {isEnglish ? 'IT and Technology' : 'Informática y Tecnología'}
-                    </Link>.
                   </div>
-                )}
+                </div>
 
                 <CourseAffiliate title={job.title} />
 
@@ -894,6 +987,25 @@ export default async function JobPage({ params, searchParams }: Props) {
             </div>
 
 
+
+            {/* Sección Visual de Preguntas Frecuentes (FAQ) */}
+            <div className="mt-8 bg-white p-6 rounded-2xl border border-gray-150 shadow-sm space-y-4">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <span>❓</span> {isEnglish ? `Frequently Asked Questions about this position` : `Preguntas Frecuentes sobre esta Vacante`}
+              </h3>
+              <div className="space-y-3 pt-2">
+                {faqJsonLd.mainEntity.map((faq: any, idx: number) => (
+                  <div key={idx} className="p-4 rounded-xl bg-gray-50 border border-gray-100/80">
+                    <h4 className="text-sm font-extrabold text-indigo-950 mb-1.5 flex items-start gap-2">
+                      <span className="text-indigo-600 font-black">Q:</span> {faq.name}
+                    </h4>
+                    <p className="text-xs text-gray-650 leading-relaxed pl-6">
+                      {faq.acceptedAnswer.text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
 
             {/* Ofertas Recomendadas */}
             {similarJobs && similarJobs.length > 0 && (

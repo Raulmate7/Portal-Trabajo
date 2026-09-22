@@ -4,6 +4,40 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { sendGAEvent } from '@next/third-parties/google';
 
+// ─── Singleton de actividad del usuario ──────────────────────────────────────
+// En lugar de registrar 5 event listeners por cada instancia de AdBanner,
+// mantenemos un único listener global y usamos ref-counting para liberarlo
+// cuando ya no haya ningún banner montado en el DOM.
+let lastActivityTimestamp = Date.now();
+let activityListenerCount = 0;
+
+const handleGlobalActivity = () => { lastActivityTimestamp = Date.now(); };
+
+function subscribeActivityTracker(): () => void {
+  if (typeof window === 'undefined') return () => {};
+  activityListenerCount++;
+  if (activityListenerCount === 1) {
+    // Solo registramos los listeners la primera vez
+    window.addEventListener('scroll', handleGlobalActivity, { passive: true });
+    window.addEventListener('click', handleGlobalActivity, { passive: true });
+    window.addEventListener('mousemove', handleGlobalActivity, { passive: true });
+    window.addEventListener('keydown', handleGlobalActivity, { passive: true });
+    window.addEventListener('touchstart', handleGlobalActivity, { passive: true });
+  }
+  return () => {
+    activityListenerCount--;
+    if (activityListenerCount === 0) {
+      // Solo eliminamos cuando el último banner se desmonta
+      window.removeEventListener('scroll', handleGlobalActivity);
+      window.removeEventListener('click', handleGlobalActivity);
+      window.removeEventListener('mousemove', handleGlobalActivity);
+      window.removeEventListener('keydown', handleGlobalActivity);
+      window.removeEventListener('touchstart', handleGlobalActivity);
+    }
+  };
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 
 // Banners de afiliado internos (no AdSense) — rápidos, sin JS externo, sin ad-blockers.
 const UDEMY_LINK = "https://trk.udemy.com/9VMAEj";
@@ -220,7 +254,6 @@ export default function AdBanner({
   const insRef = useRef<HTMLModElement>(null);
   const initializedRef = useRef(false);
   const refreshCountRef = useRef(0);
-  const lastActivityRef = useRef<number>(Date.now());
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Refs de métricas de visibilidad
@@ -230,25 +263,8 @@ export default function AdBanner({
   const viewTimer1s = useRef<NodeJS.Timeout | null>(null);
   const viewTimer5s = useRef<NodeJS.Timeout | null>(null);
 
-  // Escuchar actividad del usuario de forma global para comprobar inactividad
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const handleActivity = () => {
-      lastActivityRef.current = Date.now();
-    };
-    window.addEventListener('scroll', handleActivity, { passive: true });
-    window.addEventListener('click', handleActivity, { passive: true });
-    window.addEventListener('mousemove', handleActivity, { passive: true });
-    window.addEventListener('keydown', handleActivity, { passive: true });
-    window.addEventListener('touchstart', handleActivity, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', handleActivity);
-      window.removeEventListener('click', handleActivity);
-      window.removeEventListener('mousemove', handleActivity);
-      window.removeEventListener('keydown', handleActivity);
-      window.removeEventListener('touchstart', handleActivity);
-    };
-  }, []);
+  // Suscripción al singleton de actividad global (1 listener en window por todos los banners)
+  useEffect(() => subscribeActivityTracker(), []);
 
   // Reiniciar estado e inicialización cuando cambia refreshKey
   useEffect(() => {
@@ -356,7 +372,7 @@ export default function AdBanner({
               if (enableRefresh && refreshCountRef.current < 5) {
                 if (timerRef.current) clearTimeout(timerRef.current);
                 timerRef.current = setTimeout(() => {
-                  const inactiveTime = Date.now() - lastActivityRef.current;
+                  const inactiveTime = Date.now() - lastActivityTimestamp;
                   if (inactiveTime < 45000) {
                     refreshCountRef.current += 1;
                     setRefreshKey(prev => prev + 1);

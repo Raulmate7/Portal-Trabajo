@@ -151,6 +151,69 @@ TOPICS = [
         "excerpt": "El despliegue manual ha muerto. Aprende a configurar pipelines de integración y entrega continua para subir tu código a producción automáticamente.",
         "keywords": ["ci-cd", "github actions", "automatizacion despliegue", "devops basico", "pipelines de integracion"],
         "prompt_outline": "Define el concepto y beneficios de Integración Continua (CI) y Despliegue Continuo (CD). Explica la estructura de un archivo workflow YAML de GitHub Actions. Muestra un pipeline práctico que ejecuta pruebas unitarias, linting y realiza el despliegue automático."
+    },
+    {
+        "slug": "aprender-rust-guia-primeros-pasos",
+        "title": "Por qué aprender Rust en 2026: Guía práctica para desarrolladores",
+        "excerpt": "Rust es el lenguaje más amado por los programadores durante años. Descubre su modelo de propiedad (ownership), cómo previene errores de memoria y sus principales casos de uso.",
+        "keywords": ["rust", "aprender rust", "ownership rust", "lenguaje rust", "programacion de sistemas"],
+        "prompt_outline": "Explica la filosofía de Rust y por qué destaca frente a C++ o Go. Detalla el sistema de Ownership, Borrowing y Lifetimes con ejemplos de código. Explica cómo crear un proyecto con Cargo y sus salidas profesionales en backend de alto rendimiento, blockchain y WebAssembly."
+    },
+    {
+        "slug": "graphql-vs-rest-apis-web-modernas",
+        "title": "GraphQL vs REST API: Cuándo y cómo elegir para tu arquitectura web",
+        "excerpt": "Analizamos las ventajas y desventajas de GraphQL frente a las tradicionales REST APIs. Descubre cómo resolver el problema de over-fetching y under-fetching.",
+        "keywords": ["graphql", "rest api", "graphql vs rest", "backend apis", "desarrollo web"],
+        "prompt_outline": "Compara REST y GraphQL. Explica conceptos como Schemas, Queries, Mutations y Resolvers en GraphQL. Analiza el impacto en rendimiento, sobrecarga de red, cacheo HTTP y cuándo vale la pena migrar."
+    },
+    {
+        "slug": "nextjs-15-app-router-buenas-practicas",
+        "title": "Next.js 15 App Router: Buenas prácticas y patrones de rendimiento",
+        "excerpt": "Saca el máximo partido al App Router de Next.js 15. Domina Server Components, Server Actions, Caching avanzado e Invalidation estratégica.",
+        "keywords": ["nextjs 15", "app router", "react server components", "server actions", "nextjs rendimiento"],
+        "prompt_outline": "Explica la diferencia entre Pages Router y App Router. Detalla Server Components vs Client Components, el uso de Server Actions para formularios y estrategias de revalidación con revalidatePath y revalidateTag."
+    },
+    {
+        "slug": "terraform-infraestructura-como-codigo-aws",
+        "title": "Aprovisionamiento Cloud con Terraform y AWS: De Cero a Producción",
+        "excerpt": "Aprende a gestionar infraestructuras complejas en AWS usando código limpio en HCL con Terraform. Despliega VPCs, instancias EC2 y clusters de Kubernetes.",
+        "keywords": ["terraform", "aws", "iac", "infraestructura como codigo", "devops terraform"],
+        "prompt_outline": "Explica qué es IaC y el funcionamiento del estado de Terraform (tfstate). Enseña a crear un archivo main.tf declarativo para levantar recursos en AWS y cómo gestionar módulos reutilizables."
+    },
+    {
+        "slug": "sre-site-reliability-engineering-guia",
+        "title": "Qué es un Site Reliability Engineer (SRE) y cómo convertirse en uno",
+        "excerpt": "Descubre la profesión de SRE: la convergencia definitiva entre ingeniería de software y operaciones de sistemas. Conoce sus métricas clave como SLOs, SLAs y Error Budgets.",
+        "keywords": ["sre", "site reliability engineering", "slo sla error budget", "carrera devops", "salario sre"],
+        "prompt_outline": "Define el rol de SRE acuñado por Google. Explica la diferencia entre DevOps y SRE. Detalla las métricas de fiabilidad (SLI, SLO, SLA) y el concepto de Error Budget para equilibrar innovación y estabilidad."
+    },
+    {
+        "slug": "angular-vs-react-vs-vue-2026",
+        "title": "Angular vs React vs Vue en 2026: ¿Qué framework de frontend aprender?",
+        "excerpt": "Comparamos la trinidad del frontend moderno. Analizamos demanda laboral en España, ecosistemas, curvas de aprendizaje y salarios promedios.",
+        "keywords": ["angular vs react", "vue vs react", "frameworks frontend", "demanda frontend españa", "salarios react angular"],
+        "prompt_outline": "Compara Angular, React y Vue. Analiza la adopción en empresas grandes vs startups en España, el rendimiento, la facilidad de mantenimiento a largo plazo y las estimaciones salariales para cada perfil."
+    },
+    {
+        "slug": "ciberseguridad-para-programadores-web",
+        "title": "Ciberseguridad práctica para desarrolladores web: Buenas prácticas esenciales",
+        "excerpt": "La seguridad no se puede añadir al final. Descubre cómo proteger tus aplicaciones web desde la primera línea de código frente a amenazas reales.",
+        "keywords": ["ciberseguridad web", "seguridad programacion", "owasp", "sanitizacion datos", "autenticacion segura"],
+        "prompt_outline": "Explica la filosofía de 'Security by Design'. Detalla cómo implementar autenticación JWT segura, gestión de cookies HttpOnly/SameSite, protección CSRF y prevención de Inyección SQL/XSS con ejemplos en código."
+    },
+    {
+        "slug": "como-crear-portfolio-programador-destacar",
+        "title": "Cómo crear un portfolio de programador que te consiga entrevistas en 2026",
+        "excerpt": "Tu portfolio es tu carta de presentación técnica. Aprende qué proyectos incluir, cómo presentar tu código en GitHub y qué buscan realmente los reclutadores.",
+        "keywords": ["portfolio programador", "proyectos github", "conseguir trabajo IT", "curriculum desarrollador", "entrevista reclutador"],
+        "prompt_outline": "Explica las características de un portfolio técnico de alto impacto. Describe qué proyectos incluir (proyectos reales con APIs vs clones de tutoriales). Da consejos sobre READMEs profesionales en GitHub y desplegar en Vercel/Netlify."
+    },
+    {
+        "slug": "devops-roadmap-de-junior-a-senior",
+        "title": "Roadmap completo de DevOps 2026: De Junior a Senior paso a paso",
+        "excerpt": "DevOps sigue siendo una de las especializaciones mejor pagadas del sector IT. Explora las herramientas y conceptos clave para progresar en esta carrera.",
+        "keywords": ["devops roadmap", "aprender devops", "salario devops", "carrera devops", "ci cd cloud"],
+        "prompt_outline": "Traza el roadmap progresivo para un profesional DevOps. Desde Linux/Networking básico, Git, Docker, CI/CD con GitHub Actions/GitLab, Terraform, Kubernetes hasta observabilidad con Prometheus/Grafana."
     }
 ]
 
@@ -242,7 +305,7 @@ Instrucciones de formato e interlinking para maximizar el SEO y AdSense (E-E-A-T
 
 def run_weekly_generator():
     load_dotenv()
-    print("🤖 Iniciando Generador Semanal Inteligente de Artículos (Gemini + SEO)...")
+    print("🤖 Iniciando Generador Inteligente de Artículos (Gemini + SEO)...")
     
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
@@ -257,7 +320,7 @@ def run_weekly_generator():
     try:
         conn = psycopg2.connect(db_url)
         
-        # --- Control de frecuencia (máximo 1 artículo cada 7 días) ---
+        # --- Control de frecuencia (máximo 1 artículo cada 12 horas) ---
         cur = conn.cursor()
         cur.execute("SELECT date FROM blog_posts ORDER BY date DESC LIMIT 1")
         row = cur.fetchone()
@@ -270,10 +333,10 @@ def run_weekly_generator():
             else:
                 last_date = datetime.combine(last_date_val, datetime.min.time()) if hasattr(last_date_val, 'year') else datetime.now()
                 
-            days_since_last = (datetime.now() - last_date).days
-            if days_since_last < 7:
-                print(f"⏳ El último post fue publicado el {last_date.strftime('%Y-%m-%d')} (hace {days_since_last} días).")
-                print("⏭️ Aún no han pasado 7 días desde la última publicación. Omitiendo generación.")
+            hours_since_last = (datetime.now() - last_date).total_seconds() / 3600
+            if hours_since_last < 12:
+                print(f"⏳ El último post fue publicado hace {hours_since_last:.1f} horas.")
+                print("⏭️ Aún no han pasado 12 horas desde la última publicación. Omitiendo generación.")
                 conn.close()
                 return
         # --------------------------------------------------------------

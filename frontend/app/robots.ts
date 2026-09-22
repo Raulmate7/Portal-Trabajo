@@ -33,18 +33,6 @@ export default function robots(): MetadataRoute.Robots {
           '/*?date_range=',
           '/*?*date_range=',
         ],
-      },
-      {
-        // Bloquear bots de IA / scrapers
-        userAgent: [
-          'GPTBot',
-          'ChatGPT-User',
-          'CCBot',
-          'anthropic-ai',
-          'Claude-Web',
-          'cohere-ai',
-        ],
-        disallow: '/'
       }
     ],
     sitemap: [

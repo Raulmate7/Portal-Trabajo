@@ -8,7 +8,7 @@ import { Metadata } from "next";
 import { BASE_URL } from "@/lib/constants";
 import CompareClientHelper from './CompareClientHelper';
 
-export const revalidate = 300; // Cache de 5 minutos — los datos de oferta comparada no cambian a cada segundo
+export const revalidate = 3600; // Cache de 1 hora — los datos de comparación son estables
 
 type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;

@@ -192,10 +192,53 @@ export default async function CityLandingPage({ citySlug, cityName, searchParams
     }))
   };
 
+  const top3Jobs = jobs.slice(0, 3);
+  const jobPostingSchemas = top3Jobs.map((job: any) => {
+    const isRemote = job.location.toLowerCase().includes('remoto') || job.location.toLowerCase().includes('teletrabajo') || job.location.toLowerCase().includes('remote');
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'JobPosting',
+      title: job.title_es || job.title,
+      description: job.description_snippet || `Oferta de empleo para ${job.title_es || job.title} en ${job.company}`,
+      datePosted: (() => {
+        try {
+          const d = new Date(job.created_at);
+          return !isNaN(d.getTime()) ? d.toISOString() : new Date().toISOString();
+        } catch {
+          return new Date().toISOString();
+        }
+      })(),
+      hiringOrganization: {
+        '@type': 'Organization',
+        name: job.company || 'Empresa IT'
+      },
+      identifier: {
+        '@type': 'PropertyValue',
+        name: job.company || 'Empresa IT',
+        value: `job-${job.id}`
+      },
+      jobLocation: {
+        '@type': 'Place',
+        address: {
+          '@type': 'PostalAddress',
+          addressLocality: cityName,
+          addressCountry: 'ES'
+        }
+      },
+      jobLocationType: isRemote ? 'TELECOMMUTE' : undefined
+    };
+  });
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
       {prevUrl && <link rel="prev" href={prevUrl} />}
       {nextUrl && <link rel="next" href={nextUrl} />}
+      <link 
+        rel="alternate" 
+        type="application/rss+xml" 
+        title={`Portal Trabajo IT — Feed de Empleo en ${cityName}`} 
+        href={`${BASE_URL}/feed.xml?location=${encodeURIComponent(cityName)}`} 
+      />
       
       <script 
         type="application/ld+json" 
@@ -205,6 +248,13 @@ export default async function CityLandingPage({ citySlug, cityName, searchParams
         type="application/ld+json" 
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} 
       />
+      {jobPostingSchemas.map((schema: any, idx: number) => (
+        <script 
+          key={`job-schema-${idx}`}
+          type="application/ld+json" 
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} 
+        />
+      ))}
 
       {/* Hero Section Premium */}
       <section className="relative bg-slate-900 text-white overflow-hidden py-16 px-4 sm:px-6 lg:px-8 shadow-inner">

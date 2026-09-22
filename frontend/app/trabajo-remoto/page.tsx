@@ -126,10 +126,58 @@ export default async function RemoteLandingPage({ searchParams }: Props) {
   const prevUrl = isPaged ? `${BASE_URL}/trabajo-remoto${validPage > 2 ? `?page=${validPage - 1}` : ''}` : null;
   const nextUrl = hasNextPage ? `${BASE_URL}/trabajo-remoto?page=${validPage + 1}` : null;
 
+  const howToJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'HowTo',
+    name: 'Cómo Triunfar Buscando Empleo Remoto IT',
+    description: 'Tres pasos clave para destacar tu candidatura en ofertas de teletrabajo de programación.',
+    step: [
+      {
+        '@type': 'HowToStep',
+        position: 1,
+        name: 'Portfolio de GitHub Sólido',
+        text: 'En remoto tu código habla por ti. Mantén tus repositorios limpios y documenta la arquitectura de tus proyectos.'
+      },
+      {
+        '@type': 'HowToStep',
+        position: 2,
+        name: 'Comunicación Asíncrona Eficiente',
+        text: 'La comunicación escrita es la columna vertebral de los equipos remotos.'
+      },
+      {
+        '@type': 'HowToStep',
+        position: 3,
+        name: 'Herramientas de Colaboración',
+        text: 'Familiarízate con herramientas de gestión ágil (Jira, Trello, Linear) y control de versiones.'
+      }
+    ]
+  };
+
+  const itemListJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Ofertas de Empleo IT 100% Remoto en España',
+    numberOfItems: jobs.length,
+    itemListElement: jobs.map((job: any, idx: number) => ({
+      '@type': 'ListItem',
+      position: idx + 1,
+      name: job.title,
+      url: `${BASE_URL}/job/${job.id}`
+    }))
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
       {prevUrl && <link rel="prev" href={prevUrl} />}
       {nextUrl && <link rel="next" href={nextUrl} />}
+      <script 
+        type="application/ld+json" 
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }} 
+      />
+      <script 
+        type="application/ld+json" 
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} 
+      />
 
       {/* Hero Section Premium */}
       <section className="relative bg-slate-900 text-white overflow-hidden py-16 px-4 sm:px-6 lg:px-8 shadow-inner">
@@ -141,9 +189,9 @@ export default async function RemoteLandingPage({ searchParams }: Props) {
           <span className="inline-flex items-center gap-1.5 text-xs text-indigo-300 font-bold bg-indigo-500/10 border border-indigo-500/20 px-3.5 py-1.5 rounded-full mb-6 uppercase tracking-wider animate-pulse">
             💻 Modalidad Teletrabajo
           </span>
-          <h2 className="text-4xl sm:text-5xl font-black tracking-tight text-white mb-6 leading-tight">
+          <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-white mb-6 leading-tight">
             Trabajo Remoto IT para <span className="bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400 bg-clip-text text-transparent">Programadores y Techs</span>
-          </h2>
+          </h1>
           <p className="text-lg sm:text-xl text-indigo-100 max-w-3xl mx-auto leading-relaxed mb-8">
             Encuentra las mejores oportunidades en programación, sistemas y datos 100% remotas de España y del extranjero. Sin desplazamientos, con flexibilidad horaria y conciliación real.
           </p>

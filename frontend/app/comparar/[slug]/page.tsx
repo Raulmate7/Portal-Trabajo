@@ -23,6 +23,8 @@ const labelMap: Record<string, string> = {
   'go': 'Go',
   'rust': 'Rust',
   'aws': 'AWS',
+  'azure': 'Azure',
+  'gcp': 'Google Cloud',
   'kubernetes': 'Kubernetes',
   'typescript': 'TypeScript',
   'javascript': 'JavaScript',
@@ -31,13 +33,48 @@ const labelMap: Record<string, string> = {
   'swift': 'Swift',
   'sql': 'SQL',
   'docker': 'Docker',
+  'podman': 'Podman',
+  'nextjs': 'Next.js',
+  'nuxt': 'Nuxt',
+  'postgresql': 'PostgreSQL',
+  'mysql': 'MySQL',
+  'mongodb': 'MongoDB',
+  'redis': 'Redis',
+  'memcached': 'Memcached',
+  'kafka': 'Apache Kafka',
+  'rabbitmq': 'RabbitMQ',
+  'fastapi': 'FastAPI',
+  'flask': 'Flask',
+  'django': 'Django',
+  'spring-boot': 'Spring Boot',
+  'express': 'Express',
+  'vite': 'Vite',
+  'webpack': 'Webpack',
+  'graphql': 'GraphQL',
+  'rest': 'REST API',
+  'ansible': 'Ansible',
+  'devops': 'DevOps',
+  'sre': 'SRE',
+  'react-native': 'React Native',
+  'net': '.NET Core',
+  'ruby': 'Ruby',
   'scala': 'Scala',
   'elixir': 'Elixir',
   'salesforce': 'Salesforce',
   'cybersecurity': 'Ciberseguridad',
   'terraform': 'Terraform',
-  'cobol': 'COBOL'
+  'cobol': 'COBOL',
+  // Ciudades
+  'madrid': 'Madrid',
+  'barcelona': 'Barcelona',
+  'valencia': 'Valencia',
+  'malaga': 'Málaga',
+  'bilbao': 'Bilbao',
+  'sevilla': 'Sevilla',
+  'remoto': 'Remoto'
 };
+
+const CITY_KEYS = new Set(['madrid', 'barcelona', 'valencia', 'malaga', 'bilbao', 'sevilla', 'remoto']);
 
 export async function generateStaticParams() {
   const comparativas = [
@@ -77,6 +114,27 @@ export async function generateStaticParams() {
     'elixir-vs-ruby',
     'scala-vs-java',
     'aws-vs-terraform',
+    // Nuevas comparativas P1
+    'python-vs-javascript',
+    'docker-vs-podman',
+    'nextjs-vs-nuxt',
+    'postgresql-vs-mysql',
+    'graphql-vs-rest',
+    'kafka-vs-rabbitmq',
+    'fastapi-vs-flask',
+    'spring-boot-vs-express',
+    'vite-vs-webpack',
+    'redis-vs-memcached',
+    'django-vs-fastapi',
+    // Comparativas de Ciudades
+    'madrid-vs-barcelona',
+    'valencia-vs-malaga',
+    'madrid-vs-remoto',
+    'barcelona-vs-sevilla',
+    'bilbao-vs-madrid',
+    'malaga-vs-barcelona',
+    'valencia-vs-madrid',
+    'barcelona-vs-remoto'
   ];
   return comparativas.map(slug => ({ slug }));
 }
@@ -101,19 +159,39 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: `Comparativa ${tech1} vs ${tech2} [2026] | ¿Cuál tiene mejor sueldo?`,
       description: `Comparamos ${tech1} vs ${tech2} en el mercado laboral de España: salarios medios, ofertas de empleo, empresas y teletrabajo.`,
       url: `${BASE_URL}/comparar/${slug}`,
+      images: [
+        {
+          url: `${BASE_URL}/og-image.png`,
+          width: 1200,
+          height: 630,
+          alt: `Comparativa ${tech1} vs ${tech2} — Portal Trabajo IT`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `Comparativa ${tech1} vs ${tech2} [2026] | Salarios y Empleo`,
+      description: `Comparamos sueldos y vacantes de ${tech1} vs ${tech2} en España.`,
+      images: [`${BASE_URL}/og-image.png`],
     }
   };
 }
 
 async function getTechStats(techKey: string) {
   const techName = labelMap[techKey] || techKey;
+  const isCity = CITY_KEYS.has(techKey);
   const client = await pool.connect();
   try {
-    // 1. Total active jobs (searching by name/slug in title & description_snippet)
+    const filterCondition = isCity
+      ? `(location LIKE $1 OR title LIKE $2 OR description_snippet LIKE $2)`
+      : `(title LIKE $1 OR description_snippet LIKE $2)`;
+      
+    const searchPattern = `%${techName}%`;
+
+    // 1. Total active jobs
     const countRes = await client.query(
-      `SELECT COUNT(*) as count FROM jobs 
-       WHERE is_active = TRUE AND (title LIKE $1 OR description_snippet LIKE $2)`,
-      [`%${techName}%`, `%${techName}%`]
+      `SELECT COUNT(*) as count FROM jobs WHERE is_active = TRUE AND ${filterCondition}`,
+      [searchPattern, searchPattern]
     );
     const count = parseInt(countRes.rows[0]?.count || '0', 10);
 
@@ -121,9 +199,9 @@ async function getTechStats(techKey: string) {
     const remoteRes = await client.query(
       `SELECT COUNT(*) as count FROM jobs 
        WHERE is_active = TRUE 
-         AND (title LIKE $1 OR description_snippet LIKE $2)
+         AND ${filterCondition}
          AND (location LIKE '%remoto%' OR location LIKE '%teletrabajo%' OR location LIKE '%remote%')`,
-      [`%${techName}%`, `%${techName}%`]
+      [searchPattern, searchPattern]
     );
     const remoteCount = parseInt(remoteRes.rows[0]?.count || '0', 10);
     const remotePct = count > 0 ? Math.round((remoteCount / count) * 100) : 0;
@@ -132,10 +210,10 @@ async function getTechStats(techKey: string) {
     const salaryRes = await client.query(
       `SELECT salary FROM jobs 
        WHERE is_active = TRUE 
-         AND (title LIKE $1 OR description_snippet LIKE $2)
+         AND ${filterCondition}
          AND salary IS NOT NULL AND salary != 'Consultar' AND salary != ''
        LIMIT 150`,
-      [`%${techName}%`, `%${techName}%`]
+      [searchPattern, searchPattern]
     );
     
     const salaries: number[] = [];
@@ -165,10 +243,10 @@ async function getTechStats(techKey: string) {
     const companiesRes = await client.query(
       `SELECT DISTINCT company FROM jobs 
        WHERE is_active = TRUE 
-         AND (title LIKE $1 OR description_snippet LIKE $2)
+         AND ${filterCondition}
          AND company IS NOT NULL AND company != 'Desconocida'
        LIMIT 4`,
-      [`%${techName}%`, `%${techName}%`]
+      [searchPattern, searchPattern]
     );
     const companies = companiesRes.rows.map((row: any) => row.company);
 

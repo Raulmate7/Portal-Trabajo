@@ -67,13 +67,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   return {
-    title: `¿Qué es ${item.term}? | Glosario Tecnológico IT`,
+    title: `Qué es ${item.term}: Definición, Usos y Salarios | Glosario IT`,
     description: `${item.definition.slice(0, 150)}... Descubre qué significa este término y su relevancia en el mercado laboral informático.`,
     alternates: {
       canonical: `${BASE_URL}/glosario/${term}`,
       languages: {
         'es-ES': `${BASE_URL}/glosario/${term}`,
-        'en': `${BASE_URL}/glosario/${term}?lang=en`,
+        'en': `${BASE_URL}/en/glosario/${term}`,
         'x-default': `${BASE_URL}/glosario/${term}`,
       }
     },
@@ -237,33 +237,43 @@ export default async function GlossaryDetailPage({ params }: Props) {
           )}
 
           {/* Enlaces rápidos a listados relacionados */}
-          {(item.linkedJobsSlug || item.linkedSalariesSlug) && (
-            <div className="bg-white p-6 rounded-2xl border border-gray-150 shadow-sm space-y-4">
-              <h3 className="text-base font-bold text-gray-950 flex items-center gap-2">
-                <span>🔗</span> Recursos Relacionados
-              </h3>
-              <p className="text-xs text-gray-500">Consulta salarios y vacantes de empleo asociadas a este concepto técnico.</p>
-              
-              <div className="space-y-2.5">
-                {item.linkedJobsSlug && (
-                  <Link 
-                    href={`/trabajos/${item.linkedJobsSlug}`}
-                    className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-center block text-sm transition-colors shadow-sm"
-                  >
-                    Ver ofertas de empleo
-                  </Link>
-                )}
-                {item.linkedSalariesSlug && (
-                  <Link 
-                    href={`/salarios/${item.linkedSalariesSlug}`}
-                    className="w-full py-2.5 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-center block text-sm transition-colors border border-indigo-100/50"
-                  >
-                    Ver salario medio
-                  </Link>
-                )}
-              </div>
+          <div className="bg-white p-6 rounded-2xl border border-gray-150 shadow-sm space-y-4">
+            <h3 className="text-base font-bold text-gray-950 flex items-center gap-2">
+              <span>🔗</span> Recursos Relacionados
+            </h3>
+            <p className="text-xs text-gray-500">Consulta salarios y vacantes de empleo asociadas a este concepto técnico.</p>
+            
+            <div className="space-y-2 text-xs font-semibold">
+              {item.linkedJobsSlug && (
+                <Link 
+                  href={`/trabajos/${item.linkedJobsSlug}`}
+                  className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-center block text-sm transition-colors shadow-sm mb-3"
+                >
+                  Ver ofertas de {item.term.split(' (')[0]} →
+                </Link>
+              )}
+              {item.linkedSalariesSlug && (
+                <Link 
+                  href={`/salarios/${item.linkedSalariesSlug}`}
+                  className="w-full py-2.5 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-center block text-sm transition-colors border border-indigo-100/50 mb-3"
+                >
+                  💰 Salario medio de {item.term.split(' (')[0]}
+                </Link>
+              )}
+              <Link href="/salarios" className="block text-indigo-650 hover:underline pt-1">
+                📊 Calculadora Salarial General
+              </Link>
+              <Link href="/recursos/guia-salarios-it" className="block text-indigo-650 hover:underline">
+                📘 Guía de Salarios IT 2026
+              </Link>
+              <Link href="/empresas-remotas" className="block text-emerald-700 hover:underline font-bold">
+                🏠 Empresas que Contratan en Remoto
+              </Link>
+              <Link href="/comparar/madrid-vs-barcelona" className="block text-indigo-650 hover:underline">
+                ⚖️ Comparativa Madrid vs BCN
+              </Link>
             </div>
-          )}
+          </div>
 
           {/* Sidebar Sticky Ad */}
           <div className="sticky top-24">

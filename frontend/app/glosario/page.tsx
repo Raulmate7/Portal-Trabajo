@@ -35,8 +35,27 @@ export default function GlossaryIndexPage() {
     groupedTerms[letter].sort((a, b) => a.term.localeCompare(b.term));
   }
 
+  // Schema DefinedTermSet
+  const definedTermSetSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'DefinedTermSet',
+    'name': 'Glosario Tecnológico IT',
+    'description': 'Diccionario de términos del sector tecnológico y desarrollo de software para programadores.',
+    'url': `${BASE_URL}/glosario`,
+    'hasDefinedTerm': GLOSSARY_TERMS.map(t => ({
+      '@type': 'DefinedTerm',
+      'name': t.term,
+      'description': t.definition,
+      'url': `${BASE_URL}/glosario/${t.slug}`
+    }))
+  };
+
   return (
     <main className="min-h-screen bg-gray-50">
+      <script 
+        type="application/ld+json" 
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(definedTermSetSchema) }} 
+      />
       {/* Hero */}
       <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-900 text-white py-16 px-4 relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.2),transparent_50%)]" />

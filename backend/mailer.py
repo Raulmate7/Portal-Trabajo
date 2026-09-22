@@ -437,11 +437,17 @@ def send_newsletter():
             </html>
             """
             
-            # 6.4. Enviar el correo
+            # 6.4. Generar asunto dinámico personalizado por tecnología de interés
+            if tech_keywords and tech_keywords.strip():
+                primary_tech = tech_keywords.split(',')[0].strip().upper()
+                subject_line = f"🔥 [{primary_tech} JOBS] {total_included} nuevas vacantes IT esta semana"
+            else:
+                subject_line = f"📅 Resumen Semanal: {total_included} Ofertas de Programación e IT"
+
             msg = MIMEMultipart()
             msg['From'] = f"Portal Trabajo IT <{os.getenv('EMAIL_USER')}>"
             msg['To'] = email
-            msg['Subject'] = f"📅 Resumen Semanal: {total_included} Ofertas de Programación"
+            msg['Subject'] = subject_line
             msg.attach(MIMEText(email_body, 'html'))
             
             server.send_message(msg)

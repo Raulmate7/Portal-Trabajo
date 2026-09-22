@@ -4,6 +4,45 @@ import pool from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import crypto from 'crypto';
 
+// --- Rate Limiter y Utilidades Seguras ---
+const rateLimitMap = new Map<string, number>();
+
+function checkRateLimit(key: string, limitMs: number = 60000): boolean {
+  const now = Date.now();
+  const lastRequest = rateLimitMap.get(key);
+  if (lastRequest && now - lastRequest < limitMs) {
+    return false;
+  }
+  if (rateLimitMap.size > 10000) rateLimitMap.clear();
+  rateLimitMap.set(key, now);
+  return true;
+}
+
+function generateSecureToken(email: string): string {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) throw new Error("CRON_SECRET no configurado");
+  const timestamp = Date.now();
+  const hash = crypto.createHmac('sha256', secret).update(email.trim().toLowerCase() + timestamp).digest('hex');
+  return `${timestamp}.${hash}`;
+}
+
+function verifySecureToken(email: string, token: string): boolean {
+  const secret = process.env.CRON_SECRET;
+  if (!secret || !token || !token.includes('.')) return false;
+  
+  const [timestampStr, hash] = token.split('.');
+  const timestamp = parseInt(timestampStr, 10);
+  if (isNaN(timestamp)) return false;
+  
+  if (Date.now() - timestamp > 24 * 60 * 60 * 1000) return false; // Expira a las 24h
+  
+  const expectedHash = crypto.createHmac('sha256', secret).update(email.trim().toLowerCase() + timestamp).digest('hex');
+  // Usar timingSafeEqual para prevenir timing attacks si es posible (aquí una comparación simple por compatibilidad)
+  return hash === expectedHash;
+}
+// ------------------------------------------
+
+
 export async function subscribeUser(formData: FormData) {
   const email = formData.get('email') as string;
   const pathname = formData.get('pathname') as string;
@@ -15,6 +54,9 @@ export async function subscribeUser(formData: FormData) {
 
   if (!email) {
     return { message: 'Por favor, escribe un email.', success: false };
+  }
+  if (!checkRateLimit(`sub_${email}`, 30000)) {
+    return { message: 'Estás haciendo demasiadas peticiones. Espera un momento.', success: false };
   }
 
   const client = await pool.connect();
@@ -52,6 +94,9 @@ export async function submitPremiumLead(formData: FormData) {
 
   if (!name || !email || !stack || !experience) {
     return { message: 'Por favor, rellena todos los campos obligatorios.', success: false };
+  }
+  if (!checkRateLimit(`lead_${email}`, 60000)) {
+    return { message: 'Estás enviando demasiadas solicitudes. Espera un minuto.', success: false };
   }
 
   const client = await pool.connect();
@@ -117,6 +162,9 @@ export async function submitSponsoredJob(formData: FormData) {
 
   if (!company_name || !company_email || !job_title || !job_location || !job_description || !job_url) {
     return { message: 'Por favor, rellena todos los campos obligatorios.', success: false };
+  }
+  if (!checkRateLimit(`job_${company_email}`, 60000)) {
+    return { message: 'Por favor, espera un minuto entre publicaciones.', success: false };
   }
 
   const client = await pool.connect();
@@ -283,6 +331,9 @@ export async function submitCompanyReview(formData: FormData) {
   if (!companySlug || rating < 1 || rating > 5 || !reviewText) {
     return { message: 'Por favor, rellena la puntuación y el comentario.', success: false };
   }
+  if (!checkRateLimit(`review_${companySlug}`, 30000)) {
+    return { message: 'Demasiadas reseñas en poco tiempo. Espera un momento.', success: false };
+  }
 
   const client = await pool.connect();
   try {
@@ -349,8 +400,13 @@ export async function generateRecruiterLoginLink(email: string) {
     }
 
     // Generar token seguro sin estado
-    const secret = process.env.CRON_SECRET || 'portal-trabajo-cron-secret-2026';
-    const token = crypto.createHash('md5').update(cleanEmail + secret).digest('hex');
+    let token: string;
+    try {
+      token = generateSecureToken(cleanEmail);
+    } catch (e: any) {
+      return { success: false, message: 'Configuración del servidor incompleta (CRON_SECRET).' };
+    }
+    
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://portalempleoit.com';
     const loginLink = `/empresa-dashboard?email=${encodeURIComponent(cleanEmail)}&token=${token}`;
 
@@ -376,11 +432,9 @@ export async function getRecruiterJobs(email: string, token: string) {
   }
 
   const cleanEmail = email.trim().toLowerCase();
-  const secret = process.env.CRON_SECRET || 'portal-trabajo-cron-secret-2026';
-  const expectedToken = crypto.createHash('md5').update(cleanEmail + secret).digest('hex');
-
-  if (token !== expectedToken) {
-    return { success: false, error: 'Acceso no autorizado. El token de inicio de sesión no es válido o ha expirado.' };
+  
+  if (!verifySecureToken(cleanEmail, token)) {
+    return { success: false, error: 'Acceso no autorizado. El token no es válido o ha expirado.' };
   }
 
   const client = await pool.connect();
@@ -476,9 +530,10 @@ export async function registerRecruiterAffiliate(email: string) {
 export async function validateCandidateToken(email: string, token: string) {
   if (!email || !token) return { success: false };
   const cleanEmail = email.trim().toLowerCase();
-  const secret = process.env.CRON_SECRET || 'portal-trabajo-cron-secret-2026';
-  const expectedToken = crypto.createHash('md5').update(cleanEmail + secret).digest('hex');
-  if (token !== expectedToken) return { success: false };
+  
+  if (!verifySecureToken(cleanEmail, token)) {
+    return { success: false, message: 'Token inválido o caducado.' };
+  }
   
   const client = await pool.connect();
   try {
@@ -551,8 +606,13 @@ export async function generateCandidateLoginLink(email: string) {
       return { success: false, message: 'Este correo electrónico no está registrado en el boletín. ¡Regístrate gratis primero!' };
     }
     
-    const secret = process.env.CRON_SECRET || 'portal-trabajo-cron-secret-2026';
-    const token = crypto.createHash('md5').update(cleanEmail + secret).digest('hex');
+    let token: string;
+    try {
+      token = generateSecureToken(cleanEmail);
+    } catch (e: any) {
+      return { success: false, message: 'Configuración del servidor incompleta.' };
+    }
+    
     const loginLink = `/mi-perfil?email=${encodeURIComponent(cleanEmail)}&token=${token}`;
     return { success: true, message: '¡Enlace de acceso generado con éxito!', loginLink };
   } catch (error) {

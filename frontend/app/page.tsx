@@ -14,7 +14,7 @@ import { getJobs, getFeaturedJobs, getJobsCount, getJobOfTheDay, getTrendingTech
 import LoadMoreJobs from "@/components/LoadMoreJobs";
 import { RecentlyViewedList } from "@/components/RecentlyViewed";
 import { JobOfTheDayWidget, TrendingTechWidget, ReferralWidget } from "@/components/Widgets";
-import { getBlogPosts } from "@/lib/blog";
+import { getLatestBlogPosts } from "@/lib/blog";
 
 export const revalidate = 300; // Cache de 5 minutos para reducir consultas frecuentes a BD
 
@@ -237,15 +237,14 @@ export default async function Home({ searchParams }: Props) {
   };
 
   // Carga de datos concurrentes en el servidor
-  const [jobs, featuredJobs, totalJobs, jobOfTheDay, trendingTech, allPosts] = await Promise.all([
+  const [jobs, featuredJobs, totalJobs, jobOfTheDay, trendingTech, lastPosts] = await Promise.all([
     getJobs(filters, validPage),
     getFeaturedJobs(filters),
     getJobsCount(),
     getJobOfTheDay(),
     getTrendingTech(),
-    getBlogPosts()
+    getLatestBlogPosts(3),
   ]);
-  const lastPosts = allPosts.slice(0, 3);
 
   const websiteJsonLd = {
     '@context': 'https://schema.org',
@@ -423,6 +422,26 @@ export default async function Home({ searchParams }: Props) {
                     : (isEnglish ? `${jobs.length} recent offers` : `${jobs.length} ofertas recientes`)}
                 </h2>
               </div>
+
+              {(q || loc) && (
+                <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/50 rounded-xl p-5 mb-2 mt-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
+                  <div className="flex-1">
+                    <h3 className="font-bold text-indigo-900 dark:text-indigo-300 text-lg">
+                      {isEnglish ? `Don't miss any offers ${q ? 'for '+q : ''} ${loc ? 'in '+loc : ''}` : `No te pierdas nuevas ofertas ${q ? 'de '+q : ''} ${loc ? 'en '+loc : ''}`}
+                    </h3>
+                    <p className="text-sm text-indigo-700 dark:text-indigo-400 mt-1">
+                      {isEnglish ? 'Create a custom alert and receive new vacancies in your inbox.' : 'Crea una alerta personalizada y recibe nuevas vacantes en tu correo antes que nadie.'}
+                    </p>
+                  </div>
+                  <div className="w-full md:w-auto">
+                    <SubscribeForm 
+                      location={loc || "España"} 
+                      defaultTech={q || undefined}
+                      defaultLocation={loc || undefined}
+                    />
+                  </div>
+                </div>
+              )}
 
               {jobs.length > 0 ? (
                 <div className="space-y-4">

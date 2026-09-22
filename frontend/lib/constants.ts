@@ -1,7 +1,10 @@
 export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://portalempleoit.com';
 
-// List of supported cities for SSG routes
-export const CITIES = ['madrid', 'barcelona', 'valencia', 'sevilla', 'bilbao', 'malaga', 'zaragoza', 'remoto'];
+export const CITIES = [
+  'madrid', 'barcelona', 'valencia', 'sevilla', 'bilbao', 'malaga', 'zaragoza',
+  'valladolid', 'alicante', 'vigo', 'coruna', 'pamplona', 'san-sebastian', 'murcia', 'santander', 'palma', 'las-palmas',
+  'remoto'
+];
 
 // List of contract types (example values)
 export const CONTRACTS = ['full-time', 'part-time', 'freelance', 'contract', 'internship'];

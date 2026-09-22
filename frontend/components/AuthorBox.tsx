@@ -12,9 +12,21 @@ interface Props {
 const AUTHOR_META: Record<string, { name: string; role: string; bio: string; initials: string }> = {
   'Equipo Portal Empleo': {
     name: 'Raúl M.',
-    role: 'Creador y Editor — Portal Trabajo IT',
+    role: 'Creador y Editor Principal — Portal Trabajo IT',
     bio: 'Estudiante de Ingeniería Informática y desarrollador de software. Creó Portal Trabajo IT para aportar transparencia salarial y eliminar el ruido de las bolsas de empleo generalistas para la comunidad tech de España.',
     initials: 'RM',
+  },
+  'Ana García': {
+    name: 'Ana García',
+    role: 'Analista de Mercado Laboral IT — Portal Trabajo IT',
+    bio: 'Especialista en análisis de tendencias de contratación tecnológica y datos salariales del sector IT en España con más de 7 años de experiencia.',
+    initials: 'AG',
+  },
+  'Carlos Ruiz': {
+    name: 'Carlos Ruiz',
+    role: 'Especialista en DevOps y Cloud — Portal Trabajo IT',
+    bio: 'Ingeniero de Infraestructura y Cloud Architect. Escribe sobre contenedores, CI/CD, kubernetes y mejores prácticas de arquitectura backend.',
+    initials: 'CR',
   },
 };
 

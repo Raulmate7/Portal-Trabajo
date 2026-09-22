@@ -137,22 +137,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title,
       description,
       url: `${BASE_URL}/salarios/${techSlug}`,
+      images: [
+        {
+          url: `${BASE_URL}/og-image.png`,
+          width: 1200,
+          height: 630,
+          alt: `Sueldo de Programador ${techInfo.label} en España`,
+        },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
+      images: [`${BASE_URL}/og-image.png`],
     }
   };
 }
 
-const STATIC_TECHS = [
-  'react', 'node', 'python', 'java', 'typescript', 'aws', 'docker', 'flutter', 'csharp', 'php', 'sql',
-  'go', 'rust', 'ruby', 'scala', 'elixir', 'salesforce', 'cybersecurity', 'terraform', 'cobol'
-];
-
 export async function generateStaticParams() {
-  return STATIC_TECHS.map((key) => ({
+  return Object.keys(TECH_DETAILS).map((key) => ({
     tecnologia: key,
   }));
 }

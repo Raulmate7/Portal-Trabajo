@@ -209,6 +209,91 @@ export const INTERVIEW_TECHS: InterviewTech[] = [
       { id: 'cs3', level: 'senior', question: '¿Cómo optimizarías el rendimiento de consultas masivas con Entity Framework Core?', answer: 'Para optimizar consultas masivas en EF Core: (1) Usar `.AsNoTracking()` para consultas de solo lectura para evitar el coste del tracking de cambios. (2) Aplicar paginación con `.Skip()` y `.Take()`. (3) Cargar relaciones mediante `.Include()` (Eager Loading) solo cuando sea necesario para evitar el problema N+1. (4) Traducir proyecciones específicas mediante `.Select()` para consultar solo las columnas estrictamente necesarias en lugar de entidades completas.' }
     ]
   },
+  {
+    slug: 'preguntas-conductuales',
+    name: 'Preguntas Conductuales (Método STAR)',
+    emoji: '🎯',
+    category: 'Soft Skills / HR',
+    description: 'Respuestas estratégicas para preguntas de comportamiento en entrevistas IT usando el método STAR (Situación, Tarea, Acción, Resultado).',
+    jobsSlug: 'informatica-tecnologia',
+    questions: [
+      {
+        id: 'bh1',
+        level: 'junior',
+        question: 'Cuéntame sobre una ocasión en la que cometiste un error técnico en producción y cómo lo resolviste.',
+        answer: 'Utiliza la estructura STAR: (1) **Situación**: Describe brevemente el contexto sin culpar a nadie. (2) **Tarea**: Identificar el fallo rápidamente para minimizar el impacto en los usuarios. (3) **Acción**: Explica cómo aplicaste un rollback inmediato o hotfix, cómo comunicaste el incidente de forma transparente al equipo y qué prueba añadiste para que no volviera a ocurrir. (4) **Resultado**: El servicio se restableció en 5 minutos y se creó un test de integración automático en la pipeline.'
+      },
+      {
+        id: 'bh2',
+        level: 'mid',
+        question: '¿Cómo manejas un desacuerdo técnico sobre arquitectura con un compañero o Tech Lead?',
+        answer: 'Muestra madurez técnica: (1) Enfócate en datos y métricas objetivas (rendimiento, mantenibilidad, tiempo de entrega) en lugar de opiniones personales. (2) Escucha activamente los argumentos del compañero. (3) Propón realizar una pequeña prueba de concepto (PoC) para comparar ambas opciones. (4) Si la decisión final tomada por el equipo difiere de tu propuesta, comprométete al 100% con la opción elegida (principio "Disagree and Commit").'
+      },
+      {
+        id: 'bh3',
+        level: 'senior',
+        question: '¿Cómo priorizas tareas cuando tienes múltiples fechas límite ajustadas e imprevistos de producción?',
+        answer: 'Explica tu marco de trabajo: (1) Evalúa el impacto de negocio y la gravedad de cada tarea. (2) Comunica inmediatamente los cuellos de botella al Product Manager y a los interesados de forma proactiva. (3) Aplica negociación de alcance (descomponer tareas en MVPs pequeños) para entregar valor crítico a tiempo sin comprometer la estabilidad del sistema.'
+      }
+    ]
+  },
+  {
+    slug: 'preguntas-trampa',
+    name: 'Las 20 Preguntas Trampa más Difíciles',
+    emoji: '⚠️',
+    category: 'Entrevistas IT',
+    description: 'Respuestas preparadas para responder con éxito a las preguntas trampa y comprometedoras más habituales de los reclutadores IT.',
+    jobsSlug: 'informatica-tecnologia',
+    questions: [
+      {
+        id: 'tr1',
+        level: 'junior',
+        question: '¿Cuál es tu mayor defecto o punto débil como desarrollador?',
+        answer: 'Evita respuestas cliché como "soy demasiado perfeccionista". En su lugar, nombra un área técnica real que estés mejorando activamente. Ejemplo: "En el pasado tendía a intentar resolver los problemas de código de forma 100% individual antes de pedir ayuda. Ahora me he puesto la regla de consultar al equipo si me quedo atascado durante más de 30 minutos, lo que ha mejorado mi velocidad de entrega."'
+      },
+      {
+        id: 'tr2',
+        level: 'mid',
+        question: '¿Por qué quieres dejar tu empresa actual?',
+        answer: 'Mantén un tono 100% positivo hacia tu empresa anterior o actual. Centra tu respuesta en el **crecimiento futuro** y no en frustraciones pasadas. Ejemplo: "He aprendido muchísimo en mi empresa actual y estoy muy agradecido por las oportunidades, pero busco un nuevo reto donde pueda trabajar con arquitecturas cloud nativas a mayor escala, como las que desarrolláis aquí."'
+      },
+      {
+        id: 'tr3',
+        level: 'senior',
+        question: '¿Cuánto esperas ganar en este puesto?',
+        answer: 'Investiga previamente las bandas salariales del mercado para tu nivel y tecnología en portales como el nuestro. Responde con un rango fundamentado: "Basándome en mi experiencia de 5 años con React y TypeScript y en el mercado actual en España, busco una horquilla de entre 42.000€ y 48.000€ brutos anuales, negociable en función del paquete global de beneficios (remoto, formación, bonus)."'
+      }
+    ]
+  },
+  {
+    slug: 'system-design',
+    name: 'Diseño de Sistemas (System Design)',
+    emoji: '🏗️',
+    category: 'Arquitectura',
+    description: 'Guía fundamental para superar entrevistas de diseño de sistemas a gran escala para roles Mid, Senior y Staff Engineer.',
+    jobsSlug: 'backend',
+    salariesSlug: 'java',
+    questions: [
+      {
+        id: 'sd1',
+        level: 'mid',
+        question: '¿Cómo diseñarías un servicio acortador de URLs (tipo bit.ly)?',
+        answer: 'Pasos clave: (1) **Requisitos y estimaciones**: Calcular peticiones de lectura/escritura (ej. 100:1 ratio). (2) **Algoritmo de codificación**: Usar hash Base62 (A-Z, a-z, 0-9) sobre un auto-increment o ID único (Snowflake) para generar slugs de 7 caracteres (62^7 = 3.5 billones de URLs). (3) **Base de datos**: Base de datos NoSQL clave-valor (Redis para caché de alta velocidad + Cassandra/DynamoDB para persistencia). (4) **Redirección**: Retornar cabecera HTTP 301 (Permanent) para caché en navegador o 302 (Found) para contar analíticas por clic.'
+      },
+      {
+        id: 'sd2',
+        level: 'senior',
+        question: '¿Cómo diseñarías un sistema de chat en tiempo real a escala global (tipo WhatsApp / Slack)?',
+        answer: 'Componentes clave: (1) **Conexiones bidireccionales**: WebSockets mantenidos por servidores de Gateway. (2) **Presencia y Sesiones**: Redis Pub/Sub o Apache Pulsar para enrutar mensajes al Gateway adecuado donde el usuario receptor tiene su conexión activa. (3) **Almacenamiento de Mensajes**: HBase o Cassandra para escrituras secuenciales masivas y lecturas paginadas por chat. (4) **Notificaciones Push**: Integración con APNs (Apple) y FCM (Google) para enviar alertas cuando el usuario está offline.'
+      },
+      {
+        id: 'sd3',
+        level: 'senior',
+        question: '¿Cómo implementarías un Rate Limiter distribuido para proteger una API?',
+        answer: 'Estrategia: (1) **Algoritmo**: Leaky Bucket, Token Bucket o Sliding Window Counter. (2) **Almacenamiento en memoria**: Redis centralizado utilizando scripts Lua atómicos para incrementar contadores por IP o API Key de forma segura sin condiciones de carrera. (3) **Manejo de respuestas**: Si se supera el límite, devolver código HTTP 429 Too Many Requests con la cabecera `Retry-After: 60`.'
+      }
+    ]
+  }
 ];
 
 export function getInterviewTech(slug: string): InterviewTech | undefined {

@@ -240,6 +240,35 @@ export default function InformeMercadoPage() {
 
       </section>
 
+      {/* Recursos de Navegación y Herramientas SEO */}
+      <section className="max-w-5xl mx-auto px-4 py-8 w-full">
+        <div className="bg-gray-900/60 border border-gray-800 rounded-3xl p-8 space-y-4">
+          <h3 className="text-sm font-extrabold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+            <span>🔗</span> Explora el Mercado IT en Tiempo Real
+          </h3>
+          <p className="text-xs text-gray-400">
+            Complementa este informe de mercado utilizando nuestras herramientas interactivas de análisis salarial y empleo:
+          </p>
+          <div className="flex flex-wrap gap-3 text-xs font-semibold pt-2">
+            <Link href="/salarios" className="px-3.5 py-2 bg-gray-950 border border-gray-800 text-indigo-300 rounded-xl hover:bg-indigo-900/40 hover:text-white transition-all">
+              💰 Calculadora Salarial General
+            </Link>
+            <Link href="/recursos/guia-salarios-it" className="px-3.5 py-2 bg-gray-950 border border-gray-800 text-indigo-300 rounded-xl hover:bg-indigo-900/40 hover:text-white transition-all">
+              📘 Guía Completa de Salarios IT
+            </Link>
+            <Link href="/empresas-remotas" className="px-3.5 py-2 bg-gray-950 border border-gray-800 text-emerald-300 rounded-xl hover:bg-emerald-900/40 hover:text-white transition-all">
+              🏠 Ranking de Empresas en Remoto
+            </Link>
+            <Link href="/comparar/madrid-vs-barcelona" className="px-3.5 py-2 bg-gray-950 border border-gray-800 text-purple-300 rounded-xl hover:bg-purple-900/40 hover:text-white transition-all">
+              ⚖️ Comparativa Madrid vs Barcelona
+            </Link>
+            <Link href="/glosario" className="px-3.5 py-2 bg-gray-950 border border-gray-800 text-gray-300 rounded-xl hover:bg-gray-800 hover:text-white transition-all">
+              📖 Glosario de Términos IT
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Footer mínimo */}
       <footer className="border-t border-gray-900 py-10 text-center text-gray-505 text-sm bg-gray-950/80">
         <p className="mb-2">

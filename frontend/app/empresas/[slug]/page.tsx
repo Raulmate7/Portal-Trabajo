@@ -440,7 +440,8 @@ export default async function CompanyPage({ params, searchParams }: Props) {
       'ratingValue': ratingValue,
       'bestRating': '5',
       'worstRating': '1',
-      'ratingCount': reviewCount
+      'ratingCount': reviewCount,
+      'reviewCount': reviewCount
     },
     ...(reviews.length > 0 ? {
       review: reviews.map((r: any) => ({

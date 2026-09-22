@@ -2,6 +2,8 @@ import { MetadataRoute } from 'next'
 import pool from '@/lib/db';
 import { BLOG_POSTS } from '@/lib/blog';
 import { GLOSSARY_TERMS } from '@/lib/glosario';
+import { PROFESSIONS } from '@/lib/convertirse';
+import { CERTIFICATIONS } from '@/lib/certificaciones';
 import { BASE_URL } from '@/lib/constants';
 import { getJobSlug, slugify } from '@/lib/slug';
 
@@ -20,6 +22,7 @@ const BASE_PAGES = [
   '/trabajos/cloud',
   '/trabajos/mobile',
   '/empresas',
+  '/empresas-remotas',
   '/publicar-oferta',
   '/talento-premium',
   '/blog',
@@ -28,6 +31,10 @@ const BASE_PAGES = [
   '/trabajo-remoto-uk',
   '/trabajo-remoto-alemania',
   '/trabajo-remoto-europa',
+  '/trabajo-remoto-mexico',
+  '/trabajo-remoto-argentina',
+  '/trabajo-remoto-colombia',
+  '/trabajo-remoto-latinoamerica',
   '/mejores-ofertas-semana',
   '/ofertas-hoy',
   '/trabajo-madrid',
@@ -46,8 +53,20 @@ const BASE_PAGES = [
   '/noticias',
   '/tendencias',
   '/recursos',
+  '/recursos/react',
+  '/recursos/python',
+  '/recursos/java',
+  '/recursos/node',
+  '/recursos/aws',
+  '/recursos/devops',
+  '/recursos/docker',
+  '/recursos/typescript',
+  '/recursos/frontend',
+  '/recursos/backend',
+  '/recursos/data',
   '/empleo-del-dia',
   '/newsletter',
+  '/newsletter/archivo',
   '/entrevistas',
   '/entrevistas/react',
   '/entrevistas/python',
@@ -66,7 +85,12 @@ const BASE_PAGES = [
   '/comparar-ofertas',
   '/recursos/plantillas-cv',
   '/recursos/guia-entrevistas',
+  '/recursos/guia-salarios-it',
+  '/salarios/por-nivel',
+  '/salarios/por-empresa',
+  '/convertirse-en',
   '/recursos/portfolio',
+  '/comparar',
   '/informe-mercado-it',
   '/afiliados-empresa',
   '/precios',
@@ -75,6 +99,11 @@ const BASE_PAGES = [
   '/trabajo-freelance-it',
   '/practicas-informatica',
   '/trabajo-media-jornada-it',
+  '/eventos-it',
+  '/alertas-mercado',
+  '/test-nivel',
+  '/herramientas/widget-empleo',
+  '/api-docs',
 ];
 
 
@@ -85,13 +114,14 @@ const TECNOLOGIAS = [
   'cybersecurity', 'ciberseguridad',
   'desarrollador-fullstack', 'fullstack', 'devops-engineer', 'scrum-master', 
   'product-manager', 'data-analyst', 'qa-engineer', 'ux-designer',
-  'rust', 'scala', 'elixir', 'terraform', 'haskell', 'erlang', 'cobol'
+  'rust', 'scala', 'elixir', 'terraform', 'haskell', 'erlang', 'cobol',
+  'graphql', 'redis', 'mongodb', 'django', 'fastapi', 'spring-boot', 'laravel', 'spark', 'kafka', 'linux', 'azure', 'gcp', 'jenkins', 'ansible'
 ];
 
 const CIUDADES = [
   'madrid', 'barcelona', 'valencia', 'sevilla', 'bilbao', 'malaga', 'zaragoza', 'alicante', 
   'murcia', 'gijon', 'oviedo', 'vigo', 'coruna', 'granada', 'san-sebastian', 'pamplona', 
-  'valladolid', 'remoto'
+  'valladolid', 'santander', 'palma', 'las-palmas', 'remoto'
 ];
 
 const COMPARATIVAS = [
@@ -131,6 +161,17 @@ const COMPARATIVAS = [
   'elixir-vs-ruby',
   'scala-vs-java',
   'aws-vs-terraform',
+  'python-vs-javascript',
+  'docker-vs-podman',
+  'nextjs-vs-nuxt',
+  'postgresql-vs-mysql',
+  'graphql-vs-rest',
+  'kafka-vs-rabbitmq',
+  'fastapi-vs-flask',
+  'spring-boot-vs-express',
+  'vite-vs-webpack',
+  'redis-vs-memcached',
+  'django-vs-fastapi',
 ];
 
 function detectTechForSitemap(title: string, category: string | null): string[] {
@@ -221,6 +262,10 @@ function detectExperienceForSitemap(title: string, snippet: string | null): stri
     matched.push('sin-experiencia');
   }
   
+  if (text.includes(' mid ') || text.includes('mid-level') || text.includes('middle') || text.includes('semi-senior') || text.includes('semisenior') || text.includes('pleno')) {
+    matched.push('mid');
+  }
+
   if (text.includes('senior') || text.includes(' sr ') || text.includes('lead') || text.includes('principal') || text.includes('staff')) {
     matched.push('senior');
   }
@@ -417,13 +462,13 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
       }
 
       // 8. Convertirse en (Oportunidad 1.5)
-      const activeConvertirsePages: string[] = [];
-      const professions = [
-        'frontend-developer', 'backend-developer', 'devops-engineer', 'data-scientist', 'mobile-developer', 'fullstack-developer'
+      const activeConvertirsePages = Object.keys(PROFESSIONS).map((prof) => `/convertirse-en/${prof}`);
+
+      // 8.5. Certificaciones IT (P1)
+      const activeCertificationsPages = [
+        '/certificaciones',
+        ...Object.keys(CERTIFICATIONS).map((slug) => `/certificaciones/${slug}`)
       ];
-      for (const prof of professions) {
-        activeConvertirsePages.push(`/convertirse-en/${prof}`);
-      }
 
       // 9. Query news/trends posts from the database (Oportunidad 1.3)
       let newsUrls: any[] = [];
@@ -553,6 +598,35 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
         priority: 0.7,
       }));
 
+      const CITIES_SITEMAP = [
+        'madrid', 'barcelona', 'valencia', 'malaga', 'bilbao', 'sevilla', 'zaragoza',
+        'alicante', 'murcia', 'gijon', 'oviedo', 'vigo', 'coruna', 'granada',
+        'san-sebastian', 'pamplona', 'valladolid', 'santander', 'palma', 'las-palmas', 'remoto'
+      ];
+      const TECHS_SITEMAP = [
+        'react', 'angular', 'vue', 'node', 'python', 'java', 'php', 'csharp', 'go', 'rust',
+        'typescript', 'javascript', 'aws', 'docker', 'kubernetes', 'backend', 'frontend', 'devops',
+        'data', 'mobile', 'nextjs', 'flutter', 'kotlin', 'swift', 'sql', 'salesforce',
+        'cybersecurity', 'ciberseguridad', 'fullstack', 'qa-engineer',
+        'graphql', 'redis', 'mongodb', 'django', 'fastapi', 'spring-boot', 'laravel', 'spark', 'kafka', 'linux', 'azure', 'gcp', 'jenkins', 'ansible'
+      ];
+      
+      const cityTechUrls = CITIES_SITEMAP.flatMap(city =>
+        TECHS_SITEMAP.map(tech => ({
+          url: `${BASE_URL}/trabajo-${city}/${tech}`,
+          lastModified: SITE_LAST_STRUCTURAL_UPDATE,
+          changeFrequency: 'weekly' as const,
+          priority: 0.75,
+          alternates: {
+            languages: {
+              'es-ES': `${BASE_URL}/trabajo-${city}/${tech}`,
+              'en': `${BASE_URL}/trabajo-${city}/${tech}?lang=en`,
+              'x-default': `${BASE_URL}/trabajo-${city}/${tech}`,
+            }
+          }
+        }))
+      );
+
       return [
         {
           url: BASE_URL,
@@ -572,7 +646,14 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
         ...salaryUrls,
         ...glossaryUrls,
         ...comparisonUrls,
+        ...cityTechUrls,
         ...newsUrls,
+        ...activeCertificationsPages.map((path) => ({
+          url: `${BASE_URL}${path}`,
+          lastModified: new Date(),
+          changeFrequency: 'weekly' as const,
+          priority: 0.8,
+        })),
       ];
     }
 

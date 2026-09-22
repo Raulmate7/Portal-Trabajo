@@ -44,8 +44,27 @@ export default function CourseAffiliate({ title }: { title: string }) {
   const course = matchedKey ? COURSE_MAP[matchedKey] : DEFAULT_COURSE;
   const bootcampLink = getUdemyLink(matchedKey || null);
 
+  const courseJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': ['Course', 'LearningResource'],
+    'name': course.name,
+    'description': course.desc,
+    'learningResourceType': 'Course',
+    'provider': {
+      '@type': 'Organization',
+      'name': 'Udemy / Portal Trabajo IT',
+      'sameAs': bootcampLink
+    },
+    'educationalLevel': 'Intermediate',
+    'inLanguage': 'es'
+  };
+
   return (
     <div className="mt-8 space-y-4">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(courseJsonLd) }}
+      />
       {/* Banner Principal - Bootcamp */}
       <div className="relative overflow-hidden p-6 md:p-8 bg-gradient-to-br from-indigo-900 via-purple-900 to-indigo-950 rounded-2xl border border-indigo-500/30 shadow-2xl">
         {/* Decoración de fondo */}

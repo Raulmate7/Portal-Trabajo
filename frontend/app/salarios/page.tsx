@@ -68,8 +68,22 @@ export default async function SalariosPage({ searchParams }: Props) {
     "@context": "https://schema.org",
     "@type": "Dataset",
     "name": "Estadísticas de Salarios IT en España - Portal Trabajo IT",
-    "description": "Estadísticas agregadas de salarios medios y percentiles de contratación para desarrolladores de software y perfiles tecnológicos en España, analizadas a partir de vacantes de empleo activas.",
+    "description": "Estadísticas agregadas de salarios medios, percentil 25 (Junior) y percentil 75 (Senior) para desarrolladores de software y perfiles tecnológicos en España.",
     "url": `${BASE_URL}/salarios`,
+    "sameAs": `${BASE_URL}/salarios`,
+    "keywords": ["salarios programadores españa", "sueldo react", "sueldo python", "sueldo java", "sueldo devops"],
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "isAccessibleForFree": true,
+    "spatialCoverage": {
+      "@type": "Place",
+      "name": "España"
+    },
+    "temporalCoverage": "2026",
+    "variableMeasured": [
+      "Salario Medio Bruto Anual (EUR)",
+      "Percentil 25 (Junior / Entrada)",
+      "Percentil 75 (Senior / Alta Experiencia)"
+    ],
     "creator": {
       "@type": "Organization",
       "name": "Portal Trabajo IT",
@@ -90,9 +104,21 @@ export default async function SalariosPage({ searchParams }: Props) {
     "name": "Calculadora de Salarios IT España",
     "url": `${BASE_URL}/salarios`,
     "applicationCategory": "BusinessApplication",
-    "operatingSystem": "Web Browser",
+    "operatingSystem": "All",
     "browserRequirements": "Requires JavaScript. Requires HTML5.",
+    "isAccessibleForFree": true,
     "description": "Calculadora interactiva de salarios tecnológicos en España. Permite analizar sueldos por tecnología, región y nivel de experiencia basada en datos reales de ofertas de trabajo activas.",
+    "featureList": [
+      "Cálculo de salario medio bruto anual por tecnología",
+      "Distribución de percentiles Junior (P25) y Senior (P75)",
+      "Filtros interactivos por ciudad (Madrid, Barcelona, Valencia, Remoto)",
+      "Comparativa salarial en tiempo real"
+    ],
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "EUR"
+    },
     "creator": {
       "@type": "Organization",
       "name": "Portal Trabajo IT",

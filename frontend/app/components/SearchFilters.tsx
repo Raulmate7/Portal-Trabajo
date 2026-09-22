@@ -1,7 +1,10 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+
+const TECH_OPTIONS = ["React", "Node.js", "Python", "Java", "DevOps", "TypeScript", "JavaScript", "Flutter", "Angular", "Vue", "AWS", "Docker", "Kubernetes", "PHP", "C#", "SQL", "Android", "iOS"];
+const LOC_OPTIONS = ["Remoto", "Híbrido", "Madrid", "Barcelona", "Valencia", "Sevilla", "Málaga", "Zaragoza", "Bilbao"];
 
 export default function SearchFilters() {
   const searchParams = useSearchParams();
@@ -13,6 +16,24 @@ export default function SearchFilters() {
   const [experience, setExperience] = useState(searchParams?.get("experience") || "");
   const [minSalary, setMinSalary] = useState(searchParams?.get("min_salary") || "");
   const [dateRange, setDateRange] = useState(searchParams?.get("date_range") || "");
+
+  const [showTechSuggestions, setShowTechSuggestions] = useState(false);
+  const [showLocSuggestions, setShowLocSuggestions] = useState(false);
+  const techRef = useRef<HTMLDivElement>(null);
+  const locRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (techRef.current && !techRef.current.contains(event.target as Node)) {
+        setShowTechSuggestions(false);
+      }
+      if (locRef.current && !locRef.current.contains(event.target as Node)) {
+        setShowLocSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const [showAdvanced, setShowAdvanced] = useState(
     !!searchParams?.get("modality") || 
@@ -58,30 +79,53 @@ export default function SearchFilters() {
 
   const hasActiveFilters = !!query || !!location || !!modality || !!experience || !!minSalary || !!dateRange;
 
+  const filteredTech = TECH_OPTIONS.filter(t => t.toLowerCase().includes(query.toLowerCase()));
+  const filteredLoc = LOC_OPTIONS.filter(l => l.toLowerCase().includes(location.toLowerCase()));
+
   return (
-    <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800/80 transition-all">
+    <div role="search" className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800/80 transition-all">
       <div className="flex flex-col md:flex-row gap-4">
         {/* BUSCADOR */}
         <div className="flex-1">
           <label className="block text-xs font-bold text-gray-400 dark:text-slate-500 uppercase mb-1.5 tracking-wider">¿Qué cargo o tecnología buscas?</label>
-          <div className="relative">
+          <div className="relative" ref={techRef}>
             <span className="absolute left-3 top-2.5 text-gray-400">🔍</span>
             <input
               type="text"
               placeholder="Ej: React, Node, Python, C#..."
-              list="tech-suggestions"
               className="w-full pl-9 pr-10 py-2.5 border border-gray-200 dark:border-slate-850 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-gray-50/50 dark:bg-slate-950 text-gray-900 dark:text-white transition-all text-sm"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setShowTechSuggestions(true);
+              }}
+              onFocus={() => setShowTechSuggestions(true)}
             />
             {query && (
               <button 
                 onClick={() => setQuery("")}
                 className="absolute right-3 top-3 text-gray-400 hover:text-red-500 font-bold px-1.5 cursor-pointer text-xs"
                 title="Borrar"
+                aria-label="Borrar búsqueda"
               >
                 ✕
               </button>
+            )}
+            {showTechSuggestions && filteredTech.length > 0 && (
+              <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                {filteredTech.map(tech => (
+                  <li 
+                    key={tech} 
+                    className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-slate-800 cursor-pointer text-sm text-gray-700 dark:text-gray-300 transition-colors"
+                    onMouseDown={() => {
+                      setQuery(tech);
+                      setShowTechSuggestions(false);
+                    }}
+                  >
+                    {tech}
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         </div>
@@ -89,24 +133,44 @@ export default function SearchFilters() {
         {/* UBICACIÓN */}
         <div className="flex-1">
           <label className="block text-xs font-bold text-gray-400 dark:text-slate-500 uppercase mb-1.5 tracking-wider">¿En qué ciudad o provincia?</label>
-          <div className="relative">
+          <div className="relative" ref={locRef}>
             <span className="absolute left-3 top-2.5 text-gray-400">📍</span>
             <input
               type="text"
               placeholder="Ej: Madrid, Barcelona, Remoto..."
-              list="location-suggestions"
               className="w-full pl-9 pr-10 py-2.5 border border-gray-200 dark:border-slate-850 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-gray-50/50 dark:bg-slate-950 text-gray-900 dark:text-white transition-all text-sm"
               value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              onChange={(e) => {
+                setLocation(e.target.value);
+                setShowLocSuggestions(true);
+              }}
+              onFocus={() => setShowLocSuggestions(true)}
             />
             {location && (
               <button 
                 onClick={() => setLocation("")}
                 className="absolute right-3 top-3 text-gray-400 hover:text-red-500 font-bold px-1.5 cursor-pointer text-xs"
                 title="Borrar"
+                aria-label="Borrar ubicación"
               >
                 ✕
               </button>
+            )}
+            {showLocSuggestions && filteredLoc.length > 0 && (
+              <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                {filteredLoc.map(loc => (
+                  <li 
+                    key={loc} 
+                    className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-slate-800 cursor-pointer text-sm text-gray-700 dark:text-gray-300 transition-colors"
+                    onMouseDown={() => {
+                      setLocation(loc);
+                      setShowLocSuggestions(false);
+                    }}
+                  >
+                    {loc}
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         </div>
@@ -238,40 +302,7 @@ export default function SearchFilters() {
           </button>
         </div>
       </div>
-
-      {/* Sugerencias de Autocompletado */}
-      <datalist id="tech-suggestions">
-        <option value="React" />
-        <option value="Node.js" />
-        <option value="Python" />
-        <option value="Java" />
-        <option value="DevOps" />
-        <option value="TypeScript" />
-        <option value="JavaScript" />
-        <option value="Flutter" />
-        <option value="Angular" />
-        <option value="Vue" />
-        <option value="AWS" />
-        <option value="Docker" />
-        <option value="Kubernetes" />
-        <option value="PHP" />
-        <option value="C#" />
-        <option value="SQL" />
-        <option value="Android" />
-        <option value="iOS" />
-      </datalist>
-
-      <datalist id="location-suggestions">
-        <option value="Remoto" />
-        <option value="Híbrido" />
-        <option value="Madrid" />
-        <option value="Barcelona" />
-        <option value="Valencia" />
-        <option value="Sevilla" />
-        <option value="Málaga" />
-        <option value="Zaragoza" />
-        <option value="Bilbao" />
-      </datalist>
+      </div>
     </div>
   );
 }

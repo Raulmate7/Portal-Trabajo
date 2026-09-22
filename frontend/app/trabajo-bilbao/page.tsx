@@ -32,6 +32,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
       canonical: `${BASE_URL}/trabajo-${CITY_SLUG}${queryParam}`,
       languages: {
         'es-ES': `${BASE_URL}/trabajo-${CITY_SLUG}`,
+        'eu': `${BASE_URL}/eu/trabajo-bilbao`,
         'en': `${BASE_URL}/trabajo-${CITY_SLUG}?lang=en`,
         'x-default': `${BASE_URL}/trabajo-${CITY_SLUG}`,
       }

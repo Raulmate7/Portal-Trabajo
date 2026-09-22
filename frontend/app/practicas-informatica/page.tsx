@@ -13,7 +13,26 @@ export const metadata: Metadata = {
   title: 'Prácticas y Becas de Informática y Programación | Portal Trabajo IT',
   description: 'Encuentra tu primer empleo en tecnología. Ofertas de prácticas, becas y posiciones Junior/Trainee en España sin experiencia requerida.',
   alternates: {
-    canonical: '/practicas-informatica',
+    canonical: `${BASE_URL}/practicas-informatica`,
+  },
+  openGraph: {
+    title: 'Prácticas y Becas de Informática y Programación | Portal Trabajo',
+    description: 'Encuentra tu primer empleo en tecnología. Ofertas de prácticas, becas y posiciones Junior/Trainee en España sin experiencia requerida.',
+    url: `${BASE_URL}/practicas-informatica`,
+    images: [
+      {
+        url: `${BASE_URL}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: 'Prácticas y Becas de Informática',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Prácticas y Becas de Informática y Programación',
+    description: 'Ofertas de prácticas y posiciones Junior/Trainee en España sin experiencia.',
+    images: [`${BASE_URL}/og-image.png`],
   }
 };
 
@@ -50,11 +69,27 @@ export default async function PracticasInformaticaPage() {
   const faqItems = [
     {
       question: '¿Qué requisitos suelen pedir para hacer prácticas de programación?',
-      answer: 'Muchas ofertas requieren estar cursando estudios oficiales (Grado Universitario, FP Dual DAW/DAM, etc.) para poder firmar un convenio de colaboración con tu centro de estudios.'
+      answer: 'Muchas ofertas requieren estar cursando estudios oficiales (Grado Universitario, FP Dual DAW/DAM, etc.) para poder firmar un convenio de colaboración educativo con tu centro de estudios.'
     },
     {
       question: '¿Las ofertas de prácticas de informática son remuneradas?',
-      answer: 'Sí. La gran mayoría de las empresas tecnológicas en España ofrecen una ayuda económica mensual de formación, que suele oscilar entre los 400€ y 900€ al mes para jornadas de 4 a 6 horas.'
+      answer: 'Sí. La gran mayoría de las empresas tecnológicas en España ofrecen una ayuda económica mensual de formación, que suele oscilar entre los 450€ y 950€ al mes para jornadas de 4 a 6 horas.'
+    },
+    {
+      question: '¿Qué probabilidad hay de quedarse contratado tras las prácticas?',
+      answer: 'En el sector informático la tasa de conversión es muy elevada: más del 70% de los estudiantes que completan satisfactoriamente su periodo de beca reciben una oferta de contrato indefinido Junior.'
+    },
+    {
+      question: '¿Se pueden realizar prácticas de informática en modalidad 100% remota?',
+      answer: 'Sí, cada vez más empresas ofrecen programas de becas con posibilidad de teletrabajo completo o modelos híbridos con 1-2 días presenciales.'
+    },
+    {
+      question: '¿Qué lenguajes de programación son los más demandados en puestos becarios?',
+      answer: 'Las empresas buscan principalmente conocimientos básicos en Java, Python, JavaScript/TypeScript, SQL y entornos web con React o Angular.'
+    },
+    {
+      question: '¿Puedo aplicar a puestos Junior sin convenio de prácticas?',
+      answer: 'Sí, los puestos rotulados como "Junior" o "Trainee" son contratos de trabajo ordinarios (contrato en prácticas o indefinido) que no exigen estar matriculado en una universidad o instituto.'
     }
   ];
 
@@ -122,6 +157,27 @@ export default async function PracticasInformaticaPage() {
                   <p className="text-sm text-gray-650 leading-relaxed m-0">{item.answer}</p>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Recursos para Impulsar tu Carrera */}
+          <div className="mt-8 bg-gradient-to-br from-indigo-950 to-slate-900 text-white p-6 rounded-2xl shadow-sm space-y-4">
+            <h3 className="text-base font-bold text-indigo-200 flex items-center gap-2">
+              <span>🎓</span> ¿Buscas dar el salto a tu primer puesto Junior?
+            </h3>
+            <p className="text-xs text-indigo-100/80 leading-relaxed">
+              Prepara tus entrevistas técnicas, orienta tu aprendizaje según la hoja de ruta del mercado y consulta salarios reales en España:
+            </p>
+            <div className="flex flex-wrap gap-2 pt-2 text-xs font-semibold">
+              <Link href="/convertirse-en/fullstack" className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition">
+                🗺️ Guías de Carrera IT
+              </Link>
+              <Link href="/entrevistas" className="px-3.5 py-2 bg-indigo-900 border border-indigo-700 hover:bg-indigo-800 text-white rounded-xl transition">
+                🎯 Preguntas de Entrevista
+              </Link>
+              <Link href="/salarios" className="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl transition">
+                💰 Calculadora de Salarios
+              </Link>
             </div>
           </div>
         </div>

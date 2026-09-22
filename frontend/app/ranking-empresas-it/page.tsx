@@ -36,6 +36,25 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
         'en': `${BASE_URL}/ranking-empresas-it?lang=en`,
         'x-default': `${BASE_URL}/ranking-empresas-it`,
       }
+    },
+    openGraph: {
+      title,
+      description,
+      url: `${BASE_URL}/ranking-empresas-it`,
+      images: [
+        {
+          url: `${BASE_URL}/og-image.png`,
+          width: 1200,
+          height: 630,
+          alt: 'Radar de Empresas IT en España',
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [`${BASE_URL}/og-image.png`],
     }
   };
 }

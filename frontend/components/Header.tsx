@@ -44,9 +44,10 @@ export default function Header() {
     { label: isEnglish ? 'Remote' : 'Remoto', href: `/trabajo-remoto${queryParam}` },
     { label: isEnglish ? 'Salaries' : 'Salarios', href: `/salarios${queryParam}` },
     { label: isEnglish ? 'Companies' : 'Empresas', href: `/empresas${queryParam}` },
+    { label: isEnglish ? 'Interviews' : 'Entrevistas', href: `/entrevistas${queryParam}` },
+    { label: isEnglish ? 'Careers' : 'Guías Carrera', href: `/convertirse-en/fullstack${queryParam}` },
     { label: isEnglish ? 'Glossary' : 'Glosario', href: `/glosario${queryParam}` },
     { label: isEnglish ? 'News' : 'Noticias', href: `/noticias${queryParam}` },
-    { label: isEnglish ? 'Advertising' : 'Publicidad', href: `/publicidad${queryParam}` },
   ];
 
   return (
@@ -68,6 +69,7 @@ export default function Header() {
               <Link
                 key={link.href}
                 href={link.href}
+                prefetch={true}
                 className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors relative py-1 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-indigo-600 dark:after:bg-indigo-450 hover:after:w-full after:transition-all"
               >
                 {link.label}
@@ -106,6 +108,7 @@ export default function Header() {
                 onClick={toggleTheme}
                 className="p-2 rounded-xl bg-gray-50 hover:bg-gray-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-gray-200/30 dark:border-slate-700/30 text-yellow-500 dark:text-amber-400 transition-colors cursor-pointer"
                 title={theme === 'dark' ? 'Modo Claro' : 'Modo Oscuro'}
+                aria-label={theme === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
               >
                 {theme === 'dark' ? (
                   /* Sol */
@@ -150,6 +153,7 @@ export default function Header() {
               <button
                 onClick={toggleTheme}
                 className="p-2 rounded-xl bg-gray-50 dark:bg-slate-900 text-yellow-500 dark:text-amber-400 cursor-pointer"
+                aria-label={theme === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
               >
                 {theme === 'dark' ? (
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -190,6 +194,7 @@ export default function Header() {
               <Link
                 key={link.href}
                 href={link.href}
+                prefetch={true}
                 onClick={() => setIsOpen(false)}
                 className="block font-bold py-2 px-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-slate-900 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
               >

@@ -17,6 +17,20 @@ export const metadata: Metadata = {
     title: 'Tendencias del Mercado Laboral IT en España [2026] | Portal Trabajo',
     description: 'Estadísticas del mercado de empleo tecnológico en España en tiempo real: tecnologías más demandadas, salarios promedio, tasa de teletrabajo y hubs de contratación.',
     url: `${BASE_URL}/tendencias`,
+    images: [
+      {
+        url: `${BASE_URL}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: 'Tendencias del Mercado Laboral IT en España',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Tendencias del Mercado Laboral IT en España [2026]',
+    description: 'Estadísticas del mercado de empleo tecnológico en España en tiempo real.',
+    images: [`${BASE_URL}/og-image.png`],
   }
 };
 
@@ -320,6 +334,23 @@ export default async function TrendsPage() {
   const maxCityCount = citiesData.length > 0 ? citiesData[0].count : 1;
   const maxSalary = avgSalaries.length > 0 ? avgSalaries[0].avg : 1;
 
+  // Esquema Dataset de datos del mercado laboral IT
+  const datasetSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Dataset',
+    'name': 'Estadísticas del Mercado Laboral IT en España 2026',
+    'description': `Análisis cuantitativo de ${totalJobs} ofertas de empleo activas en España. Tasa de teletrabajo del ${remotePct}%, salarios por tecnología y concentración geográfica.`,
+    'url': `${BASE_URL}/tendencias`,
+    'keywords': ['empleo it españa', 'salarios desarrolladores', 'teletrabajo programacion', 'demanda laboral tech'],
+    'creator': {
+      '@type': 'Organization',
+      'name': 'Portal Trabajo IT',
+      'url': BASE_URL
+    },
+    'temporalCoverage': '2026',
+    'spatialCoverage': 'ES'
+  };
+
   // Esquema de FAQ para SEO
   const faqSchema = {
     '@context': 'https://schema.org',
@@ -354,6 +385,10 @@ export default async function TrendsPage() {
 
   return (
     <main className="min-h-screen bg-gray-50 pb-10">
+      <script 
+        type="application/ld+json" 
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(datasetSchema) }} 
+      />
       <script 
         type="application/ld+json" 
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} 

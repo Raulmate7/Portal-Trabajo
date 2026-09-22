@@ -4,6 +4,21 @@ import { useState, useEffect } from "react";
 import { submitSponsoredJob } from "@/app/actions";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
+const jobSchema = z.object({
+  company_name: z.string().min(2, "El nombre de la empresa es muy corto"),
+  company_email: z.string().email("Correo electrónico inválido"),
+  company_phone: z.string().optional(),
+  job_title: z.string().min(5, "El título debe tener al menos 5 caracteres"),
+  job_location: z.string().min(2, "Especifica una ubicación"),
+  job_salary: z.string().optional(),
+  job_description: z.string().min(50, "La descripción debe tener al menos 50 caracteres"),
+  job_url: z.string().url("Debe ser una URL válida (ej. https://...)")
+});
+type JobFormValues = z.infer<typeof jobSchema>;
 
 export default function PublishForm() {
   const searchParams = useSearchParams();
@@ -22,12 +37,18 @@ export default function PublishForm() {
     }
   }, [urlPlan]);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const { register, handleSubmit, formState: { errors } } = useForm<JobFormValues>({
+    resolver: zodResolver(jobSchema),
+  });
+
+  const onSubmitForm = async (data: JobFormValues) => {
     setStatus("loading");
     setMessage("");
 
-    const formData = new FormData(e.currentTarget);
+    const formData = new FormData();
+    Object.entries(data).forEach(([key, value]) => {
+      if (value) formData.append(key, value);
+    });
     formData.append("plan", selectedPlan);
 
     if (selectedPlan === "basico") {
@@ -39,16 +60,15 @@ export default function PublishForm() {
         setMessage(result.message);
       }
     } else {
-      // Flujo de Stripe para Plan Destacado
       try {
         const refCode = searchParams.get("ref");
         const jobData = {
-          title: formData.get("job_title"),
-          company: formData.get("company_name"),
-          location: formData.get("job_location"),
-          salary: formData.get("job_salary"),
-          description_snippet: formData.get("job_description"),
-          url_source: formData.get("job_url"),
+          title: data.job_title,
+          company: data.company_name,
+          location: data.job_location,
+          salary: data.job_salary,
+          description_snippet: data.job_description,
+          url_source: data.job_url,
           category: "Otros",
           plan: selectedPlan,
           affiliate_code: refCode || undefined,
@@ -56,17 +76,15 @@ export default function PublishForm() {
 
         const res = await fetch("/api/checkout", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(jobData),
         });
 
-        const data = await res.json();
-        if (data.url) {
-          window.location.href = data.url; // Redirigir a Stripe Checkout
+        const resData = await res.json();
+        if (resData.url) {
+          window.location.href = resData.url;
         } else {
-          throw new Error(data.error || "No se pudo iniciar la pasarela de Stripe");
+          throw new Error(resData.error || "No se pudo iniciar la pasarela de Stripe");
         }
       } catch (err: any) {
         setStatus("error");
@@ -245,7 +263,7 @@ export default function PublishForm() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-5">
         {/* Datos de la empresa */}
         <div className="pb-4 mb-4 border-b border-gray-800">
           <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Datos de contacto</h3>
@@ -256,13 +274,13 @@ export default function PublishForm() {
               </label>
               <input
                 id="company_name"
-                name="company_name"
+                {...register("company_name")}
                 type="text"
-                required
                 disabled={status === "loading"}
                 placeholder="Ej: Acme Technologies"
-                className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all disabled:opacity-50"
+                className={`w-full px-4 py-3 rounded-xl bg-gray-800 border text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-50 ${errors.company_name ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-indigo-500'}`}
               />
+              {errors.company_name && <p className="text-red-500 text-xs mt-1.5">{errors.company_name.message}</p>}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -271,13 +289,13 @@ export default function PublishForm() {
                 </label>
                 <input
                   id="company_email"
-                  name="company_email"
+                  {...register("company_email")}
                   type="email"
-                  required
                   disabled={status === "loading"}
                   placeholder="rrhh@empresa.com"
-                  className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all disabled:opacity-50"
+                  className={`w-full px-4 py-3 rounded-xl bg-gray-800 border text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-50 ${errors.company_email ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-indigo-500'}`}
                 />
+                {errors.company_email && <p className="text-red-500 text-xs mt-1.5">{errors.company_email.message}</p>}
               </div>
               <div>
                 <label htmlFor="company_phone" className="block text-sm font-medium text-gray-300 mb-1.5">
@@ -285,7 +303,7 @@ export default function PublishForm() {
                 </label>
                 <input
                   id="company_phone"
-                  name="company_phone"
+                  {...register("company_phone")}
                   type="tel"
                   disabled={status === "loading"}
                   placeholder="+34 600 123 456"
@@ -306,13 +324,13 @@ export default function PublishForm() {
               </label>
               <input
                 id="job_title"
-                name="job_title"
+                {...register("job_title")}
                 type="text"
-                required
                 disabled={status === "loading"}
                 placeholder="Ej: Senior React Developer"
-                className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all disabled:opacity-50"
+                className={`w-full px-4 py-3 rounded-xl bg-gray-800 border text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-50 ${errors.job_title ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-indigo-500'}`}
               />
+              {errors.job_title && <p className="text-red-500 text-xs mt-1.5">{errors.job_title.message}</p>}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -321,13 +339,13 @@ export default function PublishForm() {
                 </label>
                 <input
                   id="job_location"
-                  name="job_location"
+                  {...register("job_location")}
                   type="text"
-                  required
                   disabled={status === "loading"}
                   placeholder="Ej: Madrid / Remoto"
-                  className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all disabled:opacity-50"
+                  className={`w-full px-4 py-3 rounded-xl bg-gray-800 border text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-50 ${errors.job_location ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-indigo-500'}`}
                 />
+                {errors.job_location && <p className="text-red-500 text-xs mt-1.5">{errors.job_location.message}</p>}
               </div>
               <div>
                 <label htmlFor="job_salary" className="block text-sm font-medium text-gray-300 mb-1.5">
@@ -335,7 +353,7 @@ export default function PublishForm() {
                 </label>
                 <input
                   id="job_salary"
-                  name="job_salary"
+                  {...register("job_salary")}
                   type="text"
                   disabled={status === "loading"}
                   placeholder="Ej: 40.000€ - 55.000€"
@@ -349,13 +367,13 @@ export default function PublishForm() {
               </label>
               <textarea
                 id="job_description"
-                name="job_description"
-                required
+                {...register("job_description")}
                 disabled={status === "loading"}
                 rows={5}
                 placeholder="Describe las responsabilidades, requisitos y beneficios..."
-                className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all disabled:opacity-50 resize-none"
+                className={`w-full px-4 py-3 rounded-xl bg-gray-800 border text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-50 resize-none ${errors.job_description ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-indigo-500'}`}
               />
+              {errors.job_description && <p className="text-red-500 text-xs mt-1.5">{errors.job_description.message}</p>}
             </div>
             <div>
               <label htmlFor="job_url" className="block text-sm font-medium text-gray-300 mb-1.5">
@@ -363,13 +381,13 @@ export default function PublishForm() {
               </label>
               <input
                 id="job_url"
-                name="job_url"
+                {...register("job_url")}
                 type="url"
-                required
                 disabled={status === "loading"}
                 placeholder="https://tu-empresa.com/careers/oferta-123"
-                className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all disabled:opacity-50"
+                className={`w-full px-4 py-3 rounded-xl bg-gray-800 border text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-50 ${errors.job_url ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-indigo-500'}`}
               />
+              {errors.job_url && <p className="text-red-500 text-xs mt-1.5">{errors.job_url.message}</p>}
             </div>
           </div>
         </div>

@@ -82,7 +82,21 @@ const displayNameMap: Record<string, string> = {
   'terraform': 'Terraform',
   'haskell': 'Haskell',
   'erlang': 'Erlang',
-  'cobol': 'COBOL'
+  'cobol': 'COBOL',
+  'graphql': 'GraphQL',
+  'redis': 'Redis',
+  'mongodb': 'MongoDB',
+  'django': 'Django',
+  'fastapi': 'FastAPI',
+  'spring-boot': 'Spring Boot',
+  'laravel': 'Laravel',
+  'spark': 'Apache Spark',
+  'kafka': 'Apache Kafka',
+  'linux': 'Linux',
+  'azure': 'Azure',
+  'gcp': 'Google Cloud',
+  'jenkins': 'Jenkins',
+  'ansible': 'Ansible'
 };
 
 const displayNameMapEn: Record<string, string> = {
@@ -129,7 +143,21 @@ const displayNameMapEn: Record<string, string> = {
   'terraform': 'Terraform',
   'haskell': 'Haskell',
   'erlang': 'Erlang',
-  'cobol': 'COBOL'
+  'cobol': 'COBOL',
+  'graphql': 'GraphQL',
+  'redis': 'Redis',
+  'mongodb': 'MongoDB',
+  'django': 'Django',
+  'fastapi': 'FastAPI',
+  'spring-boot': 'Spring Boot',
+  'laravel': 'Laravel',
+  'spark': 'Apache Spark',
+  'kafka': 'Apache Kafka',
+  'linux': 'Linux',
+  'azure': 'Azure',
+  'gcp': 'Google Cloud',
+  'jenkins': 'Jenkins',
+  'ansible': 'Ansible'
 };
 
 const adMap: Record<string, { title: string, text: string, link: string }> = {
@@ -219,6 +247,11 @@ const EXPERIENCE_SUFFIXES: Record<string, { keywords: string[]; label: string; l
     keywords: ['junior', 'jr', 'junior developer', 'trainee', 'becario', 'prácticas', 'entry level', 'sin experiencia'],
     label: 'Junior',
     labelEn: 'Junior'
+  },
+  'mid': {
+    keywords: ['mid', 'mid-level', 'middle', 'semi-senior', 'semisenior', 'pleno', '2 años', '3 años'],
+    label: 'Mid / Semi-Senior',
+    labelEn: 'Mid-Level'
   },
   'senior': {
     keywords: ['senior', 'sr', 'lead', 'principal', 'tech lead', 'staff'],
@@ -513,6 +546,8 @@ export async function generateMetadata({ params, searchParams }: { params: Param
   const anio = now.getFullYear();
   const mesCapitalizado = mes.charAt(0).toUpperCase() + mes.slice(1);
 
+  const stats = calculateStats(jobs);
+
   if (isEnglish) {
     const totalText = totalCount > 0 ? `${totalCount} ` : '';
     tituloBase = `${totalText}${categoriaBonita}${modLabelEn}${expLabel}${contractLabel}${salaryLabel} Jobs in Spain [${mesCapitalizado} ${anio}] 🔥`;
@@ -522,6 +557,9 @@ export async function generateMetadata({ params, searchParams }: { params: Param
       tituloBase = `${totalText}${categoriaBonita}${modLabelEn}${expLabel}${contractLabel}${salaryLabel} Jobs in ${ciudadBonita} [${mesCapitalizado} ${anio}] 🔥`;
       descBase += ` in ${ciudadBonita}.`;
     }
+    if (stats.averageSalary) {
+      descBase += ` Estimated average salary: ${stats.averageSalary.toLocaleString('es-ES')}€/year.`;
+    }
   } else {
     const totalText = totalCount > 0 ? `${totalCount} ` : '';
     tituloBase = `${totalText}Ofertas de Trabajo${modLabel}${expLabel}${contractLabel} de ${categoriaBonita}${salaryLabel} 🔥`;
@@ -530,6 +568,9 @@ export async function generateMetadata({ params, searchParams }: { params: Param
       const ciudadBonita = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
       tituloBase += ` en ${ciudadBonita}`;
       descBase += ` en ${ciudadBonita}.`;
+    }
+    if (stats.averageSalary) {
+      descBase += ` Salario medio estimado: ${stats.averageSalary.toLocaleString('es-ES')}€/año.`;
     }
     tituloBase += ` [${mesCapitalizado} ${anio}]`;
   }
@@ -1116,43 +1157,56 @@ export default async function SectorPage({
     })
   };
 
+  const occupationSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Occupation',
+    'name': tituloMostrado,
+    'description': TECH_DESCRIPTIONS[tec]?.es || `Información sobre el puesto de trabajo y mercado laboral de ${tituloMostrado} en España.`,
+    'estimatedSalary': stats.averageSalary ? [
+      {
+        '@type': 'MonetaryAmountDistribution',
+        'currency': 'EUR',
+        'unitText': 'YEAR',
+        'median': stats.averageSalary
+      }
+    ] : undefined,
+    'occupationLocation': [
+      {
+        '@type': 'City',
+        'name': ciudad ? ciudad.charAt(0).toUpperCase() + ciudad.slice(1) : 'España'
+      }
+    ]
+  };
+
   const uniqueCompanies = Array.from(new Set(jobs.map((j: Job) => j.company).filter((c: string | null | undefined) => c && c !== 'Desconocida'))).slice(0, 3);
   const companyListText = uniqueCompanies.length > 0 
-    ? uniqueCompanies.join(', ') 
-    : (isEnglish ? 'various tech companies' : 'diversas empresas del sector');
+    ? (isEnglish ? `Companies like ${uniqueCompanies.join(', ')} and more.` : `Empresas destacadas como ${uniqueCompanies.join(', ')} entre otras.`) 
+    : (isEnglish ? 'Top hiring companies in the technology sector.' : 'Empresas destacadas del sector tecnológico.');
 
   const faqItems = [
     {
       question: isEnglish 
-        ? `Are there active job offers for ${tituloMostrado} currently?` 
-        : `¿Hay ofertas de empleo de ${tituloMostrado} actualmente?`,
+        ? `Are there active ${tituloMostrado} job offers in Spain right now?` 
+        : `¿Hay ofertas de trabajo de ${tituloMostrado} activas en España actualmente?`,
       answer: isEnglish 
-        ? `Yes, currently we have ${jobs.length} active job offers for ${tituloMostrado} on our technology portal. You can search by city or remote preference.` 
-        : `Sí, actualmente contamos con ${jobs.length} ofertas de trabajo activas de ${tituloMostrado} en nuestro portal tecnológico. Puedes filtrar por localidad presencial o en remoto.`
+        ? `Yes, currently we have ${totalCount > 0 ? totalCount : 'multiple'} active job offers for ${tituloMostrado} on our portal. We update our database every 6 hours.` 
+        : `Sí, actualmente contamos con ${totalCount > 0 ? `${totalCount} ` : ''}ofertas de trabajo activas de ${tituloMostrado} en nuestro portal. Actualizamos nuestro listado cada 6 horas.`
     },
     stats.averageSalary ? {
       question: isEnglish 
-        ? `What is the average salary for a ${categoriaBonita} profile?` 
-        : `¿Cuál es el salario medio de un perfil de ${categoriaBonita}?`,
+        ? `What is the average salary for a ${tituloMostrado} in Spain?` 
+        : `¿Cuál es el salario medio de un profesional de ${tituloMostrado} en España?`,
       answer: isEnglish 
-        ? `The estimated average salary for a ${categoriaBonita} professional is approximately ${stats.averageSalary.toLocaleString('es-ES')}€ gross per year, calculated based on active offers that specify a salary.` 
-        : `El salario medio estimado para un profesional de la categoría ${categoriaBonita} es de aproximadamente ${stats.averageSalary.toLocaleString('es-ES')}€ brutos anuales, calculado sobre ofertas con salario visible.`
+        ? `The estimated average salary for a ${tituloMostrado} in Spain is approximately ${stats.averageSalary.toLocaleString('es-ES')}€ gross per year, calculated from active offers that specify salary.` 
+        : `El salario medio estimado para un perfil de ${tituloMostrado} en España se sitúa en torno a los ${stats.averageSalary.toLocaleString('es-ES')}€ brutos anuales, según las ofertas que publican retribución.`
     } : null,
     {
       question: isEnglish 
-        ? `Which companies are hiring for ${tituloMostrado}?` 
-        : `¿Qué empresas buscan activamente perfiles de ${tituloMostrado}?`,
+        ? `Where can I find remote job offers for ${tituloMostrado}?` 
+        : `¿Dónde puedo encontrar ofertas en remoto para ${tituloMostrado}?`,
       answer: isEnglish 
-        ? `Some of the companies posting ${tituloMostrado} jobs on our portal recently include: ${companyListText}.` 
-        : `Entre las empresas que más vacantes de ${tituloMostrado} publican actualmente en nuestro portal se encuentran: ${companyListText}.`
-    },
-    {
-      question: isEnglish 
-        ? `Are remote options available for ${tituloMostrado}?` 
-        : `¿Hay opciones de teletrabajo para ${tituloMostrado}?`,
-      answer: isEnglish 
-        ? `Yes, remote work is a highly demanded option. A significant portion of the vacancies for ${categoriaBonita} offer full remote work or hybrid models.` 
-        : `Sí, el teletrabajo es una opción muy común y demandada. Una parte importante de las vacantes de ${categoriaBonita} se publican en modalidad 100% remota o híbrida.`
+        ? `You can filter remote positions on our platform using the remote filter or by visiting our dedicated remote tech job section.` 
+        : `Puedes filtrar ofertas 100% teletrabajo en nuestro portal accediendo a la sección de empleo remoto o mediante el filtro de modalidad.`
     }
   ].filter(Boolean) as { question: string; answer: string }[];
 
@@ -1185,6 +1239,10 @@ export default async function SectorPage({
       <script 
         type="application/ld+json" 
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} 
+      />
+      <script 
+        type="application/ld+json" 
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(occupationSchema) }} 
       />
       <script 
         type="application/ld+json" 
@@ -1247,6 +1305,16 @@ export default async function SectorPage({
               className="text-[11px] font-extrabold text-indigo-650 hover:text-indigo-800 hover:underline"
             >
               {isEnglish ? 'View hiring companies →' : 'Ver empresas contratantes →'}
+            </Link>
+            <Link
+              href={
+                ['react', 'node', 'python', 'java', 'typescript', 'aws', 'docker', 'angular', 'vue', 'php', 'go', 'sql', 'csharp'].includes(tec.toLowerCase()) 
+                  ? `/entrevistas/${tec.toLowerCase()}` 
+                  : '/entrevistas'
+              }
+              className="text-[11px] font-extrabold text-purple-600 hover:text-purple-800 hover:underline"
+            >
+              {isEnglish ? 'Prepare technical interview →' : '🎯 Prepara tu entrevista técnica →'}
             </Link>
           </div>
         </div>

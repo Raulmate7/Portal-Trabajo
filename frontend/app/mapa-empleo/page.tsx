@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: 'Mapa del Empleo IT en España 2026 | Estadísticas y Salarios',
   description: 'Descubre en qué comunidades autónomas y ciudades hay más ofertas de empleo tecnológico en España. Consulta salarios medios y vacantes activas.',
   alternates: {
-    canonical: '/mapa-empleo',
+    canonical: `${BASE_URL}/mapa-empleo`,
   }
 };
 
@@ -141,6 +141,7 @@ async function getJobStatsByCcaa(): Promise<CcaaStat[]> {
 }
 
 export default async function MapaEmpleoPage() {
+  const isEnglish = false;
   const stats = await getJobStatsByCcaa();
   const totalActiveJobs = stats.reduce((sum, s) => sum + s.count, 0);
 
@@ -322,4 +323,3 @@ export default async function MapaEmpleoPage() {
 
 
 
-const isEnglish = false;

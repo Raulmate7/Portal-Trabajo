@@ -107,6 +107,17 @@ export async function GET() {
   </url>`;
     }).join('');
 
+    // 7. Construir nodos para entrevistas y glosario
+    const INTERVIEW_SLUGS = ['react', 'python', 'java', 'typescript', 'node', 'aws', 'docker', 'angular', 'vue', 'php', 'go', 'sql', 'csharp'];
+    const interviewNodes = INTERVIEW_SLUGS.map((tech) => `
+  <url>
+    <loc>${BASE_URL}/entrevistas/${tech}</loc>
+    <image:image>
+      <image:loc>${BASE_URL}/entrevistas/${tech}/opengraph-image</image:loc>
+      <image:title>${escapeXml(`Preguntas de Entrevista ${tech.toUpperCase()}`)}</image:title>
+    </image:image>
+  </url>`).join('');
+
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
@@ -116,7 +127,7 @@ export async function GET() {
       <image:loc>${BASE_URL}/og-image.png</image:loc>
       <image:title>Portal Trabajo IT — Ofertas de Empleo Tecnológico</image:title>
     </image:image>
-  </url>${sectorNodes}${urlNodes}${companyNodes}${blogNodes}
+  </url>${sectorNodes}${urlNodes}${companyNodes}${blogNodes}${interviewNodes}
 </urlset>`;
 
     return new Response(xml, {

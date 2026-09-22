@@ -2898,3 +2898,38 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
   const posts = await getBlogPosts();
   return posts.find(p => p.slug === slug) || null;
 }
+
+/**
+ * Obtiene solo los N posts más recientes de forma eficiente.
+ * A diferencia de getBlogPosts() + slice(), esta función consulta directamente
+ * la BD con LIMIT N (evitando cargar el array estático de 300+ KB en memoria)
+ * y solo cae al fallback estático si la BD falla.
+ */
+export async function getLatestBlogPosts(limit: number = 3): Promise<Pick<BlogPost, 'slug' | 'title' | 'excerpt' | 'date' | 'author'>[]> {
+  const currentYear = new Date().getFullYear().toString();
+  try {
+    const res = await pool.query(
+      `SELECT slug, title, excerpt, date, author FROM blog_posts ORDER BY date DESC LIMIT $1`,
+      [limit]
+    );
+    if (res.rows && res.rows.length > 0) {
+      return res.rows.map((post: any) => ({
+        slug: post.slug,
+        title: post.title.replace(/2026/g, currentYear),
+        excerpt: post.excerpt.replace(/2026/g, currentYear),
+        date: post.date,
+        author: post.author,
+      }));
+    }
+  } catch (error) {
+    console.error("Error fetching latest blog posts from DB, using static fallback:", error);
+  }
+  // Fallback: devolver los N primeros del array estático (sin cargar contenido completo)
+  return BLOG_POSTS.slice(0, limit).map(p => ({
+    slug: p.slug,
+    title: p.title,
+    excerpt: p.excerpt,
+    date: p.date,
+    author: p.author,
+  }));
+}
