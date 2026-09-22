@@ -43,6 +43,10 @@ function EmpresaDashboardContent() {
   const [sponsoredJobs, setSponsoredJobs] = useState<SponsoredRequest[]>([]);
   const [loadingData, setLoadingData] = useState(false);
 
+  // Paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   useEffect(() => {
     if (emailParam && tokenParam) {
       loadDashboard(emailParam, tokenParam);
@@ -251,7 +255,7 @@ function EmpresaDashboardContent() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
-                      {jobs.map((job) => {
+                      {jobs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((job) => {
                         const imp = job.impressions_count || 0;
                         const cli = job.clicks_count || 0;
                         const ctr = imp > 0 ? ((cli / imp) * 100).toFixed(2) : '0.00';
@@ -280,6 +284,31 @@ function EmpresaDashboardContent() {
                       })}
                     </tbody>
                   </table>
+                </div>
+              )}
+
+              {/* Controles de Paginación */}
+              {jobs.length > itemsPerPage && (
+                <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100">
+                  <p className="text-xs text-gray-500">
+                    Mostrando {(currentPage - 1) * itemsPerPage + 1} a {Math.min(currentPage * itemsPerPage, jobs.length)} de {jobs.length} ofertas
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold disabled:opacity-50 hover:bg-gray-50 transition-colors text-gray-700 cursor-pointer"
+                    >
+                      Anterior
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage(p => p + 1)}
+                      disabled={currentPage >= Math.ceil(jobs.length / itemsPerPage)}
+                      className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold disabled:opacity-50 hover:bg-gray-50 transition-colors text-gray-700 cursor-pointer"
+                    >
+                      Siguiente
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

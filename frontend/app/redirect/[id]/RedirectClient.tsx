@@ -13,7 +13,7 @@ interface Props {
 }
 
 export default function RedirectClient({ url, company, title, lang }: Props) {
-  const [countdown, setCountdown] = useState(4);
+  const [countdown, setCountdown] = useState(2);
   const [redirected, setRedirected] = useState(false);
   const isEnglish = lang === 'en';
 
@@ -75,7 +75,7 @@ export default function RedirectClient({ url, company, title, lang }: Props) {
                 stroke="#818cf8"
                 strokeWidth="6"
                 strokeLinecap="round"
-                strokeDasharray={`${(4 - countdown) / 4 * 163.4} 163.4`}
+                strokeDasharray={`${(2 - countdown) / 2 * 163.4} 163.4`}
                 className="transition-all duration-1000 ease-linear"
               />
             </svg>
@@ -131,7 +131,7 @@ export default function RedirectClient({ url, company, title, lang }: Props) {
           to { transform: rotate(270deg); }
         }
         .animate-spin-slow {
-          animation: spin-slow 4s linear;
+          animation: spin-slow 2s linear;
           animation-fill-mode: forwards;
         }
       `}</style>

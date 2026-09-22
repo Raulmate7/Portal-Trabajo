@@ -1,14 +1,37 @@
 import pool from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
+import { trackOpenLimiter, getClientIp } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const email = searchParams.get('email') || '';
-  const campaign = searchParams.get('campaign') || '';
+  // Retornar píxel 1x1 siempre
+  const pixelBase64 = 'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+  const pixelBuffer = Buffer.from(pixelBase64, 'base64');
+  const response = new NextResponse(pixelBuffer, {
+    headers: {
+      'Content-Type': 'image/gif',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    },
+  });
 
-  if (email && campaign) {
+  const ip = getClientIp(request as any);
+  const rateLimit = trackOpenLimiter.limit(ip);
+  if (!rateLimit.success) {
+    return response; // Si hay abuso, retornamos la imagen en silencio
+  }
+
+  const { searchParams } = new URL(request.url);
+  const email = (searchParams.get('email') || '').trim();
+  const campaign = (searchParams.get('campaign') || '').trim();
+
+  // Validación estricta
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const campaignValid = /^[a-zA-Z0-9\-_]{1,60}$/.test(campaign);
+
+  if (emailValid && campaignValid) {
     const client = await pool.connect();
     try {
       await client.query(
@@ -24,16 +47,5 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Buffer de imagen GIF transparente de 1x1 píxeles
-  const pixelBase64 = 'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-  const pixelBuffer = Buffer.from(pixelBase64, 'base64');
-
-  return new NextResponse(pixelBuffer, {
-    headers: {
-      'Content-Type': 'image/gif',
-      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0',
-      'Pragma': 'no-cache',
-      'Expires': '0',
-    },
-  });
+  return response;
 }

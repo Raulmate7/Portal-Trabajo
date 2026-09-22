@@ -51,6 +51,8 @@ export default function SaveJobButton({ job, variant = 'card' }: SaveJobButtonPr
     return !!localStorage.getItem('saved_jobs_email');
   };
 
+  const [showSavedToast, setShowSavedToast] = useState(false);
+
   const toggleSave = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -66,6 +68,9 @@ export default function SaveJobButton({ job, variant = 'card' }: SaveJobButtonPr
       savedJobs.push({ ...job, saved_at: new Date().toISOString() });
       localStorage.setItem('saved_jobs', JSON.stringify(savedJobs));
       setIsSaved(true);
+      setShowSavedToast(true);
+      setTimeout(() => setShowSavedToast(false), 3000); // Ocultar toast tras 3s
+      
       // Show email modal if email not yet captured
       if (!hasEmailCaptured()) {
         setTimeout(() => setShowEmailModal(true), 300);
@@ -161,6 +166,19 @@ export default function SaveJobButton({ job, variant = 'card' }: SaveJobButtonPr
     );
   };
 
+  const renderToast = () => {
+    if (!showSavedToast) return null;
+    return (
+      <div className="fixed bottom-4 right-4 z-[90] bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-in slide-in-from-bottom-5 duration-300">
+        <span className="text-xl">✅</span>
+        <div className="flex flex-col">
+          <span className="font-bold text-sm">Oferta guardada</span>
+          <span className="text-emerald-100 text-xs">Añadida a tus favoritos</span>
+        </div>
+      </div>
+    );
+  };
+
   if (variant === 'detail') {
     return (
       <>
@@ -178,7 +196,13 @@ export default function SaveJobButton({ job, variant = 'card' }: SaveJobButtonPr
           </svg>
           <span>{isSaved ? "Guardada" : "Guardar Oferta"}</span>
         </button>
-        {mounted && typeof document !== 'undefined' && createPortal(renderModal(), document.body)}
+        {mounted && typeof document !== 'undefined' && createPortal(
+          <>
+            {renderModal()}
+            {renderToast()}
+          </>,
+          document.body
+        )}
       </>
     );
   }
@@ -199,7 +223,13 @@ export default function SaveJobButton({ job, variant = 'card' }: SaveJobButtonPr
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.9 1.603-.9 1.902 0l1.519 4.674a1 1 0 00.95.69h4.907c.961 0 1.36 1.252.583 1.812l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.9-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.218-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.777-.56-.378-1.812.583-1.812h4.907a1 1 0 00.95-.69l1.519-4.674z" />
         </svg>
       </button>
-      {mounted && typeof document !== 'undefined' && createPortal(renderModal(), document.body)}
+      {mounted && typeof document !== 'undefined' && createPortal(
+        <>
+          {renderModal()}
+          {renderToast()}
+        </>,
+        document.body
+      )}
     </>
   );
 }

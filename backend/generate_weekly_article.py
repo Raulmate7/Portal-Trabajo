@@ -253,9 +253,12 @@ Instrucciones de formato e interlinking para maximizar el SEO y AdSense (E-E-A-T
 2. Debe ser extremadamente largo, detallado y exhaustivo, explicando los conceptos técnicos y de carrera a fondo, proporcionando ejemplos de código funcionales y detallados de producción.
 3. El tono debe ser profesional, con autoridad técnica, preciso y didáctico (marca personal: Raúl M., experto en ingeniería de software).
 4. Incluye comparaciones claras (una tabla en formato Markdown) o un diagrama Mermaid para ilustrar conceptos de infraestructura o arquitectura.
-5. Integra de forma natural y orgánica enlaces de interlinking html exactos para el usuario:
-   - Para calcular o estimar salarios de perfiles IT, enlaza a: [/salarios](/salarios) (enlace clickable con texto descriptivo como "Calculadora de Salarios IT").
-   - Para buscar ofertas de empleo o ver vacantes IT activas, enlaza a: [/trabajos/informatica-tecnologia](/trabajos/informatica-tecnologia) (enlace clickable con texto descriptivo como "Buscador de Empleo IT").
+5. Integra de forma natural y orgánica AL MENOS 3 enlaces internos (interlinking html) específicos y contextualmente relevantes a rutas del portal. Usa markdown [texto](url):
+   - Para menciones a vacantes de una tecnología específica usa: [/trabajos/[tecnologia]](/trabajos/[tecnologia]) (ej: `/trabajos/python`, `/trabajos/react`).
+   - Para calcular o estimar salarios generales usa: [/salarios](/salarios).
+   - Para calcular salarios específicos usa: [/salarios?tech=[tecnologia]&nivel=[jr/sr]](/salarios?tech=[tecnologia]&nivel=[jr/sr]).
+   - Para buscar ofertas de empleo IT en general usa: [/trabajos/informatica-tecnologia](/trabajos/informatica-tecnologia).
+   Es OBLIGATORIO incluir al menos 3 enlaces clickables hacia el portal distribuidos en el texto de forma lógica y útil para el lector.
 6. No utilices rodeos vacíos ni introducciones del estilo 'En este artículo vamos a hablar...'. Ve al grano con contenido de altísimo valor que responda a las intenciones de búsqueda de los programadores.
 """
 

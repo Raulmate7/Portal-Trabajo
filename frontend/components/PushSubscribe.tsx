@@ -18,11 +18,31 @@ export default function PushSubscribe() {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'Notification' in window) {
       setIsSupported(true);
 
+      // Incrementar contador de páginas vistas
+      const pageViews = parseInt(sessionStorage.getItem('page_views') || '0', 10) + 1;
+      sessionStorage.setItem('page_views', pageViews.toString());
+
       // Comprobar estado de suscripción de OneSignal
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       window.OneSignalDeferred.push(async function(OneSignal: any) {
         setIsSubscribed(OneSignal.User.PushSubscription.optedIn);
         
+        // Auto-prompt tras 2 páginas si no se ha preguntado antes en esta sesión
+        const hasPrompted = sessionStorage.getItem('push_prompted');
+        if (pageViews >= 2 && !hasPrompted && !OneSignal.User.PushSubscription.optedIn) {
+          sessionStorage.setItem('push_prompted', 'true');
+          setTimeout(async () => {
+            try {
+              const permission = await OneSignal.Notifications.requestPermission();
+              if (permission) {
+                await OneSignal.User.PushSubscription.optIn();
+              }
+            } catch (err) {
+              console.error("Error en auto-prompt de push:", err);
+            }
+          }, 5000); // Retrasar 5 segundos para no interrumpir lectura
+        }
+
         // Escuchar cambios de estado
         OneSignal.User.PushSubscription.addEventListener("change", (event: any) => {
           setIsSubscribed(event.current.optedIn);

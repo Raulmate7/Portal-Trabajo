@@ -1,9 +1,22 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { vacantesWidgetLimiter, getClientIp } from '@/lib/rate-limit';
 
 export const revalidate = 1800; // Cache 30 minutos
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const ip = getClientIp(req as any);
+  const rateLimit = vacantesWidgetLimiter.limit(ip);
+  if (!rateLimit.success) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
+
+  const referer = req.headers.get('referer') || '';
+  if (referer) {
+    // Solo un console.log para monitorizar de dónde nos están embebiendo
+    console.log(`Widget cargado desde referer: ${referer}`);
+  }
+
   const client = await pool.connect();
   try {
     const res = await client.query(`

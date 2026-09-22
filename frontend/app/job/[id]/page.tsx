@@ -611,6 +611,24 @@ export default async function JobPage({ params, searchParams }: Props) {
     jobLocationObj.address.addressRegion = addressRegion;
   }
 
+  let companyRating = null;
+  if (job.company && job.company !== 'Desconocida') {
+    const client = await pool.connect();
+    try {
+      const res = await client.query("SELECT AVG(rating) as avg_rating, COUNT(id) as total_reviews FROM company_reviews WHERE company_name = $1", [job.company]);
+      if (res.rows[0] && res.rows[0].total_reviews > 0) {
+        companyRating = {
+          ratingValue: parseFloat(res.rows[0].avg_rating).toFixed(1),
+          reviewCount: parseInt(res.rows[0].total_reviews, 10)
+        };
+      }
+    } catch (e) {
+      console.error('Error fetching company rating:', e);
+    } finally {
+      client.release();
+    }
+  }
+
   const jsonLd: any = {
     '@context': 'https://schema.org',
     '@type': 'JobPosting',
@@ -620,7 +638,14 @@ export default async function JobPage({ params, searchParams }: Props) {
     validThrough: validThroughDate.toISOString(),
     hiringOrganization: { 
       '@type': 'Organization', 
-      name: hiringOrgName
+      name: hiringOrgName,
+      ...(companyRating ? {
+        aggregateRating: {
+          '@type': 'AggregateRating',
+          ratingValue: companyRating.ratingValue,
+          reviewCount: companyRating.reviewCount
+        }
+      } : {})
     },
     identifier: {
       '@type': 'PropertyValue',
@@ -834,9 +859,15 @@ export default async function JobPage({ params, searchParams }: Props) {
                     )}
                   </h1>
                 <div className="flex flex-wrap gap-3 text-indigo-100 text-sm md:text-base">
-                  <span className="bg-indigo-700/50 px-3 py-1 rounded-full flex items-center gap-2 backdrop-blur-sm">
-                    🏢 {job.company}
-                  </span>
+                  {job.company && job.company !== 'Desconocida' ? (
+                    <Link href={`/empresas/${slugify(job.company)}`} className="bg-indigo-700/50 hover:bg-indigo-600/50 px-3 py-1 rounded-full flex items-center gap-2 backdrop-blur-sm transition-colors" title={`Ver todas las ofertas de ${job.company}`}>
+                      🏢 {job.company}
+                    </Link>
+                  ) : (
+                    <span className="bg-indigo-700/50 px-3 py-1 rounded-full flex items-center gap-2 backdrop-blur-sm">
+                      🏢 {job.company || 'Desconocida'}
+                    </span>
+                  )}
                   <span className="bg-indigo-700/50 px-3 py-1 rounded-full flex items-center gap-2 backdrop-blur-sm">
                     📍 {job.location}
                   </span>

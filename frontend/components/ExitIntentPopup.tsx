@@ -8,9 +8,23 @@ export default function ExitIntentPopup() {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
 
-  // Show popup only once per session
+  // Show popup only once per session and remember for 72 hours
   useEffect(() => {
-    if (sessionStorage.getItem('exitIntentShown')) return;
+    const checkMemory = () => {
+      try {
+        const dismissedAt = localStorage.getItem('exit_popup_dismissed_at');
+        if (dismissedAt) {
+          const timePassed = Date.now() - parseInt(dismissedAt, 10);
+          if (timePassed < 72 * 60 * 60 * 1000) {
+            return true; // Don't show
+          }
+        }
+      } catch (e) {}
+      return false;
+    };
+
+    if (sessionStorage.getItem('exitIntentShown') || checkMemory()) return;
+    
     const handleMouseLeave = (e: MouseEvent) => {
       if (e.clientY <= 0) {
         setVisible(true);
@@ -20,6 +34,13 @@ export default function ExitIntentPopup() {
     document.addEventListener('mouseleave', handleMouseLeave);
     return () => document.removeEventListener('mouseleave', handleMouseLeave);
   }, []);
+
+  const handleClose = () => {
+    setVisible(false);
+    try {
+      localStorage.setItem('exit_popup_dismissed_at', Date.now().toString());
+    } catch (e) {}
+  };
 
   const validateEmail = (value: string) => {
     const re = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -44,7 +65,7 @@ export default function ExitIntentPopup() {
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg max-w-md w-full p-6 relative animate-fade-in">
         <button
           className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
-          onClick={() => setVisible(false)}
+          onClick={handleClose}
           aria-label="Cerrar popup"
         >×</button>
         <h2 className="text-xl font-bold mb-3 text-gray-900 dark:text-gray-100">

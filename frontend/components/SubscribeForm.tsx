@@ -97,6 +97,9 @@ export default function SubscribeForm({
       localStorage.setItem('subscriber_tech_keywords', selectedTech.join(','));
       // Evento de GA4 para registrar la conversión y su respectiva variante A/B
       sendGAEvent({ event: 'newsletter_signup', value: ctaVariant });
+      
+      // Redirigir a página de gracias
+      window.location.href = '/gracias';
     } else {
       setStatus('error');
       setMessage(result.message);

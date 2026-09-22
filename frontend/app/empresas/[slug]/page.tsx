@@ -483,6 +483,43 @@ export default async function CompanyPage({ params, searchParams }: Props) {
     }))
   };
 
+  const faqJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    'mainEntity': [
+      {
+        '@type': 'Question',
+        'name': isEnglish ? `How many active job offers does ${companyName} have?` : `¿Cuántas ofertas de empleo activas tiene ${companyName}?`,
+        'acceptedAnswer': {
+          '@type': 'Answer',
+          'text': isEnglish 
+            ? `Currently, ${companyName} has ${allJobs.length} active job offers published.` 
+            : `Actualmente, ${companyName} tiene ${allJobs.length} ofertas de empleo activas publicadas.`
+        }
+      },
+      {
+        '@type': 'Question',
+        'name': isEnglish ? `Does ${companyName} offer remote work (telecommuting)?` : `¿Ofrece ${companyName} opciones de teletrabajo o trabajo remoto?`,
+        'acceptedAnswer': {
+          '@type': 'Answer',
+          'text': isEnglish 
+            ? `Yes, according to our data, ${stats.remoteRatio}% of the offers at ${companyName} allow remote work.`
+            : `Sí, según nuestros datos, un ${stats.remoteRatio}% de las ofertas en ${companyName} permiten trabajar en remoto.`
+        }
+      },
+      {
+        '@type': 'Question',
+        'name': isEnglish ? `What is the average salary at ${companyName}?` : `¿Cuál es el salario medio en ${companyName}?`,
+        'acceptedAnswer': {
+          '@type': 'Answer',
+          'text': isEnglish 
+            ? (stats.averageSalary ? `The estimated average salary for tech positions at ${companyName} is around €${stats.averageSalary.toLocaleString()} gross per year.` : `Currently, we do not have enough salary data for ${companyName}.`)
+            : (stats.averageSalary ? `El salario medio estimado para los puestos tecnológicos en ${companyName} es de unos ${stats.averageSalary.toLocaleString('es-ES')}€ brutos anuales.` : `Actualmente no disponemos de suficientes datos salariales públicos para ${companyName}.`)
+        }
+      }
+    ]
+  };
+
   const top3Jobs = allJobs.slice(0, 3);
   const jobPostingSchemas = top3Jobs.map((job) => {
     const isRemote = job.location.toLowerCase().includes('remoto') || job.location.toLowerCase().includes('teletrabajo') || job.location.toLowerCase().includes('remote');
@@ -533,6 +570,10 @@ export default async function CompanyPage({ params, searchParams }: Props) {
       <script 
         type="application/ld+json" 
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} 
+      />
+      <script 
+        type="application/ld+json" 
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} 
       />
       {jobPostingSchemas.map((schema, idx) => (
         <script 

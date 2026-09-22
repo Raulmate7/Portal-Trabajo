@@ -37,9 +37,11 @@ export default function PublishForm() {
     }
   }, [urlPlan]);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<JobFormValues>({
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<JobFormValues>({
     resolver: zodResolver(jobSchema),
   });
+
+  const isLoading = status === "loading" || isSubmitting;
 
   const onSubmitForm = async (data: JobFormValues) => {
     setStatus("loading");
@@ -276,7 +278,7 @@ export default function PublishForm() {
                 id="company_name"
                 {...register("company_name")}
                 type="text"
-                disabled={status === "loading"}
+                disabled={isLoading}
                 placeholder="Ej: Acme Technologies"
                 className={`w-full px-4 py-3 rounded-xl bg-gray-800 border text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-50 ${errors.company_name ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-indigo-500'}`}
               />
@@ -291,7 +293,7 @@ export default function PublishForm() {
                   id="company_email"
                   {...register("company_email")}
                   type="email"
-                  disabled={status === "loading"}
+                  disabled={isLoading}
                   placeholder="rrhh@empresa.com"
                   className={`w-full px-4 py-3 rounded-xl bg-gray-800 border text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-50 ${errors.company_email ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-indigo-500'}`}
                 />
@@ -305,7 +307,7 @@ export default function PublishForm() {
                   id="company_phone"
                   {...register("company_phone")}
                   type="tel"
-                  disabled={status === "loading"}
+                  disabled={isLoading}
                   placeholder="+34 600 123 456"
                   className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all disabled:opacity-50"
                 />
@@ -326,7 +328,7 @@ export default function PublishForm() {
                 id="job_title"
                 {...register("job_title")}
                 type="text"
-                disabled={status === "loading"}
+                disabled={isLoading}
                 placeholder="Ej: Senior React Developer"
                 className={`w-full px-4 py-3 rounded-xl bg-gray-800 border text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-50 ${errors.job_title ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-indigo-500'}`}
               />
@@ -341,7 +343,7 @@ export default function PublishForm() {
                   id="job_location"
                   {...register("job_location")}
                   type="text"
-                  disabled={status === "loading"}
+                  disabled={isLoading}
                   placeholder="Ej: Madrid / Remoto"
                   className={`w-full px-4 py-3 rounded-xl bg-gray-800 border text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-50 ${errors.job_location ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-indigo-500'}`}
                 />
@@ -355,7 +357,7 @@ export default function PublishForm() {
                   id="job_salary"
                   {...register("job_salary")}
                   type="text"
-                  disabled={status === "loading"}
+                  disabled={isLoading}
                   placeholder="Ej: 40.000€ - 55.000€"
                   className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all disabled:opacity-50"
                 />
@@ -368,7 +370,7 @@ export default function PublishForm() {
               <textarea
                 id="job_description"
                 {...register("job_description")}
-                disabled={status === "loading"}
+                disabled={isLoading}
                 rows={5}
                 placeholder="Describe las responsabilidades, requisitos y beneficios..."
                 className={`w-full px-4 py-3 rounded-xl bg-gray-800 border text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-50 resize-none ${errors.job_description ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-indigo-500'}`}
@@ -383,7 +385,7 @@ export default function PublishForm() {
                 id="job_url"
                 {...register("job_url")}
                 type="url"
-                disabled={status === "loading"}
+                disabled={isLoading}
                 placeholder="https://tu-empresa.com/careers/oferta-123"
                 className={`w-full px-4 py-3 rounded-xl bg-gray-800 border text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-50 ${errors.job_url ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-indigo-500'}`}
               />
@@ -394,14 +396,14 @@ export default function PublishForm() {
 
         <button
           type="submit"
-          disabled={status === "loading"}
+          disabled={isLoading}
           className={`w-full font-black text-base py-4 px-6 rounded-xl transition-all shadow-lg disabled:opacity-50 flex justify-center items-center gap-2 ${
             selectedPlan !== "basico"
               ? "bg-gradient-to-r from-amber-400 to-yellow-500 text-gray-900 hover:from-amber-300 hover:to-yellow-400 shadow-amber-500/20 hover:shadow-amber-500/40"
               : "bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-400 hover:to-purple-500 shadow-indigo-500/20 hover:shadow-indigo-500/40"
           }`}
         >
-          {status === "loading"
+          {isLoading
             ? "Enviando..."
             : selectedPlan === "basico"
             ? "Solicitar oferta Básica (Gratis)"

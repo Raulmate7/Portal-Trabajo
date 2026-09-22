@@ -7,6 +7,7 @@ const ExitIntentPopup = dynamic(() => import('@/components/ExitIntentPopup'), { 
 const StickyMobileAd = dynamic(() => import('@/components/StickyMobileAd'), { ssr: false });
 const CompareFloatingPill = dynamic(() => import('@/components/CompareFloatingPill'), { ssr: false });
 const InAppNotification = dynamic(() => import('@/components/InAppNotification'), { ssr: false });
+const WelcomeToast = dynamic(() => import('@/components/WelcomeToast'), { ssr: false });
 
 export default function ClientOnlyWidgets() {
   return (
@@ -16,6 +17,7 @@ export default function ClientOnlyWidgets() {
       <StickyMobileAd />
       <CompareFloatingPill />
       <InAppNotification />
+      <WelcomeToast />
     </>
   );
 }
