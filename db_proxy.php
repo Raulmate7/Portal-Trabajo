@@ -73,9 +73,10 @@ try {
         'affected_rows' => $stmt->rowCount()
     ]);
 } catch (\PDOException $e) {
+    error_log("DB_PROXY_ERROR: " . $e->getMessage());
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage()
+        'error' => 'Error interno de base de datos'
     ]);
 }

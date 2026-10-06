@@ -2,12 +2,18 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import pool from '@/lib/db';
 import crypto from 'crypto';
+import { checkoutLimiter, getClientIp } from '@/lib/rate-limit';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2023-10-16' as any,
 });
 
 export async function POST(request: Request) {
+  const ip = getClientIp(request);
+  const rateLimit = checkoutLimiter.limit(ip);
+  if (!rateLimit.success) {
+    return new NextResponse('Too Many Requests', { status: 429 });
+  }
   try {
     const body = await request.json();
     const { title, company, location, salary, description_snippet, url_source, category, plan = 'destacado_30d', affiliate_code } = body;

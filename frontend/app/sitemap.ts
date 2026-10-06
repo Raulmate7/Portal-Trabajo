@@ -11,8 +11,8 @@ export const revalidate = 7200; // Cache por 2 horas
 
 // Fecha límite de lanzamiento del portal — se usa como lastModified de páginas estáticas
 // para no reportar "hoy" a Googlebot (evita re-crawls innecesarios de crawl budget).
-// Actualizar manualmente solo cuando haya cambios estructurales significativos.
-const SITE_LAST_STRUCTURAL_UPDATE = new Date('2026-07-01');
+// Modificado a new Date() dinámico para forzar el rastreo constante.
+const SITE_LAST_STRUCTURAL_UPDATE = new Date();
 
 const BASE_PAGES = [
   '/trabajos/informatica-tecnologia',

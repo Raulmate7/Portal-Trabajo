@@ -52,6 +52,7 @@ export class RateLimiter {
 export const freshAlertsLimiter = new RateLimiter(60000, 10); // 10 req / min
 export const trackOpenLimiter = new RateLimiter(60000, 20); // 20 req / min
 export const vacantesWidgetLimiter = new RateLimiter(60000, 30); // 30 req / min
+export const checkoutLimiter = new RateLimiter(60000, 5); // 5 req / min
 
 export function getClientIp(request: Request): string {
   const forwardedFor = request.headers.get('x-forwarded-for');

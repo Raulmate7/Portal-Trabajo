@@ -50,6 +50,19 @@ function EmpresaDashboardContent() {
   useEffect(() => {
     if (emailParam && tokenParam) {
       loadDashboard(emailParam, tokenParam);
+    } else {
+      // Intentar auto-login con localStorage
+      const savedSession = localStorage.getItem('recruiter_session');
+      if (savedSession) {
+        try {
+          const { email, token } = JSON.parse(savedSession);
+          if (email && token) {
+            loadDashboard(email, token);
+          }
+        } catch (e) {
+          localStorage.removeItem('recruiter_session');
+        }
+      }
     }
   }, [emailParam, tokenParam]);
 
@@ -62,9 +75,12 @@ function EmpresaDashboardContent() {
         setJobs(res.jobs || []);
         setSponsoredJobs(res.sponsoredJobs || []);
         setAuthenticated(true);
+        // Guardar sesión persistentemente
+        localStorage.setItem('recruiter_session', JSON.stringify({ email, token }));
       } else {
         setErrorMsg(res.error || 'Acceso denegado.');
         setAuthenticated(false);
+        localStorage.removeItem('recruiter_session');
       }
     } catch (e) {
       setErrorMsg('Error de red al cargar el panel de empresa.');
@@ -99,6 +115,7 @@ function EmpresaDashboardContent() {
   }
 
   const handleLogout = () => {
+    localStorage.removeItem('recruiter_session');
     router.push('/empresa-dashboard');
     setAuthenticated(false);
     setJobs([]);

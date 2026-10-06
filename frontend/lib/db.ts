@@ -100,16 +100,46 @@ const CONNECTION_ERRORS = [
 async function executeQuery(conn: mysql.Pool | mysql.PoolConnection | null, sql: string, params: any[] = []) {
   let mysqlParams: any[] = [];
   
-  // 1. Traducir marcadores de PostgreSQL ($1, $2, etc.) a marcadores de MySQL (?)
-  let mysqlSql = sql.replace(/\$(\d+)/g, (match, numStr) => {
-    const pgIndex = parseInt(numStr, 10) - 1;
-    if (params && pgIndex >= 0 && pgIndex < params.length) {
-      mysqlParams.push(params[pgIndex]);
+  // 1. Traducir marcadores de PostgreSQL ($1, $2, etc.) a marcadores de MySQL (?) de forma segura (ignorando strings)
+  let mysqlSql = '';
+  let inString = false;
+  let stringChar = '';
+  for (let i = 0; i < sql.length; i++) {
+    const char = sql[i];
+    if (inString) {
+      if (char === stringChar && sql[i - 1] !== '\\') {
+        inString = false;
+      }
+      mysqlSql += char;
     } else {
-      mysqlParams.push(null);
+      if (char === "'" || char === '"') {
+        inString = true;
+        stringChar = char;
+        mysqlSql += char;
+      } else if (char === '$') {
+        let j = i + 1;
+        let numStr = '';
+        while (j < sql.length && sql[j] >= '0' && sql[j] <= '9') {
+          numStr += sql[j];
+          j++;
+        }
+        if (numStr.length > 0) {
+          const pgIndex = parseInt(numStr, 10) - 1;
+          if (params && pgIndex >= 0 && pgIndex < params.length) {
+            mysqlParams.push(params[pgIndex]);
+          } else {
+            mysqlParams.push(null);
+          }
+          mysqlSql += '?';
+          i = j - 1; // Avanzar el índice
+        } else {
+          mysqlSql += char;
+        }
+      } else {
+        mysqlSql += char;
+      }
     }
-    return '?';
-  });
+  }
 
   if (mysqlParams.length === 0 && params && params.length > 0) {
     mysqlParams = params;

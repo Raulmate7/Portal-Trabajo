@@ -13,24 +13,12 @@ interface Props {
 }
 
 export default function RedirectClient({ url, company, title, lang }: Props) {
-  const [countdown, setCountdown] = useState(2);
+  const [countdown, setCountdown] = useState(0);
   const [redirected, setRedirected] = useState(false);
   const isEnglish = lang === 'en';
 
   useEffect(() => {
     sendGAEvent({ event: 'redirect_page_view', company, job_title: title });
-
-    const interval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
   }, [company, title]);
 
   useEffect(() => {
