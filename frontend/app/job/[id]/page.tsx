@@ -800,15 +800,17 @@ export default async function JobPage({ params, searchParams }: Props) {
   // VideoObject schema disabled due to lack of actual video ID in database (avoiding Google penalty for mock URLs)
   const videoJsonLd: any = null;
 
+  // Sanitizar JSON-LD para prevenir cierre de etiquetas <script> y Stored XSS
+  const safeJsonLdString = (data: any) => JSON.stringify(data).replace(/</g, '\\u003c');
 
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-4 md:px-8">
       <RecentlyViewedTracker job={{ id: job.id, title: displayTitle, company: job.company, location: job.location, salary: job.salary }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(faqJsonLd) }} />
       {videoJsonLd && (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(videoJsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(videoJsonLd) }} />
       )}
 
       <div className="max-w-5xl mx-auto">

@@ -2,6 +2,10 @@ import os
 import smtplib
 import psycopg2
 import base64
+import html
+import hmac
+import hashlib
+import urllib.parse
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
@@ -9,6 +13,12 @@ from dotenv import load_dotenv
 from logic.slug import get_job_slug
 
 load_dotenv()
+
+def generate_unsubscribe_link(email: str) -> str:
+    base_url = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
+    secret = os.getenv("CRON_SECRET", "fallback_secret")
+    token = hmac.new(secret.encode(), email.strip().lower().encode(), hashlib.sha256).hexdigest()
+    return f"{base_url}/api/unsubscribe?email={urllib.parse.quote(email.strip().lower())}&token={token}"
 
 def get_custom_udemy_link(tech_keywords):
     base_udemy = "https://trk.udemy.com/9VMAEj"
@@ -130,15 +140,19 @@ def send_newsletter():
                 </li>
             """
         if top_company_name:
+            top_company_name_esc = html.escape(str(top_company_name))
             rundown_html += f"""
                 <li style="margin-bottom: 8px;">
-                    🏢 <strong>Líder de contratación:</strong> <strong>{top_company_name}</strong> ha publicado {top_company_count} ofertas de empleo esta semana.
+                    🏢 <strong>Líder de contratación:</strong> <strong>{top_company_name_esc}</strong> ha publicado {top_company_count} ofertas de empleo esta semana.
                 </li>
             """
         if top_salary_job:
+            top_salary_esc = html.escape(str(top_salary_job[2]))
+            top_pos_esc = html.escape(str(top_salary_job[0]))
+            top_comp_esc = html.escape(str(top_salary_job[1]))
             rundown_html += f"""
                 <li style="margin-bottom: 0;">
-                    💰 <strong>Sueldo top de la semana:</strong> {top_salary_job[2]} para la posición <em>{top_salary_job[0]}</em> en <strong>{top_salary_job[1]}</strong>.
+                    💰 <strong>Sueldo top de la semana:</strong> {top_salary_esc} para la posición <em>{top_pos_esc}</em> en <strong>{top_comp_esc}</strong>.
                 </li>
             """
         rundown_html += """
@@ -222,15 +236,17 @@ def send_newsletter():
         
         for job in jobs:
             job_id, title, company, location, url_source, _ = job
-            import urllib.parse
             base_url = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
+            title_esc = html.escape(str(title or ''))
+            company_esc = html.escape(str(company or ''))
+            location_esc = html.escape(str(location or ''))
             original_job_link = f"{base_url}/job/{get_job_slug(job_id, title, location, company)}?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal&utm_term={urllib.parse.quote(cat)}&utm_content={job_id}"
             job_link = f"{base_url}/api/track-click?email=##EMAIL##&campaign=##CAMPAIGN##&redirect={urllib.parse.quote(original_job_link)}"
 
             standard_jobs_html += f"""
                 <div style="margin-bottom: 16px; padding: 12px 16px; background-color: #f9fafb; border-left: 4px solid {color}; border-radius: 0 8px 8px 0; border-top: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6; border-bottom: 1px solid #f3f4f6;">
-                    <h3 style="color: #1e1b4b; margin: 0 0 4px; font-size: 14px; font-weight: bold; line-height: 1.4;">{title}</h3>
-                    <p style="margin: 0 0 10px; color: #4b5563; font-size: 12px;">🏢 {company} &nbsp;|&nbsp; 📍 {location}</p>
+                    <h3 style="color: #1e1b4b; margin: 0 0 4px; font-size: 14px; font-weight: bold; line-height: 1.4;">{title_esc}</h3>
+                    <p style="margin: 0 0 10px; color: #4b5563; font-size: 12px;">🏢 {company_esc} &nbsp;|&nbsp; 📍 {location_esc}</p>
                     <a href="{job_link}" style="display: inline-block; background-color: {color}; color: white; padding: 6px 14px; text-decoration: none; border-radius: 6px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                         Ver Oferta →
                     </a>
@@ -272,6 +288,7 @@ def send_newsletter():
     for (email, tech_keywords) in subscribers:
         try:
             base64_email = base64.b64encode(email.encode('utf-8')).decode('utf-8')
+            unsubscribe_link = generate_unsubscribe_link(email)
             # 6.1. Buscar ofertas personalizadas (en memoria) para este suscriptor
             recommended_jobs = []
             recommended_html = ""
@@ -286,7 +303,7 @@ def send_newsletter():
                             break
             
             if recommended_jobs:
-                tech_label = tech_keywords.replace(',', ', ').upper()
+                tech_label = html.escape(tech_keywords.replace(',', ', ').upper())
                 recommended_html = f"""
                     <h2 style="color: #92400e; border-bottom: 2px solid #fbbf2440; padding-bottom: 6px; margin-top: 20px; margin-bottom: 14px; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
                         ⭐ Recomendadas para tu perfil ({tech_label})
@@ -295,14 +312,16 @@ def send_newsletter():
                 for job in recommended_jobs:
                     job_id, title, company, location, url_source, job_cat = job
                     job_cat = job_cat or 'Otros'
-                    import urllib.parse
+                    title_esc = html.escape(str(title or ''))
+                    company_esc = html.escape(str(company or ''))
+                    location_esc = html.escape(str(location or ''))
                     original_job_link = f"{base_url}/job/{get_job_slug(job_id, title, location, company)}?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal&utm_term={urllib.parse.quote(job_cat)}&utm_content={job_id}"
                     job_link = f"{base_url}/api/track-click?email=##EMAIL##&campaign=##CAMPAIGN##&redirect={urllib.parse.quote(original_job_link)}"
                     
                     recommended_html += f"""
                         <div style="margin-bottom: 16px; padding: 12px 16px; background-color: #fffbeb; border-left: 4px solid #fbbf24; border-radius: 0 8px 8px 0; border-top: 1px solid #fef3c7; border-right: 1px solid #fef3c7; border-bottom: 1px solid #fef3c7;">
-                            <h3 style="color: #78350f; margin: 0 0 4px; font-size: 14px; font-weight: bold; line-height: 1.4;">{title}</h3>
-                            <p style="margin: 0 0 10px; color: #b45309; font-size: 12px;">🏢 {company} &nbsp;|&nbsp; 📍 {location}</p>
+                            <h3 style="color: #78350f; margin: 0 0 4px; font-size: 14px; font-weight: bold; line-height: 1.4;">{title_esc}</h3>
+                            <p style="margin: 0 0 10px; color: #b45309; font-size: 12px;">🏢 {company_esc} &nbsp;|&nbsp; 📍 {location_esc}</p>
                             <a href="{job_link}" style="display: inline-block; background-color: #f59e0b; color: white; padding: 6px 14px; text-decoration: none; border-radius: 6px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                                 Ver Oferta →
                             </a>
@@ -319,15 +338,17 @@ def send_newsletter():
                 for f_job in featured_jobs:
                     fj_id, fj_title, fj_company, fj_location, fj_url, fj_cat, fj_plan = f_job
                     fj_cat = fj_cat or 'Otros'
-                    import urllib.parse
+                    title_esc = html.escape(str(fj_title or ''))
+                    company_esc = html.escape(str(fj_company or ''))
+                    location_esc = html.escape(str(fj_location or ''))
                     original_fj_link = f"{base_url}/job/{get_job_slug(fj_id, fj_title, fj_location, fj_company)}?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal&utm_term={urllib.parse.quote(fj_cat)}&utm_content={fj_id}"
                     fj_link = f"{base_url}/api/track-click?email=##EMAIL##&campaign=##CAMPAIGN##&redirect={urllib.parse.quote(original_fj_link)}"
                     
                     featured_html += f"""
                         <div style="margin-bottom: 16px; padding: 16px; background-color: #f5f3ff; border: 2px solid #c7d2fe; border-left: 6px solid #6366f1; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.05);">
                             <span style="display: inline-block; background-color: #6366f1; color: white; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: bold; text-transform: uppercase; margin-bottom: 8px;">DESTACADO</span>
-                            <h3 style="color: #1e1b4b; margin: 0 0 4px; font-size: 15px; font-weight: 800; line-height: 1.4;">{fj_title}</h3>
-                            <p style="margin: 0 0 10px; color: #4338ca; font-size: 12px; font-weight: 600;">🏢 {fj_company} &nbsp;|&nbsp; 📍 {fj_location}</p>
+                            <h3 style="color: #1e1b4b; margin: 0 0 4px; font-size: 15px; font-weight: 800; line-height: 1.4;">{title_esc}</h3>
+                            <p style="margin: 0 0 10px; color: #4338ca; font-size: 12px; font-weight: 600;">🏢 {company_esc} &nbsp;|&nbsp; 📍 {location_esc}</p>
                             <a href="{fj_link}" style="display: inline-block; background-color: #4338ca; color: white; padding: 8px 18px; text-decoration: none; border-radius: 6px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                                 Ver Oferta Destacada →
                             </a>
@@ -338,7 +359,6 @@ def send_newsletter():
             final_jobs_html = (featured_html + recommended_html + standard_jobs_html).replace("##EMAIL##", email).replace("##CAMPAIGN##", campaign_name)
             
             # Generar enlaces con tracking para los CTAs generales del correo
-            import urllib.parse
             user_udemy_link = get_custom_udemy_link(tech_keywords)
             bootcamp_track = f"{base_url}/api/track-click?email={email}&campaign={campaign_name}&redirect={urllib.parse.quote(user_udemy_link)}"
             cv_track = f"{base_url}/api/track-click?email={email}&campaign={campaign_name}&redirect={urllib.parse.quote(CV_LINK)}"
@@ -427,12 +447,12 @@ def send_newsletter():
                             <p style="color: #9ca3af; font-size: 11px; margin: 0;">
                                 Enviado automáticamente cada lunes por Portal Trabajo IT.<br>
                                 <a href="{visit_web_track}" style="color: #6366f1;">Visitar la web</a> · 
-                                <a href="{base_url}/api/unsubscribe?email={email}" style="color: #9ca3af; text-decoration: underline;">Cancelar suscripción</a>
+                                <a href="{unsubscribe_link}" style="color: #9ca3af; text-decoration: underline;">Cancelar suscripción</a>
                             </p>
                         </div>
                     </div>
                     <!-- Pixel de Tracking Invisible -->
-                    <img src="{base_url}/api/track-open?email={email}&campaign={campaign_name}" width="1" height="1" style="display:none;" />
+                    <img src="{base_url}/api/track-open?email={urllib.parse.quote(email)}&campaign={campaign_name}" width="1" height="1" style="display:none;" />
                 </body>
             </html>
             """

@@ -1,6 +1,10 @@
 import os
 import smtplib
 import psycopg2
+import html as html_escape
+import hashlib
+import hmac
+import urllib.parse
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
@@ -12,15 +16,29 @@ load_dotenv()
 BASE_URL = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+UNSUBSCRIBE_SECRET = os.getenv("UNSUBSCRIBE_SECRET") or os.getenv("CRON_SECRET", "default_portal_secret_unsub")
+
+
+def generate_unsubscribe_link(email: str) -> str:
+    """Genera enlace de cancelación firmado con HMAC."""
+    clean_email = email.strip().lower()
+    token = hmac.new(UNSUBSCRIBE_SECRET.encode(), clean_email.encode(), hashlib.sha256).hexdigest()
+    return f"{BASE_URL}/api/unsubscribe?email={urllib.parse.quote(clean_email)}&token={token}"
+
 
 def build_alert_email(email, job):
-    """Construye el HTML para la alerta urgente de oferta destacada."""
-    import urllib.parse
+    """Construye el HTML para la alerta urgente de oferta destacada sanitizando variables."""
     job_id, title, company, location, salary, category = job
+    safe_title = html_escape.escape(str(title or ''))
+    safe_company = html_escape.escape(str(company or ''))
+    safe_location = html_escape.escape(str(location or ''))
     category = category or 'Otros'
     original_job_link = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=featured_alert&utm_medium=email&utm_campaign=instant_alert_{job_id}&utm_term={urllib.parse.quote(category)}&utm_content={job_id}"
     job_link = f"{BASE_URL}/api/track-click?email={email}&campaign=instant_alert_{job_id}&redirect={urllib.parse.quote(original_job_link)}"
-    salary_html = f"<p style='margin: 0 0 10px; color: #b45309; font-size: 14px;'>💰 <b>Salario:</b> {salary}</p>" if salary and salary not in ("Consultar", "") else ""
+    
+    safe_salary = html_escape.escape(str(salary)) if salary and salary not in ("Consultar", "") else ""
+    salary_html = f"<p style='margin: 0 0 10px; color: #b45309; font-size: 14px;'>💰 <b>Salario:</b> {safe_salary}</p>" if safe_salary else ""
+    unsubscribe_link = generate_unsubscribe_link(email)
     
     return f"""
     <html>
@@ -38,9 +56,9 @@ def build_alert_email(email, job):
                 </p>
                 
                 <div style="margin: 20px 0; padding: 20px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; border-left: 5px solid #f59e0b;">
-                    <h3 style="margin: 0 0 6px; color: #78350f; font-size: 16px; font-weight: bold;">{title}</h3>
-                    <p style="margin: 0 0 6px; color: #4b5563; font-size: 14px;">🏢 <b>Empresa:</b> {company}</p>
-                    <p style="margin: 0 0 6px; color: #4b5563; font-size: 14px;">📍 <b>Ubicación:</b> {location}</p>
+                    <h3 style="margin: 0 0 6px; color: #78350f; font-size: 16px; font-weight: bold;">{safe_title}</h3>
+                    <p style="margin: 0 0 6px; color: #4b5563; font-size: 14px;">🏢 <b>Empresa:</b> {safe_company}</p>
+                    <p style="margin: 0 0 6px; color: #4b5563; font-size: 14px;">📍 <b>Ubicación:</b> {safe_location}</p>
                     {salary_html}
                     
                     <div style="margin-top: 16px;">
@@ -56,7 +74,7 @@ def build_alert_email(email, job):
             </div>
             <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
                 <p style="color: #9ca3af; font-size: 11px; margin: 0;">
-                    Enviado al instante por Portal Trabajo IT · <a href="{BASE_URL}/api/unsubscribe?email={email}" style="color: #6366f1;">Cancelar suscripción</a>
+                    Enviado al instante por Portal Trabajo IT · <a href="{unsubscribe_link}" style="color: #6366f1;">Cancelar suscripción</a>
                 </p>
             </div>
         </div>

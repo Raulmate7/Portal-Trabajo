@@ -302,7 +302,6 @@ export default function SearchFilters() {
           </button>
         </div>
       </div>
-      </div>
     </div>
   );
 }

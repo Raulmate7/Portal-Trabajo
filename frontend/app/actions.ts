@@ -37,8 +37,61 @@ function verifySecureToken(email: string, token: string): boolean {
   if (Date.now() - timestamp > 24 * 60 * 60 * 1000) return false; // Expira a las 24h
   
   const expectedHash = crypto.createHmac('sha256', secret).update(email.trim().toLowerCase() + timestamp).digest('hex');
-  // Usar timingSafeEqual para prevenir timing attacks si es posible (aquí una comparación simple por compatibilidad)
-  return hash === expectedHash;
+  if (!hash || hash.length !== expectedHash.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(Buffer.from(hash, 'utf-8'), Buffer.from(expectedHash, 'utf-8'));
+}
+
+async function sendMagicLinkEmail(toEmail: string, loginUrl: string, type: 'recruiter' | 'candidate') {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const isRecruiter = type === 'recruiter';
+  const subject = isRecruiter 
+    ? 'Acceso a tu Panel de Empresa — Portal Trabajo IT' 
+    : 'Acceso a tu Perfil de Candidato — Portal Trabajo IT';
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background: #ffffff;">
+      <h2 style="color: #4338ca; margin-top: 0;">Portal Trabajo IT</h2>
+      <p style="color: #374151; font-size: 15px;">Hola,</p>
+      <p style="color: #374151; font-size: 14px; line-height: 1.5;">
+        Has solicitado un enlace de acceso para ${isRecruiter ? 'gestionar tus ofertas de empleo' : 'configurar tus preferencias de alertas y candidato'}.
+      </p>
+      <div style="margin: 24px 0;">
+        <a href="${loginUrl}" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 14px;">
+          Acceder a mi panel seguro →
+        </a>
+      </div>
+      <p style="color: #6b7280; font-size: 12px; border-top: 1px solid #f3f4f6; padding-top: 16px;">
+        Este enlace es personal e intransferible y expira en 24 horas.<br/>
+        Si no has solicitado este acceso, puedes ignorar este correo de forma segura.
+      </p>
+    </div>
+  `;
+
+  if (resendApiKey) {
+    try {
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: process.env.EMAIL_FROM || 'Portal Trabajo IT <alertas@portalempleoit.com>',
+          to: toEmail,
+          subject,
+          html
+        })
+      });
+    } catch (e) {
+      console.error('Error enviando email via Resend:', e);
+    }
+  } else {
+    // Registro seguro sin exponer tokens en logs
+    const masked = toEmail.length > 5 ? `${toEmail.slice(0, 2)}***@${toEmail.split('@')[1]}` : '***';
+    console.log(`[AUTH] Enlace de acceso preparado para ${masked}`);
+  }
 }
 // ------------------------------------------
 
@@ -163,6 +216,17 @@ export async function submitSponsoredJob(formData: FormData) {
   if (!company_name || !company_email || !job_title || !job_location || !job_description || !job_url) {
     return { message: 'Por favor, rellena todos los campos obligatorios.', success: false };
   }
+
+  const cleanJobUrl = job_url.trim();
+  try {
+    const parsedUrl = new URL(cleanJobUrl);
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      return { message: 'La URL de la oferta debe comenzar por http:// o https://', success: false };
+    }
+  } catch {
+    return { message: 'La URL de la oferta no tiene un formato válido.', success: false };
+  }
+
   if (!checkRateLimit(`job_${company_email}`, 60000)) {
     return { message: 'Por favor, espera un minuto entre publicaciones.', success: false };
   }
@@ -180,7 +244,7 @@ export async function submitSponsoredJob(formData: FormData) {
         job_location,
         job_salary,
         job_description,
-        job_url,
+        cleanJobUrl,
         plan,
         plan === 'basico' ? 'aprobado' : 'pendiente',
         new Date().toISOString()
@@ -191,8 +255,8 @@ export async function submitSponsoredJob(formData: FormData) {
     if (plan === 'basico') {
       const jobId = crypto.randomUUID();
       await client.query(
-        `INSERT INTO jobs (id, title, company, location, salary, description_snippet, url_source, category, is_active, is_featured, company_email, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE, FALSE, $9, NOW())`,
+        `INSERT INTO jobs (id, title, company, location, salary, description_snippet, url_source, category, is_active, is_featured, plan, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE, FALSE, 'basico', NOW())`,
         [
           jobId,
           job_title,
@@ -200,9 +264,8 @@ export async function submitSponsoredJob(formData: FormData) {
           job_location || 'Remoto',
           job_salary || 'Consultar',
           job_description || '',
-          job_url,
-          'Otros',
-          company_email
+          cleanJobUrl,
+          'Otros'
         ]
       );
     }
@@ -380,22 +443,18 @@ export async function generateRecruiterLoginLink(email: string) {
   const cleanEmail = email.trim().toLowerCase();
   const client = await pool.connect();
   try {
-    // Verificar si el reclutador tiene ofertas (en jobs o en sponsored_jobs)
-    const checkJobs = await client.query(
-      "SELECT COUNT(*) as count FROM jobs WHERE company_email = $1",
-      [cleanEmail]
-    );
+    // Verificar si el reclutador tiene ofertas en sponsored_jobs
     const checkSponsored = await client.query(
       "SELECT COUNT(*) as count FROM sponsored_jobs WHERE company_email = $1",
       [cleanEmail]
     );
 
-    const totalJobs = parseInt(checkJobs.rows[0]?.count || '0', 10) + parseInt(checkSponsored.rows[0]?.count || '0', 10);
+    const totalJobs = parseInt(checkSponsored.rows[0]?.count || '0', 10);
     
     if (totalJobs === 0) {
       return { 
-        success: false, 
-        message: 'No encontramos ofertas de empleo asociadas a este correo. Asegúrate de usar el mismo email que usaste para publicar.' 
+        success: true, 
+        message: 'Si este correo figura en nuestros registros con ofertas activas, hemos enviado un enlace de acceso seguro a tu bandeja de entrada. Revisa tu correo (y la carpeta de spam).' 
       };
     }
 
@@ -408,14 +467,12 @@ export async function generateRecruiterLoginLink(email: string) {
     }
     
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://portalempleoit.com';
-    const loginLink = `/empresa-dashboard?email=${encodeURIComponent(cleanEmail)}&token=${token}`;
-
-    console.log(`🔑 Recruiter login link generated: ${cleanEmail} -> ${loginLink}`);
+    const fullLoginUrl = `${baseUrl}/empresa-dashboard?email=${encodeURIComponent(cleanEmail)}&token=${token}`;
+    await sendMagicLinkEmail(cleanEmail, fullLoginUrl, 'recruiter');
 
     return { 
       success: true, 
-      message: '¡Enlace de acceso generado con éxito!', 
-      loginLink 
+      message: 'Si este correo tiene ofertas activas, hemos enviado un enlace de acceso seguro a tu bandeja de entrada. Revisa tu correo (y la carpeta de spam).'
     };
 
   } catch (error) {
@@ -439,15 +496,6 @@ export async function getRecruiterJobs(email: string, token: string) {
 
   const client = await pool.connect();
   try {
-    // Obtener empleos activos
-    const jobsRes = await client.query(
-      `SELECT id, title, company, created_at, is_active, impressions_count, clicks_count 
-       FROM jobs 
-       WHERE company_email = $1 
-       ORDER BY created_at DESC`,
-      [cleanEmail]
-    );
-
     // Obtener solicitudes patrocinadas (pendientes o aprobadas)
     const sponsoredRes = await client.query(
       `SELECT id, company_name, job_title, plan, status, created_at 
@@ -457,9 +505,26 @@ export async function getRecruiterJobs(email: string, token: string) {
       [cleanEmail]
     );
 
+    // Obtener empleos asociados a las empresas del reclutador
+    let jobsList: any[] = [];
+    if (sponsoredRes.rows && sponsoredRes.rows.length > 0) {
+      const companyNames = [...new Set(sponsoredRes.rows.map((r: any) => r.company_name).filter(Boolean))];
+      if (companyNames.length > 0) {
+        const placeholders = companyNames.map((_, i) => `$${i + 1}`).join(', ');
+        const jobsQuery = `
+          SELECT id, title, company, created_at, is_active, 0 AS impressions_count, 0 AS clicks_count 
+          FROM jobs 
+          WHERE company IN (${placeholders})
+          ORDER BY created_at DESC
+        `;
+        const jRes = await client.query(jobsQuery, companyNames);
+        jobsList = jRes.rows || [];
+      }
+    }
+
     return { 
       success: true, 
-      jobs: jobsRes.rows || [], 
+      jobs: jobsList, 
       sponsoredJobs: sponsoredRes.rows || [] 
     };
 
@@ -474,7 +539,7 @@ export async function getRecruiterJobs(email: string, token: string) {
 /**
  * Registra o recupera el código de afiliado para un reclutador.
  */
-export async function registerRecruiterAffiliate(email: string) {
+export async function registerRecruiterAffiliate(email: string, token?: string) {
   if (!email || !email.includes('@')) {
     return { success: false, error: 'Por favor, proporciona un correo válido.' };
   }
@@ -491,16 +556,23 @@ export async function registerRecruiterAffiliate(email: string) {
 
     if (checkRes.rows && checkRes.rows.length > 0) {
       const code = checkRes.rows[0].affiliate_code;
-      // Obtener estadísticas de referidos
-      const statsRes = await client.query(
-        "SELECT referred_company_name, commission_paid, created_at FROM recruiter_affiliates WHERE recruiter_email = $1 AND referred_company_name IS NOT NULL",
-        [cleanEmail]
-      );
+      const isAuthenticated = token ? verifySecureToken(cleanEmail, token) : false;
+
+      let referrals: any[] = [];
+      if (isAuthenticated) {
+        // Obtener estadísticas de referidos solo si el usuario está autenticado
+        const statsRes = await client.query(
+          "SELECT referred_company_name, commission_paid, created_at FROM recruiter_affiliates WHERE recruiter_email = $1 AND referred_company_name IS NOT NULL",
+          [cleanEmail]
+        );
+        referrals = statsRes.rows || [];
+      }
 
       return {
         success: true,
         code,
-        referrals: statsRes.rows || [],
+        referrals,
+        authenticated: isAuthenticated,
       };
     }
 
@@ -517,6 +589,7 @@ export async function registerRecruiterAffiliate(email: string) {
       success: true,
       code: newCode,
       referrals: [],
+      authenticated: true,
     };
 
   } catch (error) {
@@ -603,7 +676,10 @@ export async function generateCandidateLoginLink(email: string) {
   try {
     const res = await client.query("SELECT email FROM subscribers WHERE email = $1 LIMIT 1", [cleanEmail]);
     if (!res.rows || res.rows.length === 0) {
-      return { success: false, message: 'Este correo electrónico no está registrado en el boletín. ¡Regístrate gratis primero!' };
+      return { 
+        success: true, 
+        message: 'Si este correo está registrado en nuestro boletín, hemos enviado un enlace de acceso seguro a tu bandeja de entrada. Revisa tu correo (y la carpeta de spam).' 
+      };
     }
     
     let token: string;
@@ -613,8 +689,14 @@ export async function generateCandidateLoginLink(email: string) {
       return { success: false, message: 'Configuración del servidor incompleta.' };
     }
     
-    const loginLink = `/mi-perfil?email=${encodeURIComponent(cleanEmail)}&token=${token}`;
-    return { success: true, message: '¡Enlace de acceso generado con éxito!', loginLink };
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://portalempleoit.com';
+    const fullLoginUrl = `${baseUrl}/mi-perfil?email=${encodeURIComponent(cleanEmail)}&token=${token}`;
+    await sendMagicLinkEmail(cleanEmail, fullLoginUrl, 'candidate');
+
+    return { 
+      success: true, 
+      message: 'Si este correo está registrado en nuestro boletín, hemos enviado un enlace de acceso seguro a tu bandeja de entrada. Revisa tu correo (y la carpeta de spam).' 
+    };
   } catch (error) {
     return { success: false, message: 'Ocurrió un error al procesar tu solicitud.' };
   } finally {

@@ -1,11 +1,19 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { checkoutLimiter, getClientIp } from '@/lib/rate-limit';
+import { BASE_URL } from '@/lib/constants';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2023-10-16' as any,
 });
 
 export async function POST(request: Request) {
+  const ip = getClientIp(request);
+  const rateLimit = checkoutLimiter.limit(ip);
+  if (!rateLimit.success) {
+    return new NextResponse('Too Many Requests', { status: 429 });
+  }
+
   try {
     const body = await request.json();
     const { email, type = 'full' } = body;
@@ -26,10 +34,6 @@ export async function POST(request: Request) {
       productDesc = 'Datos históricos completos, segmentación tecnológica específica de tu competencia e informes de contratación en España.';
     }
 
-    const protocol = request.headers.get('x-forwarded-proto') || 'http';
-    const host = request.headers.get('host') || 'localhost:3000';
-    const baseUrl = `${protocol}://${host}`;
-
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       customer_email: cleanEmail,
@@ -47,8 +51,8 @@ export async function POST(request: Request) {
         },
       ],
       mode: 'payment',
-      success_url: `${baseUrl}/informe-mercado-it?checkout_success=true&email=${encodeURIComponent(cleanEmail)}&plan=${type}`,
-      cancel_url: `${baseUrl}/informe-mercado-it?checkout_canceled=true`,
+      success_url: `${BASE_URL}/informe-mercado-it?checkout_success=true&email=${encodeURIComponent(cleanEmail)}&plan=${type}`,
+      cancel_url: `${BASE_URL}/informe-mercado-it?checkout_canceled=true`,
       metadata: {
         email: cleanEmail,
         plan: type,

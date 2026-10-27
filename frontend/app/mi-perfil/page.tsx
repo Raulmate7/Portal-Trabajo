@@ -55,7 +55,6 @@ function MiPerfilContent() {
   const [authLoading, setAuthLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [loginLink, setLoginLink] = useState('');
 
   // Candidate Data States
   const [loadingData, setLoadingData] = useState(false);
@@ -147,13 +146,11 @@ function MiPerfilContent() {
     setAuthLoading(true);
     setStatusMsg('');
     setErrorMsg('');
-    setLoginLink('');
 
     try {
       const res = await generateCandidateLoginLink(emailInput.trim());
-      if (res.success && res.loginLink) {
+      if (res.success) {
         setStatusMsg(res.message);
-        setLoginLink(res.loginLink);
       } else {
         setErrorMsg(res.message || 'Error al solicitar acceso.');
       }
@@ -290,19 +287,11 @@ function MiPerfilContent() {
             </form>
 
             {statusMsg && (
-              <div className="mt-6 p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/50 text-emerald-800 dark:text-emerald-300 rounded-2xl text-xs space-y-3">
+              <div className="mt-6 p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/50 text-emerald-800 dark:text-emerald-300 rounded-2xl text-xs space-y-2">
                 <p className="font-semibold">✅ {statusMsg}</p>
-                {loginLink && (
-                  <div className="pt-2 border-t border-emerald-250">
-                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider mb-1">Enlace de acceso generado (entorno de desarrollo):</p>
-                    <Link
-                      href={loginLink}
-                      className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-[10px] transition-colors"
-                    >
-                      Entrar a mi perfil ahora 🚀
-                    </Link>
-                  </div>
-                )}
+                <p className="text-emerald-700 dark:text-emerald-400 text-[11px]">
+                  Por seguridad, el enlace no se muestra en el navegador. Haz clic en el acceso seguro recibido en tu correo electrónico.
+                </p>
               </div>
             )}
           </div>

@@ -28,7 +28,7 @@ class TestDatabase(unittest.TestCase):
             cur = conn.cursor()
         except Exception as e:
             err_msg = str(e).lower()
-            if "timeout" in err_msg or "timed out" in err_msg or "refused" in err_msg or "inaccesible" in err_msg or "lost connection" in err_msg:
+            if "timeout" in err_msg or "timed out" in err_msg or "refused" in err_msg or "inaccesible" in err_msg or "lost connection" in err_msg or "not found" in err_msg or "enotfound" in err_msg:
                 self.skipTest(f"Base de datos inaccesible temporalmente o por cortafuegos ({e}). Saltando test de esquema.")
             else:
                 self.fail(f"Fallo al conectar a la base de datos: {e}")

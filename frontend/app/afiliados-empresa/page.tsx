@@ -11,6 +11,7 @@ export default function AfiliadosEmpresaPage() {
   const [result, setResult] = useState<{
     code: string;
     referrals: Array<{ referred_company_name: string; commission_paid: boolean; created_at: string }>;
+    authenticated?: boolean;
   } | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -23,11 +24,23 @@ export default function AfiliadosEmpresaPage() {
     setResult(null);
 
     try {
-      const res = await registerRecruiterAffiliate(email.trim());
+      let sessionToken = '';
+      try {
+        const saved = localStorage.getItem('recruiter_session');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.email === email.trim().toLowerCase() && parsed.token) {
+            sessionToken = parsed.token;
+          }
+        }
+      } catch {}
+
+      const res = await registerRecruiterAffiliate(email.trim(), sessionToken);
       if (res.success && res.code) {
         setResult({
           code: res.code,
           referrals: res.referrals || [],
+          authenticated: !!res.authenticated,
         });
       } else {
         setErrorMsg(res.error || 'Ocurrió un error al unirse al programa.');
@@ -157,7 +170,14 @@ export default function AfiliadosEmpresaPage() {
               {/* Estadísticas de referidos */}
               <div className="border-t border-gray-800/80 pt-6 space-y-4">
                 <h4 className="text-xs font-bold text-gray-300 uppercase tracking-wider">Historial de Ventas y Comisiones</h4>
-                {result.referrals.length === 0 ? (
+                {!result.authenticated ? (
+                  <div className="p-3 bg-indigo-950/40 border border-indigo-800/50 rounded-xl text-xs text-indigo-200 text-center">
+                    🔒 Para proteger la confidencialidad comercial, el desglose de comisiones y empresas referidas está disponible en tu{' '}
+                    <Link href="/empresa-dashboard" className="underline font-bold text-white hover:text-indigo-300">
+                      Panel de Empresa
+                    </Link>.
+                  </div>
+                ) : result.referrals.length === 0 ? (
                   <p className="text-xs text-gray-500 italic">Aún no has referido a ninguna empresa pagadora. ¡Comparte tu enlace para empezar!</p>
                 ) : (
                   <div className="overflow-hidden border border-gray-850 rounded-2xl">

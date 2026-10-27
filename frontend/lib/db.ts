@@ -179,6 +179,7 @@ async function executeQuery(conn: mysql.Pool | mysql.PoolConnection | null, sql:
       
       const isConnectionError = 
         error.message.includes('fetch failed') ||
+        error.message.includes('status 500') ||
         error.message.includes('status 502') ||
         error.message.includes('status 503') ||
         error.message.includes('status 504') ||

@@ -1,49 +1,22 @@
 import pool from '@/lib/db';
 import Link from 'next/link';
+import { cookies } from 'next/headers';
+import { verifyAdminSessionToken } from '@/lib/adminAuth';
+import AdminLoginForm from './AdminLoginForm';
+import AdminLogoutButton from './AdminLogoutButton';
 
 export const metadata = {
   title: 'Panel de Administración | Portal Trabajo IT',
   robots: { index: false, follow: false },
 };
 
-type Props = {
-  searchParams: Promise<{ pw?: string }>;
-};
-
-export default async function AdminPage({ searchParams }: Props) {
-  const resolvedParams = await searchParams;
-  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
-  const isAuthorized = resolvedParams.pw === adminPassword;
+export default async function AdminPage() {
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get('admin_session')?.value;
+  const isAuthorized = verifyAdminSessionToken(sessionToken);
 
   if (!isAuthorized) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4">
-        <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 rounded-2xl shadow-xl space-y-6">
-          <div className="text-center space-y-2">
-            <span className="text-4xl">🔒</span>
-            <h1 className="text-2xl font-black text-slate-900 dark:text-white">Acceso Administrador</h1>
-            <p className="text-sm text-slate-500">Introduce la clave de acceso para visualizar las métricas y conversiones.</p>
-          </div>
-          <form method="GET" className="space-y-4">
-            <div>
-              <input
-                type="password"
-                name="pw"
-                required
-                placeholder="Contraseña"
-                className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm transition-all"
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl transition-all cursor-pointer shadow-md shadow-indigo-500/20 active:scale-98"
-            >
-              Entrar al Panel
-            </button>
-          </form>
-        </div>
-      </main>
-    );
+    return <AdminLoginForm />;
   }
 
   // Fetch real statistics from database
@@ -110,9 +83,12 @@ export default async function AdminPage({ searchParams }: Props) {
             </div>
             <p className="text-indigo-200 text-xs md:text-sm">Consolidado en tiempo real de monetización, registros e email tracking.</p>
           </div>
-          <Link href="/" className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 font-bold text-xs rounded-xl border border-slate-700 text-center transition-colors">
-            🏠 Volver al Portal
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/" className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 font-bold text-xs rounded-xl border border-slate-700 text-center transition-colors">
+              🏠 Volver al Portal
+            </Link>
+            <AdminLogoutButton />
+          </div>
         </div>
 
         {/* Mallas de Métricas */}

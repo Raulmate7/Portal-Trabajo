@@ -45,7 +45,7 @@ export default function Header() {
     { label: isEnglish ? 'Salaries' : 'Salarios', href: `/salarios${queryParam}` },
     { label: isEnglish ? 'Companies' : 'Empresas', href: `/empresas${queryParam}` },
     { label: isEnglish ? 'Interviews' : 'Entrevistas', href: `/entrevistas${queryParam}` },
-    { label: isEnglish ? 'Careers' : 'Guías Carrera', href: `/convertirse-en/fullstack${queryParam}` },
+    { label: isEnglish ? 'Careers' : 'Guías Carrera', href: `/convertirse-en${queryParam}` },
     { label: isEnglish ? 'Glossary' : 'Glosario', href: `/glosario${queryParam}` },
     { label: isEnglish ? 'News' : 'Noticias', href: `/noticias${queryParam}` },
   ];

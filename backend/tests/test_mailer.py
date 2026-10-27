@@ -17,10 +17,12 @@ class TestMailer(unittest.TestCase):
         mock_cursor = MagicMock()
         
         # 1. Retornar ofertas recientes para el boletín
-        # Columns: id, title, company, location, url_source
+        # Queries: all_jobs, salary_rows, featured_jobs, subscribers
         mock_cursor.fetchall.side_effect = [
-            [('job-1', 'Python Dev', 'Acme', 'Madrid', 'https://job-1.com', 'Backend')], # Primer fetchall (ofertas)
-            [('sub-1@gmail.com', 'python'), ('sub-2@gmail.com', None)]                       # Segundo fetchall (suscriptores)
+            [('job-1', 'Python Dev', 'Acme', 'Madrid', 'https://job-1.com', 'Backend')], # 1. all_jobs
+            [('Python Dev', 'Acme', '30000')],                                           # 2. salary_rows
+            [],                                                                          # 3. featured_jobs
+            [('sub-1@gmail.com', 'python'), ('sub-2@gmail.com', None)]                   # 4. subscribers
         ]
         mock_conn.cursor.return_value = mock_cursor
         mock_db_connect.return_value = mock_conn
@@ -43,7 +45,7 @@ class TestMailer(unittest.TestCase):
         self.assertEqual(mock_smtp_instance.send_message.call_count, 2)
         mock_smtp_instance.quit.assert_called_once()
 
-        # Verificar que el cuerpo de los correos contiene el enlace de referido base64 y el de desuscripción
+        # Verificar que el cuerpo de los correos contiene el enlace de referido base64 y el de desuscripción firmado
         msg1 = mock_smtp_instance.send_message.call_args_list[0][0][0]
         msg2 = mock_smtp_instance.send_message.call_args_list[1][0][0]
         
@@ -56,8 +58,8 @@ class TestMailer(unittest.TestCase):
 
         self.assertIn(f"/ref/{ref1}", body1)
         self.assertIn(f"/ref/{ref2}", body2)
-        self.assertIn("/api/unsubscribe?email=sub-1@gmail.com", body1)
-        self.assertIn("/api/unsubscribe?email=sub-2@gmail.com", body2)
+        self.assertIn("/api/unsubscribe?email=sub-1%40gmail.com&token=", body1)
+        self.assertIn("/api/unsubscribe?email=sub-2%40gmail.com&token=", body2)
 
     @patch('mailer.psycopg2.connect')
     @patch.dict('os.environ', {

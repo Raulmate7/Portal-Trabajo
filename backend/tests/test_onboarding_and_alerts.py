@@ -127,9 +127,10 @@ class TestOnboardingAndAlerts(unittest.TestCase):
         mock_conn = MagicMock()
         mock_cursor = MagicMock()
         
-        # Retornar una oferta nueva
+        # Retornar recuento y categorías
+        mock_cursor.fetchone.return_value = (25,)
         mock_cursor.fetchall.return_value = [
-            ('job-3', 'React Dev', 'Facebook', 'Remoto')
+            ('Frontend', 6)
         ]
         mock_conn.cursor.return_value = mock_cursor
         mock_db_connect.return_value = mock_conn
@@ -142,9 +143,9 @@ class TestOnboardingAndAlerts(unittest.TestCase):
         with patch('send_push_notifications.print'):
             send_push_notification()
 
-        # Debe hacer la llamada post a OneSignal
-        mock_post.assert_called_once()
-        headers = mock_post.call_args[1]['headers']
+        # Debe hacer 2 llamadas post a OneSignal: 1 segmentada por Frontend y 1 general
+        self.assertEqual(mock_post.call_count, 2)
+        headers = mock_post.call_args_list[0][1]['headers']
         self.assertIn("Authorization", headers)
         self.assertEqual(headers["Authorization"], "Basic api-key-123")
 

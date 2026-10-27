@@ -32,8 +32,8 @@ class TestDeactivateExpiredJobs(unittest.TestCase):
 
             mock_print.assert_any_call("🧹 Iniciando LIMPIEZA, DESINDEXACIÓN y PURGA de ofertas antiguas...")
             mock_print.assert_any_call("📦 Encontradas 2 ofertas expiradas para desactivar y desindexar.")
-            mock_print.assert_any_call("✅ Google De-indexada con éxito: Old PHP Dev Job (https://test-frontend.vercel.app/job/id-old-1)")
-            mock_print.assert_any_call("✅ Google De-indexada con éxito: Expired React Job (https://test-frontend.vercel.app/job/id-old-2)")
+            mock_print.assert_any_call("✅ Google De-indexada con éxito: Old PHP Dev Job (https://test-frontend.vercel.app/job/old-php-dev-job-id-old-1)")
+            mock_print.assert_any_call("✅ Google De-indexada con éxito: Expired React Job (https://test-frontend.vercel.app/job/expired-react-job-id-old-2)")
             mock_print.assert_any_call("💾 Base de Datos: 2 ofertas marcadas como is_active = 0 (inactivas).")
             mock_print.assert_any_call("✅ URLs enviadas con éxito a IndexNow para de-indexación!")
 

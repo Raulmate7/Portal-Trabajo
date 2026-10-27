@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import pool from '@/lib/db';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL, safeJsonLdString } from '@/lib/constants';
 import { getJobOfTheDay } from '@/lib/jobs';
 import { getJobSlug } from '@/lib/slug';
 import AdBanner from '@/components/AdBanner';
@@ -124,7 +124,7 @@ export default async function EmpleoDelDiaPage() {
   return (
     <main className="min-h-screen bg-gray-50 py-8 px-4">
       {jsonLd && (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(jsonLd) }} />
       )}
 
       <div className="max-w-5xl mx-auto">

@@ -1,6 +1,10 @@
 import os
 import smtplib
 import psycopg2
+import html as html_escape
+import hashlib
+import hmac
+import urllib.parse
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
@@ -12,6 +16,14 @@ load_dotenv()
 BASE_URL = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+UNSUBSCRIBE_SECRET = os.getenv("UNSUBSCRIBE_SECRET") or os.getenv("CRON_SECRET", "default_portal_secret_unsub")
+
+
+def generate_unsubscribe_link(email: str) -> str:
+    """Genera enlace de cancelación de suscripción firmado con HMAC."""
+    clean_email = email.strip().lower()
+    token = hmac.new(UNSUBSCRIBE_SECRET.encode(), clean_email.encode(), hashlib.sha256).hexdigest()
+    return f"{BASE_URL}/api/unsubscribe?email={urllib.parse.quote(clean_email)}&token={token}"
 
 
 def get_jobs_for_subscriber(cur, keywords, operator, location_pref: str, hours: int = 24):
@@ -42,23 +54,26 @@ def get_jobs_for_subscriber(cur, keywords, operator, location_pref: str, hours: 
 
 
 def build_job_html(jobs, subscriber_email):
-    """Genera el bloque HTML con la lista de ofertas de empleo."""
+    """Genera el bloque HTML con la lista de ofertas de empleo sanitizando valores."""
     if not jobs:
         return "<p style='color: #6b7280; text-align: center;'>No hay nuevas ofertas con tus filtros en las últimas 24 horas. ¡Vuelve mañana!</p>"
 
-    import urllib.parse
     html = ""
     for job in jobs:
         job_id, title, company, location, url_source, salary, category = job
+        safe_title = html_escape.escape(str(title or ''))
+        safe_company = html_escape.escape(str(company or ''))
+        safe_location = html_escape.escape(str(location or ''))
         category = category or 'Otros'
         original_job_link = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=alert&utm_medium=email&utm_campaign=custom_alert&utm_term={urllib.parse.quote(category)}&utm_content={job_id}"
         job_link = f"{BASE_URL}/api/track-click?email={subscriber_email}&campaign=custom_alert&redirect={urllib.parse.quote(original_job_link)}"
-        salary_text = f"💰 {salary}" if salary and salary not in ("Consultar", None) else ""
+        safe_salary = html_escape.escape(str(salary)) if salary and salary not in ("Consultar", None) else ""
+        salary_text = f"💰 {safe_salary}" if safe_salary else ""
 
         html += f"""
         <div style="margin-bottom: 16px; padding: 16px; background: #f8faff; border-left: 4px solid #4f46e5; border-radius: 0 8px 8px 0;">
-            <h3 style="color: #312e81; margin: 0 0 4px; font-size: 15px; font-weight: bold;">{title}</h3>
-            <p style="margin: 0 0 8px; color: #6b7280; font-size: 13px;">🏢 {company} &nbsp;|&nbsp; 📍 {location} {salary_text}</p>
+            <h3 style="color: #312e81; margin: 0 0 4px; font-size: 15px; font-weight: bold;">{safe_title}</h3>
+            <p style="margin: 0 0 8px; color: #6b7280; font-size: 13px;">🏢 {safe_company} &nbsp;|&nbsp; 📍 {safe_location} {salary_text}</p>
             <a href="{job_link}" style="display: inline-block; background: #4f46e5; color: white; padding: 6px 14px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: bold;">
                 Ver Oferta →
             </a>
@@ -69,16 +84,16 @@ def build_job_html(jobs, subscriber_email):
 
 def build_email_html(jobs, subscriber_email: str, tech_keywords: str, frequency: str):
     """Construye el cuerpo HTML completo del email de alerta."""
-    import urllib.parse
     BOOTCAMP_LINK = "https://trk.udemy.com/9VMAEj"
     bootcamp_track = f"{BASE_URL}/api/track-click?email={subscriber_email}&campaign=custom_alert&redirect={urllib.parse.quote(BOOTCAMP_LINK)}"
     cta_btn_orig = f"{BASE_URL}?utm_source=alert&utm_medium=email&utm_campaign=cta_btn"
     cta_btn_track = f"{BASE_URL}/api/track-click?email={subscriber_email}&campaign=custom_alert&redirect={urllib.parse.quote(cta_btn_orig)}"
     visit_web_track = f"{BASE_URL}/api/track-click?email={subscriber_email}&campaign=custom_alert&redirect={urllib.parse.quote(BASE_URL)}"
     
-    unsubscribe_link = f"{BASE_URL}/api/unsubscribe?email={subscriber_email}"
+    unsubscribe_link = generate_unsubscribe_link(subscriber_email)
     freq_text = "diario" if frequency == "daily" else "semanal"
-    tech_text = tech_keywords.replace(',', ', ').title() if tech_keywords else "Todas las tecnologías"
+    raw_tech = tech_keywords.replace(',', ', ').title() if tech_keywords else "Todas las tecnologías"
+    tech_text = html_escape.escape(raw_tech)
     jobs_html = build_job_html(jobs, subscriber_email)
     hours_window = 24 if frequency == "daily" else 168
     hours_label = "24 horas" if frequency == "daily" else "7 días"
@@ -184,8 +199,13 @@ def send_custom_alerts():
     skip_count = 0
     error_count = 0
 
-    for (email, tech_keywords, location_pref, frequency, tech_keywords_json) in subscribers:
+    for sub in subscribers:
         try:
+            email = sub[0]
+            tech_keywords = sub[1] if len(sub) > 1 else None
+            location_pref = sub[2] if len(sub) > 2 else None
+            frequency = sub[3] if len(sub) > 3 else "weekly"
+            tech_keywords_json = sub[4] if len(sub) > 4 else None
             # Calcular ventana de tiempo según frecuencia
             hours = 24 if frequency == "daily" else 168
 

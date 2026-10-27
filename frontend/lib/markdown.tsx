@@ -18,8 +18,13 @@ export function parseInline(text: string): string {
   // 2. Código en línea: `código`
   escaped = escaped.replace(/`(.*?)`/g, '<code class="bg-gray-100 text-indigo-600 px-1.5 py-0.5 rounded text-sm font-mono font-medium">$1</code>');
   
-  // 3. Enlaces: [texto](url)
-  escaped = escaped.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="text-indigo-600 hover:text-indigo-800 font-bold hover:underline">$1</a>');
+  // 3. Enlaces: [texto](url) - Sanitizar protocolo para evitar javascript: / data: XSS
+  escaped = escaped.replace(/\[(.*?)\]\((.*?)\)/g, (_match, label, rawUrl) => {
+    const trimmed = (rawUrl || '').trim();
+    const isSafe = /^(https?:\/\/|mailto:|tel:|\/|#)/i.test(trimmed);
+    const safeHref = isSafe ? trimmed : '#';
+    return `<a href="${safeHref}" class="text-indigo-600 hover:text-indigo-800 font-bold hover:underline">${label}</a>`;
+  });
   
   return escaped;
 }

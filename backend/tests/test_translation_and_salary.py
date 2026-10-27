@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch, MagicMock
 import sys
 import os
 
@@ -10,9 +11,18 @@ from logic.salary_parser import parse_salary, extract_salary_from_text
 
 class TestTranslationAndSalary(unittest.TestCase):
 
-    def test_translation_basic(self):
-        # Probar traducción de términos comunes de inglés a español
-        # Usamos términos que tienen traducción estable e inmediata
+    @patch('logic.translator.GoogleTranslator')
+    def test_translation_basic(self, mock_translator_cls):
+        # Mock para evitar bloqueos por cuota de IP pública de Google en tests locales
+        mock_instance = MagicMock()
+        def fake_translate(text):
+            if "PROTTECH0ZZ" in text:
+                return "Desarrollador PROTTECH0ZZ"
+            if "Data Scientist" in text:
+                return "Científico de datos"
+            return text
+        mock_instance.translate.side_effect = fake_translate
+        mock_translator_cls.return_value = mock_instance
         self.assertEqual(translate_text("React Developer").lower(), "desarrollador react")
         self.assertEqual(translate_text("Data Scientist").lower(), "científico de datos")
         

@@ -24,3 +24,8 @@ export function getAllContracts(): string[] {
 export function getAllLevels(): string[] {
   return LEVELS;
 }
+
+/** Escapes '<' in JSON-LD serialization to prevent script breakout XSS */
+export function safeJsonLdString(data: any): string {
+  return JSON.stringify(data).replace(/</g, '\\u003c');
+}

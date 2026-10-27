@@ -1,6 +1,10 @@
 import os
 import smtplib
 import psycopg2
+import html
+import hmac
+import hashlib
+import urllib.parse
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
@@ -12,6 +16,11 @@ load_dotenv()
 BASE_URL = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+
+def generate_unsubscribe_link(email: str) -> str:
+    secret = os.getenv("CRON_SECRET", "fallback_secret")
+    token = hmac.new(secret.encode(), email.strip().lower().encode(), hashlib.sha256).hexdigest()
+    return f"{BASE_URL}/api/unsubscribe?email={urllib.parse.quote(email.strip().lower())}&token={token}"
 
 def get_custom_udemy_link(tech_keywords):
     base_udemy = "https://trk.udemy.com/9VMAEj"
@@ -49,21 +58,24 @@ def get_onboarding_jobs(cur, tech_keywords):
 
 def build_welcome_email(email, tech_keywords, jobs):
     """Construye el primer email de bienvenida con ofertas recomendadas."""
-    tech_label = tech_keywords.replace(',', ', ').title() if tech_keywords else "Tecnología general"
+    tech_label = html.escape(tech_keywords.replace(',', ', ').title() if tech_keywords else "Tecnología general")
+    unsubscribe_link = generate_unsubscribe_link(email)
     jobs_html = ""
-    import urllib.parse
     
     if jobs:
         for job in jobs:
             job_id, title, company, location, salary, category = job
             category = category or 'Otros'
+            title_esc = html.escape(str(title or ''))
+            company_esc = html.escape(str(company or ''))
+            location_esc = html.escape(str(location or ''))
+            sal_text = f" | 💰 {html.escape(str(salary))}" if salary and salary not in ("Consultar", "") else ""
             original_link = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_1&utm_term={urllib.parse.quote(category)}&utm_content={job_id}"
-            job_link = f"{BASE_URL}/api/track-click?email={email}&campaign=welcome_email_1&redirect={urllib.parse.quote(original_link)}"
-            sal_text = f" | 💰 {salary}" if salary and salary not in ("Consultar", "") else ""
+            job_link = f"{BASE_URL}/api/track-click?email={urllib.parse.quote(email)}&campaign=welcome_email_1&redirect={urllib.parse.quote(original_link)}"
             jobs_html += f"""
             <div style="margin-bottom: 12px; padding: 12px; background: #f8faff; border-left: 4px solid #4f46e5; border-radius: 4px;">
-                <h4 style="margin: 0 0 4px; color: #312e81; font-size: 14px;">{title}</h4>
-                <p style="margin: 0 0 8px; color: #6b7280; font-size: 12px;">🏢 {company} &nbsp;|&nbsp; 📍 {location}{sal_text}</p>
+                <h4 style="margin: 0 0 4px; color: #312e81; font-size: 14px;">{title_esc}</h4>
+                <p style="margin: 0 0 8px; color: #6b7280; font-size: 12px;">🏢 {company_esc} &nbsp;|&nbsp; 📍 {location_esc}{sal_text}</p>
                 <a href="{job_link}" style="color: #4f46e5; font-size: 12px; font-weight: bold; text-decoration: none;">Ver Oferta →</a>
             </div>
             """
@@ -71,9 +83,9 @@ def build_welcome_email(email, tech_keywords, jobs):
         jobs_html = f"<p style='color: #6b7280; font-size: 13px; text-align: center;'>Visita nuestra web para ver las últimas ofertas del día.</p>"
 
     original_explore_link = f"{BASE_URL}?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_1"
-    explore_link = f"{BASE_URL}/api/track-click?email={email}&campaign=welcome_email_1&redirect={urllib.parse.quote(original_explore_link)}"
+    explore_link = f"{BASE_URL}/api/track-click?email={urllib.parse.quote(email)}&campaign=welcome_email_1&redirect={urllib.parse.quote(original_explore_link)}"
     original_referidos_link = f"{BASE_URL}/referidos?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_1"
-    referidos_link = f"{BASE_URL}/api/track-click?email={email}&campaign=welcome_email_1&redirect={urllib.parse.quote(original_referidos_link)}"
+    referidos_link = f"{BASE_URL}/api/track-click?email={urllib.parse.quote(email)}&campaign=welcome_email_1&redirect={urllib.parse.quote(original_referidos_link)}"
 
     return f"""
     <html>
@@ -106,11 +118,11 @@ def build_welcome_email(email, tech_keywords, jobs):
             </div>
             <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
                 <p style="color: #9ca3af; font-size: 11px; margin: 0;">
-                    Portal Trabajo IT · <a href="{BASE_URL}/api/unsubscribe?email={email}" style="color: #6366f1;">Cancelar suscripción</a>
+                    Portal Trabajo IT · <a href="{unsubscribe_link}" style="color: #6366f1;">Cancelar suscripción</a>
                 </p>
             </div>
         </div>
-        <img src="{BASE_URL}/api/track-open?email={email}&campaign=welcome_email_1" width="1" height="1" style="display:none;" />
+        <img src="{BASE_URL}/api/track-open?email={urllib.parse.quote(email)}&campaign=welcome_email_1" width="1" height="1" style="display:none;" />
     </body>
     </html>
     """
@@ -119,15 +131,15 @@ def build_resources_email(email, tech_keywords):
     """Construye el segundo email de onboarding con recursos de calculadora salarial y CV."""
     BOOTCAMP_LINK = get_custom_udemy_link(tech_keywords)
     CV_LINK = f"{BASE_URL}/recursos?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_2"
-    import urllib.parse
+    unsubscribe_link = generate_unsubscribe_link(email)
     
-    bootcamp_track = f"{BASE_URL}/api/track-click?email={email}&campaign=welcome_email_2&redirect={urllib.parse.quote(BOOTCAMP_LINK)}"
-    cv_track = f"{BASE_URL}/api/track-click?email={email}&campaign=welcome_email_2&redirect={urllib.parse.quote(CV_LINK)}"
+    bootcamp_track = f"{BASE_URL}/api/track-click?email={urllib.parse.quote(email)}&campaign=welcome_email_2&redirect={urllib.parse.quote(BOOTCAMP_LINK)}"
+    cv_track = f"{BASE_URL}/api/track-click?email={urllib.parse.quote(email)}&campaign=welcome_email_2&redirect={urllib.parse.quote(CV_LINK)}"
     
     original_salarios_link = f"{BASE_URL}/salarios?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_2"
-    salarios_track = f"{BASE_URL}/api/track-click?email={email}&campaign=welcome_email_2&redirect={urllib.parse.quote(original_salarios_link)}"
+    salarios_track = f"{BASE_URL}/api/track-click?email={urllib.parse.quote(email)}&campaign=welcome_email_2&redirect={urllib.parse.quote(original_salarios_link)}"
     original_referidos_link = f"{BASE_URL}/referidos?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_2"
-    referidos_track = f"{BASE_URL}/api/track-click?email={email}&campaign=welcome_email_2&redirect={urllib.parse.quote(original_referidos_link)}"
+    referidos_track = f"{BASE_URL}/api/track-click?email={urllib.parse.quote(email)}&campaign=welcome_email_2&redirect={urllib.parse.quote(original_referidos_link)}"
     
     return f"""
     <html>
@@ -175,11 +187,11 @@ def build_resources_email(email, tech_keywords):
             </div>
             <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
                 <p style="color: #9ca3af; font-size: 11px; margin: 0;">
-                    Portal Trabajo IT · <a href="{BASE_URL}/api/unsubscribe?email={email}" style="color: #6366f1;">Cancelar suscripción</a>
+                    Portal Trabajo IT · <a href="{unsubscribe_link}" style="color: #6366f1;">Cancelar suscripción</a>
                 </p>
             </div>
         </div>
-        <img src="{BASE_URL}/api/track-open?email={email}&campaign=welcome_email_2" width="1" height="1" style="display:none;" />
+        <img src="{BASE_URL}/api/track-open?email={urllib.parse.quote(email)}&campaign=welcome_email_2" width="1" height="1" style="display:none;" />
     </body>
     </html>
     """

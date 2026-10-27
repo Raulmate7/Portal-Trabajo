@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import CompanyLogo from './CompanyLogo';
@@ -48,32 +48,7 @@ export default function LoadMoreJobs({ lang = 'es', initiallyHasMore }: LoadMore
     setHasMore(initiallyHasMore);
   }, [q, location, minSalary, modality, dateRange, experience, initiallyHasMore]);
 
-  // Scroll infinito automático usando IntersectionObserver
-  useEffect(() => {
-    if (!hasMore || loading) return;
-
-    const sentinel = document.getElementById('infinite-scroll-sentinel');
-    if (!sentinel) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        if (entry && entry.isIntersecting) {
-          loadMore();
-        }
-      },
-      {
-        rootMargin: '400px', // Precarga ofertas cuando falten 400px para llegar al final de la lista
-      }
-    );
-
-    observer.observe(sentinel);
-    return () => {
-      observer.disconnect();
-    };
-  }, [hasMore, loading, page, q, location, minSalary, modality, dateRange, experience, initiallyHasMore]);
-
-  async function loadMore() {
+  const loadMore = useCallback(async () => {
     if (loading) return;
     setLoading(true);
 
@@ -107,7 +82,32 @@ export default function LoadMoreJobs({ lang = 'es', initiallyHasMore }: LoadMore
     } finally {
       setLoading(false);
     }
-  }
+  }, [loading, q, location, minSalary, modality, dateRange, experience, page, lang]);
+
+  // Scroll infinito automático usando IntersectionObserver
+  useEffect(() => {
+    if (!hasMore || loading) return;
+
+    const sentinel = document.getElementById('infinite-scroll-sentinel');
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry && entry.isIntersecting) {
+          loadMore();
+        }
+      },
+      {
+        rootMargin: '400px', // Precarga ofertas cuando falten 400px para llegar al final de la lista
+      }
+    );
+
+    observer.observe(sentinel);
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasMore, loading, loadMore]);
 
   const queryParam = isEnglish ? '?lang=en' : '';
 

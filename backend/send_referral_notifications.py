@@ -1,6 +1,10 @@
 import os
 import smtplib
 import psycopg2
+import html
+import hmac
+import hashlib
+import urllib.parse
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
@@ -12,8 +16,14 @@ BASE_URL = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
+def generate_unsubscribe_link(email: str) -> str:
+    secret = os.getenv("CRON_SECRET", "fallback_secret")
+    token = hmac.new(secret.encode(), email.strip().lower().encode(), hashlib.sha256).hexdigest()
+    return f"{BASE_URL}/api/unsubscribe?email={urllib.parse.quote(email.strip().lower())}&token={token}"
+
 def build_referral_progress_email(email, count):
     """Construye un email de notificación para progreso de referidos (1 o 2 de 3)."""
+    unsubscribe_link = generate_unsubscribe_link(email)
     return f"""
     <html>
     <body style="font-family: Arial, sans-serif; padding: 20px; color: #333; background-color: #f9fafb;">
@@ -46,7 +56,7 @@ def build_referral_progress_email(email, count):
             </div>
             <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
                 <p style="color: #9ca3af; font-size: 11px; margin: 0;">
-                    Portal Trabajo IT · <a href="{BASE_URL}/api/unsubscribe?email={email}" style="color: #6366f1;">Cancelar suscripción</a>
+                    Portal Trabajo IT · <a href="{unsubscribe_link}" style="color: #6366f1;">Cancelar suscripción</a>
                 </p>
             </div>
         </div>
@@ -56,6 +66,7 @@ def build_referral_progress_email(email, count):
 
 def build_referral_success_email(email):
     """Construye un email de felicitación cuando el usuario alcanza el hito de 3 referidos."""
+    unsubscribe_link = generate_unsubscribe_link(email)
     return f"""
     <html>
     <body style="font-family: Arial, sans-serif; padding: 20px; color: #333; background-color: #f9fafb;">
@@ -87,7 +98,7 @@ def build_referral_success_email(email):
             </div>
             <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
                 <p style="color: #9ca3af; font-size: 11px; margin: 0;">
-                    Portal Trabajo IT · <a href="{BASE_URL}/api/unsubscribe?email={email}" style="color: #6366f1;">Cancelar suscripción</a>
+                    Portal Trabajo IT · <a href="{unsubscribe_link}" style="color: #6366f1;">Cancelar suscripción</a>
                 </p>
             </div>
         </div>
@@ -145,19 +156,27 @@ def run_referral_notifications():
     emails_sent = 0
 
     for (referrer_email, actual_count) in referrals:
-        # Obtener los datos del referrer
-        cur.execute("""
-            SELECT referrals_notified_count 
-            FROM subscribers 
-            WHERE email = %s
-        """, (referrer_email,))
-        row = cur.fetchone()
-        
-        if not row:
-            # Si el referrer no está en la tabla (por ejemplo, email inválido), lo omitimos
-            continue
-            
-        notified_count = row[0] if row[0] is not None else 0
+        # Obtener los datos del referrer de forma resiliente
+        notified_count = 0
+        try:
+            cur.execute("""
+                SELECT referrals_notified_count 
+                FROM subscribers 
+                WHERE email = %s
+            """, (referrer_email,))
+            row = cur.fetchone()
+            if not row:
+                # Si el referrer no está en la tabla (por ejemplo, email inválido), lo omitimos
+                continue
+            notified_count = row[0] if row[0] is not None else 0
+        except Exception:
+            # Si la columna no existe en la BD remota, verificar si el usuario existe
+            try:
+                cur.execute("SELECT id FROM subscribers WHERE email = %s", (referrer_email,))
+                if not cur.fetchone():
+                    continue
+            except Exception:
+                pass
         
         if actual_count > notified_count:
             print(f"⚡ Referente: {referrer_email} tiene {actual_count} referidos (antes notificado: {notified_count})")
@@ -192,7 +211,8 @@ def run_referral_notifications():
                 """, (actual_count, referrer_email))
                 conn.commit()
             except Exception as upd_err:
-                print(f"  ❌ Error actualizando cuenta en BD: {upd_err}")
+                conn.rollback()
+                print(f"  ⚠️ Columna referrals_notified_count no disponible para actualizar en BD: {upd_err}")
 
     if smtp_active:
         server.quit()

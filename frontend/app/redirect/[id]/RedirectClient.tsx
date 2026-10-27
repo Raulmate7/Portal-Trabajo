@@ -21,18 +21,32 @@ export default function RedirectClient({ url, company, title, lang }: Props) {
     sendGAEvent({ event: 'redirect_page_view', company, job_title: title });
   }, [company, title]);
 
+  // Validación estricta de protocolo para prevenir ataques XSS (javascript:, data:)
+  const getSafeRedirectUrl = (rawUrl: string): string => {
+    if (!rawUrl) return '/';
+    try {
+      const parsed = new URL(rawUrl, window.location.origin);
+      if (['http:', 'https:'].includes(parsed.protocol)) {
+        return rawUrl;
+      }
+    } catch {
+      // URL malformada
+    }
+    return '/';
+  };
+
   useEffect(() => {
     if (countdown === 0 && !redirected) {
       setRedirected(true);
       sendGAEvent({ event: 'redirect_auto', company, job_title: title });
-      window.location.replace(url);
+      window.location.replace(getSafeRedirectUrl(url));
     }
   }, [countdown, redirected, url, company, title]);
 
   const handleManualRedirect = () => {
     sendGAEvent({ event: 'redirect_manual', company, job_title: title });
     setRedirected(true);
-    window.location.replace(url);
+    window.location.replace(getSafeRedirectUrl(url));
   };
 
   return (

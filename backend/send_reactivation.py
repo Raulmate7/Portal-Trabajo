@@ -1,6 +1,10 @@
 import os
 import smtplib
 import psycopg2
+import html
+import hmac
+import hashlib
+import urllib.parse
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
@@ -12,6 +16,11 @@ load_dotenv()
 BASE_URL = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+
+def generate_unsubscribe_link(email: str) -> str:
+    secret = os.getenv("CRON_SECRET", "fallback_secret")
+    token = hmac.new(secret.encode(), email.strip().lower().encode(), hashlib.sha256).hexdigest()
+    return f"{BASE_URL}/api/unsubscribe?email={urllib.parse.quote(email.strip().lower())}&token={token}"
 
 def run_reactivation():
     print("===============================================")
@@ -101,21 +110,24 @@ def run_reactivation():
             jobs = cur.fetchall()
             
             # Construir email
-            import urllib.parse
-            tech_label = tech_keywords_str.replace(',', ', ').title()
+            tech_label = html.escape(tech_keywords_str.replace(',', ', ').title())
+            unsubscribe_link = generate_unsubscribe_link(email)
             
             jobs_html = ""
             if jobs:
                 for job in jobs:
                     job_id, title, company, location, salary, category = job
                     category = category or 'Otros'
+                    title_esc = html.escape(str(title or ''))
+                    company_esc = html.escape(str(company or ''))
+                    location_esc = html.escape(str(location or ''))
+                    sal_text = f" | 💰 {html.escape(str(salary))}" if salary and salary not in ("Consultar", "") else ""
                     original_link = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=reactivation&utm_medium=email&utm_campaign=reactivation_1&utm_term={urllib.parse.quote(category)}&utm_content={job_id}"
-                    job_link = f"{BASE_URL}/api/track-click?email={email}&campaign=reactivation_email&redirect={urllib.parse.quote(original_link)}"
-                    sal_text = f" | 💰 {salary}" if salary and salary not in ("Consultar", "") else ""
+                    job_link = f"{BASE_URL}/api/track-click?email={urllib.parse.quote(email)}&campaign=reactivation_email&redirect={urllib.parse.quote(original_link)}"
                     jobs_html += f"""
                     <div style="margin-bottom: 12px; padding: 12px; background: #fffbeb; border-left: 4px solid #d97706; border-radius: 4px;">
-                        <h4 style="margin: 0 0 4px; color: #78350f; font-size: 14px;">{title}</h4>
-                        <p style="margin: 0 0 8px; color: #b45309; font-size: 12px;">🏢 {company} &nbsp;|&nbsp; 📍 {location}{sal_text}</p>
+                        <h4 style="margin: 0 0 4px; color: #78350f; font-size: 14px;">{title_esc}</h4>
+                        <p style="margin: 0 0 8px; color: #b45309; font-size: 12px;">🏢 {company_esc} &nbsp;|&nbsp; 📍 {location_esc}{sal_text}</p>
                         <a href="{job_link}" style="color: #d97706; font-size: 12px; font-weight: bold; text-decoration: none;">Ver Oferta →</a>
                     </div>
                     """
@@ -123,7 +135,7 @@ def run_reactivation():
                 jobs_html = f"<p style='color: #6b7280; font-size: 13px; text-align: center;'>Visita nuestra web para ver las últimas ofertas del día.</p>"
 
             explore_link_orig = f"{BASE_URL}?utm_source=reactivation&utm_medium=email&utm_campaign=reactivation_1"
-            explore_link = f"{BASE_URL}/api/track-click?email={email}&campaign=reactivation_email&redirect={urllib.parse.quote(explore_link_orig)}"
+            explore_link = f"{BASE_URL}/api/track-click?email={urllib.parse.quote(email)}&campaign=reactivation_email&redirect={urllib.parse.quote(explore_link_orig)}"
             
             email_body = f"""
             <html>
@@ -153,11 +165,11 @@ def run_reactivation():
                     </div>
                     <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
                         <p style="color: #9ca3af; font-size: 11px; margin: 0;">
-                            Portal Trabajo IT · <a href="{BASE_URL}/api/unsubscribe?email={email}" style="color: #b45309;">Cancelar suscripción</a>
+                            Portal Trabajo IT · <a href="{unsubscribe_link}" style="color: #b45309;">Cancelar suscripción</a>
                         </p>
                     </div>
                 </div>
-                <img src="{BASE_URL}/api/track-open?email={email}&campaign=reactivation_email" width="1" height="1" style="display:none;" />
+                <img src="{BASE_URL}/api/track-open?email={urllib.parse.quote(email)}&campaign=reactivation_email" width="1" height="1" style="display:none;" />
             </body>
             </html>
             """

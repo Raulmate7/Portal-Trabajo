@@ -15,6 +15,82 @@ export interface ProfessionDetail {
 }
 
 export const PROFESSIONS: Record<string, ProfessionDetail> = {
+  'fullstack': {
+    slug: 'fullstack',
+    title: 'Cómo convertirse en Fullstack Developer',
+    description: 'Domina tanto el desarrollo del cliente como del servidor. Aprende a crear aplicaciones web completas combinando React, Node.js, TypeScript y bases de datos relacionales.',
+    techKey: 'fullstack',
+    steps: [
+      {
+        title: 'Paso 1: Fundamentos de Frontend y React',
+        description: 'Domina HTML semántico, CSS responsivo, JavaScript ES6+ y frameworks modernos como React o Next.js para construir interfaces dinámicas.',
+        skills: ['HTML5 / CSS3', 'JavaScript ES6+', 'React.js', 'Next.js', 'Tailwind CSS']
+      },
+      {
+        title: 'Paso 2: Arquitectura de Backend y APIs',
+        description: 'Aprende a diseñar y construir servidores eficientes, APIs RESTful y GraphQL utilizando Node.js (Express/NestJS) o Python (FastAPI/Django).',
+        skills: ['Node.js', 'Express / NestJS', 'TypeScript', 'APIs REST', 'Autenticación JWT']
+      },
+      {
+        title: 'Paso 3: Bases de Datos y Persistencia',
+        description: 'Estructura datos relacionales con PostgreSQL o MySQL y aprende a manejarlos mediante ORMs modernos como Prisma o Drizzle.',
+        skills: ['PostgreSQL', 'MySQL', 'Prisma ORM', 'Redis', 'Modelado SQL']
+      },
+      {
+        title: 'Paso 4: Despliegue, Contenedores y DevOps Básico',
+        description: 'Empaqueta aplicaciones con Docker, gestiona repositorios con Git y automatiza despliegues en plataformas cloud (Vercel, AWS o Railway).',
+        skills: ['Git / GitHub', 'Docker', 'CI/CD Actions', 'AWS / Vercel', 'Linux']
+      }
+    ],
+    faq: [
+      {
+        question: '¿Cuánto tiempo se tarda en ser Fullstack Developer?',
+        answer: 'Normalmente se requieren entre 9 y 12 meses de estudio intensivo para adquirir solidez tanto en la parte cliente (Frontend) como en la parte servidora (Backend) y bases de datos.'
+      },
+      {
+        question: '¿Es mejor empezar por el Frontend o por el Backend?',
+        answer: 'La mayoría de desarrolladores recomiendan comenzar por Frontend para entender el flujo visual y de interacción con el usuario antes de profundizar en la lógica del servidor y modelado de datos.'
+      }
+    ]
+  },
+  'fullstack-developer': {
+    slug: 'fullstack-developer',
+    title: 'Cómo convertirse en Fullstack Developer',
+    description: 'Domina tanto el desarrollo del cliente como del servidor. Aprende a crear aplicaciones web completas combinando React, Node.js, TypeScript y bases de datos relacionales.',
+    techKey: 'fullstack',
+    steps: [
+      {
+        title: 'Paso 1: Fundamentos de Frontend y React',
+        description: 'Domina HTML semántico, CSS responsivo, JavaScript ES6+ y frameworks modernos como React o Next.js para construir interfaces dinámicas.',
+        skills: ['HTML5 / CSS3', 'JavaScript ES6+', 'React.js', 'Next.js', 'Tailwind CSS']
+      },
+      {
+        title: 'Paso 2: Arquitectura de Backend y APIs',
+        description: 'Aprende a diseñar y construir servidores eficientes, APIs RESTful y GraphQL utilizando Node.js (Express/NestJS) o Python (FastAPI/Django).',
+        skills: ['Node.js', 'Express / NestJS', 'TypeScript', 'APIs REST', 'Autenticación JWT']
+      },
+      {
+        title: 'Paso 3: Bases de Datos y Persistencia',
+        description: 'Estructura datos relacionales con PostgreSQL o MySQL y aprende a manejarlos mediante ORMs modernos como Prisma o Drizzle.',
+        skills: ['PostgreSQL', 'MySQL', 'Prisma ORM', 'Redis', 'Modelado SQL']
+      },
+      {
+        title: 'Paso 4: Despliegue, Contenedores y DevOps Básico',
+        description: 'Empaqueta aplicaciones con Docker, gestiona repositorios con Git y automatiza despliegues en plataformas cloud (Vercel, AWS o Railway).',
+        skills: ['Git / GitHub', 'Docker', 'CI/CD Actions', 'AWS / Vercel', 'Linux']
+      }
+    ],
+    faq: [
+      {
+        question: '¿Cuánto tiempo se tarda en ser Fullstack Developer?',
+        answer: 'Normalmente se requieren entre 9 y 12 meses de estudio intensivo para adquirir solidez tanto en la parte cliente (Frontend) como en la parte servidora (Backend) y bases de datos.'
+      },
+      {
+        question: '¿Es mejor empezar por el Frontend o por el Backend?',
+        answer: 'La mayoría de desarrolladores recomiendan comenzar por Frontend para entender el flujo visual y de interacción con el usuario antes de profundizar en la lógica del servidor y modelado de datos.'
+      }
+    ]
+  },
   'frontend-developer': {
     slug: 'frontend-developer',
     title: 'Cómo convertirse en Frontend Developer',

@@ -1,11 +1,19 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { checkoutLimiter, getClientIp } from '@/lib/rate-limit';
+import { BASE_URL } from '@/lib/constants';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2023-10-16' as any,
 });
 
 export async function POST(request: Request) {
+  const ip = getClientIp(request);
+  const rateLimit = checkoutLimiter.limit(ip);
+  if (!rateLimit.success) {
+    return new NextResponse('Too Many Requests', { status: 429 });
+  }
+
   try {
     const body = await request.json();
     const { email } = body;
@@ -16,12 +24,7 @@ export async function POST(request: Request) {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    // Determinar urls de retorno
-    const protocol = request.headers.get('x-forwarded-proto') || 'http';
-    const host = request.headers.get('host') || 'localhost:3000';
-    const baseUrl = `${protocol}://${host}`;
-
-    // Crear sesión de Stripe Checkout en modo Suscripción
+    // Crear sesión de Stripe Checkout en modo Suscripción usando BASE_URL seguro
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       customer_email: cleanEmail,
@@ -42,8 +45,8 @@ export async function POST(request: Request) {
         },
       ],
       mode: 'subscription',
-      success_url: `${baseUrl}/referidos?checkout_success=true&email=${encodeURIComponent(cleanEmail)}`,
-      cancel_url: `${baseUrl}/referidos?checkout_canceled=true`,
+      success_url: `${BASE_URL}/referidos?checkout_success=true&email=${encodeURIComponent(cleanEmail)}`,
+      cancel_url: `${BASE_URL}/referidos?checkout_canceled=true`,
       metadata: {
         email: cleanEmail,
         type: 'premium_candidate',

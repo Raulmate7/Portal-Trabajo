@@ -1,12 +1,24 @@
-node_modules/
-venv/
+# Environment and Secrets
 .env
+.env.*
 .env.local
+*.pem
+*.key
+portalempleoit*.json
+db_proxy.php
+
+# Python
+venv/
 __pycache__/
-.next/
 *.pyc
+
+# Next.js & Node
+node_modules/
+.next/
 *.json
 !backend/migration_data/*.json
+!frontend/package.json
+!frontend/tsconfig.json
 
 # Logs
 *_log.txt

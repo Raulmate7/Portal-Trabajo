@@ -3,6 +3,11 @@ import { BASE_URL } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 
+function cleanCdata(text: string | null | undefined): string {
+  if (!text) return '';
+  return String(text).replace(/\]\]>/g, ']]]]><![CDATA[>');
+}
+
 export async function GET() {
   const client = await pool.connect();
   try {
@@ -31,15 +36,15 @@ export async function GET() {
 
       return `
   <job>
-    <title><![CDATA[${job.title}]]></title>
+    <title><![CDATA[${cleanCdata(job.title)}]]></title>
     <date><![CDATA[${formattedDate}]]></date>
-    <referencenumber><![CDATA[${job.id}]]></referencenumber>
-    <url><![CDATA[${BASE_URL}/job/${job.id}]]></url>
-    <company><![CDATA[${job.company || 'Desconocida'}]]></company>
-    <city><![CDATA[${job.location || 'Remoto'}]]></city>
+    <referencenumber><![CDATA[${cleanCdata(job.id)}]]></referencenumber>
+    <url><![CDATA[${cleanCdata(`${BASE_URL}/job/${job.id}`)}]]></url>
+    <company><![CDATA[${cleanCdata(job.company || 'Desconocida')}]]></company>
+    <city><![CDATA[${cleanCdata(job.location || 'Remoto')}]]></city>
     <country><![CDATA[${country}]]></country>
-    <description><![CDATA[${cleanDesc}]]></description>
-    ${salaryText ? `<salary><![CDATA[${salaryText}]]></salary>` : ''}
+    <description><![CDATA[${cleanCdata(cleanDesc)}]]></description>
+    ${salaryText ? `<salary><![CDATA[${cleanCdata(salaryText)}]]></salary>` : ''}
   </job>`;
     }).join('');
 

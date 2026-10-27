@@ -91,6 +91,10 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const { ciudad, tech } = await params;
   const resolvedSearchParams = await searchParams;
 
+  if (!ciudad || !tech) {
+    return { title: 'Página no encontrada | Portal Trabajo IT' };
+  }
+
   const cityName = CITY_MAP[ciudad] || ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
   const techName = TECH_MAP[tech] || tech.charAt(0).toUpperCase() + tech.slice(1);
 
@@ -175,6 +179,10 @@ async function getCityTechJobs(cityName: string, techName: string, isRemote: boo
 export default async function CityTechLandingPage({ params, searchParams }: Props) {
   const { ciudad, tech } = await params;
   const resolvedSearchParams = await searchParams;
+
+  if (!ciudad || !tech) {
+    notFound();
+  }
 
   const cityName = CITY_MAP[ciudad] || ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
   const techName = TECH_MAP[tech] || tech.charAt(0).toUpperCase() + tech.slice(1);

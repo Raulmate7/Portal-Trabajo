@@ -5,7 +5,7 @@ import PushSubscribe from "@/components/PushSubscribe";
 import AdBanner from "@/components/AdBanner";
 import Link from "next/link";
 import { Metadata } from "next";
-import { BASE_URL } from "@/lib/constants";
+import { BASE_URL, safeJsonLdString } from "@/lib/constants";
 import Breadcrumbs from "@/components/Breadcrumbs";
 
 export const revalidate = 3600; // Cache de 1 hora
@@ -242,17 +242,17 @@ export default async function CityLandingPage({ citySlug, cityName, searchParams
       
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(breadcrumbJsonLd) }} 
       />
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(faqJsonLd) }} 
       />
       {jobPostingSchemas.map((schema: any, idx: number) => (
         <script 
           key={`job-schema-${idx}`}
           type="application/ld+json" 
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} 
+          dangerouslySetInnerHTML={{ __html: safeJsonLdString(schema) }} 
         />
       ))}
 

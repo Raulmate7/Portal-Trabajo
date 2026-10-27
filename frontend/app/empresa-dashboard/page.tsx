@@ -35,7 +35,6 @@ function EmpresaDashboardContent() {
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [generatedLink, setGeneratedLink] = useState('');
 
   // Dashboard stats
   const [authenticated, setAuthenticated] = useState(false);
@@ -97,13 +96,11 @@ function EmpresaDashboardContent() {
     setLoading(true);
     setStatusMsg('');
     setErrorMsg('');
-    setGeneratedLink('');
 
     try {
       const res = await generateRecruiterLoginLink(emailInput.trim());
-      if (res.success && res.loginLink) {
+      if (res.success) {
         setStatusMsg(res.message);
-        setGeneratedLink(res.loginLink);
       } else {
         setErrorMsg(res.message || 'Error al procesar.');
       }
@@ -121,7 +118,6 @@ function EmpresaDashboardContent() {
     setJobs([]);
     setSponsoredJobs([]);
     setEmailInput('');
-    setGeneratedLink('');
     setStatusMsg('');
   };
 
@@ -199,19 +195,11 @@ function EmpresaDashboardContent() {
             </form>
 
             {statusMsg && (
-              <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs space-y-3">
+              <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs space-y-2">
                 <p className="font-semibold">✅ {statusMsg}</p>
-                {generatedLink && (
-                  <div className="pt-2 border-t border-emerald-200/60">
-                    <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider mb-1">Enlace de acceso generado (prueba de desarrollo):</p>
-                    <Link
-                      href={generatedLink}
-                      className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-[10px] transition-colors"
-                    >
-                      Acceder a mi panel ahora 🚀
-                    </Link>
-                  </div>
-                )}
+                <p className="text-emerald-700 text-[11px]">
+                  Por motivos de seguridad, el enlace no se muestra en pantalla. Haz clic en el enlace recibido en tu bandeja de entrada para iniciar sesión.
+                </p>
               </div>
             )}
           </div>

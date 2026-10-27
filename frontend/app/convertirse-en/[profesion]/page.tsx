@@ -6,7 +6,7 @@ import AdBanner from '@/components/AdBanner';
 import SubscribeForm from '@/components/SubscribeForm';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import pool from '@/lib/db';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL, safeJsonLdString } from '@/lib/constants';
 
 export const revalidate = 86400; // Cache de 24 horas (ISR)
 
@@ -181,9 +181,9 @@ export default async function ConvertirseEnPage({ params }: Props) {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl min-h-screen font-sans">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(howToJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(faqJsonLd) }} />
 
       <Breadcrumbs items={breadcrumbItems} />
 

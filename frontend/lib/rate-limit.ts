@@ -55,9 +55,19 @@ export const vacantesWidgetLimiter = new RateLimiter(60000, 30); // 30 req / min
 export const checkoutLimiter = new RateLimiter(60000, 5); // 5 req / min
 
 export function getClientIp(request: Request): string {
+  // Cloudflare pone la IP real en cf-connecting-ip (no falsificable si Cloudflare está activo)
+  const cfIp = request.headers.get('cf-connecting-ip');
+  if (cfIp) return cfIp.trim();
+
+  // Header de IP real configurado en Nginx (proxy_set_header X-Real-IP $remote_addr)
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp) return realIp.trim();
+
+  // Fallback: primer IP de x-forwarded-for si está detrás de proxy inverso
   const forwardedFor = request.headers.get('x-forwarded-for');
   if (forwardedFor) {
     return forwardedFor.split(',')[0].trim();
   }
-  return '127.0.0.1'; // Fallback
+
+  return '127.0.0.1'; // Fallback local
 }

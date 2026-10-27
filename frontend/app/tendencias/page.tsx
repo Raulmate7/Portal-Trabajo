@@ -129,10 +129,12 @@ async function getTrendsData() {
 
     // 5. Calculate average salaries for tech
     const salaryJobsRes = await client.query(`
-      SELECT salary, title 
-      FROM jobs 
-      WHERE is_active = TRUE AND salary IS NOT NULL AND salary != 'Consultar' AND salary != ''
-    `);
+        SELECT salary, title 
+        FROM jobs 
+        WHERE is_active = TRUE AND salary IS NOT NULL AND salary != 'Consultar' AND salary != ''
+        ORDER BY id DESC
+        LIMIT 1500
+      `);
     const salaryJobs = salaryJobsRes.rows;
 
     const techSalaries: Record<string, number[]> = {

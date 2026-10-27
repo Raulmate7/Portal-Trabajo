@@ -4,8 +4,9 @@ import { getBlogPosts } from '@/lib/blog';
 
 export const dynamic = 'force-dynamic';
 
-function escapeXml(unsafe: string) {
-  return unsafe.replace(/[<>&'"]/g, (c) => {
+function escapeXml(unsafe: string | null | undefined) {
+  if (!unsafe) return '';
+  return String(unsafe).replace(/[<>&'"]/g, (c) => {
     switch (c) {
       case '<': return '&lt;';
       case '>': return '&gt;';

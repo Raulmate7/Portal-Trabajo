@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import pool from '@/lib/db';
 import crypto from 'crypto';
 import { checkoutLimiter, getClientIp } from '@/lib/rate-limit';
+import { BASE_URL } from '@/lib/constants';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2023-10-16' as any,
@@ -20,6 +21,16 @@ export async function POST(request: Request) {
 
     if (!title || !company || !url_source) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
+    }
+
+    // Validar formato y protocolo seguro de url_source (solo http y https)
+    try {
+      const parsedUrl = new URL(url_source);
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+        return NextResponse.json({ error: 'La URL de la oferta debe comenzar por http:// o https://' }, { status: 400 });
+      }
+    } catch {
+      return NextResponse.json({ error: 'La URL proporcionada no es válida' }, { status: 400 });
     }
 
     // 1. Insertar la oferta en la base de datos con is_active = FALSE y is_featured = FALSE (pendiente de pago)
@@ -60,11 +71,7 @@ export async function POST(request: Request) {
       planDesc = `Destaca tu oferta "${title}" durante 30 días + Boletín exclusivo + Difusión en Telegram y Redes Sociales.`;
     }
 
-    // 3. Crear la sesión de checkout en Stripe referenciando el jobId
-    const protocol = request.headers.get('x-forwarded-proto') || 'http';
-    const host = request.headers.get('host') || 'localhost:3000';
-    const baseUrl = `${protocol}://${host}`;
-
+    // 3. Crear la sesión de checkout en Stripe usando BASE_URL seguro
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -81,8 +88,8 @@ export async function POST(request: Request) {
         },
       ],
       mode: 'payment',
-      success_url: `${baseUrl}/publicar-oferta?success=true&job_id=${jobId}`,
-      cancel_url: `${baseUrl}/publicar-oferta?canceled=true`,
+      success_url: `${BASE_URL}/publicar-oferta?success=true&job_id=${jobId}`,
+      cancel_url: `${BASE_URL}/publicar-oferta?canceled=true`,
       metadata: {
         jobId: String(jobId),
         plan: String(plan),

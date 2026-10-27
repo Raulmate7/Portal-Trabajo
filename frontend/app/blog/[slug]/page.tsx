@@ -11,7 +11,7 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import AuthorBox from '@/components/AuthorBox';
 import pool from '@/lib/db';
 import { Markdown } from '@/lib/markdown';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL, safeJsonLdString } from '@/lib/constants';
 import Image from 'next/image';
 import AffiliateCourseCard from '@/components/AffiliateCourseCard';
 import ReadingProgressBar from '@/components/ReadingProgressBar';
@@ -310,12 +310,12 @@ export default async function BlogPostPage({ params }: Props) {
         title="Portal Trabajo IT — Feed de Noticias y Artículos Tech" 
         href={`${BASE_URL}/feed.xml`} 
       />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(jsonLd) }} />
       {howToJsonLd && (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(howToJsonLd) }} />
       )}
       {faqPageSchema && (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPageSchema) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(faqPageSchema) }} />
       )}
 
       <div className="max-w-5xl mx-auto">

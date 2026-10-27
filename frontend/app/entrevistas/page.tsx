@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { INTERVIEW_TECHS } from '@/lib/entrevistas';
 import AdBanner from '@/components/AdBanner';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL, safeJsonLdString } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'Preguntas de Entrevista Técnica IT [2026] | Con Respuestas por Tecnología',
@@ -46,7 +46,7 @@ export default function EntrevistasPage() {
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(jsonLd) }} />
 
       {/* Hero */}
       <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-900 text-white py-16 px-4 relative overflow-hidden">

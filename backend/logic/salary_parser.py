@@ -74,8 +74,8 @@ def extract_salary_from_text(text: str):
     # 4. Salario anual único: ej. 35.000 €/año
     # 5. Salario anual simple con moneda: 35.000 €
     patterns = [
-        r'\b\d{2}[.,]\d{3}\s*(?:€|euros?|\$|usd|£|gbp|dólares|dolares|dollars)?\s*(?:-|a|to)\s*\d{2}[.,]\d{3}\s*(?:€|euros?|\$|usd|£|gbp|dólares|dolares|dollars)?',
-        r'\b\d{2,3}\s*k\s*(?:-|a|to)\s*\d{2,3}\s*k\s*(?:€|euros?|\$|usd|£|gbp|dólares|dolares|dollars)?',
+        r'\b\d{2}[.,]\d{3}\s*(?:€|euros?|\$|usd|£|gbp|dólares|dolares|dollars)?\s*(?:-|a|to|y|hasta)\s*\d{2}[.,]\d{3}\s*(?:€|euros?|\$|usd|£|gbp|dólares|dolares|dollars)?',
+        r'\b\d{2,3}\s*k\s*(?:-|a|to|y|hasta)\s*\d{2,3}\s*k\s*(?:€|euros?|\$|usd|£|gbp|dólares|dolares|dollars)?',
         r'\b\d{1}[.,]\d{3}\s*(?:€|euros?|\$|usd|£|gbp|dólares|dolares|dollars)?\s*(?:/|al?|per)\s*(?:mes|mensual|month|monthly)\b',
         r'\b\d{2}[.,]\d{3}\s*(?:€|euros?|\$|usd|£|gbp|dólares|dolares|dollars)?\s*(?:/|al?|per)\s*(?:año|anual|year|yearly)\b',
         r'\b\d{2}[.,]\d{3}\s*(?:€|euros?|\$|usd|£|gbp|dólares|dolares|dollars)'

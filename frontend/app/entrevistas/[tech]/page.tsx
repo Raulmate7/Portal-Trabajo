@@ -5,7 +5,7 @@ import { INTERVIEW_TECHS, getInterviewTech } from '@/lib/entrevistas';
 import AdBanner from '@/components/AdBanner';
 import StickyDesktopAd from '@/components/StickyDesktopAd';
 import Breadcrumbs from '@/components/Breadcrumbs';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL, safeJsonLdString } from '@/lib/constants';
 import { generateHowToSteps } from '@/lib/howto';
 
 export const revalidate = 86400; // 24h
@@ -107,9 +107,9 @@ export default async function InterviewTechPage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(howtoSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(faqSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(articleSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(howtoSchema) }} />
 
       {/* Hero */}
       <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-900 text-white py-16 px-4 relative overflow-hidden">

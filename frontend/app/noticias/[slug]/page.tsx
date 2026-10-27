@@ -8,7 +8,7 @@ import PushSubscribe from '@/components/PushSubscribe';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import AuthorBox from '@/components/AuthorBox';
 import { Markdown } from '@/lib/markdown';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL, safeJsonLdString } from '@/lib/constants';
 
 export const revalidate = 3600; // Cache de 1 hora (ISR)
 
@@ -184,9 +184,9 @@ export default async function NewsDetailPage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-4 md:px-8">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(jsonLd) }} />
       {faqPageSchema && (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPageSchema) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(faqPageSchema) }} />
       )}
 
       <div className="max-w-5xl mx-auto">
