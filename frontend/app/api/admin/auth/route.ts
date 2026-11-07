@@ -1,10 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { createAdminSessionToken } from '@/lib/adminAuth';
+import { createAdminSessionToken, revokeAdminSession } from '@/lib/adminAuth';
+import { adminAuthLimiter, getClientIp } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
+  // 1. Rate Limiting estricto anti-fuerza bruta (Vector 11)
+  const clientIp = getClientIp(request);
+  const rateLimitResult = adminAuthLimiter.limit(clientIp);
+
+  if (!rateLimitResult.success) {
+    const retryAfterSec = Math.max(1, Math.ceil((rateLimitResult.reset - Date.now()) / 1000));
+    return NextResponse.json(
+      {
+        success: false,
+        error: `Demasiados intentos fallidos. Acceso bloqueado temporalmente por seguridad. Inténtalo de nuevo en ${Math.ceil(retryAfterSec / 60)} minutos.`
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(retryAfterSec)
+        }
+      }
+    );
+  }
+
   const adminPassword = process.env.ADMIN_PASSWORD;
 
   // Fail-closed estricto: Si no hay contraseña configurada en el entorno, bloquear todo acceso
@@ -37,8 +58,13 @@ export async function POST(request: NextRequest) {
   const isValid = crypto.timingSafeEqual(inputHash, targetHash);
 
   if (!isValid) {
+    // Retardo defensivo de 250ms para mitigar ataques de temporización y fuerza bruta distribuida
+    await new Promise((resolve) => setTimeout(resolve, 250));
     return NextResponse.json({ success: false, error: 'Contraseña incorrecta.' }, { status: 401 });
   }
+
+  // Éxito: restablecer intentos para la IP legítima
+  adminAuthLimiter.reset(clientIp);
 
   const sessionToken = createAdminSessionToken();
 
@@ -54,7 +80,13 @@ export async function POST(request: NextRequest) {
   return response;
 }
 
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
+  // Revocación activa de la sesión en el servidor (Vector 14)
+  const sessionToken = request.cookies.get('admin_session')?.value;
+  if (sessionToken) {
+    revokeAdminSession(sessionToken);
+  }
+
   const response = NextResponse.json({ success: true, message: 'Sesión cerrada.' });
   response.cookies.delete('admin_session');
   return response;

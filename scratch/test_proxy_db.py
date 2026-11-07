@@ -1,8 +1,9 @@
+import os
 import requests
 import json
 
-proxy_url = 'https://mail.portalempleoit.com/db_proxy.php'
-proxy_token = 'a6f021f1d19d675b8e998a44d187764d'
+proxy_url = os.getenv('DB_PROXY_URL', 'https://mail.portalempleoit.com/db_proxy.php')
+proxy_token = os.getenv('DB_PROXY_TOKEN', '')
 
 def query_proxy(sql, params=[]):
     headers = {

@@ -17,7 +17,9 @@ EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
 def generate_unsubscribe_link(email: str) -> str:
-    secret = os.getenv("CRON_SECRET", "fallback_secret")
+    secret = os.getenv("UNSUBSCRIBE_SECRET") or os.getenv("CRON_SECRET")
+    if not secret:
+        raise ValueError("❌ Error crítico: Ni UNSUBSCRIBE_SECRET ni CRON_SECRET están definidos en el entorno.")
     token = hmac.new(secret.encode(), email.strip().lower().encode(), hashlib.sha256).hexdigest()
     return f"{BASE_URL}/api/unsubscribe?email={urllib.parse.quote(email.strip().lower())}&token={token}"
 

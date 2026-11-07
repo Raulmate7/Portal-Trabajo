@@ -5,7 +5,9 @@ export const dynamic = 'force-dynamic';
 
 function cleanCdata(text: string | null | undefined): string {
   if (!text) return '';
-  return String(text).replace(/\]\]>/g, ']]]]><![CDATA[>');
+  // Eliminar caracteres de control incompatibles con la especificación XML 1.0 (Vector 28)
+  const clean = String(text).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x84\x86-\x9F\uFFFE\uFFFF]/g, '');
+  return clean.replace(/\]\]>/g, ']]]]><![CDATA[>');
 }
 
 export async function GET() {

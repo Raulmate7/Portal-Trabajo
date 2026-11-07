@@ -6,6 +6,8 @@
 *.key
 portalempleoit*.json
 db_proxy.php
+backend/migration_data/
+*.sql
 
 # Python
 venv/
@@ -16,7 +18,6 @@ __pycache__/
 node_modules/
 .next/
 *.json
-!backend/migration_data/*.json
 !frontend/package.json
 !frontend/tsconfig.json
 

@@ -1,5 +1,5 @@
-const proxyUrl = 'https://mail.portalempleoit.com/db_proxy.php';
-const proxyToken = 'a6f021f1d19d675b8e998a44d187764d';
+const proxyUrl = process.env.DB_PROXY_URL || 'https://mail.portalempleoit.com/db_proxy.php';
+const proxyToken = process.env.DB_PROXY_TOKEN || '';
 
 console.log('Sending query to proxy:', proxyUrl);
 

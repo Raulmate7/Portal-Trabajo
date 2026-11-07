@@ -13,19 +13,15 @@ interface Props {
 }
 
 export default function RedirectClient({ url, company, title, lang }: Props) {
-  const [countdown, setCountdown] = useState(0);
+  const [countdown, setCountdown] = useState(2);
   const [redirected, setRedirected] = useState(false);
   const isEnglish = lang === 'en';
-
-  useEffect(() => {
-    sendGAEvent({ event: 'redirect_page_view', company, job_title: title });
-  }, [company, title]);
 
   // Validación estricta de protocolo para prevenir ataques XSS (javascript:, data:)
   const getSafeRedirectUrl = (rawUrl: string): string => {
     if (!rawUrl) return '/';
     try {
-      const parsed = new URL(rawUrl, window.location.origin);
+      const parsed = new URL(rawUrl, typeof window !== 'undefined' ? window.location.origin : 'https://portalempleoit.com');
       if (['http:', 'https:'].includes(parsed.protocol)) {
         return rawUrl;
       }
@@ -35,16 +31,37 @@ export default function RedirectClient({ url, company, title, lang }: Props) {
     return '/';
   };
 
+  const getDestinationHost = (rawUrl: string): string => {
+    try {
+      const parsed = new URL(rawUrl);
+      return parsed.hostname;
+    } catch {
+      return '';
+    }
+  };
+
+  const destinationHost = getDestinationHost(url);
+
   useEffect(() => {
-    if (countdown === 0 && !redirected) {
+    sendGAEvent({ event: 'redirect_page_view', company, job_title: title, destination: destinationHost });
+  }, [company, title, destinationHost]);
+
+  // Temporizador de seguridad de 2 segundos (Vector 22: Transparencia y prevención de phishing ciego)
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (countdown === 0 && !redirected) {
       setRedirected(true);
-      sendGAEvent({ event: 'redirect_auto', company, job_title: title });
+      sendGAEvent({ event: 'redirect_auto', company, job_title: title, destination: destinationHost });
       window.location.replace(getSafeRedirectUrl(url));
     }
-  }, [countdown, redirected, url, company, title]);
+  }, [countdown, redirected, url, company, title, destinationHost]);
 
   const handleManualRedirect = () => {
-    sendGAEvent({ event: 'redirect_manual', company, job_title: title });
+    sendGAEvent({ event: 'redirect_manual', company, job_title: title, destination: destinationHost });
     setRedirected(true);
     window.location.replace(getSafeRedirectUrl(url));
   };
@@ -92,7 +109,15 @@ export default function RedirectClient({ url, company, title, lang }: Props) {
             ? `Redirecting you to ${company}...`
             : `Redirigiéndote a la oferta en ${company}...`}
         </h1>
-        <p className="text-indigo-300/80 text-sm mb-8 leading-relaxed">
+
+        {destinationHost && (
+          <div className="mb-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-950/60 border border-indigo-500/30 text-indigo-200 text-xs font-mono">
+            <span>🌐 Destino:</span>
+            <span className="font-bold text-white">{destinationHost}</span>
+          </div>
+        )}
+
+        <p className="text-indigo-300/80 text-sm mb-6 leading-relaxed">
           {isEnglish
             ? `You will be automatically redirected in ${countdown > 0 ? countdown : 0} second${countdown !== 1 ? 's' : ''}.`
             : `Serás redirigido automáticamente en ${countdown > 0 ? countdown : 0} segundo${countdown !== 1 ? 's' : ''}.`}
@@ -103,13 +128,13 @@ export default function RedirectClient({ url, company, title, lang }: Props) {
           onClick={handleManualRedirect}
           className="inline-flex items-center gap-2 bg-indigo-500 hover:bg-indigo-400 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-lg hover:shadow-indigo-500/30 cursor-pointer mb-4 text-sm"
         >
-          {isEnglish ? '→ Go to job now' : '→ Ir a la oferta ahora'}
+          {isEnglish ? `→ Go to ${destinationHost || 'job'} now` : `→ Ir a ${destinationHost || 'la oferta'} ahora`}
         </button>
 
         <p className="text-indigo-400/60 text-xs">
           {isEnglish
-            ? 'You will leave our site and go to the company\'s original job posting.'
-            : 'Accederás al portal de empleo externo de la empresa anunciante.'}
+            ? 'You will leave our site and go to the company\'s official external job posting.'
+            : 'Accederás al portal de empleo externo oficial de la empresa anunciante.'}
         </p>
       </div>
 

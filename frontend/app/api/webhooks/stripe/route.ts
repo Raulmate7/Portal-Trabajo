@@ -75,6 +75,8 @@ export async function POST(request: Request) {
         console.log(`💰 Pago verificado para la oferta ID: ${jobId} (Plan: ${plan})`);
         const client = await pool.connect();
         try {
+          await client.query('START TRANSACTION');
+
           let days = 30;
           if (plan === 'destacado_basico') {
             days = 15;
@@ -93,34 +95,49 @@ export async function POST(request: Request) {
           console.log(`✅ Oferta ID ${jobId} activada y destacada exitosamente por ${days} días con el Plan ${plan}.`);
 
           // Guardar registro de afiliado si existía un código promocional
-          const affiliateCode = session.metadata?.affiliate_code;
-          if (affiliateCode) {
+          const affiliateCode = (session.metadata?.affiliate_code || '').trim();
+          if (affiliateCode && /^RECR-[A-Z0-9]{4,12}$/i.test(affiliateCode)) {
             console.log(`🤝 Registrando conversión de afiliado B2B. Código: ${affiliateCode}`);
             // Obtener el email del reclutador del afiliado
             const recruiterRes = await client.query(
               "SELECT recruiter_email FROM recruiter_affiliates WHERE affiliate_code = $1 LIMIT 1",
-              [affiliateCode]
+              [affiliateCode.toUpperCase()]
             );
             if (recruiterRes.rows && recruiterRes.rows.length > 0) {
-              const recruiterEmail = recruiterRes.rows[0].recruiter_email;
-              
-              // Obtener el nombre de la empresa de la oferta
-              const companyRes = await client.query(
-                "SELECT company FROM jobs WHERE id = $1 LIMIT 1",
-                [jobId]
-              );
-              const companyName = companyRes.rows && companyRes.rows.length > 0 ? companyRes.rows[0].company : 'Empresa Referida';
+              const recruiterEmail = (recruiterRes.rows[0].recruiter_email || '').toLowerCase().trim();
+              const payerEmail = (
+                session.customer_details?.email || 
+                session.customer_email || 
+                ''
+              ).toLowerCase().trim();
 
-              // Insertar registro de comisión referida en la tabla
-              await client.query(
-                `INSERT INTO recruiter_affiliates (recruiter_email, affiliate_code, referred_company_name, commission_paid, created_at)
-                 VALUES ($1, $2, $3, FALSE, NOW())`,
-                [recruiterEmail, affiliateCode, companyName]
-              );
-              console.log(`✅ Afiliado B2B registrado con éxito para el reclutador ${recruiterEmail} y la empresa ${companyName}.`);
+              // Vector 25: Mitigación de fraude de auto-adjudicación de comisiones
+              if (payerEmail && recruiterEmail === payerEmail) {
+                console.warn(`⚠️ Intento de auto-comisión denegado: el reclutador (${recruiterEmail}) coincide con el pagador.`);
+              } else {
+                // Obtener el nombre de la empresa de la oferta
+                const companyRes = await client.query(
+                  "SELECT company FROM jobs WHERE id = $1 LIMIT 1",
+                  [jobId]
+                );
+                const companyName = companyRes.rows && companyRes.rows.length > 0 ? companyRes.rows[0].company : 'Empresa Referida';
+
+                // Insertar registro de comisión referida en la tabla
+                await client.query(
+                  `INSERT INTO recruiter_affiliates (recruiter_email, affiliate_code, referred_company_name, commission_paid, created_at)
+                   VALUES ($1, $2, $3, FALSE, NOW())`,
+                  [recruiterEmail, affiliateCode.toUpperCase(), companyName]
+                );
+                console.log(`✅ Afiliado B2B registrado con éxito para el reclutador ${recruiterEmail} y la empresa ${companyName}.`);
+              }
             }
           }
+
+          await client.query('COMMIT');
         } catch (dbErr) {
+          try {
+            await client.query('ROLLBACK');
+          } catch {}
           console.error(`❌ Error en la base de datos al activar oferta ID ${jobId}:`, dbErr);
           return NextResponse.json({ error: 'Error interno en la BD' }, { status: 500 });
         } finally {

@@ -15,7 +15,7 @@ export const size = {
 export const contentType = 'image/png';
 
 const PROXY_URL = process.env.DB_PROXY_URL || 'https://mail.portalempleoit.com/db_proxy.php';
-const PROXY_TOKEN = process.env.DB_PROXY_TOKEN || 'a6f021f1d19d675b8e998a44d187764d';
+const PROXY_TOKEN = process.env.DB_PROXY_TOKEN || '';
 
 /** Extrae el ID numérico de un slug como "developer-react-acme-123" → 123 */
 function extractNumericId(slug: string): string | null {
@@ -25,6 +25,9 @@ function extractNumericId(slug: string): string | null {
 }
 
 async function getJobById(id: string) {
+  if (!PROXY_TOKEN) {
+    return null;
+  }
   try {
     const response = await fetch(PROXY_URL, {
       method: 'POST',

@@ -16,13 +16,16 @@ load_dotenv()
 BASE_URL = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
-UNSUBSCRIBE_SECRET = os.getenv("UNSUBSCRIBE_SECRET") or os.getenv("CRON_SECRET", "default_portal_secret_unsub")
+UNSUBSCRIBE_SECRET = os.getenv("UNSUBSCRIBE_SECRET") or os.getenv("CRON_SECRET") or ""
 
 
 def generate_unsubscribe_link(email: str) -> str:
     """Genera enlace de cancelación firmado con HMAC."""
+    secret = UNSUBSCRIBE_SECRET or os.getenv("UNSUBSCRIBE_SECRET") or os.getenv("CRON_SECRET")
+    if not secret:
+        raise ValueError("❌ Error crítico: Ni UNSUBSCRIBE_SECRET ni CRON_SECRET están definidos en el entorno.")
     clean_email = email.strip().lower()
-    token = hmac.new(UNSUBSCRIBE_SECRET.encode(), clean_email.encode(), hashlib.sha256).hexdigest()
+    token = hmac.new(secret.encode(), clean_email.encode(), hashlib.sha256).hexdigest()
     return f"{BASE_URL}/api/unsubscribe?email={urllib.parse.quote(clean_email)}&token={token}"
 
 

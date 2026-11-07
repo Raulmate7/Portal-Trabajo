@@ -1,10 +1,16 @@
+import os
 import json
 import urllib.request
 import urllib.error
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def execute_proxy_query(sql, params=[]):
-    proxy_url = "https://mail.portalempleoit.com/db_proxy.php"
-    proxy_token = "a6f021f1d19d675b8e998a44d187764d"
+    proxy_url = os.getenv("DB_PROXY_URL", "https://mail.portalempleoit.com/db_proxy.php")
+    proxy_token = os.getenv("DB_PROXY_TOKEN")
+    if not proxy_token:
+        raise ValueError("❌ Error: DB_PROXY_TOKEN no está definido en el entorno.")
     
     headers = {
         "Content-Type": "application/json",

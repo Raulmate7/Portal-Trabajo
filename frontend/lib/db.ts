@@ -67,18 +67,31 @@ function setCache(key: string, data: any): void {
 
 let poolConnection: mysql.Pool | null = null;
 if (!useProxy) {
+  const connectionLimit = Number(process.env.MYSQL_CONNECTION_LIMIT) || 25;
   const connectionString = process.env.DATABASE_URL;
   poolConnection = connectionString
-    ? mysql.createPool(connectionString)
+    ? mysql.createPool({
+        uri: connectionString,
+        connectionLimit,
+        queueLimit: 50, // Límite defensivo para prevenir desbordamiento de memoria por colas ilimitadas
+        waitForConnections: true,
+        connectTimeout: 5000,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 10000,
+      })
     : mysql.createPool({
         host: process.env.MYSQL_HOST || 'localhost',
         user: process.env.MYSQL_USER,
         password: process.env.MYSQL_PASSWORD,
         database: process.env.MYSQL_DATABASE,
         port: Number(process.env.MYSQL_PORT) || 3306,
-        connectionLimit: 15,
+        connectionLimit,
+        queueLimit: 50,
+        waitForConnections: true,
         idleTimeout: 30000,
-        connectTimeout: 10000,
+        connectTimeout: 5000,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 10000,
       });
 }
 
@@ -158,7 +171,7 @@ async function executeQuery(conn: mysql.Pool | mysql.PoolConnection | null, sql:
           'X-Proxy-Token': proxyToken,
         },
         body: JSON.stringify({ sql: mysqlSql, params: mysqlParams }),
-        next: { revalidate: 300 } // Caché de Next.js
+        cache: 'no-store', // Evitar almacenamiento en Next.js Data Cache para operaciones de base de datos
       });
 
       if (!response.ok) {
@@ -193,9 +206,22 @@ async function executeQuery(conn: mysql.Pool | mysql.PoolConnection | null, sql:
       throw error;
     }
   } else if (conn) {
-    // Ejecución directa de mysql2
+    // Ejecución directa de mysql2: Priorizar conn.execute (server-side prepared statements) cuando hay parámetros
     try {
-      const [rows] = await conn.query(mysqlSql, mysqlParams);
+      let rows: any;
+      if (mysqlParams && mysqlParams.length > 0) {
+        try {
+          const [result] = await conn.execute(mysqlSql, mysqlParams);
+          rows = result;
+        } catch (execErr: any) {
+          // Fallback a conn.query si la consulta particular no es preparable en el motor
+          const [result] = await conn.query(mysqlSql, mysqlParams);
+          rows = result;
+        }
+      } else {
+        const [result] = await conn.query(mysqlSql);
+        rows = result;
+      }
       return {
         rows: rows as any[],
       };

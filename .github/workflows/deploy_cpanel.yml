@@ -17,11 +17,26 @@ jobs:
           mkdir deploy_dist
           # Copiar proxy de base de datos
           cp db_proxy.php deploy_dist/
-          # Copiar backend excluyendo carpetas pesadas y .env local
+          # Copiar backend excluyendo carpetas pesadas, datos sensibles, tests y .env local
           cp -r backend deploy_dist/
           rm -rf deploy_dist/backend/venv
           rm -rf deploy_dist/backend/node_modules
+          rm -rf deploy_dist/backend/migration_data
+          rm -rf deploy_dist/backend/tests
+          rm -rf deploy_dist/backend/__pycache__
           rm -f deploy_dist/backend/.env
+          rm -f deploy_dist/backend/*_log.txt
+          rm -f deploy_dist/backend/*.sql
+
+          # Crear .htaccess para denegar acceso HTTP directo al directorio backend
+          echo "Order Allow,Deny" > deploy_dist/backend/.htaccess
+          echo "Deny from all" >> deploy_dist/backend/.htaccess
+
+          # Crear .htaccess en deploy_dist para proteger ficheros con extensiones sensibles
+          echo '<FilesMatch "\.(env|json|sql|log|py|sh|md)$">' > deploy_dist/.htaccess
+          echo '    Order Allow,Deny' >> deploy_dist/.htaccess
+          echo '    Deny from all' >> deploy_dist/.htaccess
+          echo '</FilesMatch>' >> deploy_dist/.htaccess
 
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5

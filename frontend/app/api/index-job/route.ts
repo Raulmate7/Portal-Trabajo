@@ -40,6 +40,15 @@ export async function POST(req: NextRequest) {
           headers: { 'Content-Type': 'application/json' }
         });
       }
+
+      // Vector 29: Restricción estricta al dominio oficial para prevenir abuso de cuota y Search Console spam
+      const allowedHostnames = new Set(['portalempleoit.com', 'www.portalempleoit.com', 'localhost']);
+      if (!allowedHostnames.has(parsed.hostname.toLowerCase())) {
+        return new Response(JSON.stringify({ success: false, message: "Dominio no autorizado para indexación en este portal" }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
     } catch {
       return new Response(JSON.stringify({ success: false, message: "URL malformada" }), { 
         status: 400,

@@ -1,10 +1,14 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: path.resolve(__dirname),
   // Le decimos a Next.js que 'mysql2' es una librería de servidor y no debe empaquetarla
   serverExternalPackages: ['mysql2'],
   // Habilitar compresión gzip/brotli en el servidor Next.js
   compress: true,
+  // Vector 32: Deshabilitar cabecera informativa de tecnología para prevenir fingerprinting
+  poweredByHeader: false,
   typescript: {
     ignoreBuildErrors: false,
   },
@@ -18,7 +22,7 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
-      // Cabeceras de Seguridad Globales
+      // Cabeceras de Seguridad Globales (Vector 31)
       {
         source: '/(.*)',
         headers: [
@@ -39,8 +43,16 @@ const nextConfig: NextConfig = {
             value: 'camera=(), microphone=(), geolocation=()',
           },
           {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin-allow-popups',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
+          {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://cdn.onesignal.com https://onesignal.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https:; frame-src 'self' https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.youtube.com;"
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://cdn.onesignal.com https://onesignal.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https:; frame-src 'self' https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com; frame-ancestors 'none'; upgrade-insecure-requests;"
           }
         ],
       },

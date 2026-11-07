@@ -9,6 +9,19 @@ function escapeHtml(text: string): string {
     .replace(/'/g, '&#039;');
 }
 
+/**
+ * Sanitiza HTML generado para neutralizar vectores de ataque XSS (Vector 27).
+ * Elimina scripts, atributos de eventos on*, protocolos javascript:/data: y elementos peligrosos.
+ */
+export function sanitizeMarkdownHtml(html: string): string {
+  if (!html) return '';
+  return html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/\bon\w+\s*=\s*(?:'[^']*'|"[^"]*"|[^\s>]+)/gi, '')
+    .replace(/href\s*=\s*(['"])\s*(?:javascript|data|vbscript):/gi, 'href=$1#blocked-protocol:')
+    .replace(/<(?:iframe|object|embed|style|form|base|meta)\b[^>]*>/gi, '');
+}
+
 export function parseInline(text: string): string {
   let escaped = escapeHtml(text);
   
@@ -22,11 +35,12 @@ export function parseInline(text: string): string {
   escaped = escaped.replace(/\[(.*?)\]\((.*?)\)/g, (_match, label, rawUrl) => {
     const trimmed = (rawUrl || '').trim();
     const isSafe = /^(https?:\/\/|mailto:|tel:|\/|#)/i.test(trimmed);
-    const safeHref = isSafe ? trimmed : '#';
-    return `<a href="${safeHref}" class="text-indigo-600 hover:text-indigo-800 font-bold hover:underline">${label}</a>`;
+    const safeHref = isSafe ? encodeURI(trimmed.replace(/["'<>]/g, '')) : '#';
+    const safeLabel = label.replace(/[<>]/g, '');
+    return `<a href="${safeHref}" class="text-indigo-600 hover:text-indigo-800 font-bold hover:underline" rel="noopener noreferrer">${safeLabel}</a>`;
   });
   
-  return escaped;
+  return sanitizeMarkdownHtml(escaped);
 }
 
 const techsSorted = [
