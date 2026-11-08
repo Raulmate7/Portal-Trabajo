@@ -2,7 +2,7 @@ import pool from '@/lib/db';
 import Link from 'next/link';
 import { Metadata } from 'next';
 import { getBlogPosts } from '@/lib/blog';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL , safeJsonLdString } from '@/lib/constants';
 
 export const revalidate = 3600; // Cache cache for 1 hour
 
@@ -106,7 +106,7 @@ export default async function SitemapPage() {
     <main className="min-h-screen bg-gray-50 py-12 px-4 md:px-8">
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(breadcrumbJsonLd) }} 
       />
 
       <div className="max-w-6xl mx-auto">

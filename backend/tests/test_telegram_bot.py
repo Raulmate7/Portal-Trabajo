@@ -127,5 +127,43 @@ class TestTelegramBot(unittest.TestCase):
             send_to_telegram()
             mock_print.assert_any_call("💤 No hay ofertas nuevas en las últimas 7 horas.")
 
+    @patch('telegram_bot.requests.post')
+    @patch('telegram_bot.psycopg2.connect')
+    @patch.dict('os.environ', {
+        'TELEGRAM_TOKEN': '123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ',
+        'TELEGRAM_CHANNEL': '@TestChannel',
+        'DATABASE_URL': 'postgresql://test_user:test_pass@localhost:5432/test_db',
+        'TELEGRAM_CHANNEL_FRONTEND': '',
+        'TELEGRAM_CHANNEL_BACKEND': '',
+        'TELEGRAM_CHANNEL_DATA_AI': '',
+        'TELEGRAM_CHANNEL_CLOUD_DEVOPS': '',
+        'TELEGRAM_CHANNEL_MOBILE': '',
+        'TELEGRAM_CHANNEL_REMOTO': ''
+    })
+    def test_send_to_telegram_escapes_html_entities(self, mock_db_connect, mock_post):
+        # Oferta con caracteres conflictivos en HTML: &, <, >, "
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchall.return_value = [
+            ('id-3', 'Lead R&D Engineer <AI & Cloud>', 'Johnson & Johnson "Global"', 'Remoto', '50.000€ & Bonus', 'Backend')
+        ]
+        mock_conn.cursor.return_value = mock_cursor
+        mock_db_connect.return_value = mock_conn
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"ok": True}
+        mock_post.return_value = mock_response
+
+        send_to_telegram()
+
+        self.assertEqual(mock_post.call_count, 1)
+        payload = mock_post.call_args[1]['json']
+        message_text = payload['text']
+
+        # Verificar que los caracteres conflictivos están escapados como entidades HTML válidas
+        self.assertIn('Lead R&amp;D Engineer &lt;AI &amp; Cloud&gt;', message_text)
+        self.assertIn('Johnson &amp; Johnson &quot;Global&quot;', message_text)
+        self.assertNotIn('<AI & Cloud>', message_text)
+
 if __name__ == '__main__':
     unittest.main()

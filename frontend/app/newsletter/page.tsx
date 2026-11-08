@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL , safeJsonLdString } from '@/lib/constants';
 import SubscribeForm from '@/components/SubscribeForm';
 import AdBanner from '@/components/AdBanner';
 import Link from 'next/link';
@@ -77,7 +77,7 @@ const jsonLd = {
 export default function NewsletterPage() {
   return (
     <main className="min-h-screen bg-gray-50">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(jsonLd) }} />
 
       {/* Hero */}
       <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-900 text-white py-20 px-4 relative overflow-hidden">

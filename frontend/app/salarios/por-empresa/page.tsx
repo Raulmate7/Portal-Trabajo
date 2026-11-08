@@ -3,7 +3,7 @@ import Link from 'next/link';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import AdBanner from '@/components/AdBanner';
 import { Metadata } from 'next';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL , safeJsonLdString } from '@/lib/constants';
 import { slugify } from '@/lib/slug';
 
 export const revalidate = 3600; // Cache 1 hora
@@ -122,7 +122,7 @@ export default async function SalariosPorEmpresaPage() {
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-slate-950 pb-16">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(itemListSchema) }} />
 
       {/* Hero Header */}
       <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-purple-950 text-white py-16 px-4 relative overflow-hidden">

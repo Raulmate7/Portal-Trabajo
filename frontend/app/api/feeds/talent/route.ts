@@ -19,9 +19,14 @@ export async function GET() {
     const jobs = res.rows;
 
     const talentItems = jobs.map((job: any) => {
-      // Formatear fecha a YYYY-MM-DD
-      const date = new Date(job.created_at);
-      const formattedDate = date.toISOString().split('T')[0];
+      // Formatear fecha a YYYY-MM-DD de forma segura contra fechas inválidas
+      let formattedDate: string;
+      try {
+        const date = new Date(job.created_at);
+        formattedDate = !isNaN(date.getTime()) ? date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+      } catch {
+        formattedDate = new Date().toISOString().split('T')[0];
+      }
 
       // Detectar país básico
       const locLower = (job.location || '').toLowerCase();

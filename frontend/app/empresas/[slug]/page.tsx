@@ -8,7 +8,7 @@ import Link from "next/link";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ShareButton from "@/components/ShareButton";
-import { BASE_URL } from "@/lib/constants";
+import { BASE_URL , safeJsonLdString } from "@/lib/constants";
 import { getJobSlug, slugify } from "@/lib/slug";
 import CompanyReviewForm from "@/components/CompanyReviewForm";
 import { getCompanyReviews } from "@/app/actions";
@@ -561,25 +561,25 @@ export default async function CompanyPage({ params, searchParams }: Props) {
     <div className="container mx-auto px-4 py-8">
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(breadcrumbJsonLd) }} 
       />
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(organizationJsonLd) }} 
       />
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(itemListJsonLd) }} 
       />
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(faqJsonLd) }} 
       />
       {jobPostingSchemas.map((schema, idx) => (
         <script 
           key={`job-schema-${idx}`}
           type="application/ld+json" 
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} 
+          dangerouslySetInnerHTML={{ __html: safeJsonLdString(schema) }} 
         />
       ))}
 

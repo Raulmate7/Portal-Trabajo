@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL , safeJsonLdString } from '@/lib/constants';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import AdBanner from '@/components/AdBanner';
 
@@ -100,7 +100,7 @@ export default function CompararIndexPage() {
     <main className="min-h-screen bg-gray-50 dark:bg-slate-950 pb-16">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(collectionJsonLd) }}
       />
 
       {/* Hero Header */}

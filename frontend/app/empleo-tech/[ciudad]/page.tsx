@@ -4,7 +4,7 @@ import AdBanner from '@/components/AdBanner';
 import Link from 'next/link';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL , safeJsonLdString } from '@/lib/constants';
 
 interface Job {
   id: string | number;
@@ -205,7 +205,7 @@ export default async function CityPage({ params }: Props) {
     <main className="min-h-screen bg-gray-50">
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(faqSchema) }} 
       />
 
       {/* Hero */}

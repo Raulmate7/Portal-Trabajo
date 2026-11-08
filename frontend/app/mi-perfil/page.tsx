@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { generateCandidateLoginLink, getSubscriberPreferences, updateSubscriberPreferences, getReferralStats } from '@/app/actions';
+import { generateCandidateLoginLink, getSubscriberPreferences, updateSubscriberPreferences, getReferralStats, getReferralLink, revokeSecureToken } from '@/app/actions';
 import AdBanner from '@/components/AdBanner';
 import StickyDesktopAd from '@/components/StickyDesktopAd';
 import { getJobSlug } from '@/lib/slug';
@@ -51,6 +51,7 @@ function MiPerfilContent() {
 
   // Auth States
   const [authenticated, setAuthenticated] = useState(false);
+  const [sessionToken, setSessionToken] = useState(tokenParam);
   const [emailInput, setEmailInput] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
@@ -60,6 +61,7 @@ function MiPerfilContent() {
   const [loadingData, setLoadingData] = useState(false);
   const [subData, setSubData] = useState<SubscriberData | null>(null);
   const [referralCount, setReferralCount] = useState(0);
+  const [referralLink, setReferralLink] = useState('');
   
   // LocalStorage data
   const [savedJobs, setSavedJobs] = useState<SavedJob[]>([]);
@@ -88,7 +90,16 @@ function MiPerfilContent() {
 
   useEffect(() => {
     if (emailParam && tokenParam) {
+      setSessionToken(tokenParam);
       loadProfile(emailParam, tokenParam);
+      // Vector 14: Limpiar token y email de la URL del navegador inmediatamente tras leerlos
+      // para evitar filtración vía cabecera HTTP Referer, historial de navegación o captura de pantalla.
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('token');
+        url.searchParams.delete('email');
+        window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+      }
     }
   }, [emailParam, tokenParam]);
 
@@ -121,12 +132,21 @@ function MiPerfilContent() {
         setSelectedTechs(kws);
         setOperator(op);
         setAuthenticated(true);
+        if (res.sessionToken) {
+          setSessionToken(res.sessionToken);
+        }
 
-        // Load referrals
-        const refRes = await getReferralStats(email);
+        // Load referrals con autenticación de token seguro
+        const refRes = await getReferralStats(email, res.sessionToken || token);
         if (refRes.success) {
           setReferralCount(refRes.count || 0);
         }
+
+        // Generar enlace de recomendación seguro y cifrado (Vector 8)
+        try {
+          const encLink = await getReferralLink(email);
+          if (encLink) setReferralLink(encLink);
+        } catch {}
       } else {
         setErrorMsg(res.error || 'Enlace de acceso no válido o caducado.');
         setAuthenticated(false);
@@ -173,7 +193,7 @@ function MiPerfilContent() {
 
       const res = await updateSubscriberPreferences(
         subData.email,
-        tokenParam,
+        sessionToken,
         techKeywords,
         locationPref,
         frequency,
@@ -181,6 +201,9 @@ function MiPerfilContent() {
       );
 
       if (res.success) {
+        if (res.sessionToken) {
+          setSessionToken(res.sessionToken);
+        }
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
       } else {
@@ -201,21 +224,21 @@ function MiPerfilContent() {
   };
 
   const handleLogout = () => {
-    router.push('/mi-perfil');
+    if (sessionToken) {
+      revokeSecureToken(sessionToken).catch(() => {});
+    }
+    setSessionToken('');
     setAuthenticated(false);
     setSubData(null);
     setSelectedTechs([]);
+    router.push(isEnglish ? '/mi-perfil?lang=en' : '/mi-perfil');
   };
 
-  // Referral link encoding (Standard base64 like mailer)
+  // Referral link seguro (cifrado con token criptográfico AES-256-GCM)
   const getReferralUrl = () => {
+    if (referralLink) return referralLink;
     if (!subData) return '';
-    try {
-      const base64Email = Buffer.from(subData.email).toString('base64');
-      return `${window.location.origin}/ref/${base64Email}`;
-    } catch (e) {
-      return '';
-    }
+    return typeof window !== 'undefined' ? `${window.location.origin}/referidos` : 'https://portalempleoit.com/referidos';
   };
 
   if (loadingData) {

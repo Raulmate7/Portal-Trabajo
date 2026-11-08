@@ -73,9 +73,15 @@ Formato de respuesta JSON obligatorio:
             res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=60)
             if res.status_code == 200:
                 data = json.loads(res.json()['candidates'][0]['content']['parts'][0]['text'])
-                title = data.get('title', topic['title'])
-                excerpt = data.get('excerpt', topic['excerpt'])
-                content = data.get('content', '')
+                title = str(data.get('title', topic['title'])).strip()[:200]
+                excerpt = str(data.get('excerpt', topic['excerpt'])).strip()[:350]
+                raw_content = data.get('content', '')
+                content_lower = str(raw_content).lower()
+                if any(x in content_lower for x in ["<script", "javascript:", "data:text/html", "onload=", "onerror=", "<iframe", "<object"]):
+                    print("⚠️ Alerta de seguridad: el contenido LLM contenía etiquetas o protocolos no permitidos. Usando plantilla segura.")
+                    content = f"## {topic['title']}\n\n{topic['excerpt']}\n\nConsulte las ofertas activas en nuestro portal."
+                else:
+                    content = raw_content
             else:
                 title = topic['title']
                 excerpt = topic['excerpt']

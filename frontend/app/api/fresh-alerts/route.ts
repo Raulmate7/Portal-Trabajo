@@ -41,6 +41,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ count });
   } catch (e: any) {
     console.error("Error in fresh-alerts API:", e);
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ error: 'Error al consultar las alertas recientes' }, { status: 500 });
   }
 }

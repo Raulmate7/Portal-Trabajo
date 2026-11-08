@@ -1,4 +1,6 @@
 import os
+import re
+import urllib.parse
 import psycopg2
 from dotenv import load_dotenv
 
@@ -18,6 +20,36 @@ from logic.salary_parser import parse_salary, extract_salary_from_text
 load_dotenv()
 
 DB_URL = os.getenv("DATABASE_URL")
+
+
+def is_safe_scraper_url(url: str) -> bool:
+    """Valida que la URL de origen de la oferta sea un destino público legítimo (Anti-SSRF)."""
+    if not url or not isinstance(url, str):
+        return False
+    url = url.strip()
+    if len(url) > 1000 or re.search(r'[\r\n\x00-\x1f]', url):
+        return False
+    if url.startswith('//') or url.startswith('/\\'):
+        return False
+    try:
+        parsed = urllib.parse.urlparse(url)
+        if parsed.scheme not in ('http', 'https'):
+            return False
+        host = (parsed.hostname or '').lower()
+        if not host or '.' not in host:
+            return False
+        if host in ('localhost', 'metadata.google.internal', 'instance-data'):
+            return False
+        if host.endswith(('.localhost', '.local', '.internal', '.lan', '.arpa', '.corp')):
+            return False
+        parts = host.split('.')
+        if len(parts) == 4 and all(p.isdigit() for p in parts):
+            p1, p2, p3, p4 = [int(p) for p in parts]
+            if p1 == 127 or p1 == 10 or p1 == 0 or (p1 == 172 and 16 <= p2 <= 31) or (p1 == 192 and p2 == 168) or (p1 == 169 and p2 == 254) or p1 >= 224:
+                return False
+        return True
+    except Exception:
+        return False
 
 
 def save_jobs(jobs, source_name):
@@ -50,9 +82,9 @@ def save_jobs(jobs, source_name):
     new_count = 0
     for job in jobs:
         # Fix #3: ahora todos los scrapers usan 'url_source' como clave
-        url_source = job.get('url_source', '')
-        if not url_source:
-            continue  # Oferta sin URL, no la guardamos
+        url_source = str(job.get('url_source', '')).strip()
+        if not url_source or not is_safe_scraper_url(url_source):
+            continue  # Oferta sin URL válida o insegura, se descarta
 
         # Verificar duplicado por URL
         cursor.execute("SELECT id FROM jobs WHERE url_source = %s", (url_source,))
@@ -60,8 +92,9 @@ def save_jobs(jobs, source_name):
             continue
 
         # Evitar duplicidad semántica (mismo título y empresa conocida en las últimas 48 horas)
-        title = job.get('title', 'Sin título')
-        company = job.get('company', 'Desconocida')
+        title = str(job.get('title', 'Sin título')).strip()[:250]
+        company = str(job.get('company', 'Desconocida')).strip()[:250]
+        location = str(job.get('location', 'Remoto')).strip()[:250]
         if company != 'Desconocida':
             cursor.execute("""
                 SELECT id FROM jobs 
@@ -129,8 +162,8 @@ def save_jobs(jobs, source_name):
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, TRUE)
         """, (
             title,
-            job.get('company', 'Desconocida'),
-            job.get('location', 'Remoto'),
+            company,
+            location,
             salary_raw,
             desc_snippet,
             url_source,

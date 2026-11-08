@@ -26,13 +26,14 @@ export default function AfiliadosEmpresaPage() {
     try {
       let sessionToken = '';
       try {
-        const saved = localStorage.getItem('recruiter_session');
+        const saved = sessionStorage.getItem('recruiter_session') || localStorage.getItem('recruiter_session');
         if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed.email === email.trim().toLowerCase() && parsed.token) {
             sessionToken = parsed.token;
           }
         }
+        localStorage.removeItem('recruiter_session');
       } catch {}
 
       const res = await registerRecruiterAffiliate(email.trim(), sessionToken);

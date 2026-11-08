@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { generateRecruiterLoginLink, getRecruiterJobs } from '@/app/actions';
+import { generateRecruiterLoginLink, getRecruiterJobs, revokeSecureToken } from '@/app/actions';
 
 interface JobMetric {
   id: string;
@@ -31,6 +31,7 @@ function EmpresaDashboardContent() {
   const emailParam = searchParams.get('email') || '';
   const tokenParam = searchParams.get('token') || '';
 
+  const [activeEmail, setActiveEmail] = useState(emailParam);
   const [emailInput, setEmailInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
@@ -49,9 +50,17 @@ function EmpresaDashboardContent() {
   useEffect(() => {
     if (emailParam && tokenParam) {
       loadDashboard(emailParam, tokenParam);
+      // Vector 14: Limpiar token y email de la URL del navegador inmediatamente tras leerlos
+      // para evitar filtración vía cabecera HTTP Referer, historial o captura de pantalla.
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('token');
+        url.searchParams.delete('email');
+        window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+      }
     } else {
-      // Intentar auto-login con localStorage
-      const savedSession = localStorage.getItem('recruiter_session');
+      // Intentar auto-login solo durante la sesión activa de la pestaña (sessionStorage, no localStorage permanente)
+      const savedSession = sessionStorage.getItem('recruiter_session') || localStorage.getItem('recruiter_session');
       if (savedSession) {
         try {
           const { email, token } = JSON.parse(savedSession);
@@ -59,6 +68,9 @@ function EmpresaDashboardContent() {
             loadDashboard(email, token);
           }
         } catch (e) {
+          sessionStorage.removeItem('recruiter_session');
+        } finally {
+          // Limpiar cualquier residuo de token en localStorage permanente (Vector 15)
           localStorage.removeItem('recruiter_session');
         }
       }
@@ -71,14 +83,19 @@ function EmpresaDashboardContent() {
     try {
       const res = await getRecruiterJobs(email, token);
       if (res.success) {
+        const activeToken = res.sessionToken || token;
+        setActiveEmail(email);
         setJobs(res.jobs || []);
         setSponsoredJobs(res.sponsoredJobs || []);
         setAuthenticated(true);
-        // Guardar sesión persistentemente
-        localStorage.setItem('recruiter_session', JSON.stringify({ email, token }));
+        // Guardar sesión exclusivamente en sessionStorage con el token rotado (Vector 15 y 18)
+        sessionStorage.setItem('recruiter_session', JSON.stringify({ email, token: activeToken }));
+        // Purgar almacenamiento persistente por seguridad (Vector 15)
+        localStorage.removeItem('recruiter_session');
       } else {
         setErrorMsg(res.error || 'Acceso denegado.');
         setAuthenticated(false);
+        sessionStorage.removeItem('recruiter_session');
         localStorage.removeItem('recruiter_session');
       }
     } catch (e) {
@@ -112,8 +129,17 @@ function EmpresaDashboardContent() {
   }
 
   const handleLogout = () => {
+    try {
+      const saved = sessionStorage.getItem('recruiter_session');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.token) revokeSecureToken(parsed.token).catch(() => {});
+      }
+    } catch {}
+    sessionStorage.removeItem('recruiter_session');
     localStorage.removeItem('recruiter_session');
     router.push('/empresa-dashboard');
+    setActiveEmail('');
     setAuthenticated(false);
     setJobs([]);
     setSponsoredJobs([]);
@@ -152,7 +178,7 @@ function EmpresaDashboardContent() {
               onClick={handleLogout}
               className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold rounded-xl text-xs transition-colors shadow-sm cursor-pointer"
             >
-              🚪 Cerrar sesión ({emailParam})
+              🚪 Cerrar sesión ({activeEmail || emailParam})
             </button>
           )}
         </div>

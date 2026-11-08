@@ -25,7 +25,11 @@ export function getAllLevels(): string[] {
   return LEVELS;
 }
 
-/** Escapes '<' in JSON-LD serialization to prevent script breakout XSS */
+/** Escapes '<', '>', and unicode line terminators in JSON-LD serialization to prevent script breakout XSS */
 export function safeJsonLdString(data: any): string {
-  return JSON.stringify(data).replace(/</g, '\\u003c');
+  return JSON.stringify(data)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
 }

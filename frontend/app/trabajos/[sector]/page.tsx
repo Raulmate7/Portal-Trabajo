@@ -8,7 +8,7 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 import Link from "next/link";
 import { Metadata } from "next";
 import { cache } from "react";
-import { BASE_URL } from "@/lib/constants";
+import { BASE_URL , safeJsonLdString } from "@/lib/constants";
 import { getJobSlug, slugify } from "@/lib/slug";
 import StickyDesktopAd from "@/components/StickyDesktopAd";
 
@@ -1234,19 +1234,19 @@ export default async function SectorPage({
       {nextUrl && <link rel="next" href={nextUrl} />}
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(breadcrumbJsonLd) }} 
       />
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(itemListJsonLd) }} 
       />
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(occupationSchema) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(occupationSchema) }} 
       />
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(faqJsonLd) }} 
       />
 
       <Breadcrumbs items={breadcrumbItems} />

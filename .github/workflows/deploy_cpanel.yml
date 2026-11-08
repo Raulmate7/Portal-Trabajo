@@ -13,8 +13,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Prepare Deployment Directory
+        id: prep
         run: |
-          mkdir deploy_dist
+          mkdir -p deploy_dist
           # Copiar proxy de base de datos
           cp db_proxy.php deploy_dist/
           # Copiar backend excluyendo carpetas pesadas, datos sensibles, tests y .env local
@@ -29,14 +30,17 @@ jobs:
           rm -f deploy_dist/backend/*.sql
 
           # Crear .htaccess para denegar acceso HTTP directo al directorio backend
-          echo "Order Allow,Deny" > deploy_dist/backend/.htaccess
-          echo "Deny from all" >> deploy_dist/backend/.htaccess
+          printf "Options -Indexes\n<IfModule mod_authz_core.c>\n    Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n    Order Allow,Deny\n    Deny from all\n</IfModule>\n" > deploy_dist/backend/.htaccess
 
-          # Crear .htaccess en deploy_dist para proteger ficheros con extensiones sensibles
-          echo '<FilesMatch "\.(env|json|sql|log|py|sh|md)$">' > deploy_dist/.htaccess
-          echo '    Order Allow,Deny' >> deploy_dist/.htaccess
-          echo '    Deny from all' >> deploy_dist/.htaccess
-          echo '</FilesMatch>' >> deploy_dist/.htaccess
+          # Crear .htaccess en deploy_dist para proteger ficheros con extensiones sensibles y dotfiles
+          printf "Options -Indexes\n<FilesMatch \"^\.\">\n    <IfModule mod_authz_core.c>\n        Require all denied\n    </IfModule>\n    <IfModule !mod_authz_core.c>\n        Order Allow,Deny\n        Deny from all\n    </IfModule>\n</FilesMatch>\n<FilesMatch \"(?i)\\\\.(env.*|json|sql|log|py|pyc|sh|md|bak|backup|conf|ini|yml|yaml|ts|tsx|map|lock)$\">\n    <IfModule mod_authz_core.c>\n        Require all denied\n    </IfModule>\n    <IfModule !mod_authz_core.c>\n        Order Allow,Deny\n        Deny from all\n    </IfModule>\n</FilesMatch>\n" > deploy_dist/.htaccess
+
+          # Resolver ruta del servidor de forma robusta (evitar evaluación booleana en YAML)
+          TARGET_DIR="${{ secrets.FTP_SERVER_DIR }}"
+          if [ -z "$TARGET_DIR" ]; then
+            TARGET_DIR="/public_html/"
+          fi
+          echo "server_dir=$TARGET_DIR" >> "$GITHUB_OUTPUT"
 
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -45,5 +49,5 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./deploy_dist/
-          server-dir: ${{ secrets.FTP_SERVER_DIR || '/public_html/' }}
+          server-dir: ${{ steps.prep.outputs.server_dir }}
           dangerous-clean-slate: false

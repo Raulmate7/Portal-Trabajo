@@ -15,20 +15,23 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const { email, type = 'full' } = body;
 
-    if (!email || !email.includes('@')) {
+    const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    const cleanEmail = (email || '').toString().trim().toLowerCase();
+
+    if (!cleanEmail || !EMAIL_REGEX.test(cleanEmail) || cleanEmail.length > 120) {
       return NextResponse.json({ error: 'Por favor, proporciona un correo válido.' }, { status: 400 });
     }
 
-    const cleanEmail = email.trim().toLowerCase();
+    const selectedType = type === 'enterprise' ? 'enterprise' : 'full';
     
     let unitAmount = 990; // 9.99€ (Reporte Completo)
     let productName = 'Informe de Mercado IT Completo - Portal Trabajo IT';
     let productDesc = 'Estadísticas detalladas de salarios reales, ciudades y stacks tecnológicos en España (PDF completo).';
 
-    if (type === 'enterprise') {
+    if (selectedType === 'enterprise') {
       unitAmount = 4900; // 49€ (Reporte de Empresa)
       productName = 'Informe de Mercado IT Custom (Empresas) - Portal Trabajo IT';
       productDesc = 'Datos históricos completos, segmentación tecnológica específica de tu competencia e informes de contratación en España.';
@@ -51,11 +54,11 @@ export async function POST(request: Request) {
         },
       ],
       mode: 'payment',
-      success_url: `${BASE_URL}/informe-mercado-it?checkout_success=true&email=${encodeURIComponent(cleanEmail)}&plan=${type}`,
+      success_url: `${BASE_URL}/informe-mercado-it?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${BASE_URL}/informe-mercado-it?checkout_canceled=true`,
       metadata: {
         email: cleanEmail,
-        plan: type,
+        plan: selectedType,
         type: 'market_report',
       },
     });
@@ -63,6 +66,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ url: session.url });
   } catch (error: any) {
     console.error('Error creando Stripe Market Report Session:', error);
-    return NextResponse.json({ error: error.message || 'Error interno del servidor' }, { status: 500 });
+    return NextResponse.json({ error: 'Error al procesar la solicitud del informe' }, { status: 500 });
   }
 }

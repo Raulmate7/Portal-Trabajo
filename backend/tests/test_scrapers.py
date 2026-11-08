@@ -179,5 +179,29 @@ class TestScrapers(unittest.TestCase):
         self.assertEqual(jobs[0]['location'], 'España')
         self.assertEqual(jobs[0]['url_source'], 'https://workingnomads.com/jobs/6')
 
+    def test_is_safe_scraper_url(self):
+        from main import is_safe_scraper_url
+
+        # URLs públicas seguras
+        self.assertTrue(is_safe_scraper_url('https://weworkremotely.com/jobs/senior-dev'))
+        self.assertTrue(is_safe_scraper_url('http://careers.google.com/jobs/123'))
+
+        # Esquemas no seguros (XSS / inyección)
+        self.assertFalse(is_safe_scraper_url('javascript:alert(1)'))
+        self.assertFalse(is_safe_scraper_url('data:text/html,<script>evil()</script>'))
+        self.assertFalse(is_safe_scraper_url('file:///etc/passwd'))
+        self.assertFalse(is_safe_scraper_url('//evil.com/phishing'))
+
+        # Destinos internos y SSRF (Loopback, privadas y metadatos)
+        self.assertFalse(is_safe_scraper_url('http://localhost:3000/admin'))
+        self.assertFalse(is_safe_scraper_url('http://127.0.0.1/admin'))
+        self.assertFalse(is_safe_scraper_url('http://169.254.169.254/latest/meta-data/'))
+        self.assertFalse(is_safe_scraper_url('http://10.0.0.1/internal'))
+        self.assertFalse(is_safe_scraper_url('http://192.168.1.1/router'))
+        self.assertFalse(is_safe_scraper_url('http://server.local/api'))
+
+        # Caracteres de control CRLF
+        self.assertFalse(is_safe_scraper_url('https://company.com/job\r\nLocation:evil.com'))
+
 if __name__ == '__main__':
     unittest.main()

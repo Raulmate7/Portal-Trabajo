@@ -56,8 +56,18 @@ export async function POST(request: NextRequest) {
 
     const client = await pool.connect();
     try {
-      await client.query("DELETE FROM subscribers WHERE email = $1", [email]);
-      console.log(`📭 Suscriptor dado de baja con token verificado: ${email}`);
+      // Vector 25: Cumplimiento estricto del derecho de supresión RGPD (Borrado físico prioritario + neutralización defensiva)
+      try {
+        await client.query("DELETE FROM subscribers WHERE email = $1", [email]);
+      } catch (delErr) {
+        console.warn('DELETE no admitido directamente en el proxy/motor, aplicando neutralización de datos RGPD:', delErr);
+        await client.query(
+          "UPDATE subscribers SET email = CONCAT('unsubscribed_', id, '@deleted.local'), tech_keywords = NULL, location_pref = NULL WHERE email = $1",
+          [email]
+        );
+      }
+      const safeLogEmail = email.replace(/[\r\n\x00-\x1f]/g, '');
+      console.log(`📭 Suscriptor dado de baja con token verificado: ${safeLogEmail}`);
     } finally {
       client.release();
     }
@@ -65,6 +75,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, message: 'Tu suscripción ha sido cancelada correctamente.' });
   } catch (error: any) {
     console.error('Error al procesar la baja de suscripción:', error);
-    return NextResponse.json({ success: false, error: error.message || 'Error interno del servidor.' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Error interno al procesar la cancelación.' }, { status: 500 });
   }
 }

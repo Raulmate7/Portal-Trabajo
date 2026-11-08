@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import AdBanner from '@/components/AdBanner';
 import Link from 'next/link';
 import { sendGAEvent } from '@next/third-parties/google';
+import { getSafeRedirectUrl } from '@/lib/urlSafety';
 
 interface Props {
   url: string;
@@ -16,20 +17,6 @@ export default function RedirectClient({ url, company, title, lang }: Props) {
   const [countdown, setCountdown] = useState(2);
   const [redirected, setRedirected] = useState(false);
   const isEnglish = lang === 'en';
-
-  // Validación estricta de protocolo para prevenir ataques XSS (javascript:, data:)
-  const getSafeRedirectUrl = (rawUrl: string): string => {
-    if (!rawUrl) return '/';
-    try {
-      const parsed = new URL(rawUrl, typeof window !== 'undefined' ? window.location.origin : 'https://portalempleoit.com');
-      if (['http:', 'https:'].includes(parsed.protocol)) {
-        return rawUrl;
-      }
-    } catch {
-      // URL malformada
-    }
-    return '/';
-  };
 
   const getDestinationHost = (rawUrl: string): string => {
     try {

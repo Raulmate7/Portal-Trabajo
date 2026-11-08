@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Footer from "@/components/Footer";
-import { BASE_URL } from "@/lib/constants";
+import { BASE_URL, safeJsonLdString } from "@/lib/constants";
 import Header from "@/components/Header";
 import { Suspense } from "react";
 import { GoogleAnalytics } from "@next/third-parties/google";
@@ -132,7 +132,7 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: safeJsonLdString({
               "@context": "https://schema.org",
               "@type": "WebSite",
               "name": "Portal Trabajo IT",

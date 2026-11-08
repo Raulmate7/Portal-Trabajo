@@ -5,7 +5,7 @@ import JobCard from '@/components/JobCard';
 import SubscribeForm from '@/components/SubscribeForm';
 import AdBanner from '@/components/AdBanner';
 import Breadcrumbs from '@/components/Breadcrumbs';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL , safeJsonLdString } from '@/lib/constants';
 
 export const revalidate = 7200; // Cache de 2 horas (ISR)
 
@@ -73,7 +73,7 @@ export default async function TrabajoFreelancePage() {
     <div className="container mx-auto px-4 py-8 font-sans max-w-6xl min-h-screen">
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(faqJsonLd) }} 
       />
 
       <Breadcrumbs items={[

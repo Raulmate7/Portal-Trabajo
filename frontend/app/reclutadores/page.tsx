@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Metadata } from 'next';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL , safeJsonLdString } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'Publicar Ofertas de Empleo IT — Captación y Reclutamiento Tech',
@@ -51,7 +51,7 @@ export default function RecruitersLandingPage() {
     <main className="min-h-screen bg-gray-950 text-white">
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(faqSchema) }} 
       />
 
       {/* Hero */}

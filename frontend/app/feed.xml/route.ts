@@ -3,6 +3,24 @@ import { BASE_URL } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 
+function cleanCdata(text: string | null | undefined): string {
+  if (!text) return '';
+  // Eliminar caracteres de control incompatibles con la especificación XML 1.0 (Vector 28)
+  const clean = String(text).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x84\x86-\x9F\uFFFE\uFFFF]/g, '');
+  return clean.replace(/\]\]>/g, ']]]]><![CDATA[>');
+}
+
+function escapeXml(text: string | null | undefined): string {
+  if (!text) return '';
+  return String(text)
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x84\x86-\x9F\uFFFE\uFFFF]/g, '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get('q') || '';           // tecnología: react, python, etc.
@@ -11,7 +29,7 @@ export async function GET(request: Request) {
 
   const client = await pool.connect();
   try {
-    let sql = "SELECT id, title, company, location, description_snippet, created_at, salary FROM jobs WHERE 1=1";
+    let sql = "SELECT id, title, company, location, description_snippet, created_at, salary FROM jobs WHERE is_active = TRUE";
     const params: any[] = [];
     let paramIndex = 1;
 
@@ -59,33 +77,36 @@ export async function GET(request: Request) {
         : 'Ver detalles de la oferta de empleo en Portal Trabajo IT.';
 
       // Enriquecer la descripción
-      const fullDescription = `📍 ${job.location} · ${desc}`;
+      const fullDescription = `📍 ${job.location || 'Remoto'} · ${desc}`;
+      const safeTitle = `${job.title || 'Oferta'} — ${job.company || 'Empresa'}${salaryText}`;
+      const itemDate = new Date(job.created_at);
+      const pubDate = !isNaN(itemDate.getTime()) ? itemDate.toUTCString() : new Date().toUTCString();
 
       return `
     <item>
-      <title><![CDATA[${job.title} — ${job.company}${salaryText}]]></title>
-      <link>${BASE_URL}/job/${job.id}</link>
-      <guid isPermaLink="true">${BASE_URL}/job/${job.id}</guid>
-      <description><![CDATA[${fullDescription}]]></description>
-      <pubDate>${new Date(job.created_at).toUTCString()}</pubDate>
-      <category><![CDATA[${job.location}]]></category>
-      <source url="${BASE_URL}">Portal Trabajo IT</source>
+      <title><![CDATA[${cleanCdata(safeTitle)}]]></title>
+      <link>${escapeXml(`${BASE_URL}/job/${job.id}`)}</link>
+      <guid isPermaLink="true">${escapeXml(`${BASE_URL}/job/${job.id}`)}</guid>
+      <description><![CDATA[${cleanCdata(fullDescription)}]]></description>
+      <pubDate>${pubDate}</pubDate>
+      <category><![CDATA[${cleanCdata(job.location || 'Remoto')}]]></category>
+      <source url="${escapeXml(BASE_URL)}">Portal Trabajo IT</source>
     </item>`;
     }).join('');
 
     const rss = `<?xml version="1.0" encoding="UTF-8" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>${feedTitle}</title>
-    <link>${BASE_URL}</link>
-    <description>${feedDescription}</description>
+    <title>${escapeXml(feedTitle)}</title>
+    <link>${escapeXml(BASE_URL)}</link>
+    <description>${escapeXml(feedDescription)}</description>
     <language>es-ES</language>
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
-    <atom:link href="${selfUrl.toString()}" rel="self" type="application/rss+xml" />
+    <atom:link href="${escapeXml(selfUrl.toString())}" rel="self" type="application/rss+xml" />
     <image>
-      <url>${BASE_URL}/og-image.png</url>
-      <title>${feedTitle}</title>
-      <link>${BASE_URL}</link>
+      <url>${escapeXml(`${BASE_URL}/og-image.png`)}</url>
+      <title>${escapeXml(feedTitle)}</title>
+      <link>${escapeXml(BASE_URL)}</link>
     </image>
     ${feedItems}
   </channel>

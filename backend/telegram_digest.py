@@ -1,5 +1,6 @@
 import os
 import re
+import html
 import requests
 import psycopg2
 from logic.slug import get_job_slug
@@ -152,8 +153,8 @@ def run_telegram_digest():
         job_slug = get_job_slug(job_id, title, location, company)
         job_url = f"{BASE_URL}/job/{job_slug}?utm_source=telegram&utm_medium=social&utm_campaign=tg_digest"
         
-        title_clean = title.replace('<', '').replace('>', '')
-        company_clean = company.replace('<', '').replace('>', '') if company else "Empresa Destacada"
+        title_clean = html.escape(str(title or ''), quote=True)
+        company_clean = html.escape(str(company or 'Empresa Destacada'), quote=True)
         
         loc_lower = (location or "").lower()
         modality = "📍 Presencial"
@@ -162,10 +163,10 @@ def run_telegram_digest():
         elif "hibrido" in loc_lower or "híbrido" in loc_lower or "hybrid" in loc_lower:
             modality = "🏡 Híbrido"
             
-        salary_text = f" | 💰 {salary}" if salary and salary != "Consultar" and salary.strip() != "" else ""
+        salary_text = f" | 💰 {html.escape(str(salary), quote=True)}" if salary and salary != "Consultar" and salary.strip() != "" else ""
         featured_tag = " ⭐" if is_featured else ""
         
-        message += f"{emoji} <b><a href='{job_url}'>{title_clean}</a></b>\n"
+        message += f"{emoji} <b><a href=\"{job_url}\">{title_clean}</a></b>\n"
         message += f"   🏢 {company_clean} | {modality}{salary_text}{featured_tag}\n\n"
         
     message += (

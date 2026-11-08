@@ -5,7 +5,7 @@ import StickyDesktopAd from "@/components/StickyDesktopAd";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import Link from "next/link";
 import { Metadata } from "next";
-import { BASE_URL } from "@/lib/constants";
+import { BASE_URL , safeJsonLdString } from "@/lib/constants";
 
 export const revalidate = 3600; // Cache de 1 hora
 
@@ -196,7 +196,7 @@ export default async function RadarEmpresasPage({ searchParams }: Props) {
     <main className="min-h-screen bg-gray-50 dark:bg-slate-950 pb-16">
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(itemListSchema) }} 
       />
 
       {/* Hero */}

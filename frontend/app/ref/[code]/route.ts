@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { decryptReferralCode } from '@/lib/referral';
 
 export async function GET(
   request: Request,
@@ -8,12 +9,7 @@ export async function GET(
     const resolvedParams = await params;
     const { code } = resolvedParams;
 
-    let referrerEmail = '';
-    try {
-      referrerEmail = Buffer.from(code, 'base64').toString('utf-8').trim().toLowerCase();
-    } catch (e) {
-      console.warn('Fallo al decodificar código de referido Base64:', code);
-    }
+    const referrerEmail = decryptReferralCode(code);
 
     const response = NextResponse.redirect(new URL('/', request.url));
 
@@ -23,8 +19,9 @@ export async function GET(
       response.cookies.set('referrer_email', referrerEmail, {
         maxAge: 30 * 24 * 60 * 60, // 30 días
         path: '/',
-        httpOnly: false,
+        httpOnly: true, // Protegida contra robo o exfiltración por XSS (Vector 10)
         sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
       });
     }
 

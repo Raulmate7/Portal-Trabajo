@@ -1,3 +1,4 @@
+import { safeJsonLdString } from '@/lib/constants';
 import Link from 'next/link';
 import AdBanner from '@/components/AdBanner';
 
@@ -14,7 +15,7 @@ export default function NotFound() {
     <main className="min-h-screen bg-gray-50 dark:bg-slate-950 py-16 px-4">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(webPageSchema) }}
       />
       <div className="max-w-3xl mx-auto text-center space-y-10">
         

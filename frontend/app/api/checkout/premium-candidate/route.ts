@@ -15,14 +15,15 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const { email } = body;
 
-    if (!email || !email.includes('@')) {
+    const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    const cleanEmail = (email || '').toString().trim().toLowerCase();
+
+    if (!cleanEmail || !EMAIL_REGEX.test(cleanEmail) || cleanEmail.length > 120) {
       return NextResponse.json({ error: 'Por favor, proporciona un correo válido.' }, { status: 400 });
     }
-
-    const cleanEmail = email.trim().toLowerCase();
 
     // Crear sesión de Stripe Checkout en modo Suscripción usando BASE_URL seguro
     const session = await stripe.checkout.sessions.create({
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
         },
       ],
       mode: 'subscription',
-      success_url: `${BASE_URL}/referidos?checkout_success=true&email=${encodeURIComponent(cleanEmail)}`,
+      success_url: `${BASE_URL}/referidos?checkout_success=true`,
       cancel_url: `${BASE_URL}/referidos?checkout_canceled=true`,
       metadata: {
         email: cleanEmail,
@@ -56,6 +57,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ url: session.url });
   } catch (error: any) {
     console.error('Error creando Stripe Premium Candidate Session:', error);
-    return NextResponse.json({ error: error.message || 'Error interno del servidor' }, { status: 500 });
+    return NextResponse.json({ error: 'Error al procesar la suscripción de candidato' }, { status: 500 });
   }
 }

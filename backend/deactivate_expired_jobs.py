@@ -141,8 +141,25 @@ def deactivate_expired_jobs():
                 print(f"❌ Error de red enviando a IndexNow: {e}")
 
     # 7. PURGA: Eliminar ofertas inactivas con más de 90 días de antigüedad
+    # y ofertas de pago huérfanas/abandonadas en checkout con más de 48 horas (Vulnerabilidad 5).
     # Esto asegura que el almacenamiento total de la BD nunca se sature y se mantenga óptimo.
     try:
+        # A. Purga de ofertas de pago abandonadas (creadas por /api/checkout que nunca llegaron a pagarse)
+        abandoned_limit = datetime.now() - timedelta(hours=48)
+        cur.execute("""
+            DELETE FROM jobs
+            WHERE is_active = 0 
+              AND (is_featured = 0 OR is_featured IS NULL)
+              AND plan IS NOT NULL 
+              AND plan != 'basico'
+              AND created_at < %s
+        """, (abandoned_limit,))
+        conn.commit()
+        abandoned_count = cur.rowcount
+        if abandoned_count > 0:
+            print(f"🗑️ Purga BD: Se eliminaron {abandoned_count} ofertas de pago huérfanas/abandonadas (>48h).")
+
+        # B. Purga general de ofertas inactivas antiguas (>90 días)
         purge_limit = datetime.now() - timedelta(days=90)
         cur.execute("""
             DELETE FROM jobs

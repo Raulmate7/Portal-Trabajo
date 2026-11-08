@@ -2,10 +2,31 @@
 
 import pool from '@/lib/db';
 import { revalidatePath } from 'next/cache';
+import { cookies, headers } from 'next/headers';
 import crypto from 'crypto';
+import { encryptReferralCode } from '@/lib/referral';
+import { isSafePublicUrl } from '@/lib/urlSafety';
 
 // --- Rate Limiter y Utilidades Seguras ---
 const rateLimitMap = new Map<string, number>();
+
+async function getActionClientIp(): Promise<string> {
+  try {
+    const reqHeaders = await headers();
+    const cfIp = reqHeaders.get('cf-connecting-ip');
+    if (cfIp) return cfIp.trim();
+    const realIp = reqHeaders.get('x-real-ip');
+    if (realIp) return realIp.trim();
+    const forwarded = reqHeaders.get('x-forwarded-for');
+    if (forwarded) {
+      const parts = forwarded.split(',').map(s => s.trim()).filter(Boolean);
+      if (parts.length > 0) return parts[parts.length - 1];
+    }
+  } catch {
+    // Edge case if headers() is invoked in test context
+  }
+  return '127.0.0.1';
+}
 
 function checkRateLimit(key: string, limitMs: number = 60000): boolean {
   const now = Date.now();
@@ -13,9 +34,51 @@ function checkRateLimit(key: string, limitMs: number = 60000): boolean {
   if (lastRequest && now - lastRequest < limitMs) {
     return false;
   }
-  if (rateLimitMap.size > 10000) rateLimitMap.clear();
+  // Vector 21: Prevención de DoS de Rate Limiting.
+  // Jamás usar .clear() global (que borraba el historial de todos los atacantes).
+  // Se purgan primero entradas vencidas y luego se expulsa por LRU ordenado.
+  if (rateLimitMap.size >= 10000) {
+    for (const [k, timestamp] of rateLimitMap.entries()) {
+      if (now - timestamp > 300000) { // más de 5 minutos
+        rateLimitMap.delete(k);
+      }
+      if (rateLimitMap.size < 8000) break;
+    }
+    // Si aún excede el límite (rotación masiva de claves), expulsar las más antiguas por orden FIFO/LRU
+    if (rateLimitMap.size >= 10000) {
+      let evicted = 0;
+      for (const k of rateLimitMap.keys()) {
+        rateLimitMap.delete(k);
+        evicted++;
+        if (evicted >= 2000) break;
+      }
+    }
+  }
   rateLimitMap.set(key, now);
   return true;
+}
+
+/**
+ * Valida la cabecera Origin / Host para prevenir ataques CSRF en Server Actions mutantes (Vector 22).
+ */
+async function verifyCsrfOrigin(): Promise<boolean> {
+  try {
+    const h = await headers();
+    const origin = h.get('origin');
+    if (!origin) {
+      const referer = h.get('referer');
+      if (!referer) return true; // Invocación interna desde el servidor / SSR
+      const refHost = new URL(referer).host;
+      const host = h.get('host') || h.get('x-forwarded-host');
+      return !host || refHost === host;
+    }
+    const originHost = new URL(origin).host;
+    const host = h.get('host') || h.get('x-forwarded-host');
+    if (!host) return true;
+    return originHost === host;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -39,6 +102,14 @@ function cleanupRevokedMagicTokens() {
   for (const [key, expiry] of revokedMagicTokens.entries()) {
     if (expiry < now) {
       revokedMagicTokens.delete(key);
+    }
+  }
+  if (revokedMagicTokens.size > 2000) {
+    let evicted = 0;
+    for (const k of revokedMagicTokens.keys()) {
+      revokedMagicTokens.delete(k);
+      evicted++;
+      if (evicted >= 500) break;
     }
   }
 }
@@ -166,21 +237,47 @@ async function sendMagicLinkEmail(toEmail: string, loginUrl: string, type: 'recr
     console.log(`[AUTH] Enlace de acceso preparado para ${masked}`);
   }
 }
+
+/**
+ * Genera un enlace de recomendación con código opaco y cifrado (Vector 8)
+ * para evitar la exposición pública del correo electrónico del recomendador.
+ */
+export async function getReferralLink(email: string): Promise<string> {
+  if (!email || !email.includes('@')) return '';
+  const code = encryptReferralCode(email);
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://portalempleoit.com';
+  return `${baseUrl}/ref/${code}`;
+}
+
 // ------------------------------------------
 
-
 export async function subscribeUser(formData: FormData) {
+  if (!await verifyCsrfOrigin()) {
+    return { message: 'Petición rechazada por política de seguridad de origen (CSRF).', success: false };
+  }
   const email = (formData.get('email') as string || '').trim().toLowerCase();
   const pathname = formData.get('pathname') as string;
   const techKeywords = (formData.get('tech_keywords') as string || '').trim();
   const locationPref = (formData.get('location_pref') as string || '').trim();
   const frequency = (formData.get('frequency') as string || 'weekly').trim();
-  const referredBy = (formData.get('referred_by') as string || '').trim().toLowerCase() || null;
+  
+  // Vector 10: Leer cookie referrer_email segura httpOnly como fallback si no viene en el formulario
+  const cookieStore = await cookies();
+  const cookieReferrer = cookieStore.get('referrer_email')?.value || null;
+  const rawReferredBy = (formData.get('referred_by') as string || '').trim().toLowerCase();
+  const referredBy = rawReferredBy || cookieReferrer;
+
   const operator = (formData.get('operator') as string || 'OR').toUpperCase();
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!email || !emailRegex.test(email) || email.length > 255) {
     return { message: 'Por favor, escribe un email válido.', success: false };
+  }
+
+  // Vector 24: Mitigación de spam masivo y agotamiento de recursos por IP y por email
+  const clientIp = await getActionClientIp();
+  if (!checkRateLimit(`ip_sub_${clientIp}`, 10000)) {
+    return { message: 'Demasiadas solicitudes desde tu red. Espera unos segundos antes de volver a intentarlo.', success: false };
   }
   if (!checkRateLimit(`sub_${email}`, 30000)) {
     return { message: 'Estás haciendo demasiadas peticiones. Espera un momento.', success: false };
@@ -194,9 +291,11 @@ export async function subscribeUser(formData: FormData) {
       [email]
     );
 
+    // Vector 12: Unificar la respuesta para suscriptores existentes y nuevos.
+    // Previene la enumeración de usuarios (un atacante no puede deducir qué correos están registrados).
     if (checkRes.rows && checkRes.rows.length > 0) {
       return { 
-        message: '¡Ya estás suscrito al boletín! Para modificar tus alertas o darte de baja, utiliza el enlace seguro en cualquiera de nuestros correos.', 
+        message: '¡Gracias por suscribirte! Si tu correo es válido, recibirás nuestras alertas de empleo en tu bandeja de entrada. 🚀', 
         success: true 
       };
     }
@@ -211,7 +310,7 @@ export async function subscribeUser(formData: FormData) {
     );
 
     revalidatePath(pathname);
-    return { message: '¡Gracias! Te has suscrito correctamente. 🚀', success: true };
+    return { message: '¡Gracias por suscribirte! Si tu correo es válido, recibirás nuestras alertas de empleo en tu bandeja de entrada. 🚀', success: true };
 
   } catch (error: any) {
     console.error('Error guardando suscriptor:', error);
@@ -222,6 +321,9 @@ export async function subscribeUser(formData: FormData) {
 }
 
 export async function submitPremiumLead(formData: FormData) {
+  if (!await verifyCsrfOrigin()) {
+    return { message: 'Petición rechazada por política de seguridad de origen (CSRF).', success: false };
+  }
   const name = formData.get('name') as string;
   const email = formData.get('email') as string;
   const stack = formData.get('stack') as string;
@@ -233,20 +335,35 @@ export async function submitPremiumLead(formData: FormData) {
   }
 
   const cleanEmail = email.trim().toLowerCase();
+  const clientIp = await getActionClientIp();
+  if (!checkRateLimit(`ip_lead_${clientIp}`, 15000)) {
+    return { message: 'Demasiadas solicitudes desde tu red. Espera unos segundos.', success: false };
+  }
   if (!checkRateLimit(`lead_${cleanEmail}`, 60000)) {
     return { message: 'Estás enviando demasiadas solicitudes. Espera un minuto.', success: false };
   }
 
   const client = await pool.connect();
   try {
+    // Vector 11: Comprobar si ya existe un lead reciente para este correo (últimas 24h)
+    // Previene spam y sobreescrituras no deseadas sin autenticación
+    const checkExisting = await client.query(
+      "SELECT id FROM premium_leads WHERE email = $1 AND created_at > NOW() - INTERVAL 24 HOUR LIMIT 1",
+      [cleanEmail]
+    );
+
+    if (checkExisting.rows && checkExisting.rows.length > 0) {
+      return { message: '¡Gracias! Hemos recibido tu solicitud.', success: true };
+    }
+
     await client.query(
       "INSERT INTO premium_leads (name, email, stack, experience, linkedin, created_at) VALUES ($1, $2, $3, $4, $5, $6)",
       [name, cleanEmail, stack, experience, linkedin, new Date().toISOString()]
     );
 
-    // Enviar notificación por Telegram (al canal, ya que ADMIN_ID no está disponible en Vercel)
+    // Vector 7: Notificación solo al administrador privado (TELEGRAM_ADMIN_ID). Nunca al canal público.
     const telegramToken = process.env.TELEGRAM_TOKEN;
-    const adminChatId = process.env.TELEGRAM_ADMIN_ID || process.env.TELEGRAM_CHANNEL;
+    const adminChatId = process.env.TELEGRAM_ADMIN_ID;
 
     if (telegramToken && adminChatId) {
       // Vector 23: Sanitización estricta HTML para prevenir phishing y manipulación de enlaces en Telegram
@@ -270,6 +387,8 @@ export async function submitPremiumLead(formData: FormData) {
       } catch (e) {
         console.error("Error enviando notificación de Telegram:", e);
       }
+    } else if (!adminChatId) {
+      console.warn('[SECURITY] TELEGRAM_ADMIN_ID no configurado; no se envía lead al canal público para evitar filtración de PII.');
     }
 
     return { message: '¡Gracias! Hemos recibido tu solicitud.', success: true };
@@ -284,15 +403,7 @@ export async function submitPremiumLead(formData: FormData) {
       errorMsg.includes('Duplicate entry'); // Proxy PDO message
 
     if (isDuplicate) {
-      // Vector 16: Anti-Enumeración de Candidatos (previene filtrar si un email ya está en búsqueda activa)
-      try {
-        await client.query(
-          "UPDATE premium_leads SET name = $1, stack = $2, experience = $3, linkedin = COALESCE($4, linkedin) WHERE email = $5",
-          [name, stack, experience, linkedin, cleanEmail]
-        );
-      } catch {
-        // Fallback defensivo si ocurre algún fallo de conexión en el update
-      }
+      // Vector 11 & 16: Anti-Enumeración y protección contra sobreescritura no autorizada de perfiles
       return { message: '¡Gracias! Hemos recibido tu solicitud.', success: true };
     }
     console.error('Error guardando lead premium:', error);
@@ -303,6 +414,9 @@ export async function submitPremiumLead(formData: FormData) {
 }
 
 export async function submitSponsoredJob(formData: FormData) {
+  if (!await verifyCsrfOrigin()) {
+    return { message: 'Petición rechazada por política de seguridad de origen (CSRF).', success: false };
+  }
   const company_name = formData.get('company_name') as string;
   const company_email = formData.get('company_email') as string;
   const company_phone = (formData.get('company_phone') as string) || null;
@@ -318,13 +432,13 @@ export async function submitSponsoredJob(formData: FormData) {
   }
 
   const cleanJobUrl = job_url.trim();
-  try {
-    const parsedUrl = new URL(cleanJobUrl);
-    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-      return { message: 'La URL de la oferta debe comenzar por http:// o https://', success: false };
-    }
-  } catch {
-    return { message: 'La URL de la oferta no tiene un formato válido.', success: false };
+  if (!isSafePublicUrl(cleanJobUrl)) {
+    return { message: 'La URL de la oferta no es válida o apunta a una dirección interna o no permitida.', success: false };
+  }
+
+  const clientIp = await getActionClientIp();
+  if (!checkRateLimit(`ip_job_${clientIp}`, 15000)) {
+    return { message: 'Demasiadas publicaciones desde tu conexión. Por favor, espera unos segundos.', success: false };
   }
 
   if (!checkRateLimit(`job_${company_email}`, 60000)) {
@@ -375,22 +489,26 @@ export async function submitSponsoredJob(formData: FormData) {
 
     await client.query('COMMIT');
 
-    // Notificar por Telegram (preferiblemente al admin privado para no exponer datos de empresa)
+    // Vector 7: Notificar por Telegram EXCLUSIVAMENTE al chat de administración privada (TELEGRAM_ADMIN_ID).
+    // NUNCA enviar solicitudes con datos de contacto o solicitudes de publicación al canal público para evitar filtración de PII.
     const telegramToken = process.env.TELEGRAM_TOKEN;
-    const telegramChannel = process.env.TELEGRAM_ADMIN_ID || process.env.TELEGRAM_CHANNEL;
+    const adminChatId = process.env.TELEGRAM_ADMIN_ID;
 
-    if (telegramToken && telegramChannel) {
+    if (telegramToken && adminChatId) {
       let planLabel = '📋 Básico (Gratis - Pendiente de Moderación)';
       if (plan === 'destacado_basico') planLabel = '⭐ Destacado Básico (9€)';
       else if (plan === 'destacado_pro') planLabel = '⭐ Destacado Pro (19€)';
       else if (plan === 'destacado_enterprise') planLabel = '⭐ Enterprise (49€)';
 
-      // Vector 23: Formateo con HTML escapado contra phishing y enlaces inyectados
+      // Vector 23 & 7: Formateo con HTML escapado contra phishing y protección de PII de la empresa
+      const safeCompanyEmail = escapeTelegramHtml(company_email);
+      const safeCompanyPhone = escapeTelegramHtml(company_phone || 'No proporcionado');
+
       const text = `💰 <b>NUEVA SOLICITUD DE OFERTA</b> 💰\n\n` +
         `📋 <b>Plan:</b> ${escapeTelegramHtml(planLabel)}\n` +
         `🏢 <b>Empresa:</b> ${escapeTelegramHtml(company_name)}\n` +
-        `📧 <b>Email:</b> ${escapeTelegramHtml(company_email)}\n` +
-        `📞 <b>Teléfono:</b> ${escapeTelegramHtml(company_phone || 'No proporcionado')}\n\n` +
+        `📧 <b>Email:</b> ${safeCompanyEmail}\n` +
+        `📞 <b>Teléfono:</b> ${safeCompanyPhone}\n\n` +
         `💼 <b>Puesto:</b> ${escapeTelegramHtml(job_title)}\n` +
         `📍 <b>Ubicación:</b> ${escapeTelegramHtml(job_location)}\n` +
         `💰 <b>Salario:</b> ${escapeTelegramHtml(job_salary || 'No indicado')}\n` +
@@ -401,7 +519,7 @@ export async function submitSponsoredJob(formData: FormData) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            chat_id: telegramChannel,
+            chat_id: adminChatId,
             text: text,
             parse_mode: 'HTML'
           })
@@ -409,6 +527,8 @@ export async function submitSponsoredJob(formData: FormData) {
       } catch (e) {
         console.error("Error enviando notificación de Telegram:", e);
       }
+    } else if (!adminChatId) {
+      console.warn('[SECURITY] TELEGRAM_ADMIN_ID no configurado; no se envía solicitud de oferta al canal público para evitar filtración de PII corporativo.');
     }
 
     return { 
@@ -430,9 +550,25 @@ export async function submitSponsoredJob(formData: FormData) {
 }
 
 export async function reactToJob(jobId: string, reactionType: 'like' | 'dislike') {
-  if (!jobId || !reactionType) {
+  if (!await verifyCsrfOrigin()) {
+    return { success: false, error: 'Petición rechazada por política de seguridad de origen (CSRF).' };
+  }
+
+  if (!jobId || !['like', 'dislike'].includes(reactionType)) {
     return { success: false, error: 'Parámetros inválidos' };
   }
+
+  // Validar formato del ID (UUID o numérico)
+  const isValidId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(jobId) || /^\d+$/.test(jobId);
+  if (!isValidId) {
+    return { success: false, error: 'Identificador de oferta inválido.' };
+  }
+
+  // Rate limiting anti-spam
+  if (!checkRateLimit(`reaction_${jobId}_${reactionType}`, 2000)) {
+    return { success: false, error: 'Demasiadas solicitudes. Espera un momento.' };
+  }
+
   const client = await pool.connect();
   try {
     await client.query(
@@ -474,35 +610,57 @@ export async function getJobReactions(jobId: string) {
   }
 }
 
-export async function getReferralStats(email: string) {
-  if (!email) {
-    return { count: 0, success: false };
+export async function getReferralStats(email: string, token?: string) {
+  if (!email || !email.includes('@')) {
+    return { count: 0, success: false, authenticated: false };
   }
+  const cleanEmail = email.trim().toLowerCase();
+
+  // Vector 13: Rate limiting estricto para evitar ataques de fuerza bruta y sondeo
+  if (!checkRateLimit(`ref_stats_${cleanEmail}`, 10000)) {
+    return { count: 0, success: false, authenticated: false };
+  }
+
+  // Si no se proporciona token válido, no exponemos las métricas reales para prevenir enumeración
+  const isAuthenticated = token ? verifySecureToken(cleanEmail, token) : false;
+  if (!isAuthenticated) {
+    return { count: 0, success: true, authenticated: false };
+  }
+
   const client = await pool.connect();
   try {
     const res = await client.query(
       "SELECT COUNT(*) as count FROM subscribers WHERE referred_by = $1",
-      [email.trim().toLowerCase()]
+      [cleanEmail]
     );
     const countValue = res.rows[0]?.count || 0;
-    return { count: parseInt(String(countValue), 10), success: true };
+    return { count: parseInt(String(countValue), 10), success: true, authenticated: true };
   } catch (error) {
     console.error("Error obteniendo estadísticas de referidos:", error);
-    return { count: 0, success: false };
+    return { count: 0, success: false, authenticated: false };
   } finally {
     client.release();
   }
 }
 
 export async function submitCompanyReview(formData: FormData) {
-  const companySlug = formData.get('company_slug') as string;
-  const rating = parseInt(formData.get('rating') as string || '0', 10);
-  const reviewText = formData.get('review_text') as string;
-  const role = (formData.get('role') as string || 'Anónimo').trim();
-
-  if (!companySlug || rating < 1 || rating > 5 || !reviewText) {
-    return { message: 'Por favor, rellena la puntuación y el comentario.', success: false };
+  if (!await verifyCsrfOrigin()) {
+    return { message: 'Petición rechazada por política de seguridad de origen (CSRF).', success: false };
   }
+
+  const companySlug = (formData.get('company_slug') as string || '').trim().toLowerCase();
+  const rating = parseInt(formData.get('rating') as string || '0', 10);
+  const reviewText = (formData.get('review_text') as string || '').trim();
+  const role = (formData.get('role') as string || 'Anónimo').trim().slice(0, 60);
+
+  if (!companySlug || !/^[a-z0-9-]+$/.test(companySlug) || companySlug.length > 100) {
+    return { message: 'Identificador de empresa inválido.', success: false };
+  }
+
+  if (rating < 1 || rating > 5 || !reviewText || reviewText.length < 5 || reviewText.length > 2000) {
+    return { message: 'Por favor, proporciona una puntuación válida (1-5) y un comentario de entre 5 y 2000 caracteres.', success: false };
+  }
+
   if (!checkRateLimit(`review_${companySlug}`, 30000)) {
     return { message: 'Demasiadas reseñas en poco tiempo. Espera un momento.', success: false };
   }
@@ -545,11 +703,25 @@ export async function getCompanyReviews(companySlug: string) {
 }
 
 export async function generateRecruiterLoginLink(email: string) {
+  if (!await verifyCsrfOrigin()) {
+    return { success: false, message: 'Petición rechazada por política de seguridad de origen (CSRF).' };
+  }
+
   if (!email || !email.includes('@')) {
     return { success: false, message: 'Por favor, proporciona un correo válido.' };
   }
 
   const cleanEmail = email.trim().toLowerCase();
+
+  // Vector 24: Rate limiting estricto anti-bombardeo de correos y agotamiento de cuota Resend (IP + Email)
+  const clientIp = await getActionClientIp();
+  if (!checkRateLimit(`ip_recr_magic_${clientIp}`, 15000)) {
+    return { success: false, message: 'Demasiadas solicitudes de acceso desde tu red. Espera unos segundos antes de volver a intentarlo.' };
+  }
+  if (!checkRateLimit(`recr_magic_${cleanEmail}`, 60000)) {
+    return { success: false, message: 'Demasiadas solicitudes de acceso. Espera un minuto antes de volver a intentarlo.' };
+  }
+
   const client = await pool.connect();
   try {
     // Verificar si el reclutador tiene ofertas en sponsored_jobs
@@ -603,6 +775,11 @@ export async function getRecruiterJobs(email: string, token: string) {
     return { success: false, error: 'Acceso no autorizado. El token no es válido o ha expirado.' };
   }
 
+  // Vector 18: One-Time Magic Link Anti-Replay
+  // Invalidar de inmediato el enlace mágico consumido y emitir un nuevo token de sesión de corta duración
+  await revokeSecureToken(token);
+  const sessionToken = generateSecureToken(cleanEmail);
+
   const client = await pool.connect();
   try {
     // Obtener solicitudes patrocinadas (pendientes o aprobadas)
@@ -614,27 +791,25 @@ export async function getRecruiterJobs(email: string, token: string) {
       [cleanEmail]
     );
 
-    // Obtener empleos asociados a las empresas del reclutador
+    // Vector 13 & 15: Obtener empleos asociados exclusivamente a las ofertas enviadas por este reclutador.
+    // Mitigación IDOR: Se vincula por url_source con sponsored_jobs registrados bajo cleanEmail,
+    // impidiendo que cualquier usuario reclame ofertas de terceros introduciendo un company_name arbitrario.
     let jobsList: any[] = [];
-    if (sponsoredRes.rows && sponsoredRes.rows.length > 0) {
-      const companyNames = [...new Set(sponsoredRes.rows.map((r: any) => r.company_name).filter(Boolean))];
-      if (companyNames.length > 0) {
-        const placeholders = companyNames.map((_, i) => `$${i + 1}`).join(', ');
-        const jobsQuery = `
-          SELECT id, title, company, created_at, is_active, 0 AS impressions_count, 0 AS clicks_count 
-          FROM jobs 
-          WHERE company IN (${placeholders})
-          ORDER BY created_at DESC
-        `;
-        const jRes = await client.query(jobsQuery, companyNames);
-        jobsList = jRes.rows || [];
-      }
-    }
+    const jobsQuery = `
+      SELECT DISTINCT j.id, j.title, j.company, j.created_at, j.is_active, 0 AS impressions_count, 0 AS clicks_count 
+      FROM jobs j
+      INNER JOIN sponsored_jobs s ON j.url_source = s.job_url
+      WHERE s.company_email = $1
+      ORDER BY j.created_at DESC
+    `;
+    const jRes = await client.query(jobsQuery, [cleanEmail]);
+    jobsList = jRes.rows || [];
 
     return { 
       success: true, 
       jobs: jobsList, 
-      sponsoredJobs: sponsoredRes.rows || [] 
+      sponsoredJobs: sponsoredRes.rows || [],
+      sessionToken
     };
 
   } catch (error) {
@@ -649,6 +824,10 @@ export async function getRecruiterJobs(email: string, token: string) {
  * Registra o recupera el código de afiliado para un reclutador.
  */
 export async function registerRecruiterAffiliate(email: string, token?: string) {
+  if (!await verifyCsrfOrigin()) {
+    return { success: false, error: 'Petición rechazada por política de seguridad de origen (CSRF).' };
+  }
+
   if (!email || !email.includes('@')) {
     return { success: false, error: 'Por favor, proporciona un correo válido.' };
   }
@@ -658,6 +837,27 @@ export async function registerRecruiterAffiliate(email: string, token?: string) 
   // Rate Limiting anti-scraping
   if (!checkRateLimit(`affiliate_reg_${cleanEmail}`, 10000)) {
     return { success: false, error: 'Demasiadas solicitudes. Espera unos segundos antes de intentarlo de nuevo.' };
+  }
+
+  // Vector 14 & 15: Exigir verificación de identidad vía enlace mágico seguro
+  // antes de crear o exponer códigos de afiliado y métricas de comisiones
+  const isAuthenticated = token ? verifySecureToken(cleanEmail, token) : false;
+
+  if (!isAuthenticated) {
+    try {
+      const magicToken = generateSecureToken(cleanEmail);
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://portalempleoit.com';
+      const fullLoginUrl = `${baseUrl}/afiliados-empresa?email=${encodeURIComponent(cleanEmail)}&token=${magicToken}`;
+      await sendMagicLinkEmail(cleanEmail, fullLoginUrl, 'recruiter');
+    } catch (mailErr) {
+      console.error("Error enviando enlace seguro de afiliado:", mailErr);
+    }
+
+    return {
+      success: false,
+      error: 'Te hemos enviado un enlace de confirmación a tu correo. Haz clic en el enlace para verificar tu identidad y acceder a tu panel y código de afiliado.',
+      requiresAuth: true,
+    };
   }
 
   const client = await pool.connect();
@@ -670,28 +870,8 @@ export async function registerRecruiterAffiliate(email: string, token?: string) 
     );
 
     if (checkRes.rows && checkRes.rows.length > 0) {
-      const isAuthenticated = token ? verifySecureToken(cleanEmail, token) : false;
-
-      // Vector 15: Si no está autenticado con token verificado, NO exponer el código confidencial ni estadísticas
-      if (!isAuthenticated) {
-        try {
-          const magicToken = generateSecureToken(cleanEmail);
-          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://portalempleoit.com';
-          const fullLoginUrl = `${baseUrl}/empresa-dashboard?email=${encodeURIComponent(cleanEmail)}&token=${magicToken}`;
-          await sendMagicLinkEmail(cleanEmail, fullLoginUrl, 'recruiter');
-        } catch (mailErr) {
-          console.error("Error enviando enlace seguro de afiliado:", mailErr);
-        }
-
-        return {
-          success: false,
-          error: 'Este correo ya tiene un código de afiliado registrado. Por seguridad, te hemos enviado un enlace de acceso seguro a tu correo para acceder a tu panel y código.',
-          requiresAuth: true,
-        };
-      }
-
       const code = checkRes.rows[0].affiliate_code;
-      // Obtener estadísticas de referidos solo si el usuario está autenticado
+      // Obtener estadísticas de referidos para el usuario verificado
       const statsRes = await client.query(
         "SELECT referred_company_name, commission_paid, created_at FROM recruiter_affiliates WHERE recruiter_email = $1 AND referred_company_name IS NOT NULL",
         [cleanEmail]
@@ -706,7 +886,7 @@ export async function registerRecruiterAffiliate(email: string, token?: string) 
       };
     }
 
-    // 2. Si no existe, crear un nuevo código criptográficamente seguro de afiliado (Vector 15)
+    // 2. Si no existe, crear un nuevo código criptográficamente seguro de afiliado
     const randomSuffix = crypto.randomBytes(4).toString('hex').toUpperCase();
     const newCode = `RECR-${randomSuffix}`;
 
@@ -756,15 +936,21 @@ export async function getSubscriberPreferences(email: string, token: string) {
   const validation = await validateCandidateToken(email, token);
   if (!validation.success) return { success: false, error: 'No autorizado' };
   
+  // Vector 18: Anti-replay. El enlace recibido en el correo se revoca de inmediato para que sea de un solo uso
+  await revokeSecureToken(token);
+  // Se genera un nuevo token de sesión de corta duración para las acciones del usuario
+  const sessionToken = generateSecureToken(email);
+
   const client = await pool.connect();
   try {
     const res = await client.query(
       "SELECT email, tech_keywords, location_pref, frequency, tech_keywords_json FROM subscribers WHERE email = $1 LIMIT 1",
       [email.trim().toLowerCase()]
     );
-    return { success: true, subscriber: res.rows[0] };
+    return { success: true, subscriber: res.rows[0], sessionToken };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    console.error('Error obteniendo preferencias de suscriptor:', error);
+    return { success: false, error: 'Error al consultar las preferencias del suscriptor.' };
   } finally {
     client.release();
   }
@@ -778,30 +964,67 @@ export async function updateSubscriberPreferences(
   frequency: string, 
   techKeywordsJson: string
 ) {
+  if (!await verifyCsrfOrigin()) {
+    return { success: false, error: 'Petición rechazada por política de seguridad de origen (CSRF).' };
+  }
+
   const validation = await validateCandidateToken(email, token);
   if (!validation.success) return { success: false, error: 'No autorizado' };
   
+  // Rotación de token en cada actualización para prevenir reutilización
+  await revokeSecureToken(token);
+  const nextSessionToken = generateSecureToken(email);
+  
+  // Validación y cotas estrictas de longitud de parámetros
+  const cleanTech = (techKeywords || '').slice(0, 500);
+  const cleanLocation = (locationPref || '').slice(0, 100);
+  const cleanFreq = ['daily', 'weekly', 'biweekly', 'monthly'].includes(frequency) ? frequency : 'weekly';
+  
+  let validJson: string | null = null;
+  if (techKeywordsJson) {
+    try {
+      const parsed = JSON.parse(techKeywordsJson);
+      validJson = JSON.stringify(parsed);
+    } catch {
+      validJson = null;
+    }
+  }
+
   const client = await pool.connect();
   try {
     await client.query(
       `UPDATE subscribers 
        SET tech_keywords = $1, location_pref = $2, frequency = $3, tech_keywords_json = $4
        WHERE email = $5`,
-      [techKeywords, locationPref, frequency, techKeywordsJson, email.trim().toLowerCase()]
+      [cleanTech, cleanLocation, cleanFreq, validJson, email.trim().toLowerCase()]
     );
-    return { success: true };
+    return { success: true, sessionToken: nextSessionToken };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    console.error('Error actualizando preferencias de suscriptor:', error);
+    return { success: false, error: 'Error al actualizar las preferencias de suscriptor.' };
   } finally {
     client.release();
   }
 }
 
 export async function generateCandidateLoginLink(email: string) {
+  if (!await verifyCsrfOrigin()) {
+    return { success: false, message: 'Petición rechazada por política de seguridad de origen (CSRF).' };
+  }
   if (!email || !email.includes('@')) {
     return { success: false, message: 'Por favor, proporciona un correo válido.' };
   }
   const cleanEmail = email.trim().toLowerCase();
+
+  // Vector 24: Rate limiting estricto anti-bombardeo y agotamiento de recursos Resend (IP + Email)
+  const clientIp = await getActionClientIp();
+  if (!checkRateLimit(`ip_cand_magic_${clientIp}`, 15000)) {
+    return { success: false, message: 'Demasiadas solicitudes de acceso desde tu red. Espera unos segundos antes de volver a intentarlo.' };
+  }
+  if (!checkRateLimit(`cand_magic_${cleanEmail}`, 60000)) {
+    return { success: false, message: 'Demasiadas solicitudes de acceso. Espera un minuto antes de volver a intentarlo.' };
+  }
+
   const client = await pool.connect();
   try {
     const res = await client.query("SELECT email FROM subscribers WHERE email = $1 LIMIT 1", [cleanEmail]);

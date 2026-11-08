@@ -17,9 +17,12 @@ export function sanitizeMarkdownHtml(html: string): string {
   if (!html) return '';
   return html
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<script\b[^>]*>/gi, '')
+    .replace(/<\/script>/gi, '')
     .replace(/\bon\w+\s*=\s*(?:'[^']*'|"[^"]*"|[^\s>]+)/gi, '')
-    .replace(/href\s*=\s*(['"])\s*(?:javascript|data|vbscript):/gi, 'href=$1#blocked-protocol:')
-    .replace(/<(?:iframe|object|embed|style|form|base|meta)\b[^>]*>/gi, '');
+    .replace(/(?:href|src|action|formaction|xlink:href)\s*=\s*(['"])\s*(?:javascript|data|vbscript):/gi, '$1#blocked-protocol:')
+    .replace(/<(?:iframe|object|embed|style|form|base|meta|svg|math|portal)\b[^>]*>/gi, '')
+    .replace(/<\/(?:iframe|object|embed|style|form|base|meta|svg|math|portal)>/gi, '');
 }
 
 export function parseInline(text: string): string {

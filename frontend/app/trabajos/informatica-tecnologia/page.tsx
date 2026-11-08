@@ -8,7 +8,7 @@ import AdBanner from '@/components/AdBanner';
 import PushSubscribe from '@/components/PushSubscribe';
 import Link from 'next/link';
 import { Metadata } from 'next';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL , safeJsonLdString } from '@/lib/constants';
 import { getJobSlug } from '@/lib/slug';
 import Breadcrumbs from '@/components/Breadcrumbs';
 
@@ -165,15 +165,15 @@ export default async function JobsPage(props: Props) {
     <div className="min-h-screen bg-gray-50 font-sans">
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(breadcrumbJsonLd) }} 
       />
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(itemListJsonLd) }} 
       />
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(faqJsonLd) }} 
       />
       
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">

@@ -17,11 +17,19 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const { company_name, company_email, plan = 'newsletter_sponsorship' } = body;
 
     if (!company_name || !company_email) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
+    }
+
+    const cleanName = (company_name || '').toString().trim().slice(0, 150);
+    const cleanEmail = (company_email || '').toString().trim().toLowerCase().slice(0, 120);
+
+    const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!cleanName || !EMAIL_REGEX.test(cleanEmail)) {
+      return NextResponse.json({ error: 'Nombre de empresa o correo electrónico inválido' }, { status: 400 });
     }
 
     // 1. Insertar registro pendiente en newsletter_sponsors con ref única
@@ -32,7 +40,7 @@ export async function POST(request: Request) {
       await client.query(
         `INSERT INTO newsletter_sponsors (company_name, company_email, plan, status, stripe_session_id, created_at)
          VALUES ($1, $2, $3, 'pendiente', $4, NOW())`,
-        [company_name.trim(), company_email.trim().toLowerCase(), plan, clientRef]
+        [cleanName, cleanEmail, String(plan).slice(0, 50), clientRef]
       );
       const res = await client.query(
         `SELECT id FROM newsletter_sponsors WHERE stripe_session_id = $1 LIMIT 1`,
@@ -91,6 +99,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ url: session.url });
   } catch (error: any) {
     console.error('Error creando Stripe Newsletter Checkout Session:', error);
-    return NextResponse.json({ error: error.message || 'Error interno del servidor' }, { status: 500 });
+    return NextResponse.json({ error: 'Error al procesar la solicitud de patrocinio' }, { status: 500 });
   }
 }

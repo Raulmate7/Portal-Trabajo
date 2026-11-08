@@ -35,7 +35,7 @@ def get_jobs_for_subscriber(cur, keywords, operator, location_pref: str, hours: 
     sql = """
         SELECT id, title, company, location, url_source, salary, category
         FROM jobs
-        WHERE created_at > %s
+        WHERE created_at > %s AND is_active = TRUE
     """
     params.append(datetime.now() - timedelta(hours=hours))
 
@@ -68,8 +68,9 @@ def build_job_html(jobs, subscriber_email):
         safe_company = html_escape.escape(str(company or ''))
         safe_location = html_escape.escape(str(location or ''))
         category = category or 'Otros'
+        encoded_email = urllib.parse.quote(subscriber_email)
         original_job_link = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=alert&utm_medium=email&utm_campaign=custom_alert&utm_term={urllib.parse.quote(category)}&utm_content={job_id}"
-        job_link = f"{BASE_URL}/api/track-click?email={subscriber_email}&campaign=custom_alert&redirect={urllib.parse.quote(original_job_link)}"
+        job_link = f"{BASE_URL}/api/track-click?email={encoded_email}&campaign=custom_alert&redirect={urllib.parse.quote(original_job_link)}"
         safe_salary = html_escape.escape(str(salary)) if salary and salary not in ("Consultar", None) else ""
         salary_text = f"💰 {safe_salary}" if safe_salary else ""
 
@@ -87,11 +88,12 @@ def build_job_html(jobs, subscriber_email):
 
 def build_email_html(jobs, subscriber_email: str, tech_keywords: str, frequency: str):
     """Construye el cuerpo HTML completo del email de alerta."""
+    encoded_email = urllib.parse.quote(subscriber_email)
     BOOTCAMP_LINK = "https://trk.udemy.com/9VMAEj"
-    bootcamp_track = f"{BASE_URL}/api/track-click?email={subscriber_email}&campaign=custom_alert&redirect={urllib.parse.quote(BOOTCAMP_LINK)}"
+    bootcamp_track = f"{BASE_URL}/api/track-click?email={encoded_email}&campaign=custom_alert&redirect={urllib.parse.quote(BOOTCAMP_LINK)}"
     cta_btn_orig = f"{BASE_URL}?utm_source=alert&utm_medium=email&utm_campaign=cta_btn"
-    cta_btn_track = f"{BASE_URL}/api/track-click?email={subscriber_email}&campaign=custom_alert&redirect={urllib.parse.quote(cta_btn_orig)}"
-    visit_web_track = f"{BASE_URL}/api/track-click?email={subscriber_email}&campaign=custom_alert&redirect={urllib.parse.quote(BASE_URL)}"
+    cta_btn_track = f"{BASE_URL}/api/track-click?email={encoded_email}&campaign=custom_alert&redirect={urllib.parse.quote(cta_btn_orig)}"
+    visit_web_track = f"{BASE_URL}/api/track-click?email={encoded_email}&campaign=custom_alert&redirect={urllib.parse.quote(BASE_URL)}"
     
     unsubscribe_link = generate_unsubscribe_link(subscriber_email)
     freq_text = "diario" if frequency == "daily" else "semanal"

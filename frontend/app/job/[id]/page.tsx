@@ -11,7 +11,7 @@ import AdBanner from '@/components/AdBanner';
 import PushSubscribe from '@/components/PushSubscribe';
 import { ReferralWidget } from '@/components/Widgets';
 import Breadcrumbs from '@/components/Breadcrumbs';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL, safeJsonLdString } from '@/lib/constants';
 import { getJobSlug, getNumericId, slugify } from '@/lib/slug';
 import SaveJobButton from '@/components/SaveJobButton';
 import ReactionButton from '@/components/ReactionButton';
@@ -222,7 +222,12 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     );
 
     const job = res.rows[0];
-    if (!job) return { title: 'Oferta no encontrada' };
+    if (!job || !job.is_active) {
+      return {
+        title: 'Oferta no encontrada | Portal Empleo IT',
+        robots: { index: false, follow: false }
+      };
+    }
 
     const lang = resolvedSearchParams?.lang === 'en' ? 'en' : 'es';
     const isEnglish = lang === 'en';
@@ -237,7 +242,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
       : `Oportunidad laboral en ${job.company}. ${displayDesc?.substring(0, 130) ?? ''}...`;
 
     const isOld = (new Date().getTime() - new Date(job.created_at).getTime()) > 30 * 24 * 60 * 60 * 1000;
-    const isExpired = job.is_active === false || isOld;
+    const isExpired = isOld;
 
     const correctSlug = getJobSlug(job);
     const canonicalUrl = isEnglish 
@@ -449,12 +454,12 @@ export default async function JobPage({ params, searchParams }: Props) {
 
   const job = await getJob(numericId);
 
-  if (!job) {
+  if (!job || !job.is_active) {
     notFound();
   }
 
   const isOld = (new Date().getTime() - new Date(job.created_at).getTime()) > 30 * 24 * 60 * 60 * 1000;
-  const isExpired = job.is_active === false || isOld;
+  const isExpired = isOld;
 
   const correctSlug = getJobSlug(job);
   const lang = resolvedSearchParams?.lang === 'en' ? 'en' : 'es';
@@ -799,9 +804,6 @@ export default async function JobPage({ params, searchParams }: Props) {
 
   // VideoObject schema disabled due to lack of actual video ID in database (avoiding Google penalty for mock URLs)
   const videoJsonLd: any = null;
-
-  // Sanitizar JSON-LD para prevenir cierre de etiquetas <script> y Stored XSS
-  const safeJsonLdString = (data: any) => JSON.stringify(data).replace(/</g, '\\u003c');
 
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-4 md:px-8">

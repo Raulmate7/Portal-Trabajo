@@ -7,7 +7,7 @@ import SubscribeForm from '@/components/SubscribeForm';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import StickyDesktopAd from '@/components/StickyDesktopAd';
 import pool from '@/lib/db';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL , safeJsonLdString } from '@/lib/constants';
 
 export const revalidate = 86400; // 24h
 
@@ -94,8 +94,8 @@ export default async function CertificationDetailPage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-gray-50 pb-16">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(courseJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(courseJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(faqJsonLd) }} />
 
       {/* Hero */}
       <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-purple-950 text-white py-14 px-4 relative overflow-hidden">

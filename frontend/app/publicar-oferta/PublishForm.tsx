@@ -67,6 +67,8 @@ export default function PublishForm() {
         const jobData = {
           title: data.job_title,
           company: data.company_name,
+          company_email: data.company_email,
+          company_phone: data.company_phone,
           location: data.job_location,
           salary: data.job_salary,
           description_snippet: data.job_description,

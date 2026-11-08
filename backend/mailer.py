@@ -22,6 +22,25 @@ def generate_unsubscribe_link(email: str) -> str:
     token = hmac.new(secret.encode(), email.strip().lower().encode(), hashlib.sha256).hexdigest()
     return f"{base_url}/api/unsubscribe?email={urllib.parse.quote(email.strip().lower())}&token={token}"
 
+def encrypt_referral_code(email: str) -> str:
+    """Cifra el correo para generar un enlace de referido opaco AES-256-GCM y prevenir filtración de PII."""
+    secret = os.getenv("MAGIC_LINK_SECRET") or os.getenv("CRON_SECRET")
+    if not secret:
+        return ""
+    try:
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+        key = hashlib.sha256(secret.encode()).digest()
+        aesgcm = AESGCM(key)
+        iv = os.urandom(12)
+        clean_email = email.strip().lower().encode('utf-8')
+        enc = aesgcm.encrypt(iv, clean_email, None)
+        tag = enc[-16:]
+        ct = enc[:-16]
+        return f"ref_{iv.hex()}_{tag.hex()}_{ct.hex()}"
+    except Exception as e:
+        print(f"Error encrypting referral code: {e}")
+        return ""
+
 def get_custom_udemy_link(tech_keywords):
     base_udemy = "https://trk.udemy.com/9VMAEj"
     if not tech_keywords:
@@ -289,7 +308,8 @@ def send_newsletter():
 
     for (email, tech_keywords) in subscribers:
         try:
-            base64_email = base64.b64encode(email.encode('utf-8')).decode('utf-8')
+            encrypted_ref = encrypt_referral_code(email)
+            referral_url = f"{base_url}/ref/{encrypted_ref}" if encrypted_ref else f"{base_url}/referidos"
             unsubscribe_link = generate_unsubscribe_link(email)
             # 6.1. Buscar ofertas personalizadas (en memoria) para este suscriptor
             recommended_jobs = []
@@ -443,7 +463,7 @@ def send_newsletter():
                         <div style="background: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
                             <p style="color: #4b5563; font-size: 12px; margin: 0 0 12px 0; font-weight: 500; line-height: 1.5;">
                                 📢 ¿Te gusta este newsletter? Invita a tus compañeros de profesión usando tu enlace personal:<br>
-                                <a href="{base_url}/ref/{base64_email}" style="color: #4f46e5; text-decoration: underline; font-weight: bold;">{base_url}/ref/{base64_email}</a><br>
+                                <a href="{referral_url}" style="color: #4f46e5; text-decoration: underline; font-weight: bold;">{referral_url}</a><br>
                                 ¡Si se suscriben 3 amigos, obtendréis beneficios premium!
                             </p>
                             <p style="color: #9ca3af; font-size: 11px; margin: 0;">

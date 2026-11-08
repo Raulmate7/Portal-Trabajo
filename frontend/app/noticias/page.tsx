@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import AdBanner from '@/components/AdBanner';
 import pool from '@/lib/db';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL , safeJsonLdString } from '@/lib/constants';
 
 export const revalidate = 3600; // Cache 1 hora (ISR)
 
@@ -134,7 +134,7 @@ export default async function NoticiasPage() {
     <div className="container mx-auto px-4 py-12 max-w-6xl min-h-screen font-sans">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(newsJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(newsJsonLd) }}
       />
       
       <div className="mb-10 text-center max-w-3xl mx-auto">

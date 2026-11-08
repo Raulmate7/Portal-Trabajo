@@ -5,18 +5,21 @@ import { getJobSlug, slugify } from '@/lib/slug';
 
 export const dynamic = 'force-dynamic';
 
-function escapeXml(unsafe: string | null | undefined) {
+function escapeXml(unsafe: string | null | undefined): string {
   if (!unsafe) return '';
-  return String(unsafe).replace(/[<>&'"]/g, (c) => {
-    switch (c) {
-      case '<': return '&lt;';
-      case '>': return '&gt;';
-      case '&': return '&amp;';
-      case '\'': return '&apos;';
-      case '"': return '&quot;';
-      default: return c;
-    }
-  });
+  // Eliminar caracteres de control incompatibles con la especificación XML 1.0 (Vector 28)
+  return String(unsafe)
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x84\x86-\x9F\uFFFE\uFFFF]/g, '')
+    .replace(/[<>&'"]/g, (c) => {
+      switch (c) {
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '&': return '&amp;';
+        case '\'': return '&apos;';
+        case '"': return '&quot;';
+        default: return c;
+      }
+    });
 }
 
 export async function GET() {

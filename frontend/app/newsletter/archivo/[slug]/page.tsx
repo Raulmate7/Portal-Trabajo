@@ -6,7 +6,7 @@ import AdBanner from '@/components/AdBanner';
 import SubscribeForm from '@/components/SubscribeForm';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import StickyDesktopAd from '@/components/StickyDesktopAd';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL , safeJsonLdString } from '@/lib/constants';
 
 export const revalidate = 86400; // 24h
 
@@ -78,7 +78,7 @@ export default async function NewsletterEditionPage({ params }: Props) {
     <main className="min-h-screen bg-gray-50 pb-16">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(articleJsonLd) }}
       />
 
       {/* Hero */}

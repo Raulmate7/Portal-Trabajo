@@ -4,7 +4,7 @@ import SalariosCalculator from '@/components/SalariosCalculator';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { calculateSalaryStats } from '@/lib/salarios';
 import { Metadata } from 'next';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL , safeJsonLdString } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'Calculadora de Salarios IT en España [2026] | Portal Trabajo IT',
@@ -130,11 +130,11 @@ export default async function SalariosPage({ searchParams }: Props) {
     <main className="min-h-screen bg-gray-50">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(datasetSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(datasetSchema) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(webApplicationSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(webApplicationSchema) }}
       />
       {/* Hero */}
       <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-900 text-white py-16 px-4 relative overflow-hidden">

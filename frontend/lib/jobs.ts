@@ -10,7 +10,9 @@ export interface FilterOptions {
 }
 
 export async function getJobs(filters: FilterOptions, page: number = 1, limit: number = 20) {
-  const offset = (page - 1) * limit;
+  const safePage = Math.max(1, Math.min(500, isNaN(page) ? 1 : page));
+  const safeLimit = Math.max(1, Math.min(100, isNaN(limit) ? 20 : limit));
+  const offset = (safePage - 1) * safeLimit;
   const client = await pool.connect();
   try {
     let sql = "SELECT id, title, title_es, company, location, salary, salary_min, salary_max, created_at, url_source, description_snippet, category, is_featured FROM jobs WHERE (is_featured = FALSE OR is_featured IS NULL) AND is_active = TRUE";

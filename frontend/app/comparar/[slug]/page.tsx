@@ -3,7 +3,7 @@ import AdBanner from '@/components/AdBanner';
 import Link from 'next/link';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL , safeJsonLdString } from '@/lib/constants';
 
 export const revalidate = 86400; // Cache 24h (ISR)
 
@@ -345,7 +345,7 @@ export default async function ComparisonPage({ params }: Props) {
     <main className="min-h-screen bg-gray-50">
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(faqSchema) }} 
       />
 
       {/* Hero */}

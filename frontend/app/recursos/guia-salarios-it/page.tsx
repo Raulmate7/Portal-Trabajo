@@ -4,7 +4,7 @@ import Link from 'next/link';
 import AdBanner from '@/components/AdBanner';
 import StickyDesktopAd from '@/components/StickyDesktopAd';
 import Breadcrumbs from '@/components/Breadcrumbs';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL , safeJsonLdString } from '@/lib/constants';
 
 export const revalidate = 86400; // Cache 24h
 
@@ -110,11 +110,11 @@ export default async function GuiaSalariosITPage({ searchParams }: Props) {
     <main className="min-h-screen bg-gray-50 pb-16">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(articleSchema) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(howToSchema) }}
       />
 
       {/* Hero */}

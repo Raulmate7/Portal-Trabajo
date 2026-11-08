@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { getReferralStats } from "@/app/actions";
+import { getReferralStats, getReferralLink } from "@/app/actions";
 
 export default function ReferidosPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [stats, setStats] = useState<{ count: number; success: boolean } | null>(null);
+  const [stats, setStats] = useState<{ count: number; success: boolean; authenticated?: boolean } | null>(null);
   const [referralLink, setReferralLink] = useState("");
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'candidato' | 'reclutador'>('candidato');
@@ -21,15 +21,22 @@ export default function ReferidosPage() {
     setCopied(false);
 
     try {
-      const res = await getReferralStats(email);
-      setStats(res);
-      
-      if (res.success) {
-        // Generar enlace base64
-        const code = btoa(email.trim().toLowerCase());
-        const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://portalempleoit.com";
-        setReferralLink(`${baseUrl}/ref/${code}`);
+      // Vector 8: Generación de enlace de referido seguro y cifrado en el servidor
+      const link = await getReferralLink(email.trim());
+      if (link) {
+        setReferralLink(link);
       }
+
+      // Si existe un token de sesión previa activa en la pestaña, intentar enviarlo
+      let token = "";
+      try {
+        const saved = sessionStorage.getItem("candidate_session_token");
+        if (saved) token = saved;
+        localStorage.removeItem("candidate_session_token");
+      } catch {}
+
+      const res = await getReferralStats(email.trim(), token);
+      setStats(res);
     } catch (err) {
       console.error(err);
     } finally {
@@ -134,27 +141,39 @@ export default function ReferidosPage() {
           <div className="mt-8 pt-8 border-t border-gray-800 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
             {stats.success ? (
               <>
-                <div className={`p-4 border rounded-2xl flex items-center justify-between bg-gray-950/40 ${
-                  activeTab === 'candidato' ? 'border-indigo-500/20' : 'border-purple-500/20'
-                }`}>
-                  <div className="text-left">
-                    <span className={`text-xs font-bold uppercase tracking-wider block ${
-                      activeTab === 'candidato' ? 'text-indigo-300' : 'text-purple-300'
-                    }`}>
-                      {activeTab === 'candidato' ? "Amigos Invitados" : "Empresas Invitadas"}
-                    </span>
-                    <span className="text-3xl font-black text-white block mt-1">{stats.count}</span>
+                {stats.authenticated ? (
+                  <div className={`p-4 border rounded-2xl flex items-center justify-between bg-gray-950/40 ${
+                    activeTab === 'candidato' ? 'border-indigo-500/20' : 'border-purple-500/20'
+                  }`}>
+                    <div className="text-left">
+                      <span className={`text-xs font-bold uppercase tracking-wider block ${
+                        activeTab === 'candidato' ? 'text-indigo-300' : 'text-purple-300'
+                      }`}>
+                        {activeTab === 'candidato' ? "Amigos Invitados" : "Empresas Invitadas"}
+                      </span>
+                      <span className="text-3xl font-black text-white block mt-1">{stats.count}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs text-amber-400 font-bold uppercase tracking-wider block">Estado de Recompensa</span>
+                      <span className="text-sm font-semibold block mt-1 text-gray-200">
+                        {activeTab === 'candidato'
+                          ? (stats.count >= 3 ? "🎉 ¡PREMIUM ACTIVADO!" : `${stats.count}/3 registrados`)
+                          : (stats.count >= 3 ? "🎉 ¡OFERTA DESTACADA GRATIS!" : `${stats.count}/3 registradas`)
+                        }
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-xs text-amber-400 font-bold uppercase tracking-wider block">Estado de Recompensa</span>
-                    <span className="text-sm font-semibold block mt-1 text-gray-200">
-                      {activeTab === 'candidato'
-                        ? (stats.count >= 3 ? "🎉 ¡PREMIUM ACTIVADO!" : `${stats.count}/3 registrados`)
-                        : (stats.count >= 3 ? "🎉 ¡OFERTA DESTACADA GRATIS!" : `${stats.count}/3 registradas`)
-                      }
-                    </span>
+                ) : (
+                  <div className="p-4 bg-gray-900/60 border border-gray-800 rounded-2xl text-left text-xs text-gray-300 flex items-center gap-3">
+                    <span className="text-xl">🔒</span>
+                    <p>
+                      Por seguridad y privacidad, para ver el recuento detallado de tus amigos invitados,{' '}
+                      <Link href="/mi-perfil" className="text-indigo-400 underline font-semibold hover:text-indigo-300">
+                        accede a tu Área Personal
+                      </Link>.
+                    </p>
                   </div>
-                </div>
+                )}
 
                 <div className="space-y-2 text-left">
                   <span className="block text-xs font-bold text-gray-400 uppercase">Tu Enlace Personal</span>

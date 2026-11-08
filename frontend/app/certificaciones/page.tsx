@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { CERTIFICATIONS } from '@/lib/certificaciones';
 import AdBanner from '@/components/AdBanner';
 import Breadcrumbs from '@/components/Breadcrumbs';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL , safeJsonLdString } from '@/lib/constants';
 
 export const revalidate = 86400; // 24h
 
@@ -45,7 +45,7 @@ export default function CertificacionesIndexPage() {
     <main className="min-h-screen bg-gray-50 pb-16">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(collectionJsonLd) }}
       />
 
       {/* Hero Header */}

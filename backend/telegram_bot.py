@@ -1,5 +1,6 @@
 import os
 import time
+import html
 import requests
 import psycopg2
 from logic.slug import get_job_slug
@@ -132,9 +133,9 @@ def send_to_telegram():
             for job in cat_jobs:
                 job_id, title, company, location, salary, _ = job
                 job_url = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=telegram&utm_medium=social&utm_campaign=tg_general_job"
-                title_clean = title.replace('<', '').replace('>', '')
-                company_clean = company.replace('<', '').replace('>', '') if company else "Desconocida"
-                message += f"▪️ <a href='{job_url}'>{title_clean}</a> en {company_clean}\n"
+                title_clean = html.escape(str(title or ''), quote=True)
+                company_clean = html.escape(str(company or 'Desconocida'), quote=True)
+                message += f"▪️ <a href=\"{job_url}\">{title_clean}</a> en {company_clean}\n"
             cat_slug = get_sector_slug("", cat)
             message += f"🔗 <a href='{BASE_URL}/trabajos/{cat_slug}?utm_source=telegram&utm_medium=social&utm_campaign=tg_general_cat_more'>Ver más ofertas de {cat}</a>\n\n"
 
@@ -184,10 +185,11 @@ def send_to_telegram():
             job_id, title, company, location, salary, _ = job
             cat_slug_utm = cat_name.lower().replace(' & ', '_').replace(' ', '_')
             job_url = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=telegram&utm_medium=social&utm_campaign=tg_{cat_slug_utm}_job"
-            title_clean = title.replace('<', '').replace('>', '')
-            company_clean = company.replace('<', '').replace('>', '') if company else "Desconocida"
-            salary_text = f" | 💰 {salary}" if salary and salary != "Consultar" else ""
-            cat_message += f"▪️ <a href='{job_url}'>{title_clean}</a> en {company_clean} (📍 {location}{salary_text})\n"
+            title_clean = html.escape(str(title or ''), quote=True)
+            company_clean = html.escape(str(company or 'Desconocida'), quote=True)
+            location_clean = html.escape(str(location or 'Remoto'), quote=True)
+            salary_text = f" | 💰 {html.escape(str(salary), quote=True)}" if salary and salary != "Consultar" else ""
+            cat_message += f"▪️ <a href=\"{job_url}\">{title_clean}</a> en {company_clean} (📍 {location_clean}{salary_text})\n"
             
         cat_slug = get_sector_slug("", cat_name)
         cat_slug_utm = cat_name.lower().replace(' & ', '_').replace(' ', '_')
@@ -214,10 +216,10 @@ def send_to_telegram():
         for job in remote_jobs:
             job_id, title, company, location, salary, _ = job
             job_url = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=telegram&utm_medium=social&utm_campaign=tg_remoto_job"
-            title_clean = title.replace('<', '').replace('>', '')
-            company_clean = company.replace('<', '').replace('>', '') if company else "Desconocida"
-            salary_text = f" | 💰 {salary}" if salary and salary != "Consultar" else ""
-            remoto_message += f"▪️ <a href='{job_url}'>{title_clean}</a> en {company_clean}{salary_text}\n"
+            title_clean = html.escape(str(title or ''), quote=True)
+            company_clean = html.escape(str(company or 'Desconocida'), quote=True)
+            salary_text = f" | 💰 {html.escape(str(salary), quote=True)}" if salary and salary != "Consultar" else ""
+            remoto_message += f"▪️ <a href=\"{job_url}\">{title_clean}</a> en {company_clean}{salary_text}\n"
             
         remoto_message += f"\n👉 <a href='{BASE_URL}/trabajo-remoto?utm_source=telegram&utm_medium=social&utm_campaign=tg_remoto_more'>Ver todas las ofertas en remoto</a>"
         

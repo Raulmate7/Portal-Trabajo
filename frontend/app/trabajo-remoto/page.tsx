@@ -5,7 +5,7 @@ import PushSubscribe from "@/components/PushSubscribe";
 import AdBanner from "@/components/AdBanner";
 import Link from "next/link";
 import { Metadata } from "next";
-import { BASE_URL } from "@/lib/constants";
+import { BASE_URL , safeJsonLdString } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -172,11 +172,11 @@ export default async function RemoteLandingPage({ searchParams }: Props) {
       {nextUrl && <link rel="next" href={nextUrl} />}
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(howToJsonLd) }} 
       />
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(itemListJsonLd) }} 
       />
 
       {/* Hero Section Premium */}

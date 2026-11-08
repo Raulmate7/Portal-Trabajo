@@ -2,3 +2,47 @@
 PassengerEnabled on
 PassengerAppType node
 PassengerStartupFile server.js
+
+# Vector 33: Prevención estricta de indexación de directorios y fuga de ficheros sensibles
+Options -Indexes
+
+# Denegar acceso a ficheros ocultos y dotfiles (.env, .git, .htaccess, etc.)
+<FilesMatch "^\.">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Allow,Deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Denegar acceso a extensiones críticas, backups y código fuente
+<FilesMatch "(?i)\.(env.*|json|sql|log|py|pyc|sh|md|bak|backup|conf|ini|yml|yaml|ts|tsx|map|lock)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Allow,Deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Denegar descarga directa del fichero de arranque de Node.js
+<Files "server.js">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Allow,Deny
+        Deny from all
+    </IfModule>
+</Files>
+
+# Cabeceras de seguridad HTTP a nivel de Apache (Defensa en Profundidad, Vector 31)
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+</IfModule>

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import AdBanner from '@/components/AdBanner';
 import StickyDesktopAd from '@/components/StickyDesktopAd';
 import Breadcrumbs from '@/components/Breadcrumbs';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL , safeJsonLdString } from '@/lib/constants';
 
 export const revalidate = 86400; // Cache 24h
 
@@ -91,7 +91,7 @@ export default async function PlantillasCvPage({ searchParams }: Props) {
     <main className="min-h-screen bg-gray-50 dark:bg-slate-950 pb-16">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(howToSchema) }}
       />
       {/* Hero */}
       <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-900 text-white py-16 px-4 relative overflow-hidden">

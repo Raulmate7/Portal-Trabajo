@@ -2,7 +2,7 @@ import Link from 'next/link';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import FaqClient from '@/components/FaqClient';
 import { Metadata } from 'next';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL , safeJsonLdString } from '@/lib/constants';
 
 export const revalidate = 86400; // Cache por 1 día
 
@@ -165,7 +165,7 @@ export default async function FaqPage({ searchParams }: Props) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(faqSchema) }}
       />
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">

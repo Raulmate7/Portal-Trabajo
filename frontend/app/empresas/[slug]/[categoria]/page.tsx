@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ShareButton from "@/components/ShareButton";
-import { BASE_URL } from "@/lib/constants";
+import { BASE_URL , safeJsonLdString } from "@/lib/constants";
 import { getJobSlug, slugify } from "@/lib/slug";
 import CompanyReviewForm from "@/components/CompanyReviewForm";
 import { getCompanyReviews } from "@/app/actions";
@@ -419,11 +419,11 @@ export default async function CompanyCategoryPage({ params, searchParams }: Prop
     <div className="container mx-auto px-4 py-8 font-sans">
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(breadcrumbJsonLd) }} 
       />
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(organizationJsonLd) }} 
       />
 
       <Breadcrumbs items={breadcrumbItems} />

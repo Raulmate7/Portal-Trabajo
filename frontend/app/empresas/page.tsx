@@ -4,7 +4,7 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 import AdBanner from "@/components/AdBanner";
 import SubscribeForm from "@/components/SubscribeForm";
 import { Metadata } from "next";
-import { BASE_URL } from "@/lib/constants";
+import { BASE_URL , safeJsonLdString } from "@/lib/constants";
 import { slugify } from "@/lib/slug";
 
 export const revalidate = 1800; // Cache 30 min — el directorio de empresas no cambia con alta frecuencia
@@ -177,11 +177,11 @@ export default async function EmpresasDirectoryPage() {
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(breadcrumbJsonLd) }} 
       />
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(itemListJsonLd) }} 
       />
 
       <Breadcrumbs items={breadcrumbItems} />

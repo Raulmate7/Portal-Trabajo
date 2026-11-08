@@ -2,7 +2,7 @@ import { GLOSSARY_TERMS } from '@/lib/glosario';
 import Link from 'next/link';
 import AdBanner from '@/components/AdBanner';
 import { Metadata } from 'next';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL , safeJsonLdString } from '@/lib/constants';
 import Breadcrumbs from '@/components/Breadcrumbs';
 
 export const metadata: Metadata = {
@@ -54,7 +54,7 @@ export default function GlossaryIndexPage() {
     <main className="min-h-screen bg-gray-50">
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(definedTermSetSchema) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(definedTermSetSchema) }} 
       />
       {/* Hero */}
       <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-900 text-white py-16 px-4 relative overflow-hidden">

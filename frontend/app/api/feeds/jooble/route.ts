@@ -30,11 +30,13 @@ export async function GET() {
     const jobs = res.rows;
 
     const joobleItems = jobs.map((job: any) => {
-      // Formatear fecha a DD.MM.YYYY
+      // Formatear fecha a DD.MM.YYYY de forma segura contra fechas inválidas
       const date = new Date(job.created_at);
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const year = date.getFullYear();
+      const isValidDate = !isNaN(date.getTime());
+      const safeDate = isValidDate ? date : new Date();
+      const day = String(safeDate.getDate()).padStart(2, '0');
+      const month = String(safeDate.getMonth() + 1).padStart(2, '0');
+      const year = safeDate.getFullYear();
       const formattedDate = `${day}.${month}.${year}`;
 
       const cleanDesc = job.description_snippet

@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import pool from '@/lib/db';
 import { BASE_URL } from '@/lib/constants';
+import { isSafePublicUrl } from '@/lib/urlSafety';
 import RedirectClient from './RedirectClient';
 
 type Props = {
@@ -52,7 +53,7 @@ export default async function RedirectPage({ params, searchParams }: Props) {
 
   const job = await getJobRedirectData(id);
 
-  if (!job || !job.url_source) {
+  if (!job || !job.url_source || !isSafePublicUrl(job.url_source)) {
     notFound();
   }
 

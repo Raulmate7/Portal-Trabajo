@@ -4,18 +4,21 @@ import { getBlogPosts } from '@/lib/blog';
 
 export const dynamic = 'force-dynamic';
 
-function escapeXml(unsafe: string | null | undefined) {
+function escapeXml(unsafe: string | null | undefined): string {
   if (!unsafe) return '';
-  return String(unsafe).replace(/[<>&'"]/g, (c) => {
-    switch (c) {
-      case '<': return '&lt;';
-      case '>': return '&gt;';
-      case '&': return '&amp;';
-      case '\'': return '&apos;';
-      case '"': return '&quot;';
-      default: return c;
-    }
-  });
+  // Eliminar caracteres de control incompatibles con la especificación XML 1.0 (Vector 28)
+  return String(unsafe)
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x84\x86-\x9F\uFFFE\uFFFF]/g, '')
+    .replace(/[<>&'"]/g, (c) => {
+      switch (c) {
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '&': return '&amp;';
+        case '\'': return '&apos;';
+        case '"': return '&quot;';
+        default: return c;
+      }
+    });
 }
 
 export async function GET() {
@@ -37,13 +40,19 @@ export async function GET() {
     }
 
     const newsNodes = newsPosts.map((post) => {
-      const postUrl = `${BASE_URL}/blog/${post.slug}`;
+      const postUrl = `${BASE_URL}/blog/${encodeURIComponent(post.slug)}`;
       const postTitle = escapeXml(post.title);
-      const isoDate = new Date(post.date).toISOString();
+      let isoDate: string;
+      try {
+        const d = new Date(post.date);
+        isoDate = !isNaN(d.getTime()) ? d.toISOString() : new Date().toISOString();
+      } catch {
+        isoDate = new Date().toISOString();
+      }
 
       return `
   <url>
-    <loc>${postUrl}</loc>
+    <loc>${escapeXml(postUrl)}</loc>
     <news:news>
       <news:publication>
         <news:name>Portal Trabajo IT</news:name>

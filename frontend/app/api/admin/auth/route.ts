@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   // 1. Rate Limiting estricto anti-fuerza bruta (Vector 11)
   const clientIp = getClientIp(request);
-  const rateLimitResult = adminAuthLimiter.limit(clientIp);
+  const rateLimitResult = await adminAuthLimiter.limitAsync(clientIp);
 
   if (!rateLimitResult.success) {
     const retryAfterSec = Math.max(1, Math.ceil((rateLimitResult.reset - Date.now()) / 1000));

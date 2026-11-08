@@ -1,6 +1,7 @@
 import pool from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import { trackClickLimiter, getClientIp } from '@/lib/rate-limit';
+import { isSafePublicUrl } from '@/lib/urlSafety';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,14 +27,24 @@ function getSanitizedRedirect(redirectParam: string, requestUrl: string): string
     return '/';
   }
 
-  // Prevenir bypass de schema protocol-relative tipo '//evil.com'
-  if (decoded.startsWith('//')) {
+  // Prevenir inyección CRLF y caracteres de control (HTTP Response Splitting)
+  if (/[\r\n\x00-\x1f\x7f]/.test(decoded)) {
     return '/';
   }
 
-  // Rutas relativas internas seguras
+  // Prevenir bypass de schema protocol-relative o barras invertidas (//evil.com, /\\evil.com, \\evil.com)
+  if (decoded.startsWith('//') || decoded.startsWith('/\\') || decoded.startsWith('\\')) {
+    return '/';
+  }
+
+  // Rutas relativas internas seguras (no protocol-relative ni escape con backslash)
   if (decoded.startsWith('/') && !decoded.startsWith('/\\')) {
     return decoded;
+  }
+
+  // URLs absolutas externas deben ser públicas y seguras contra SSRF
+  if (!isSafePublicUrl(decoded)) {
+    return '/';
   }
 
   try {
@@ -142,5 +153,8 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(new URL(targetUrl, request.url));
+  const response = NextResponse.redirect(new URL(targetUrl, request.url));
+  // Vector 9: Prevenir que el navegador envíe la cabecera Referer con datos de seguimiento al portal destino
+  response.headers.set('Referrer-Policy', 'no-referrer');
+  return response;
 }

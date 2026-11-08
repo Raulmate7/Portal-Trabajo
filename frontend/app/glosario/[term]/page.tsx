@@ -4,7 +4,7 @@ import AdBanner from '@/components/AdBanner';
 import StickyDesktopAd from '@/components/StickyDesktopAd';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL , safeJsonLdString } from '@/lib/constants';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import AuthorBox from '@/components/AuthorBox';
 import pool from '@/lib/db';
@@ -114,7 +114,7 @@ export default async function GlossaryDetailPage({ params }: Props) {
     <main className="min-h-screen bg-gray-50">
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(definedTermSchema) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(definedTermSchema) }} 
       />
 
       {/* Hero */}

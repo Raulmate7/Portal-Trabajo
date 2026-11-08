@@ -1,10 +1,51 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { subscribeUser } from '@/app/actions';
 
-export default function InformeMercadoPage() {
+function InformeMercadoContent() {
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get('session_id') || '';
+  const tokenParam = searchParams.get('token') || '';
+
+  const [checkoutVerified, setCheckoutVerified] = useState(false);
+  const [checkoutEmail, setCheckoutEmail] = useState('');
+  const [checkoutPlan, setCheckoutPlan] = useState('full');
+  const [downloadUrl, setDownloadUrl] = useState('');
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
+
+  // Verificación segura en servidor del pago de Stripe
+  useEffect(() => {
+    if (sessionId && sessionId.startsWith('cs_')) {
+      setVerifyingPayment(true);
+      setVerifyError('');
+      fetch(`/api/checkout/report/verify?session_id=${encodeURIComponent(sessionId)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.valid) {
+            setCheckoutVerified(true);
+            setCheckoutEmail(data.email || '');
+            setCheckoutPlan(data.plan || 'full');
+            setDownloadUrl(data.downloadUrl || '');
+          } else {
+            setVerifyError(data.error || 'No se pudo verificar el pago en la pasarela.');
+          }
+        })
+        .catch(() => {
+          setVerifyError('Error de red al comprobar el estado del pago con Stripe.');
+        })
+        .finally(() => {
+          setVerifyingPayment(false);
+        });
+    } else if (tokenParam) {
+      setCheckoutVerified(true);
+      setDownloadUrl(`/api/checkout/report/download?token=${encodeURIComponent(tokenParam)}`);
+    }
+  }, [sessionId, tokenParam]);
+
   // Free report (lead magnet) states
   const [freeEmail, setFreeEmail] = useState('');
   const [freeLoading, setFreeLoading] = useState(false);
@@ -217,23 +258,54 @@ export default function InformeMercadoPage() {
           </div>
 
           <div className="pt-8 border-t border-gray-800/80 mt-8">
-            <form onSubmit={handlePaidCheckout} className="space-y-3">
-              <input
-                type="email"
-                required
-                placeholder="tu@email.com"
-                value={paidEmail}
-                onChange={(e) => setPaidEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-gray-950 border border-gray-800 text-white placeholder-gray-550 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-xs"
-              />
-              <button
-                type="submit"
-                disabled={paidLoading}
-                className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-colors text-xs disabled:opacity-60 cursor-pointer"
-              >
-                {paidLoading ? 'Redirigiendo...' : `Comprar Informe (${reportType === 'full' ? '9.99€' : '49€'}) →`}
-              </button>
-            </form>
+            {verifyingPayment ? (
+              <div className="p-6 bg-purple-950/40 border border-purple-500/30 rounded-2xl text-center space-y-3">
+                <div className="w-8 h-8 border-2 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto" />
+                <p className="text-xs text-purple-200">Verificando compra segura con Stripe...</p>
+              </div>
+            ) : checkoutVerified ? (
+              <div className="p-6 bg-purple-950/70 border border-purple-500/50 rounded-2xl text-center space-y-4 animate-in fade-in duration-300">
+                <div className="w-12 h-12 bg-purple-500/20 text-purple-300 rounded-full flex items-center justify-center mx-auto text-2xl font-black">
+                  ✓
+                </div>
+                <h4 className="text-base font-bold text-white">¡Pago verificado con éxito!</h4>
+                <p className="text-xs text-gray-300 leading-relaxed">
+                  Hemos verificado tu compra en Stripe del <strong>Informe de Mercado IT ({checkoutPlan === 'enterprise' ? 'Empresa' : 'Completo'})</strong>.
+                  {checkoutEmail && <> Se ha emitido la licencia a nombre de <strong>{checkoutEmail}</strong>.</>}
+                </p>
+                <div className="pt-2">
+                  <a
+                    href={downloadUrl}
+                    className="inline-block px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg"
+                  >
+                    📥 Descargar Informe Completo (Dataset Verificado) →
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handlePaidCheckout} className="space-y-3">
+                {verifyError && (
+                  <div className="p-3 bg-red-950/60 border border-red-500/50 text-red-200 rounded-xl text-xs text-center mb-2">
+                    {verifyError}
+                  </div>
+                )}
+                <input
+                  type="email"
+                  required
+                  placeholder="tu@email.com"
+                  value={paidEmail}
+                  onChange={(e) => setPaidEmail(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-gray-950 border border-gray-800 text-white placeholder-gray-550 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-xs"
+                />
+                <button
+                  type="submit"
+                  disabled={paidLoading}
+                  className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-colors text-xs disabled:opacity-60 cursor-pointer"
+                >
+                  {paidLoading ? 'Redirigiendo...' : `Comprar Informe (${reportType === 'full' ? '9.99€' : '49€'}) →`}
+                </button>
+              </form>
+            )}
             {paidError && <p className="text-red-400 text-xs text-center mt-3 font-medium">{paidError}</p>}
           </div>
         </div>
@@ -283,5 +355,17 @@ export default function InformeMercadoPage() {
         </div>
       </footer>
     </main>
+  );
+}
+
+export default function InformeMercadoPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-gray-950 flex items-center justify-center text-gray-400">
+        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      </main>
+    }>
+      <InformeMercadoContent />
+    </Suspense>
   );
 }

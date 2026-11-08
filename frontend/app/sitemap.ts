@@ -726,7 +726,7 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
     // ----------------------------------------------------
     if (sitemapId === 3) {
       const compRes = await client.query(
-        "SELECT DISTINCT company, category FROM jobs WHERE company IS NOT NULL AND company != 'Desconocida'"
+        "SELECT DISTINCT company, category FROM jobs WHERE is_active = TRUE AND company IS NOT NULL AND company != 'Desconocida'"
       );
       const rows = compRes.rows;
 

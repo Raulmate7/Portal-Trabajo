@@ -4,6 +4,7 @@ import pool from '@/lib/db';
 import crypto from 'crypto';
 import { checkoutLimiter, getClientIp } from '@/lib/rate-limit';
 import { BASE_URL } from '@/lib/constants';
+import { isSafePublicUrl } from '@/lib/urlSafety';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2023-10-16' as any,
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json().catch(() => ({}));
-    const { title, company, location, salary, description_snippet, url_source, category, plan = 'destacado_30d', affiliate_code } = body;
+    const { title, company, company_email, company_phone, location, salary, description_snippet, url_source, category, plan = 'destacado_30d', affiliate_code } = body;
 
     if (!title || !company || !url_source) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
@@ -42,15 +43,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Plan seleccionado no válido' }, { status: 400 });
     }
 
-    // Validar formato y protocolo seguro de url_source (solo http y https)
+    // Validar formato, protocolo y destino seguro de url_source (SSRF y Phishing prevention)
     const cleanUrlSource = url_source.trim();
-    try {
-      const parsedUrl = new URL(cleanUrlSource);
-      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-        return NextResponse.json({ error: 'La URL de la oferta debe comenzar por http:// o https://' }, { status: 400 });
-      }
-    } catch {
-      return NextResponse.json({ error: 'La URL proporcionada no es válida' }, { status: 400 });
+    if (!isSafePublicUrl(cleanUrlSource)) {
+      return NextResponse.json({ error: 'La URL de la oferta no es válida o apunta a una dirección no permitida' }, { status: 400 });
     }
 
     // Validación de código de afiliado seguro
@@ -119,12 +115,14 @@ export async function POST(request: Request) {
           },
         ],
         mode: 'payment',
+        customer_email: (company_email && typeof company_email === 'string' && company_email.includes('@')) ? company_email.trim().toLowerCase() : undefined,
         success_url: `${BASE_URL}/publicar-oferta?success=true&job_id=${jobId}`,
         cancel_url: `${BASE_URL}/publicar-oferta?canceled=true`,
         metadata: {
           jobId: String(jobId),
           plan: String(selectedPlan),
           affiliate_code: cleanAffiliateCode,
+          company_email: (company_email && typeof company_email === 'string') ? company_email.trim().toLowerCase() : '',
         },
       });
     } catch (stripeErr) {
@@ -132,7 +130,12 @@ export async function POST(request: Request) {
       const cleanupClient = await pool.connect();
       try {
         await cleanupClient.query("DELETE FROM jobs WHERE id = $1 AND is_active = FALSE", [jobId]);
-      } catch {} finally {
+      } catch {
+        // Si DELETE no está permitido en proxy HTTP, asegurar estado inactivo
+        try {
+          await cleanupClient.query("UPDATE jobs SET is_active = FALSE, plan = 'abandoned' WHERE id = $1", [jobId]);
+        } catch {}
+      } finally {
         cleanupClient.release();
       }
       throw stripeErr;

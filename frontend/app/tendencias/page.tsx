@@ -3,7 +3,7 @@ import AdBanner from '@/components/AdBanner';
 import Link from 'next/link';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { Metadata } from 'next';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL , safeJsonLdString } from '@/lib/constants';
 
 export const revalidate = 3600; // Recalcular cada hora
 
@@ -389,11 +389,11 @@ export default async function TrendsPage() {
     <main className="min-h-screen bg-gray-50 pb-10">
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(datasetSchema) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(datasetSchema) }} 
       />
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(faqSchema) }} 
       />
 
       {/* Hero */}

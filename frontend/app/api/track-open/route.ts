@@ -38,7 +38,10 @@ export async function GET(request: NextRequest) {
         'INSERT INTO email_tracking (email, campaign) VALUES ($1, $2)',
         [email.trim(), campaign.trim()]
       );
-      console.log(`📈 Email open tracked: ${email} in campaign ${campaign}`);
+      // Sanitizar caracteres de control para prevenir log injection (CRLF)
+      const safeLogEmail = email.replace(/[\r\n\x00-\x1f]/g, '');
+      const safeLogCamp = campaign.replace(/[\r\n\x00-\x1f]/g, '');
+      console.log(`📈 Email open tracked: ${safeLogEmail} in campaign ${safeLogCamp}`);
     } catch (error) {
       console.error('Error logging email track-open:', error);
       // No fallamos la respuesta para no mostrar una imagen rota en el cliente de correo

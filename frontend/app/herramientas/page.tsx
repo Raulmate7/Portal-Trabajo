@@ -2,7 +2,7 @@ import React from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import AdBanner from '@/components/AdBanner';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL , safeJsonLdString } from '@/lib/constants';
 import Breadcrumbs from '@/components/Breadcrumbs';
 
 export const revalidate = 86400; // Cache de 24 horas
@@ -194,7 +194,7 @@ export default async function HerramientasPage({ searchParams }: Props) {
     <main className="min-h-screen bg-gray-50 dark:bg-slate-950 pb-16">
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(toolsItemListSchema) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(toolsItemListSchema) }} 
       />
       {/* Hero Header */}
       <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-950 text-white py-16 px-4 relative overflow-hidden">

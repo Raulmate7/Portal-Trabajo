@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 import AdBanner from '@/components/AdBanner';
 import Breadcrumbs from '@/components/Breadcrumbs';
-import { BASE_URL } from '@/lib/constants';
+import { BASE_URL , safeJsonLdString } from '@/lib/constants';
 import { slugify } from '@/lib/slug';
 import StickyDesktopAd from '@/components/StickyDesktopAd';
 
@@ -170,11 +170,11 @@ export default async function RemoteCompaniesPage() {
     <main className="min-h-screen bg-gray-50">
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(itemListJsonLd) }} 
       />
       <script 
         type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(faqJsonLd) }} 
       />
 
       {/* Hero */}
