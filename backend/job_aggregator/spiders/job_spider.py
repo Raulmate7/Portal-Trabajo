@@ -6,11 +6,13 @@ class JobSpider(scrapy.Spider):
     allowed_domains = ["tecnoempleo.com"]
     
     custom_settings = {
-        'USER_AGENT': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'DOWNLOAD_DELAY': 2,
+        'USER_AGENT': 'PortalTrabajoITBot/1.0 (+https://portalempleoit.com/bot; bot@portalempleoit.com)',
+        'ROBOTSTXT_OBEY': True,
+        'DOWNLOAD_DELAY': 3,
+        'CONCURRENT_REQUESTS_PER_DOMAIN': 1,
         'DEFAULT_REQUEST_HEADERS': {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'es-ES,es;q=0.8,en-US;q=0.5,en;q=0.3',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'es-ES,es;q=0.9',
         }
     }
 

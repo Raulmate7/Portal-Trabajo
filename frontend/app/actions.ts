@@ -260,6 +260,11 @@ export async function subscribeUser(formData: FormData) {
   const techKeywords = (formData.get('tech_keywords') as string || '').trim();
   const locationPref = (formData.get('location_pref') as string || '').trim();
   const frequency = (formData.get('frequency') as string || 'weekly').trim();
+  const privacyAccepted = formData.get('privacy_accepted') === 'on' || formData.get('privacy_accepted') === 'true';
+
+  if (!privacyAccepted) {
+    return { message: 'Debes aceptar la Política de Privacidad para suscribirte.', success: false };
+  }
   
   // Vector 10: Leer cookie referrer_email segura httpOnly como fallback si no viene en el formulario
   const cookieStore = await cookies();
@@ -338,6 +343,11 @@ export async function submitPremiumLead(formData: FormData) {
   const stack = formData.get('stack') as string;
   const experience = formData.get('experience') as string;
   const linkedin = (formData.get('linkedin') as string) || null;
+  const privacyAccepted = formData.get('privacy_accepted') === 'on' || formData.get('privacy_accepted') === 'true';
+
+  if (!privacyAccepted) {
+    return { message: 'Debes aceptar la Política de Privacidad para unirte al programa.', success: false };
+  }
 
   if (!name || !email || !stack || !experience) {
     return { message: 'Por favor, rellena todos los campos obligatorios.', success: false };
@@ -442,6 +452,11 @@ export async function submitSponsoredJob(formData: FormData) {
   const job_description = formData.get('job_description') as string;
   const job_url = formData.get('job_url') as string;
   const plan = formData.get('plan') as string;
+  const privacyAccepted = formData.get('privacy_accepted') === 'on' || formData.get('privacy_accepted') === 'true';
+
+  if (!privacyAccepted) {
+    return { message: 'Debes aceptar la Política de Privacidad para publicar una oferta.', success: false };
+  }
 
   if (!company_name || !company_email || !job_title || !job_location || !job_description || !job_url) {
     return { message: 'Por favor, rellena todos los campos obligatorios.', success: false };
@@ -667,6 +682,8 @@ export async function submitCompanyReview(formData: FormData) {
   const rating = parseInt(formData.get('rating') as string || '0', 10);
   const reviewText = (formData.get('review_text') as string || '').trim();
   const role = (formData.get('role') as string || 'Anónimo').trim().slice(0, 60);
+  const guidelinesAccepted = formData.get('guidelines_accepted') === 'on' || formData.get('guidelines_accepted') === 'true';
+  const privacyAccepted = formData.get('privacy_accepted') === 'on' || formData.get('privacy_accepted') === 'true';
 
   if (!companySlug || !/^[a-z0-9-]+$/.test(companySlug) || companySlug.length > 100) {
     return { message: 'Identificador de empresa inválido.', success: false };
@@ -674,6 +691,26 @@ export async function submitCompanyReview(formData: FormData) {
 
   if (rating < 1 || rating > 5 || !reviewText || reviewText.length < 5 || reviewText.length > 2000) {
     return { message: 'Por favor, proporciona una puntuación válida (1-5) y un comentario de entre 5 y 2000 caracteres.', success: false };
+  }
+
+  if (!guidelinesAccepted) {
+    return { message: 'Debes confirmar que tu opinión respeta las normas de la comunidad y no contiene datos personales ni difamaciones.', success: false };
+  }
+
+  if (!privacyAccepted) {
+    return { message: 'Debes aceptar la Política de Privacidad para publicar tu reseña.', success: false };
+  }
+
+  // Prevención de Doxing y revelación de datos personales de terceros (RGPD Art. 6 / AEPD)
+  const phonePattern = /(?:\+34|0034)?[6789]\d{8}/;
+  const dniPattern = /\b\d{8}[A-HJ-NP-TV-Z]\b/i;
+  const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+
+  if (phonePattern.test(reviewText) || dniPattern.test(reviewText) || emailPattern.test(reviewText)) {
+    return {
+      message: 'Por motivos de protección de datos (RGPD) y normas de la comunidad, no está permitido incluir números de teléfono, DNI o correos electrónicos en las opiniones públicas.',
+      success: false
+    };
   }
 
   if (!checkRateLimit(`review_${companySlug}`, 30000)) {
@@ -697,17 +734,97 @@ export async function submitCompanyReview(formData: FormData) {
   }
 }
 
+export async function reportCompanyReview(formData: FormData) {
+  if (!await verifyCsrfOrigin()) {
+    return { message: 'Petición rechazada por política de seguridad de origen (CSRF).', success: false };
+  }
+
+  const reviewId = parseInt(formData.get('review_id') as string || '0', 10);
+  const companySlug = (formData.get('company_slug') as string || '').trim().toLowerCase();
+  const reason = (formData.get('reason') as string || '').trim();
+  const explanation = (formData.get('explanation') as string || '').trim();
+  const reporterEmail = (formData.get('reporter_email') as string || '').trim().toLowerCase();
+  const goodFaith = formData.get('good_faith') === 'on' || formData.get('good_faith') === 'true';
+
+  if (!reviewId || !companySlug || !reason || !explanation || !reporterEmail) {
+    return { message: 'Por favor, completa todos los campos requeridos para la notificación legal conforme al Art. 16 de la DSA.', success: false };
+  }
+
+  if (!goodFaith) {
+    return { message: 'Debes declarar de buena fe la exactitud y veracidad de la información comunicada.', success: false };
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(reporterEmail) || reporterEmail.length > 120) {
+    return { message: 'Por favor, introduce un correo electrónico válido para recibir el acuse de recibo exigido por la DSA.', success: false };
+  }
+
+  if (explanation.length < 15 || explanation.length > 2000) {
+    return { message: 'La explicación motivada debe contener entre 15 y 2000 caracteres describiendo por qué consideras que el contenido es ilícito.', success: false };
+  }
+
+  if (!checkRateLimit(`report_review_${reporterEmail}`, 30000)) {
+    return { message: 'Por favor, espera un momento antes de enviar otra notificación.', success: false };
+  }
+
+  const client = await pool.connect();
+  try {
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS review_reports (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          review_id INT NOT NULL,
+          company_slug VARCHAR(100) NOT NULL,
+          reason VARCHAR(100) NOT NULL,
+          explanation TEXT NOT NULL,
+          reporter_email VARCHAR(150) NOT NULL,
+          status VARCHAR(30) DEFAULT 'pendiente_moderacion',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          KEY idx_review_id (review_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `);
+    } catch {}
+
+    await client.query(
+      `INSERT INTO review_reports (review_id, company_slug, reason, explanation, reporter_email, status, created_at)
+       VALUES ($1, $2, $3, $4, $5, 'pendiente_moderacion', NOW())`,
+      [reviewId, companySlug, reason.slice(0, 100), explanation.slice(0, 2000), reporterEmail]
+    );
+
+    return {
+      message: 'Notificación registrada con éxito. Conforme al Art. 16 de la DSA, nuestro equipo analizará la reseña con presteza y te remitirá la resolución al correo facilitado.',
+      success: true,
+    };
+  } catch (error) {
+    console.error('Error registrando reporte DSA de reseña:', error);
+    return { message: 'Hubo un error al procesar tu notificación.', success: false };
+  } finally {
+    client.release();
+  }
+}
+
 export async function getCompanyReviews(companySlug: string) {
   if (!companySlug) return [];
   const client = await pool.connect();
   try {
-    const res = await client.query(
-      `SELECT rating, review_text, role, created_at 
-       FROM company_reviews 
-       WHERE company_slug = $1 
-       ORDER BY created_at DESC`,
-      [companySlug]
-    );
+    let res;
+    try {
+      res = await client.query(
+        `SELECT id, rating, review_text, role, created_at 
+         FROM company_reviews 
+         WHERE company_slug = $1 AND (is_hidden IS NULL OR is_hidden = FALSE)
+         ORDER BY created_at DESC`,
+        [companySlug]
+      );
+    } catch {
+      res = await client.query(
+        `SELECT id, rating, review_text, role, created_at 
+         FROM company_reviews 
+         WHERE company_slug = $1 
+         ORDER BY created_at DESC`,
+        [companySlug]
+      );
+    }
     return res.rows || [];
   } catch (error) {
     console.error("Error obteniendo reseñas de empresa:", error);

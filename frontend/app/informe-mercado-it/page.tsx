@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { subscribeUser } from '@/app/actions';
 import { isSafeStripeRedirectUrl } from '@/lib/urlSafety';
+import { buildPayPalCheckoutUrl } from '@/lib/paypal';
 
 function InformeMercadoContent() {
   const searchParams = useSearchParams();
@@ -18,9 +19,34 @@ function InformeMercadoContent() {
   const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [verifyError, setVerifyError] = useState('');
 
-  // Verificación segura en servidor del pago de Stripe
+  // Verificación segura en servidor del pago (Stripe o PayPal)
   useEffect(() => {
-    if (sessionId && sessionId.startsWith('cs_')) {
+    const paypalSuccess = searchParams.get('paypal_success') === 'true';
+    const typeParam = searchParams.get('type') || 'full';
+    const emailParam = searchParams.get('email') || '';
+
+    if (paypalSuccess && emailParam) {
+      setVerifyingPayment(true);
+      setVerifyError('');
+      fetch(`/api/checkout/report/verify?paypal_order=true&email=${encodeURIComponent(emailParam)}&plan=${encodeURIComponent(typeParam)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.valid) {
+            setCheckoutVerified(true);
+            setCheckoutEmail(emailParam);
+            setCheckoutPlan(typeParam);
+            setDownloadUrl(data.downloadUrl || '');
+          } else {
+            setVerifyError(data.error || 'No se pudo verificar el pedido de PayPal.');
+          }
+        })
+        .catch(() => {
+          setVerifyError('Error al validar la confirmación del pago.');
+        })
+        .finally(() => {
+          setVerifyingPayment(false);
+        });
+    } else if (sessionId && sessionId.startsWith('cs_')) {
       setVerifyingPayment(true);
       setVerifyError('');
       fetch(`/api/checkout/report/verify?session_id=${encodeURIComponent(sessionId)}`)
@@ -45,10 +71,11 @@ function InformeMercadoContent() {
       setCheckoutVerified(true);
       setDownloadUrl(`/api/checkout/report/download?token=${encodeURIComponent(tokenParam)}`);
     }
-  }, [sessionId, tokenParam]);
+  }, [sessionId, tokenParam, searchParams]);
 
   // Free report (lead magnet) states
   const [freeEmail, setFreeEmail] = useState('');
+  const [freePrivacyAccepted, setFreePrivacyAccepted] = useState(false);
   const [freeLoading, setFreeLoading] = useState(false);
   const [freeSuccess, setFreeSuccess] = useState(false);
   const [freeError, setFreeError] = useState('');
@@ -56,12 +83,18 @@ function InformeMercadoContent() {
   // Paid report states
   const [paidEmail, setPaidEmail] = useState('');
   const [reportType, setReportType] = useState<'full' | 'enterprise'>('full');
+  const [waiverAccepted, setWaiverAccepted] = useState(false);
   const [paidLoading, setPaidLoading] = useState(false);
   const [paidError, setPaidError] = useState('');
 
   async function handleFreeSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!freeEmail.trim()) return;
+
+    if (!freePrivacyAccepted) {
+      setFreeError('Debes aceptar la Política de Privacidad para descargar el informe.');
+      return;
+    }
 
     setFreeLoading(true);
     setFreeError('');
@@ -70,6 +103,7 @@ function InformeMercadoContent() {
     formData.append('email', freeEmail.trim());
     formData.append('pathname', '/informe-mercado-it');
     formData.append('tech_keywords', 'reporte_mercado_2026');
+    formData.append('privacy_accepted', 'true');
 
     try {
       const res = await subscribeUser(formData);
@@ -89,29 +123,32 @@ function InformeMercadoContent() {
     e.preventDefault();
     if (!paidEmail.trim()) return;
 
+    if (!waiverAccepted) {
+      setPaidError('Debes aceptar expresamente la renuncia al derecho de desistimiento de 14 días para la descarga de contenido digital (Art. 103.m TRLGDCU).');
+      return;
+    }
+
     setPaidLoading(true);
     setPaidError('');
 
     try {
-      const response = await fetch('/api/checkout/report', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: paidEmail.trim(),
-          type: reportType,
-        }),
+      const amount = reportType === 'enterprise' ? 49 : 9.99;
+      const itemName = reportType === 'enterprise'
+        ? 'Informe de Mercado IT Custom Empresas (PDF)'
+        : 'Informe de Mercado IT Completo (PDF)';
+
+      const paypalUrl = buildPayPalCheckoutUrl({
+        amount,
+        itemName,
+        returnUrl: `${window.location.origin}/informe-mercado-it?paypal_success=true&type=${reportType}&email=${encodeURIComponent(paidEmail.trim())}`,
+        cancelUrl: `${window.location.origin}/informe-mercado-it?paypal_canceled=true`,
+        custom: `report_${reportType}_${paidEmail.trim()}`,
+        buyerEmail: paidEmail.trim(),
       });
 
-      const data = await response.json();
-      // VULN-20: Verificación estricta de redirección contra Open Redirect
-      if (response.ok && data.url && isSafeStripeRedirectUrl(data.url)) {
-        window.location.href = data.url; // Redirigir a Stripe Checkout
-      } else {
-        setPaidError(data.error || 'Ocurrió un error al procesar el pago o la URL recibida no es válida.');
-      }
+      window.location.href = paypalUrl;
     } catch (err) {
-      setPaidError('Error de red. Inténtalo de nuevo.');
-    } finally {
+      setPaidError('Error al redirigir a la pasarela de PayPal.');
       setPaidLoading(false);
     }
   }
@@ -203,6 +240,33 @@ function InformeMercadoContent() {
                   onChange={(e) => setFreeEmail(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl bg-gray-950 border border-gray-800 text-white placeholder-gray-550 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-xs"
                 />
+
+                <label className="flex items-start gap-2 text-xs text-gray-400 cursor-pointer text-left">
+                  <input
+                    type="checkbox"
+                    required
+                    checked={freePrivacyAccepted}
+                    onChange={(e) => setFreePrivacyAccepted(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-gray-700 bg-gray-950 text-emerald-500 focus:ring-emerald-400"
+                  />
+                  <span>
+                    He leído y acepto la{' '}
+                    <Link href="/privacy" target="_blank" className="text-emerald-400 underline">
+                      Política de Privacidad
+                    </Link>{' '}
+                    y consiento recibir el informe básico y novedades por email.*
+                  </span>
+                </label>
+
+                {/* Primera capa informativa AEPD (RGPD Art. 13) */}
+                <div className="p-2.5 bg-gray-950/80 border border-gray-800 rounded-xl text-[10px] text-gray-400 text-left space-y-0.5">
+                  <p><strong>Responsable:</strong> Portal Trabajo IT.</p>
+                  <p><strong>Finalidad:</strong> Envío del informe de mercado y boletín de novedades.</p>
+                  <p><strong>Legitimación:</strong> Consentimiento expreso (Art. 6.1.a RGPD).</p>
+                  <p><strong>Destinatarios:</strong> Plataforma de envío (Resend). No se ceden datos a terceros.</p>
+                  <p><strong>Derechos:</strong> Baja inmediata en cada email o en <a href="mailto:contacto@portalempleoit.com" className="text-emerald-400 underline">contacto@portalempleoit.com</a> (+ info en <Link href="/privacy" className="text-emerald-400 underline">Política de Privacidad</Link>).</p>
+                </div>
+
                 <button
                   type="submit"
                   disabled={freeLoading}
@@ -299,12 +363,29 @@ function InformeMercadoContent() {
                   onChange={(e) => setPaidEmail(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl bg-gray-950 border border-gray-800 text-white placeholder-gray-550 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-xs"
                 />
+
+                {/* Cláusula y renuncia al desistimiento conforme al Art. 103.m TRLGDCU */}
+                <div className="flex items-start gap-2.5 pt-1 text-left bg-purple-950/40 p-3 rounded-xl border border-purple-800/50">
+                  <input
+                    type="checkbox"
+                    id="waiver-report"
+                    required
+                    checked={waiverAccepted}
+                    onChange={(e) => setWaiverAccepted(e.target.checked)}
+                    className="mt-0.5 h-3.5 w-3.5 rounded border-purple-700 bg-gray-950 text-purple-600 focus:ring-purple-500 cursor-pointer shrink-0"
+                  />
+                  <label htmlFor="waiver-report" className="text-[11px] text-gray-300 leading-tight cursor-pointer">
+                    Solicito la entrega y descarga inmediata del informe digital en PDF y <strong className="text-white">renuncio expresamente a mi derecho de desistimiento de 14 días</strong> al iniciar la descarga (Art. 103.m TRLGDCU). Acepto las <Link href="/aviso-legal" target="_blank" className="text-purple-300 underline">Condiciones de Contratación</Link> y la <Link href="/privacy" target="_blank" className="text-purple-300 underline">Política de Privacidad</Link>. Precios finales con IVA incluido.
+                  </label>
+                </div>
+
                 <button
                   type="submit"
                   disabled={paidLoading}
-                  className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-colors text-xs disabled:opacity-60 cursor-pointer"
+                  className="w-full py-3 bg-[#0070ba] hover:bg-[#003087] text-white font-bold rounded-xl transition-all text-xs disabled:opacity-60 cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-blue-900/30"
                 >
-                  {paidLoading ? 'Redirigiendo...' : `Comprar Informe (${reportType === 'full' ? '9.99€' : '49€'}) →`}
+                  <span className="text-sm font-black text-white">🅿️</span>
+                  {paidLoading ? 'Redirigiendo a PayPal...' : `Pagar con PayPal (${reportType === 'full' ? '9.99€' : '49€'}) →`}
                 </button>
               </form>
             )}

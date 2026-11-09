@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 declare global {
   interface Window {
@@ -18,30 +19,15 @@ export default function PushSubscribe() {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'Notification' in window) {
       setIsSupported(true);
 
-      // Incrementar contador de páginas vistas
-      const pageViews = parseInt(sessionStorage.getItem('page_views') || '0', 10) + 1;
-      sessionStorage.setItem('page_views', pageViews.toString());
+      // Si el usuario ya había otorgado permiso previamente, asegurar carga de OneSignal
+      if (Notification.permission === 'granted' && typeof (window as any).loadOneSignal === 'function') {
+        (window as any).loadOneSignal();
+      }
 
       // Comprobar estado de suscripción de OneSignal
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       window.OneSignalDeferred.push(async function(OneSignal: any) {
         setIsSubscribed(OneSignal.User.PushSubscription.optedIn);
-        
-        // Auto-prompt tras 2 páginas si no se ha preguntado antes en esta sesión
-        const hasPrompted = sessionStorage.getItem('push_prompted');
-        if (pageViews >= 2 && !hasPrompted && !OneSignal.User.PushSubscription.optedIn) {
-          sessionStorage.setItem('push_prompted', 'true');
-          setTimeout(async () => {
-            try {
-              const permission = await OneSignal.Notifications.requestPermission();
-              if (permission) {
-                await OneSignal.User.PushSubscription.optIn();
-              }
-            } catch (err) {
-              console.error("Error en auto-prompt de push:", err);
-            }
-          }, 5000); // Retrasar 5 segundos para no interrumpir lectura
-        }
 
         // Escuchar cambios de estado
         OneSignal.User.PushSubscription.addEventListener("change", (event: any) => {
@@ -55,6 +41,11 @@ export default function PushSubscribe() {
     if (loading) return;
     setLoading(true);
     
+    // Carga bajo demanda del SDK de OneSignal al interactuar el usuario
+    if (typeof (window as any).loadOneSignal === 'function') {
+      (window as any).loadOneSignal();
+    }
+
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function(OneSignal: any) {
       try {
@@ -107,6 +98,13 @@ export default function PushSubscribe() {
         >
           {loading ? 'Procesando...' : isSubscribed ? '🔔 Desactivar Alertas' : '🚀 Activar Notificaciones'}
         </button>
+
+        <p className="text-[10px] text-indigo-300/80 text-center leading-normal mt-0.5">
+          Solo te avisaremos de nuevas ofertas tech. Token anónimo gestionado por OneSignal. Puedes darte de baja en cualquier momento con este botón o desde los ajustes de tu navegador. Consulta nuestra{' '}
+          <Link href="/privacy" className="underline hover:text-white">
+            Política de Privacidad
+          </Link>.
+        </p>
       </div>
     </div>
   );

@@ -20,10 +20,14 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json().catch(() => ({}));
-    const { company_name, company_email, plan = 'newsletter_sponsorship' } = body;
+    const { company_name, company_email, plan = 'newsletter_sponsorship', privacy_accepted } = body;
 
     if (!company_name || !company_email) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
+    }
+
+    if (privacy_accepted !== true && privacy_accepted !== 'true') {
+      return NextResponse.json({ error: 'Debes aceptar las Condiciones y la Política de Privacidad' }, { status: 400 });
     }
 
     const cleanName = (company_name || '').toString().trim().slice(0, 150);
@@ -71,6 +75,8 @@ export async function POST(request: Request) {
       session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         customer_email: cleanEmail, // VULN-17: Vincular obligatoriamente el email de la empresa en la sesión
+        billing_address_collection: 'required',
+        tax_id_collection: { enabled: true },
         line_items: [
           {
             price_data: {

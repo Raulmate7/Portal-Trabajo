@@ -56,9 +56,18 @@ def build_referral_progress_email(email, count):
                     </a>
                 </div>
             </div>
-            <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
-                <p style="color: #9ca3af; font-size: 11px; margin: 0;">
-                    Portal Trabajo IT · <a href="{unsubscribe_link}" style="color: #6366f1;">Cancelar suscripción</a>
+            <div style="background: #f9fafb; padding: 18px 16px; text-align: center; border-top: 1px solid #e5e7eb; font-size: 10px; color: #9ca3af; line-height: 1.5;">
+                <p style="margin: 0 0 4px 0;">
+                    <strong>Portal Trabajo IT</strong> · Programa de Referidos IT.<br>
+                    Recibes este aviso porque generaste un enlace de referidos en portalempleoit.com.
+                </p>
+                <p style="margin: 0;">
+                    <a href="{BASE_URL}" style="color: #6366f1; text-decoration: none;">portalempleoit.com</a> · 
+                    <a href="{BASE_URL}/privacy" style="color: #6b7280; text-decoration: underline;">Política de Privacidad</a> · 
+                    <a href="{unsubscribe_link}" style="color: #ef4444; text-decoration: underline; font-weight: bold;">Darme de baja en 1 clic</a>
+                </p>
+                <p style="margin: 4px 0 0 0; color: #d1d5db; font-size: 9px;">
+                    Derechos de protección de datos: contacto@portalempleoit.com
                 </p>
             </div>
         </div>
@@ -98,9 +107,18 @@ def build_referral_success_email(email):
                     </a>
                 </div>
             </div>
-            <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
-                <p style="color: #9ca3af; font-size: 11px; margin: 0;">
-                    Portal Trabajo IT · <a href="{unsubscribe_link}" style="color: #6366f1;">Cancelar suscripción</a>
+            <div style="background: #f9fafb; padding: 18px 16px; text-align: center; border-top: 1px solid #e5e7eb; font-size: 10px; color: #9ca3af; line-height: 1.5;">
+                <p style="margin: 0 0 4px 0;">
+                    <strong>Portal Trabajo IT</strong> · Programa de Referidos IT.<br>
+                    Recibes este aviso porque generaste un enlace de referidos en portalempleoit.com.
+                </p>
+                <p style="margin: 0;">
+                    <a href="{BASE_URL}" style="color: #6366f1; text-decoration: none;">portalempleoit.com</a> · 
+                    <a href="{BASE_URL}/privacy" style="color: #6b7280; text-decoration: underline;">Política de Privacidad</a> · 
+                    <a href="{unsubscribe_link}" style="color: #ef4444; text-decoration: underline; font-weight: bold;">Darme de baja en 1 clic</a>
+                </p>
+                <p style="margin: 4px 0 0 0; color: #d1d5db; font-size: 9px;">
+                    Derechos de protección de datos: contacto@portalempleoit.com
                 </p>
             </div>
         </div>
@@ -170,6 +188,8 @@ def run_referral_notifications():
                 SELECT referrals_notified_count 
                 FROM subscribers 
                 WHERE email = %s
+                  AND email NOT LIKE '%@deleted.local'
+                  AND (is_active IS NULL OR is_active = TRUE)
             """, (referrer_email,))
             row = cur.fetchone()
             if not row:
@@ -191,9 +211,12 @@ def run_referral_notifications():
             # Enviar email de notificación si el SMTP está disponible
             if smtp_active:
                 try:
+                    unsubscribe_link = generate_unsubscribe_link(referrer_email)
                     msg = MIMEMultipart()
                     msg['From'] = f"Portal Trabajo IT <{EMAIL_USER}>"
                     msg['To'] = referrer_email
+                    msg['List-Unsubscribe'] = f"<{unsubscribe_link}>"
+                    msg['List-Unsubscribe-Post'] = "List-Unsubscribe=One-Click"
                     
                     if actual_count >= 3 and notified_count < 3:
                         msg['Subject'] = "🎉 ¡Objetivo de referidos conseguido! Acceso Premium Activado"

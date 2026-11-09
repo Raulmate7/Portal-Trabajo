@@ -5,8 +5,10 @@ def get_remotive_jobs():
     print("⚡ Conectando con API de Remotive...")
     url = "https://remotive.com/api/remote-jobs?category=software-dev&limit=50"
 
+    headers = {'User-Agent': 'PortalTrabajoITBot/1.0 (+https://portalempleoit.com/bot; bot@portalempleoit.com)'}
+
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
 
         data = response.json()

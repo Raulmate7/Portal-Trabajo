@@ -11,6 +11,7 @@ import ShareButton from "@/components/ShareButton";
 import { BASE_URL , safeJsonLdString } from "@/lib/constants";
 import { getJobSlug, slugify } from "@/lib/slug";
 import CompanyReviewForm from "@/components/CompanyReviewForm";
+import ReportReviewModal from "@/components/ReportReviewModal";
 import { getCompanyReviews } from "@/app/actions";
 
 export const revalidate = 3600; // Cache de 1 hora (ISR)
@@ -787,15 +788,20 @@ export default async function CompanyPage({ params, searchParams }: Props) {
                             })}
                           </span>
                         </div>
-                        <div className="flex gap-0.5 bg-amber-50 px-2 py-1 rounded-lg border border-amber-100/50">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <span
-                              key={star}
-                              className={star <= rev.rating ? "text-amber-500 text-sm font-bold" : "text-gray-200 text-sm"}
-                            >
-                              ★
-                            </span>
-                          ))}
+                        <div className="flex flex-col items-end gap-1.5">
+                          <div className="flex gap-0.5 bg-amber-50 px-2 py-1 rounded-lg border border-amber-100/50">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <span
+                                key={star}
+                                className={star <= rev.rating ? "text-amber-500 text-sm font-bold" : "text-gray-200 text-sm"}
+                              >
+                                ★
+                              </span>
+                            ))}
+                          </div>
+                          {rev.id && (
+                            <ReportReviewModal reviewId={rev.id} companySlug={slug} />
+                          )}
                         </div>
                       </div>
                       <p className="text-sm text-gray-650 whitespace-pre-line leading-relaxed">

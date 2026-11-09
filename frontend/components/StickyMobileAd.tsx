@@ -9,17 +9,31 @@ export default function StickyMobileAd() {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Solo mostrar después de 3 segundos de carga de página para evitar clics accidentales
+    // Solo mostrar después de 3 segundos de carga si el usuario ya ha interactuado con el banner de cookies
     const timer = setTimeout(() => {
       const excludedPaths = ['/publicar-oferta', '/precios', '/publicidad'];
       const isExcluded = excludedPaths.some(path => pathname?.startsWith(path));
+      const hasCookieDecision = typeof window !== 'undefined' && 
+        (!!localStorage.getItem('cookies_consent') || !!localStorage.getItem('cookies_accepted'));
       
-      if (!isExcluded) {
+      if (!isExcluded && hasCookieDecision) {
         setIsVisible(true);
       }
     }, 3000);
 
-    return () => clearTimeout(timer);
+    const onConsent = () => {
+      const excludedPaths = ['/publicar-oferta', '/precios', '/publicidad'];
+      if (!excludedPaths.some(path => pathname?.startsWith(path))) {
+        setIsVisible(true);
+      }
+    };
+
+    window.addEventListener('cookie_consent_updated', onConsent);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('cookie_consent_updated', onConsent);
+    };
   }, [pathname]);
 
   // Si cambia la ruta, resetear visibilidad para la nueva página

@@ -18,7 +18,7 @@ def scrape_stratos():
     print("🇪🇸 Iniciando robot Stratos HTML Scraper (scraper_infoempleo.py)...")
     
     url = "https://www.stratos-ad.com/trabajo"
-    headers = {'User-Agent': 'Mozilla/5.0'}
+    headers = {'User-Agent': 'PortalTrabajoITBot/1.0 (+https://portalempleoit.com/bot; bot@portalempleoit.com)'}
     try:
         response = requests.get(url, headers=headers, timeout=15)
         if response.status_code != 200:

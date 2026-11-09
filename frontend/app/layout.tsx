@@ -5,7 +5,6 @@ import Footer from "@/components/Footer";
 import { BASE_URL, safeJsonLdString } from "@/lib/constants";
 import Header from "@/components/Header";
 import { Suspense } from "react";
-import { GoogleAnalytics } from "@next/third-parties/google";
 import ClientOnlyWidgets from "@/components/ClientOnlyWidgets";
 
 
@@ -108,25 +107,16 @@ export default function RootLayout({
 }>) {
   const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
   const onesignalAppId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
+  const gaMeasurementId = process.env.NEXT_PUBLIC_GA_ID || "G-E2W8P1V7E3";
 
   return (
     <html lang="es">
       <head>
         <meta name="impact-site-verification" content="2348664d-36c1-45a5-8a74-a2dd472c4343" />
-        {/* Preconexión y dns-prefetch para servicios de terceros externos */}
+        {/* Preconexión y dns-prefetch respetuosos con privacidad (solo fuentes tipográficas estables) */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://logo.clearbit.com" />
-        <link rel="preconnect" href="https://pagead2.googlesyndication.com" />
-        <link rel="preconnect" href="https://adservice.google.com" />
-        <link rel="preconnect" href="https://cdn.onesignal.com" />
         <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-        <link rel="dns-prefetch" href="https://logo.clearbit.com" />
-        <link rel="dns-prefetch" href="https://pagead2.googlesyndication.com" />
-        <link rel="dns-prefetch" href="https://adservice.google.com" />
-        <link rel="dns-prefetch" href="https://tpc.googlesyndication.com" />
-        <link rel="dns-prefetch" href="https://cdn.onesignal.com" />
-        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
 
         {/* WebSite Schema para Google Sitelinks Search Box */}
         <script
@@ -146,6 +136,43 @@ export default function RootLayout({
                 "query-input": "required name=search_term_string"
               }
             })
+          }}
+        />
+        {/* Google Consent Mode v2 por defecto denegado (AEPD / RGPD / ePrivacy) */}
+        <script
+          id="google-consent-mode-init"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              
+              var defaultConsent = {
+                'analytics_storage': 'denied',
+                'ad_storage': 'denied',
+                'ad_user_data': 'denied',
+                'ad_personalization': 'denied'
+              };
+
+              try {
+                var saved = localStorage.getItem('cookies_consent');
+                if (saved) {
+                  var parsed = JSON.parse(saved);
+                  if (parsed.analytics) defaultConsent.analytics_storage = 'granted';
+                  if (parsed.advertising) {
+                    defaultConsent.ad_storage = 'granted';
+                    defaultConsent.ad_user_data = 'granted';
+                    defaultConsent.ad_personalization = 'granted';
+                  }
+                } else if (localStorage.getItem('cookies_accepted') === 'true') {
+                  defaultConsent.analytics_storage = 'granted';
+                  defaultConsent.ad_storage = 'granted';
+                  defaultConsent.ad_user_data = 'granted';
+                  defaultConsent.ad_personalization = 'granted';
+                }
+              } catch(e) {}
+
+              gtag('consent', 'default', defaultConsent);
+            `
           }}
         />
         {/* Inicializador de Tema Oscuro para evitar flash de color */}
@@ -171,61 +198,129 @@ export default function RootLayout({
               (function() {
                 var adsenseId = ${adsenseClientId ? `"${adsenseClientId}"` : 'null'};
                 var onesignalId = ${onesignalAppId ? `"${onesignalAppId}"` : 'null'};
-                var loaded = false;
+                var gaId = ${gaMeasurementId ? `"${gaMeasurementId}"` : 'null'};
+                var adsenseLoaded = false;
+                var onesignalLoaded = false;
+                var gaLoaded = false;
 
-                function loadThirdParty() {
-                  if (loaded) return;
-                  loaded = true;
+                // Definir dataLayer y gtag inmediatamente para encolar llamadas de forma segura sin conectar a Google
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ window.dataLayer.push(arguments); }
+                window.gtag = gtag;
 
-                  // Quitar listeners
-                  window.removeEventListener('scroll', loadThirdParty);
-                  window.removeEventListener('mousemove', loadThirdParty);
-                  window.removeEventListener('touchstart', loadThirdParty);
-                  window.removeEventListener('keydown', loadThirdParty);
+                function getConsent() {
+                  try {
+                    var saved = localStorage.getItem('cookies_consent');
+                    if (saved) {
+                      var parsed = JSON.parse(saved);
+                      return {
+                        analytics: !!parsed.analytics,
+                        advertising: !!parsed.advertising
+                      };
+                    }
+                    var legacy = localStorage.getItem('cookies_accepted') === 'true';
+                    return {
+                      analytics: legacy,
+                      advertising: legacy
+                    };
+                  } catch(e) {
+                    return { analytics: false, advertising: false };
+                  }
+                }
 
-                  // Inyectar AdSense (excluyendo rutas de reclutadores/conversión)
+                function loadGA() {
+                  if (gaLoaded || !gaId) return;
+                  gaLoaded = true;
+                  var gas = document.createElement('script');
+                  gas.async = true;
+                  gas.src = 'https://www.googletagmanager.com/gtag/js?id=' + gaId;
+                  document.head.appendChild(gas);
+
+                  gtag('js', new Date());
+                  gtag('config', gaId, {
+                    anonymize_ip: true,
+                    page_path: window.location.pathname
+                  });
+                }
+
+                function loadAdSense() {
+                  if (adsenseLoaded || !adsenseId) return;
                   var excludedPaths = ['/publicar-oferta', '/precios', '/publicidad'];
                   var isExcluded = excludedPaths.some(function(p) {
                     return window.location.pathname.startsWith(p);
                   });
+                  if (isExcluded) return;
 
-                  if (adsenseId && !isExcluded) {
-                    var ads = document.createElement('script');
-                    ads.async = true;
-                    ads.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + adsenseId;
-                    ads.crossOrigin = 'anonymous';
-                    document.head.appendChild(ads);
-                  }
-
-                  // Inyectar OneSignal
-                  if (onesignalId) {
-                    var os = document.createElement('script');
-                    os.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
-                    os.defer = true;
-                    os.onload = function() {
-                      window.OneSignalDeferred = window.OneSignalDeferred || [];
-                      window.OneSignalDeferred.push(async function(OneSignal) {
-                        await OneSignal.init({
-                          appId: onesignalId,
-                          safari_web_id: "web.onesignal.auto.portaltrabajo",
-                          notifyButton: {
-                            enable: true,
-                          },
-                        });
-                      });
-                    };
-                    document.head.appendChild(os);
-                  }
+                  adsenseLoaded = true;
+                  var ads = document.createElement('script');
+                  ads.async = true;
+                  ads.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + adsenseId;
+                  ads.crossOrigin = 'anonymous';
+                  document.head.appendChild(ads);
                 }
 
-                // Registrar listeners para interacción del usuario
-                window.addEventListener('scroll', loadThirdParty, { passive: true });
-                window.addEventListener('mousemove', loadThirdParty, { passive: true });
-                window.addEventListener('touchstart', loadThirdParty, { passive: true });
-                window.addEventListener('keydown', loadThirdParty, { passive: true });
+                function loadOneSignal() {
+                  if (onesignalLoaded || !onesignalId) return;
+                  onesignalLoaded = true;
+                  var os = document.createElement('script');
+                  os.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
+                  os.defer = true;
+                  os.onload = function() {
+                    window.OneSignalDeferred = window.OneSignalDeferred || [];
+                    window.OneSignalDeferred.push(async function(OneSignal) {
+                      await OneSignal.init({
+                        appId: onesignalId,
+                        safari_web_id: "web.onesignal.auto.portaltrabajo",
+                        notifyButton: {
+                          enable: false,
+                        },
+                      });
+                    });
+                  };
+                  document.head.appendChild(os);
+                }
+                // Exponer loadOneSignal para activación voluntaria bajo demanda
+                window.loadOneSignal = loadOneSignal;
 
-                // Carga diferida en 1.5 segundos como salvaguarda
-                setTimeout(loadThirdParty, 1500);
+                var consent = getConsent();
+
+                // Carga condicionada de Google Analytics: SOLO con consentimiento analítico previo
+                if (consent.analytics) {
+                  loadGA();
+                }
+
+                // Carga condicionada de AdSense: SOLO si el usuario ha otorgado consentimiento publicitario
+                if (consent.advertising) {
+                  function triggerAdSenseOnInteraction() {
+                    window.removeEventListener('scroll', triggerAdSenseOnInteraction);
+                    window.removeEventListener('mousemove', triggerAdSenseOnInteraction);
+                    window.removeEventListener('touchstart', triggerAdSenseOnInteraction);
+                    window.removeEventListener('keydown', triggerAdSenseOnInteraction);
+                    loadAdSense();
+                  }
+                  window.addEventListener('scroll', triggerAdSenseOnInteraction, { passive: true });
+                  window.addEventListener('mousemove', triggerAdSenseOnInteraction, { passive: true });
+                  window.addEventListener('touchstart', triggerAdSenseOnInteraction, { passive: true });
+                  window.addEventListener('keydown', triggerAdSenseOnInteraction, { passive: true });
+                  setTimeout(loadAdSense, 2000);
+                }
+
+                // Carga de OneSignal: solo si el usuario ya ha concedido permiso de notificaciones en el navegador
+                if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                  setTimeout(loadOneSignal, 2000);
+                }
+
+                // Escuchar evento de actualización dinámica de cookies (cuando el usuario interactúa con el banner)
+                window.addEventListener('cookie_consent_updated', function(event) {
+                  if (event && event.detail) {
+                    if (event.detail.analytics) {
+                      loadGA();
+                    }
+                    if (event.detail.advertising) {
+                      loadAdSense();
+                    }
+                  }
+                });
               })();
             `
           }}
@@ -256,7 +351,6 @@ export default function RootLayout({
             `,
           }}
         />
-        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || "G-E2W8P1V7E3"} />
       </body>
     </html>
   );

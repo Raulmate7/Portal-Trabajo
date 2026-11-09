@@ -137,6 +137,41 @@ export default function PremiumForm() {
           />
         </div>
 
+        {/* Consentimiento expreso y Primera Capa Informativa RGPD */}
+        <div className="pt-2">
+          <label className="flex items-start gap-2.5 text-xs text-gray-300 cursor-pointer">
+            <input
+              type="checkbox"
+              name="privacy_accepted"
+              required
+              defaultChecked={false}
+              disabled={status === "loading"}
+              className="mt-0.5 h-4 w-4 rounded border-gray-700 bg-gray-800 text-amber-500 focus:ring-amber-500/50"
+            />
+            <span>
+              He leído y acepto la{" "}
+              <Link href="/privacy" target="_blank" className="text-amber-400 hover:underline">
+                Política de Privacidad
+              </Link>{" "}
+              y consiento el tratamiento de mis datos de perfil para recibir ofertas laborales relevantes. *
+            </span>
+          </label>
+        </div>
+
+        {/* Primera capa informativa AEPD (RGPD Art. 13) */}
+        <div className="p-3 bg-gray-800/60 border border-gray-700/50 rounded-xl text-[11px] text-gray-400 space-y-1">
+          <p className="font-semibold text-gray-300">Información básica sobre protección de datos (RGPD):</p>
+          <ul className="space-y-0.5 list-disc pl-4 text-gray-400">
+            <li><strong>Responsable:</strong> Portal Trabajo IT.</li>
+            <li><strong>Finalidad:</strong> Gestión y valoración de tu perfil profesional para comunicarte ofertas de empleo acordes a tu stack y experiencia.</li>
+            <li><strong>Legitimación:</strong> Tu consentimiento expreso (Art. 6.1.a RGPD).</li>
+            <li><strong>Destinatarios:</strong> No se cederán datos a empresas contratadoras sin tu visto bueno previo y confidencial.</li>
+            <li><strong>Derechos:</strong> Acceso, rectificación, supresión y otros derechos detallados en nuestra{" "}
+              <Link href="/privacy" target="_blank" className="text-amber-400 underline">Política de Privacidad</Link>.
+            </li>
+          </ul>
+        </div>
+
         <button
           type="submit"
           disabled={status === "loading"}
@@ -144,13 +179,6 @@ export default function PremiumForm() {
         >
           {status === "loading" ? "Enviando..." : "Enviar mi perfil 🚀"}
         </button>
-
-        <p className="text-center text-gray-500 text-xs mt-3">
-          No compartiremos tus datos con nadie sin tu consentimiento.{' '}
-          <Link href="/privacy" className="text-indigo-400 hover:underline">
-            Política de Privacidad
-          </Link>
-        </p>
       </form>
     </div>
   );

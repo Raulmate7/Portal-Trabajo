@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import pool from '@/lib/db';
 import { unstable_cache } from 'next/cache';
+import CookiePreferencesButton from '@/components/CookiePreferencesButton';
 
 // ─── Funciones cacheadas con TTL de 1 hora ────────────────────────────────────
 // Evitan ejecutar SQL en cada request de usuario para datos que cambian poco.
@@ -148,6 +149,7 @@ export default async function Footer() {
     { label: 'Aviso Legal', href: '/aviso-legal' },
     { label: 'Política de Privacidad', href: '/privacy' },
     { label: 'Política de Cookies', href: '/cookies' },
+    { label: 'PortalTrabajoITBot', href: '/bot' },
     { label: 'Contacto', href: '/contacto' },
   ];
 
@@ -253,6 +255,9 @@ export default async function Footer() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <CookiePreferencesButton />
+              </li>
             </ul>
           </div>
         </div>

@@ -138,11 +138,19 @@ def build_email_html(jobs, subscriber_email: str, tech_keywords: str, frequency:
       </div>
     </div>
 
-    <!-- Footer -->
-    <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
-      <p style="color: #9ca3af; font-size: 11px; margin: 0;">
-        Enviado por <a href="{visit_web_track}" style="color: #6366f1; text-decoration: none;">Portal Trabajo IT</a> · 
-        <a href="{unsubscribe_link}" style="color: #9ca3af;">Cancelar suscripción</a>
+    <!-- Footer Legal conforme a LSSI y RGPD -->
+    <div style="background: #f9fafb; padding: 18px 16px; text-align: center; border-top: 1px solid #e5e7eb; font-size: 10px; color: #9ca3af; line-height: 1.5;">
+      <p style="margin: 0 0 4px 0;">
+        <strong>Portal Trabajo IT</strong> · Alertas de empleo tech en España.<br>
+        Recibes este aviso porque solicitaste alertas de empleo en portalempleoit.com.
+      </p>
+      <p style="margin: 0;">
+        <a href="{visit_web_track}" style="color: #6366f1; text-decoration: none;">portalempleoit.com</a> · 
+        <a href="{BASE_URL}/privacy" style="color: #6b7280; text-decoration: underline;">Política de Privacidad</a> · 
+        <a href="{unsubscribe_link}" style="color: #ef4444; text-decoration: underline; font-weight: bold;">Darme de baja en 1 clic</a>
+      </p>
+      <p style="margin: 4px 0 0 0; color: #d1d5db; font-size: 9px;">
+        Derechos de protección de datos: contacto@portalempleoit.com
       </p>
     </div>
   </div>
@@ -162,17 +170,19 @@ def send_custom_alerts():
         print(f"❌ Error conectando a BD: {e}")
         return
 
-    # 2. Obtener suscriptores con sus preferencias (filtrando por frecuencia y último envío)
+    # 2. Obtener suscriptores con sus preferencias (filtrando por frecuencia y último envío, excluyendo bajas y suscriptores de aviso único)
     cur.execute("""
         SELECT email, tech_keywords, location_pref, frequency, tech_keywords_json
         FROM subscribers
         WHERE email IS NOT NULL
+          AND email NOT LIKE '%@deleted.local'
+          AND (is_active IS NULL OR is_active = TRUE)
           AND (
             (frequency = 'daily' AND (last_sent_at IS NULL OR last_sent_at < NOW() - INTERVAL '23 hours'))
             OR
             (frequency = 'weekly' AND (last_sent_at IS NULL OR last_sent_at < NOW() - INTERVAL '6 days'))
             OR
-            (frequency IS NULL OR frequency = '' OR (frequency != 'daily' AND frequency != 'weekly' AND (last_sent_at IS NULL OR last_sent_at < NOW() - INTERVAL '6 days')))
+            ((frequency IS NULL OR frequency = '') AND (last_sent_at IS NULL OR last_sent_at < NOW() - INTERVAL '6 days'))
           )
     """)
     subscribers = cur.fetchall()
@@ -246,11 +256,14 @@ def send_custom_alerts():
             html_body = build_email_html(jobs, email, tech_keywords or "", frequency or "weekly")
             job_count = len(jobs)
             subject = f"⚡ {job_count} nueva{'s' if job_count != 1 else ''} oferta{'s' if job_count != 1 else ''} de empleo IT para ti"
+            unsubscribe_link = generate_unsubscribe_link(email)
 
             msg = MIMEMultipart()
             msg['From'] = f"Portal Trabajo IT <{EMAIL_USER}>"
             msg['To'] = email
             msg['Subject'] = subject
+            msg['List-Unsubscribe'] = f"<{unsubscribe_link}>"
+            msg['List-Unsubscribe-Post'] = "List-Unsubscribe=One-Click"
             msg.attach(MIMEText(html_body, 'html'))
 
             server.send_message(msg)

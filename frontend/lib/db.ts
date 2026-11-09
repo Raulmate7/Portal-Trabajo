@@ -44,7 +44,7 @@ function isCacheable(sql: string, params: any[]): boolean {
   if (params && params.length > 0) return false;
   
   // Rechazar terminantemente tablas con PII o transacciones mutables
-  const hasSensitiveTables = /\b(from|join)\s+`?(subscribers|premium_leads|email_tracking|alerts|sponsored_jobs|company_reviews|job_reactions|newsletter_sponsors)`?\b/i.test(s);
+  const hasSensitiveTables = /\b(from|join)\s+`?(subscribers|premium_leads|email_tracking|alerts|sponsored_jobs|company_reviews|review_reports|job_reactions|newsletter_sponsors)`?\b/i.test(s);
   if (hasSensitiveTables) return false;
 
   // Solo admitir si referencia explícitamente alguna tabla de la lista blanca estática

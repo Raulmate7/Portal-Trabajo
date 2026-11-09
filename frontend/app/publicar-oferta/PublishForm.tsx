@@ -8,7 +8,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { isSafeStripeRedirectUrl } from "@/lib/urlSafety";
-import { VALID_JOB_PLAN_IDS } from "@/lib/pricingPlans";
+import { VALID_JOB_PLAN_IDS, JOB_PRICING_PLANS } from "@/lib/pricingPlans";
+import { buildPayPalCheckoutUrl } from "@/lib/paypal";
 
 const jobSchema = z.object({
   company_name: z.string().min(2, "El nombre de la empresa es muy corto"),
@@ -32,6 +33,8 @@ export default function PublishForm() {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const [selectedPlan, setSelectedPlan] = useState<"basico" | "destacado_basico" | "destacado_pro" | "destacado_enterprise">("destacado_pro");
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [waiverAccepted, setWaiverAccepted] = useState(false);
   const [honeypot, setHoneypot] = useState("");
 
   // VULN-22: Validación estricta del plan seleccionado vía parámetro de consulta
@@ -58,6 +61,12 @@ export default function PublishForm() {
       return;
     }
 
+    if (!privacyAccepted) {
+      setStatus("error");
+      setMessage("Debes aceptar la Política de Privacidad para continuar.");
+      return;
+    }
+
     setStatus("loading");
     setMessage("");
 
@@ -67,6 +76,7 @@ export default function PublishForm() {
     });
     formData.append("plan", selectedPlan);
     formData.append("website_hp", honeypot);
+    formData.append("privacy_accepted", "true");
 
     if (selectedPlan === "basico") {
       const result = await submitSponsoredJob(formData);
@@ -77,38 +87,37 @@ export default function PublishForm() {
         setMessage(result.message);
       }
     } else {
-      try {
-        const refCode = searchParams.get("ref");
-        const jobData = {
-          title: data.job_title,
-          company: data.company_name,
-          company_email: data.company_email,
-          company_phone: data.company_phone,
-          location: data.job_location,
-          salary: data.job_salary,
-          description_snippet: data.job_description,
-          url_source: data.job_url,
-          category: "Otros",
-          plan: selectedPlan,
-          affiliate_code: refCode || undefined,
-        };
+      if (!waiverAccepted) {
+        setStatus("error");
+        setMessage("Debes aceptar la renuncia expresa al derecho de desistimiento para la difusión inmediata del anuncio de empleo (Art. 103.m TRLGDCU).");
+        return;
+      }
 
-        const res = await fetch("/api/checkout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(jobData),
+      try {
+        // 1. Guardar la oferta en la base de datos como solicitud pendiente
+        const result = await submitSponsoredJob(formData);
+        if (!result.success) {
+          throw new Error(result.message || "No se pudo registrar la oferta en el sistema.");
+        }
+
+        // 2. Redirigir a PayPal para el cobro directo a la cuenta PayPal del administrador
+        const planConfig = JOB_PRICING_PLANS[selectedPlan];
+        const price = planConfig?.priceEur || 19;
+        const planName = planConfig?.name || "Oferta Destacada";
+
+        const paypalUrl = buildPayPalCheckoutUrl({
+          amount: price,
+          itemName: `${planName} - Portal Trabajo IT ("${data.job_title}")`,
+          returnUrl: `${window.location.origin}/publicar-oferta?success=true&plan=${selectedPlan}`,
+          cancelUrl: `${window.location.origin}/publicar-oferta?canceled=true`,
+          custom: `job_${selectedPlan}_${data.company_email}`,
+          buyerEmail: data.company_email,
         });
 
-        const resData = await res.json();
-        // VULN-20: Validación de destino seguro para prevenir Open Redirect hacia sitios de phishing
-        if (resData.url && isSafeStripeRedirectUrl(resData.url)) {
-          window.location.href = resData.url;
-        } else {
-          throw new Error(resData.error || "URL de pasarela de pago no autorizada o no válida.");
-        }
+        window.location.href = paypalUrl;
       } catch (err: any) {
         setStatus("error");
-        setMessage(err.message || "Error de red al conectar con Stripe.");
+        setMessage(err.message || "Error al conectar con la pasarela de PayPal.");
       }
     }
   };
@@ -426,12 +435,61 @@ export default function PublishForm() {
           </div>
         </div>
 
+        {/* Consentimiento RGPD y Primera Capa Informativa */}
+        <div className="space-y-3 pt-2 text-left">
+          <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-gray-800/60 border border-gray-700/80">
+            <input
+              type="checkbox"
+              id="privacy-accepted-job"
+              required
+              checked={privacyAccepted}
+              onChange={(e) => setPrivacyAccepted(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-600 bg-gray-900 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
+            />
+            <label htmlFor="privacy-accepted-job" className="text-xs text-gray-300 leading-tight cursor-pointer">
+              He leído y acepto la{' '}
+              <Link href="/privacy" target="_blank" className="text-indigo-400 underline hover:text-indigo-300">
+                Política de Privacidad
+              </Link>{' '}
+              y las <Link href="/aviso-legal" target="_blank" className="text-indigo-400 underline hover:text-indigo-300">Condiciones Generales de Contratación</Link>. Declaro bajo mi responsabilidad que la vacante es veraz, no contiene requisitos discriminatorios contrarios a la Ley 15/2022 o a la legislación laboral (LISOS) y autorizo el tratamiento de los datos de contacto corporativos.*
+            </label>
+          </div>
+
+          {/* Primera capa informativa AEPD */}
+          <div className="p-3 rounded-xl bg-gray-900/80 border border-gray-850 text-[10px] text-gray-400 leading-relaxed space-y-1">
+            <p className="font-semibold text-gray-300">Información básica sobre protección de datos:</p>
+            <ul className="list-disc pl-3.5 space-y-0.5 text-gray-400">
+              <li><strong>Responsable:</strong> Portal Trabajo IT.</li>
+              <li><strong>Finalidad:</strong> Moderación, publicación y gestión de la oferta de empleo, facturación y contacto con la empresa.</li>
+              <li><strong>Legitimación:</strong> Ejecución de la relación precontractual / contractual (Art. 6.1.b RGPD).</li>
+              <li><strong>Destinatarios:</strong> No se ceden datos de contacto a terceros; los datos públicos de la oferta serán visibles en el portal.</li>
+              <li><strong>Derechos:</strong> Acceso, rectificación, supresión y demás derechos en contacto@portalempleoit.com (+ info en <Link href="/privacy" className="text-indigo-400 underline">Política de Privacidad</Link>).</li>
+            </ul>
+          </div>
+        </div>
+
+        {selectedPlan !== "basico" && (
+          <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-gray-800/60 border border-gray-700/80 text-left">
+            <input
+              type="checkbox"
+              id="waiver-job"
+              required
+              checked={waiverAccepted}
+              onChange={(e) => setWaiverAccepted(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-600 bg-gray-900 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
+            />
+            <label htmlFor="waiver-job" className="text-xs text-gray-300 leading-tight cursor-pointer">
+              Solicito la publicación y difusión inmediata del anuncio de empleo y <strong className="text-white">renuncio expresamente a mi derecho de desistimiento de 14 días</strong> una vez iniciada la ejecución del servicio de difusión (Art. 103.m TRLGDCU). Facturación B2B.
+            </label>
+          </div>
+        )}
+
         <button
           type="submit"
           disabled={isLoading}
-          className={`w-full font-black text-base py-4 px-6 rounded-xl transition-all shadow-lg disabled:opacity-50 flex justify-center items-center gap-2 ${
+          className={`w-full font-black text-base py-4 px-6 rounded-xl transition-all shadow-lg disabled:opacity-50 flex justify-center items-center gap-2 cursor-pointer ${
             selectedPlan !== "basico"
-              ? "bg-gradient-to-r from-amber-400 to-yellow-500 text-gray-900 hover:from-amber-300 hover:to-yellow-400 shadow-amber-500/20 hover:shadow-amber-500/40"
+              ? "bg-[#0070ba] hover:bg-[#003087] text-white shadow-blue-900/30 hover:shadow-blue-900/50"
               : "bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-400 hover:to-purple-500 shadow-indigo-500/20 hover:shadow-indigo-500/40"
           }`}
         >
@@ -439,11 +497,13 @@ export default function PublishForm() {
             ? "Enviando..."
             : selectedPlan === "basico"
             ? "Solicitar oferta Básica (Gratis)"
-            : `Pagar y Destacar Oferta (${getPlanPrice()}) 💳`}
+            : `Pagar y Destacar con PayPal (${getPlanPrice()}) 🅿️`}
         </button>
 
         <p className="text-center text-gray-500 text-xs mt-3">
-          Procesamiento de pago seguro mediante Stripe.
+          {selectedPlan !== "basico"
+            ? "Procesamiento de pago seguro e instantáneo mediante PayPal (saldo o tarjeta)."
+            : "Revisión manual y moderación previa por nuestro equipo."}
         </p>
       </form>
     </div>

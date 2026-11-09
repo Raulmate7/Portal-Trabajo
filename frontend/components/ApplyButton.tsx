@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { subscribeUser } from '@/app/actions';
 import { sendGAEvent } from '@next/third-parties/google';
 
@@ -16,6 +17,7 @@ interface ApplyButtonProps {
 export default function ApplyButton({ url, company, title, lang, jobId }: ApplyButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [email, setEmail] = useState('');
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
@@ -30,6 +32,7 @@ export default function ApplyButton({ url, company, title, lang, jobId }: ApplyB
     setIsOpen(false);
     setStatus('idle');
     setEmail('');
+    setPrivacyAccepted(false);
     setMessage('');
   };
 
@@ -48,12 +51,19 @@ export default function ApplyButton({ url, company, title, lang, jobId }: ApplyB
     e.preventDefault();
     if (!email) return;
 
+    if (!privacyAccepted) {
+      setStatus('error');
+      setMessage(isEnglish ? 'You must accept the Privacy Policy to subscribe.' : 'Debes aceptar la Política de Privacidad para suscribirte.');
+      return;
+    }
+
     setStatus('loading');
 
     // Preparar datos de suscripción basados en la oferta actual
     const formData = new FormData();
     formData.append('email', email);
     formData.append('pathname', typeof window !== 'undefined' ? window.location.pathname : '');
+    formData.append('privacy_accepted', 'true');
     
     // Inferir tecnología del título
     const titleLower = title.toLowerCase();
@@ -158,6 +168,32 @@ export default function ApplyButton({ url, company, title, lang, jobId }: ApplyB
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
                   />
+                </div>
+
+                <label className="flex items-start gap-2 text-xs text-gray-600 dark:text-gray-400 cursor-pointer text-left">
+                  <input
+                    type="checkbox"
+                    required
+                    checked={privacyAccepted}
+                    onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span>
+                    {isEnglish ? 'I have read and accept the ' : 'He leído y acepto la '}
+                    <Link href="/privacy" target="_blank" className="text-indigo-600 dark:text-indigo-400 underline">
+                      {isEnglish ? 'Privacy Policy' : 'Política de Privacidad'}
+                    </Link>
+                    {isEnglish ? ' and agree to receive job alerts.*' : ' y consiento recibir alertas de ofertas tech.*'}
+                  </span>
+                </label>
+
+                {/* Primera capa informativa AEPD (RGPD Art. 13) */}
+                <div className="p-2.5 bg-gray-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700/80 rounded-lg text-[10px] text-gray-500 dark:text-slate-400 text-left space-y-0.5">
+                  <p><strong>Responsable:</strong> Portal Trabajo IT.</p>
+                  <p><strong>Finalidad:</strong> {isEnglish ? 'Sending tech job alerts.' : 'Envío de alertas de empleo tech.'}</p>
+                  <p><strong>Legitimación:</strong> {isEnglish ? 'Your express consent (Art. 6.1.a GDPR).' : 'Tu consentimiento expreso (Art. 6.1.a RGPD).'}</p>
+                  <p><strong>Destinatarios:</strong> {isEnglish ? 'No third-party transfer except technical delivery.' : 'Plataforma de envío (Resend). No se ceden datos a terceros.'}</p>
+                  <p><strong>Derechos:</strong> {isEnglish ? 'Access, rectification, erasure and 1-click unsubscribe (' : 'Acceso, rectificación, supresión y baja en 1 clic ('}<Link href="/privacy" className="text-indigo-600 dark:text-indigo-400 underline">{isEnglish ? 'Privacy Policy' : 'Política de Privacidad'}</Link>).</p>
                 </div>
 
                 <div className="flex flex-col gap-2">

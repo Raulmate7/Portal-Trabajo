@@ -14,10 +14,31 @@ function maskEmail(emailStr: string): string {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const sessionId = searchParams.get('session_id');
+  const paypalOrder = searchParams.get('paypal_order') === 'true';
+  const paypalEmail = (searchParams.get('email') || '').trim().toLowerCase();
+  const paypalPlan = (searchParams.get('plan') || 'full').trim().toLowerCase();
+
+  // Soporte directo para confirmación de pedidos realizados mediante PayPal
+  if (paypalOrder) {
+    const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!paypalEmail || !EMAIL_REGEX.test(paypalEmail)) {
+      return NextResponse.json(
+        { valid: false, error: 'Email del comprador no válido para el pedido de PayPal.' },
+        { status: 400 }
+      );
+    }
+    const token = generateReportToken(paypalEmail, paypalPlan, `pp_${Date.now()}`);
+    return NextResponse.json({
+      valid: true,
+      email: maskEmail(paypalEmail),
+      plan: paypalPlan,
+      downloadUrl: `/api/checkout/report/download?token=${encodeURIComponent(token)}`,
+    });
+  }
 
   if (!sessionId || typeof sessionId !== 'string' || !sessionId.startsWith('cs_')) {
     return NextResponse.json(
-      { valid: false, error: 'Identificador de sesión de Stripe no válido.' },
+      { valid: false, error: 'Identificador de sesión no válido.' },
       { status: 400 }
     );
   }

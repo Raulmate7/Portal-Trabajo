@@ -6,12 +6,18 @@ import { isSafeStripeRedirectUrl } from '@/lib/urlSafety';
 
 export default function PreciosPage() {
   const [candidateEmail, setCandidateEmail] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [b2cLoading, setB2cLoading] = useState(false);
   const [b2cError, setB2cError] = useState('');
 
   async function handleCandidateSubscribe(e: React.FormEvent) {
     e.preventDefault();
     if (!candidateEmail.trim()) return;
+
+    if (!termsAccepted) {
+      setB2cError('Debes aceptar las Condiciones de Contratación y la Política de Privacidad.');
+      return;
+    }
 
     setB2cLoading(true);
     setB2cError('');
@@ -20,7 +26,7 @@ export default function PreciosPage() {
       const response = await fetch('/api/checkout/premium-candidate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: candidateEmail.trim() }),
+        body: JSON.stringify({ email: candidateEmail.trim(), privacy_accepted: true }),
       });
 
       const data = await response.json();
@@ -64,7 +70,10 @@ export default function PreciosPage() {
 
       {/* Planes Grid (B2B Empresas) */}
       <section className="max-w-7xl mx-auto px-4 py-8 w-full flex-grow">
-        <h2 className="text-xl font-bold mb-8 text-center text-gray-250">Para Empresas y Reclutadores</h2>
+        <div className="text-center mb-8">
+          <h2 className="text-xl font-bold text-gray-250">Para Empresas y Reclutadores</h2>
+          <p className="text-xs text-gray-500 mt-1">Precios netos para empresas (+21% IVA aplicable). Emisión de factura legal con NIF/CIF en el checkout de pago.</p>
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch mb-16">
           
@@ -269,16 +278,33 @@ export default function PreciosPage() {
                 <span className="text-gray-500 text-xs ml-1 font-bold">/ mes</span>
               </div>
               
-              <form onSubmit={handleCandidateSubscribe} className="space-y-2">
+              <form onSubmit={handleCandidateSubscribe} className="space-y-3">
                 <input
                   type="email"
                   required
                   placeholder="tu@email.com"
                   value={candidateEmail}
                   onChange={(e) => setCandidateEmail(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-gray-900 border border-gray-750 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-xs"
+                  className="w-full px-4 py-2.5 rounded-xl bg-gray-900 border border-gray-750 text-white placeholder-gray-550 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-xs"
                 />
-                
+
+                <label className="flex items-start gap-2 text-[11px] text-gray-400 cursor-pointer text-left">
+                  <input
+                    type="checkbox"
+                    required
+                    checked={termsAccepted}
+                    onChange={(e) => setTermsAccepted(e.target.checked)}
+                    className="mt-0.5 h-3.5 w-3.5 rounded border-gray-700 bg-gray-900 text-indigo-500 focus:ring-indigo-400 cursor-pointer"
+                  />
+                  <span>
+                    Acepto las <Link href="/aviso-legal" target="_blank" className="text-indigo-400 underline">Condiciones de Contratación</Link> y la <Link href="/privacy" target="_blank" className="text-indigo-400 underline">Política de Privacidad</Link>.*
+                  </span>
+                </label>
+
+                <p className="text-[10px] text-gray-500 text-left leading-normal">
+                  Suscripción de 4,99 €/mes (IVA incluido). Renovación mensual automática sin permanencia. Cancela en cualquier momento sin penalización desde tu panel o escribiendo a contacto@portalempleoit.com (Art. 108 bis TRLGDCU).
+                </p>
+
                 <button
                   type="submit"
                   disabled={b2cLoading}

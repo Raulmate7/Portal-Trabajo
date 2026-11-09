@@ -188,7 +188,7 @@ if (preg_match('/\b(DROP|ALTER|TRUNCATE|GRANT|REVOKE|RENAME|FLUSH|KILL|SHUTDOWN)
 // Vector 25: Control de operaciones DELETE para posibilitar el derecho de supresión RGPD y purgas defensivas
 // Solo se autoriza DELETE si tiene cláusula WHERE parametrizada sobre tablas permitidas (con modificador multilínea s)
 if (preg_match('/^DELETE\b/i', $sql_clean_upper)) {
-    if (!preg_match('/^DELETE\s+FROM\s+`?(subscribers|jobs|job_reactions|newsletter_sponsors|stripe_processed_events|report_downloads|email_tracking|company_reviews)`?\s+WHERE\s+/is', $sql_clean_upper) || count($params) === 0) {
+    if (!preg_match('/^DELETE\s+FROM\s+`?(subscribers|jobs|job_reactions|newsletter_sponsors|stripe_processed_events|report_downloads|email_tracking|company_reviews|review_reports)`?\s+WHERE\s+/is', $sql_clean_upper) || count($params) === 0) {
         http_response_code(403);
         echo json_encode(['error' => 'Operación DELETE no autorizada sin cláusula WHERE parametrizada.']);
         exit;

@@ -19,7 +19,11 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json().catch(() => ({}));
-    const { email } = body;
+    const { email, privacy_accepted } = body;
+
+    if (privacy_accepted !== true && privacy_accepted !== 'true') {
+      return NextResponse.json({ error: 'Debes aceptar las Condiciones y la Política de Privacidad.' }, { status: 400 });
+    }
 
     const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     const cleanEmail = (email || '').toString().trim().toLowerCase();
@@ -49,6 +53,8 @@ export async function POST(request: Request) {
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       customer_email: cleanEmail,
+      billing_address_collection: 'required',
+      tax_id_collection: { enabled: true },
       line_items: [
         {
           price_data: {

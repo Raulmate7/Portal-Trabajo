@@ -24,6 +24,26 @@ export default function PerfilPage() {
     localStorage.setItem('saved_jobs', JSON.stringify(updated));
   };
 
+  const handleClearAllData = () => {
+    if (window.confirm('¿Seguro que deseas borrar todas tus ofertas guardadas y preferencias de este navegador? Esta acción no se puede deshacer.')) {
+      try {
+        localStorage.removeItem('saved_jobs');
+        localStorage.removeItem('subscriber_tech_keywords');
+        localStorage.removeItem('saved_jobs_email');
+        localStorage.removeItem('portal_streak_data');
+        localStorage.removeItem('newsletter_subscribed');
+        localStorage.removeItem('exit_popup_already_shown');
+        sessionStorage.removeItem('exit_popup_session_shown');
+        setSavedJobs([]);
+        setTechKeywords('');
+        setEmail('');
+        alert('Tus datos locales han sido eliminados de este dispositivo.');
+      } catch (e) {
+        console.error('Error al borrar datos locales:', e);
+      }
+    }
+  };
+
   if (!mounted) return null;
 
   return (
@@ -81,6 +101,26 @@ export default function PerfilPage() {
                   No has configurado ningún correo electrónico.
                 </p>
               )}
+            </div>
+
+            {/* Privacidad y Derecho de Supresión Local (RGPD Art. 17) */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-800 p-6 space-y-3">
+              <h2 className="font-bold text-gray-900 dark:text-white text-sm">Privacidad y Control de Datos 🛡️</h2>
+              <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed">
+                Tus ofertas favoritas y ajustes de búsqueda se almacenan <strong>exclusivamente en tu navegador</strong> (LocalStorage) siguiendo el principio de minimización de datos (Art. 5.1.c RGPD). No creamos perfiles opacos de navegación en nuestros servidores.
+              </p>
+              <button
+                onClick={handleClearAllData}
+                className="w-full text-xs font-semibold py-2 px-3 rounded-xl border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+              >
+                🗑️ Borrar mis datos de este dispositivo
+              </button>
+              <p className="text-[11px] text-gray-400 dark:text-slate-500">
+                Para ejercer tus derechos de acceso, rectificación o supresión de suscripciones en servidor, consulta nuestra{' '}
+                <Link href="/privacy" className="text-indigo-600 dark:text-indigo-400 underline">
+                  Política de Privacidad
+                </Link>.
+              </p>
             </div>
           </div>
 

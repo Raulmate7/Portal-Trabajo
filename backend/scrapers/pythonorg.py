@@ -6,7 +6,7 @@ def get_pythonorg_jobs():
     print("🐍 Conectando con Python.org Jobs RSS...")
     url = "https://www.python.org/jobs/feed/rss/"
 
-    headers = {'User-Agent': 'Mozilla/5.0'}
+    headers = {'User-Agent': 'PortalTrabajoITBot/1.0 (+https://portalempleoit.com/bot; bot@portalempleoit.com)'}
 
     try:
         response = requests.get(url, headers=headers, timeout=10)

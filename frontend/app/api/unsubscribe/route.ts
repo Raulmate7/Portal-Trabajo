@@ -35,12 +35,13 @@ export async function GET(request: NextRequest) {
   return NextResponse.redirect(redirectUrl.toString());
 }
 
-// Handler POST: Confirmación explícita con token HMAC verificado
+// Handler POST: Confirmación explícita con token HMAC verificado (soporta RFC 8058 One-Click y form submit)
 export async function POST(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
     const body = await request.json().catch(() => ({}));
-    const email = (body.email as string || '').trim().toLowerCase();
-    const token = (body.token as string || '').trim();
+    const email = ((body.email as string) || searchParams.get('email') || '').trim().toLowerCase();
+    const token = ((body.token as string) || searchParams.get('token') || '').trim();
 
     if (!email) {
       return NextResponse.json({ success: false, error: 'Falta el correo del suscriptor.' }, { status: 400 });
@@ -66,6 +67,9 @@ export async function POST(request: NextRequest) {
           [email]
         );
       }
+      try {
+        await client.query("DELETE FROM email_tracking WHERE email = $1", [email]);
+      } catch {}
       const safeLogEmail = email.replace(/[\r\n\x00-\x1f]/g, '');
       console.log(`📭 Suscriptor dado de baja con token verificado: ${safeLogEmail}`);
     } finally {

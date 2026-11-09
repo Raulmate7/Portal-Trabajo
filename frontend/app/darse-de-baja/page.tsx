@@ -13,6 +13,7 @@ function UnsubscribeContent() {
   const [confirmed, setConfirmed] = useState(successParam);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [manualEmail, setManualEmail] = useState('');
 
   const handleConfirmUnsubscribe = async () => {
     if (!email || !token) {
@@ -119,16 +120,40 @@ function UnsubscribeContent() {
         ) : (
           <>
             <div className="w-16 h-16 bg-indigo-500/10 text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">
-              ℹ️
+              ✉️
             </div>
 
-            <h1 className="text-2xl font-black mb-4 tracking-tight">
-              Gestión de Suscripción
+            <h1 className="text-2xl font-black mb-3 tracking-tight">
+              Gestión de Baja de Alertas
             </h1>
 
-            <p className="text-gray-300 text-sm leading-relaxed mb-8">
-              Para cancelar tu suscripción, haz clic en el enlace personalizado que se encuentra al pie de cualquiera de los correos electrónicos de alertas que has recibido.
+            <p className="text-gray-300 text-sm leading-relaxed mb-6">
+              Para cancelar tu suscripción con 1 clic, pulsa el enlace <strong className="text-white">&quot;Darme de baja en 1 clic&quot;</strong> situado al pie de cualquiera de los correos recibidos.
             </p>
+
+            <div className="p-4 bg-gray-950/70 border border-gray-800 rounded-2xl text-left space-y-3 mb-6">
+              <p className="text-xs font-semibold text-gray-300">
+                ¿No encuentras el correo o prefieres solicitar la baja directa?
+              </p>
+              <div className="space-y-2">
+                <input
+                  type="email"
+                  value={manualEmail}
+                  onChange={(e) => setManualEmail(e.target.value)}
+                  placeholder="tu@email.com"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-xl bg-gray-900 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <a
+                  href={`mailto:contacto@portalempleoit.com?subject=${encodeURIComponent('Solicitud de baja de alertas de empleo')}&body=${encodeURIComponent(`Hola equipo de Portal Trabajo IT,\n\nSolicito la baja de mi suscripción de alertas de empleo para el correo: ${manualEmail || '[indica tu email aquí]'}.\n\nGracias.`)}`}
+                  className="w-full inline-block text-center bg-gray-800 hover:bg-gray-700 text-indigo-300 hover:text-white font-bold py-2.5 px-4 rounded-xl transition-all text-xs border border-gray-700"
+                >
+                  Solicitar baja por email a soporte 📬
+                </a>
+              </div>
+              <p className="text-[10px] text-gray-400 leading-tight">
+                Conforme al Art. 21.2 LSSI y Art. 17 RGPD, toda solicitud recibida es tramitada de forma gratuita en un plazo máximo de 24 horas laborables.
+              </p>
+            </div>
 
             <Link
               href="/"

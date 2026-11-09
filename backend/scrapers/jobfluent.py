@@ -5,7 +5,7 @@ def get_jobfluent_jobs():
     print("💃 Bailando con JobFluent (Startups España)...")
     url = "https://www.jobfluent.com/es/empleos-startup-espana"
 
-    headers = {'User-Agent': 'Mozilla/5.0'}
+    headers = {'User-Agent': 'PortalTrabajoITBot/1.0 (+https://portalempleoit.com/bot; bot@portalempleoit.com)'}
 
     try:
         response = requests.get(url, headers=headers, timeout=10)

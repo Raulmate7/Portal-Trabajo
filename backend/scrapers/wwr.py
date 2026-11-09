@@ -7,8 +7,10 @@ def get_wwr_jobs():
 
     url = "https://weworkremotely.com/categories/remote-programming-jobs.rss"
 
+    headers = {'User-Agent': 'PortalTrabajoITBot/1.0 (+https://portalempleoit.com/bot; bot@portalempleoit.com)'}
+
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
 
         root = ET.fromstring(response.content)

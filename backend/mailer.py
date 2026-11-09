@@ -278,8 +278,15 @@ def send_newsletter():
     base_url = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
     CV_LINK = f"{base_url}/recursos?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
 
-    # 4. OBTENER SUSCRIPTORES CON SUS PREFERENCIAS
-    cur.execute("SELECT email, tech_keywords FROM subscribers WHERE email IS NOT NULL")
+    # 4. OBTENER SUSCRIPTORES CON SUS PREFERENCIAS (Excluyendo bajas y suscriptores puntuales de un solo aviso)
+    cur.execute("""
+        SELECT email, tech_keywords 
+        FROM subscribers 
+        WHERE email IS NOT NULL 
+          AND email NOT LIKE '%@deleted.local'
+          AND (frequency = 'weekly' OR frequency IS NULL OR frequency = '')
+          AND (is_active IS NULL OR is_active = TRUE)
+    """)
     subscribers = cur.fetchall()
 
     if not subscribers:
@@ -464,18 +471,27 @@ def send_newsletter():
                             </div>
                         </div>
 
-                        <!-- Footer -->
+                        <!-- Footer Legal conforme a LSSI Art. 10 y 21 / RGPD Art. 13 -->
                         <div style="background: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
                             <p style="color: #4b5563; font-size: 12px; margin: 0 0 12px 0; font-weight: 500; line-height: 1.5;">
                                 📢 ¿Te gusta este newsletter? Invita a tus compañeros de profesión usando tu enlace personal:<br>
                                 <a href="{referral_url}" style="color: #4f46e5; text-decoration: underline; font-weight: bold;">{referral_url}</a><br>
                                 ¡Si se suscriben 3 amigos, obtendréis beneficios premium!
                             </p>
-                            <p style="color: #9ca3af; font-size: 11px; margin: 0;">
-                                Enviado automáticamente cada lunes por Portal Trabajo IT.<br>
-                                <a href="{visit_web_track}" style="color: #6366f1;">Visitar la web</a> · 
-                                <a href="{unsubscribe_link}" style="color: #9ca3af; text-decoration: underline;">Cancelar suscripción</a>
-                            </p>
+                            <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 10px; color: #9ca3af; line-height: 1.5; text-align: center;">
+                                <p style="margin: 0 0 4px 0;">
+                                    <strong>Portal Trabajo IT</strong> · Información y alertas de empleo tecnológico en España.<br>
+                                    Recibes este correo porque te suscribiste a las alertas semanales de empleo en nuestro portal.
+                                </p>
+                                <p style="margin: 0;">
+                                    <a href="{visit_web_track}" style="color: #6366f1; text-decoration: none;">portalempleoit.com</a> · 
+                                    <a href="{base_url}/privacy" style="color: #6b7280; text-decoration: underline;">Política de Privacidad</a> · 
+                                    <a href="{unsubscribe_link}" style="color: #ef4444; text-decoration: underline; font-weight: bold;">Darme de baja en 1 clic</a>
+                                </p>
+                                <p style="margin: 4px 0 0 0; color: #d1d5db; font-size: 9px;">
+                                    Para ejercer tus derechos de acceso, rectificación o supresión: contacto@portalempleoit.com
+                                </p>
+                            </div>
                         </div>
                     </div>
                     <!-- Pixel de Tracking Invisible -->
@@ -495,6 +511,9 @@ def send_newsletter():
             msg['From'] = f"Portal Trabajo IT <{os.getenv('EMAIL_USER')}>"
             msg['To'] = email
             msg['Subject'] = subject_line
+            # Cabeceras obligatorias RFC 8058 / Google & Yahoo One-Click Unsubscribe
+            msg['List-Unsubscribe'] = f"<{unsubscribe_link}>"
+            msg['List-Unsubscribe-Post'] = "List-Unsubscribe=One-Click"
             msg.attach(MIMEText(email_body, 'html'))
             
             server.send_message(msg)

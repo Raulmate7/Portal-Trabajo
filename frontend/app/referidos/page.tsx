@@ -135,6 +135,13 @@ export default function ReferidosPage() {
           >
             {loading ? "Consultando..." : "Generar mi Enlace"}
           </button>
+
+          <p className="text-[11px] text-gray-500 text-center leading-normal mt-2">
+            Tratamos tu email para calcular y gestionar tu enlace de referidos. Consulta nuestra{' '}
+            <Link href="/privacy" className="text-indigo-400 hover:underline">
+              Política de Privacidad
+            </Link>.
+          </p>
         </form>
 
         {stats && (

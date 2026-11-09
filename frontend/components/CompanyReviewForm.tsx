@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { submitCompanyReview } from '@/app/actions';
 
 type Props = {
@@ -12,6 +13,7 @@ export default function CompanyReviewForm({ companySlug }: Props) {
   const [hoveredRating, setHoveredRating] = useState<number>(0);
   const [reviewText, setReviewText] = useState('');
   const [role, setRole] = useState('');
+  const [guidelinesAccepted, setGuidelinesAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; success: boolean } | null>(null);
 
@@ -25,6 +27,10 @@ export default function CompanyReviewForm({ companySlug }: Props) {
       setMessage({ text: 'Por favor, escribe un comentario descriptivo.', success: false });
       return;
     }
+    if (!guidelinesAccepted) {
+      setMessage({ text: 'Debes confirmar que tu opinión cumple las normas de la comunidad y no vulnera secretos empresariales ni derechos de terceros.', success: false });
+      return;
+    }
 
     setLoading(true);
     setMessage(null);
@@ -34,6 +40,8 @@ export default function CompanyReviewForm({ companySlug }: Props) {
     formData.append('rating', rating.toString());
     formData.append('review_text', reviewText);
     formData.append('role', role);
+    formData.append('guidelines_accepted', 'true');
+    formData.append('privacy_accepted', 'true');
 
     try {
       const res = await submitCompanyReview(formData);
@@ -42,6 +50,7 @@ export default function CompanyReviewForm({ companySlug }: Props) {
         setRating(0);
         setReviewText('');
         setRole('');
+        setGuidelinesAccepted(false);
       }
     } catch (err) {
       setMessage({ text: 'Error de red. Inténtalo de nuevo más tarde.', success: false });
@@ -124,6 +133,34 @@ export default function CompanyReviewForm({ companySlug }: Props) {
           placeholder="Ej: Desarrollador Backend Node.js, Frontend..."
           className="w-full text-sm p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50/50"
         />
+      </div>
+
+      {/* Normas de la comunidad, DSA y RGPD */}
+      <div className="p-3.5 bg-amber-50/70 border border-amber-200/70 rounded-xl space-y-2.5">
+        <p className="text-[11px] text-amber-900 leading-tight">
+          ⚖️ <strong>Normas de publicación, responsabilidad y DSA:</strong> El usuario es el único responsable civil y penal de la veracidad y legalidad de las opiniones que emita (Arts. 205 y 208 Código Penal). Se prohíben insultos personales, calumnias, imputaciones delictivas sin sentencia firme, secretos empresariales (Ley 1/2019) y la inclusión de datos personales de terceros (RGPD). Las empresas afectadas cuentan con un canal de notificación y retirada inmediata (*Notice & Action* conforme al Art. 16 DSA).
+        </p>
+        <div className="flex items-start gap-2 pt-0.5">
+          <input
+            type="checkbox"
+            id="guidelines-accepted-checkbox"
+            required
+            checked={guidelinesAccepted}
+            onChange={(e) => setGuidelinesAccepted(e.target.checked)}
+            className="mt-0.5 h-3.5 w-3.5 rounded border-amber-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
+          />
+          <label htmlFor="guidelines-accepted-checkbox" className="text-[11px] text-amber-950 font-medium cursor-pointer leading-tight">
+            Confirmo que esta valoración refleja mi experiencia laboral real, cumple las normas de la comunidad y acepto la{' '}
+            <Link href="/privacy" target="_blank" className="text-indigo-600 underline hover:text-indigo-800">
+              Política de Privacidad
+            </Link>. *
+          </label>
+        </div>
+        {/* Primera capa informativa AEPD */}
+        <div className="pt-2 border-t border-amber-200/60 text-[10px] text-amber-900/80 leading-normal space-y-0.5">
+          <p><strong>Información básica de protección de datos:</strong></p>
+          <p><em>Responsable:</em> Portal Trabajo IT · <em>Finalidad:</em> Publicación de opiniones y experiencias laborales · <em>Legitimación:</em> Consentimiento (Art. 6.1.a RGPD) · <em>Destinatarios:</em> No se ceden datos a terceros · <em>Derechos:</em> Acceso y supresión de la reseña en <a href="mailto:contacto@portalempleoit.com" className="text-indigo-600 underline">contacto@portalempleoit.com</a> (+ info en <Link href="/privacy" className="text-indigo-600 underline">Política de Privacidad</Link>).</p>
+        </div>
       </div>
 
       {message && (

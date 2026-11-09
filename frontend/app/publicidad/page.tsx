@@ -8,12 +8,18 @@ export default function PublicidadPage() {
   // Form newsletter sponsor states
   const [companyName, setCompanyName] = useState('');
   const [companyEmail, setCompanyEmail] = useState('');
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
   async function handleSponsorCheckout(e: React.FormEvent) {
     e.preventDefault();
     if (!companyName.trim() || !companyEmail.trim()) return;
+
+    if (!privacyAccepted) {
+      setErrorMsg('Debes aceptar las Condiciones de Contratación y la Política de Privacidad.');
+      return;
+    }
 
     setLoading(true);
     setErrorMsg('');
@@ -25,6 +31,7 @@ export default function PublicidadPage() {
         body: JSON.stringify({
           company_name: companyName.trim(),
           company_email: companyEmail.trim().toLowerCase(),
+          privacy_accepted: true,
         }),
       });
 
@@ -203,6 +210,26 @@ export default function PublicidadPage() {
                 className="w-full px-4 py-3 rounded-xl bg-gray-950 border border-gray-800 text-white placeholder-gray-550 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-xs"
               />
             </div>
+
+            <label className="flex items-start gap-2 text-xs text-gray-400 cursor-pointer text-left">
+              <input
+                type="checkbox"
+                required
+                checked={privacyAccepted}
+                onChange={e => setPrivacyAccepted(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-700 bg-gray-950 text-purple-500 focus:ring-purple-400"
+              />
+              <span>
+                He leído y acepto las{' '}
+                <Link href="/aviso-legal" target="_blank" className="text-purple-400 underline">
+                  Condiciones de Contratación
+                </Link>{' '}
+                y la{' '}
+                <Link href="/privacy" target="_blank" className="text-purple-400 underline">
+                  Política de Privacidad
+                </Link>.*
+              </span>
+            </label>
 
             <button
               type="submit"

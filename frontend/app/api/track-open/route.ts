@@ -23,6 +23,12 @@ export async function GET(request: NextRequest) {
     return response; // Si hay abuso, retornamos la imagen en silencio
   }
 
+  // RGPD Art. 25 (Privacidad desde el diseño): Respetar señales DNT (Do Not Track) y Sec-GPC
+  const dnt = request.headers.get('dnt') === '1' || request.headers.get('sec-gpc') === '1';
+  if (dnt) {
+    return response;
+  }
+
   const { searchParams } = new URL(request.url);
   const email = (searchParams.get('email') || '').trim();
   const campaign = (searchParams.get('campaign') || '').trim();

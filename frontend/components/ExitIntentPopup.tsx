@@ -7,6 +7,7 @@ import { subscribeUser } from '@/app/actions';
 export default function ExitIntentPopup() {
   const [visible, setVisible] = useState(false);
   const [email, setEmail] = useState('');
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -82,6 +83,11 @@ export default function ExitIntentPopup() {
       return;
     }
 
+    if (!privacyAccepted) {
+      setError('Debes aceptar la Política de Privacidad para suscribirte.');
+      return;
+    }
+
     setError('');
     setLoading(true);
 
@@ -91,6 +97,7 @@ export default function ExitIntentPopup() {
       formData.set('pathname', typeof window !== 'undefined' ? window.location.pathname : '/');
       formData.set('tech_keywords', 'frontend, backend, react, node, python');
       formData.set('frequency', 'weekly');
+      formData.set('privacy_accepted', 'true');
 
       const result = await subscribeUser(formData);
 
@@ -159,7 +166,7 @@ export default function ExitIntentPopup() {
               Recibe un resumen semanal con las <strong>ofertas tecnológicas mejor pagadas</strong> en España y consejos de entrevistas antes de que se cierren.
             </p>
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+              <form onSubmit={handleSubmit} className="flex flex-col gap-3">
               <input
                 type="email"
                 placeholder="tu@email.com"
@@ -169,6 +176,32 @@ export default function ExitIntentPopup() {
                 className="w-full border border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-950 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                 required
               />
+
+              <label className="flex items-start gap-2 text-xs text-gray-600 dark:text-slate-400 cursor-pointer text-left">
+                <input
+                  type="checkbox"
+                  checked={privacyAccepted}
+                  onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                  required
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500"
+                />
+                <span>
+                  He leído y acepto la{' '}
+                  <Link href="/privacy" target="_blank" className="text-indigo-600 dark:text-indigo-400 underline">
+                    Política de Privacidad
+                  </Link>{' '}
+                  y consiento recibir alertas semanales de empleo IT.*
+                </span>
+              </label>
+
+              {/* Primera capa informativa AEPD (RGPD Art. 13) */}
+              <div className="p-2.5 bg-gray-50 dark:bg-slate-950/70 border border-gray-200 dark:border-slate-800 rounded-lg text-[10px] text-gray-500 dark:text-slate-400 text-left space-y-0.5">
+                <p><strong>Responsable:</strong> Portal Trabajo IT.</p>
+                <p><strong>Finalidad:</strong> Envío de newsletter y alertas laborales semanales.</p>
+                <p><strong>Legitimación:</strong> Tu consentimiento expreso (Art. 6.1.a RGPD).</p>
+                <p><strong>Destinatarios:</strong> Plataforma de envío (Resend). No se cede a terceros.</p>
+                <p><strong>Derechos:</strong> Baja en 1 clic en cada email o escribiendo a <a href="mailto:contacto@portalempleoit.com" className="text-indigo-600 dark:text-indigo-400 underline">contacto@portalempleoit.com</a> (+ info en <Link href="/privacy" className="text-indigo-600 dark:text-indigo-400 underline">Política de Privacidad</Link>).</p>
+              </div>
 
               {error && (
                 <p className="text-xs text-red-600 dark:text-red-400 font-semibold">{error}</p>
@@ -183,8 +216,8 @@ export default function ExitIntentPopup() {
               </button>
             </form>
 
-            <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-4 text-center">
-              Sin spam. Puedes darte de baja en 1 clic. Lee nuestra{' '}
+            <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-3 text-center">
+              Sin spam. Baja inmediata en cada email. Consulta nuestra{' '}
               <Link href="/privacy" className="underline hover:text-indigo-600 dark:hover:text-indigo-400">
                 Política de Privacidad
               </Link>.

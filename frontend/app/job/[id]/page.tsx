@@ -1000,13 +1000,18 @@ export default async function JobPage({ params, searchParams }: Props) {
 
                 <CourseAffiliate title={job.title} />
 
-                <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100 text-center mt-8">
-                  <p className="text-indigo-900 mb-4 text-sm font-medium">
+                <div className="bg-indigo-50/80 p-6 rounded-2xl border border-indigo-100/90 text-center mt-8">
+                  <p className="text-indigo-950 mb-1 text-sm font-semibold">
                     {isEnglish ? (
-                      <>This offer was found on <strong>{sourceLabel}</strong></>
+                      <>Job opportunity indexed from <strong>{sourceLabel}</strong></>
                     ) : (
-                      <>Esta oferta fue encontrada en <strong>{sourceLabel}</strong></>
+                      <>Oportunidad laboral indexada desde <strong>{sourceLabel}</strong></>
                     )}
+                  </p>
+                  <p className="text-xs text-indigo-700/80 mb-4 max-w-md mx-auto">
+                    {isEnglish
+                      ? 'Portal Trabajo IT functions as a search aggregator. Applications are processed directly on the official source site.'
+                      : 'Portal Trabajo IT actúa como motor de búsqueda y agregación de enlaces. La postulación se realiza directamente en la plataforma oficial de origen.'}
                   </p>
                   <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                     <ApplyButton url={job.url_source} company={job.company} title={displayTitle} lang={lang} jobId={job.id} />
@@ -1014,6 +1019,15 @@ export default async function JobPage({ params, searchParams }: Props) {
                       <SaveJobButton job={job} variant="detail" />
                       <ReactionButton jobId={job.id} initialLikes={reactions.likes} initialDislikes={reactions.dislikes} />
                     </div>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-indigo-100 text-center">
+                    <a
+                      href={`mailto:contacto@portalempleoit.com?subject=${encodeURIComponent(`[Retirada de oferta verificada] ID: ${job.id} - ${job.company}`)}&body=${encodeURIComponent(`Hola equipo legal de Portal Trabajo IT,\n\nSolicito la desindexación / actualización de la siguiente oferta de empleo:\n\nTítulo: ${job.title}\nEmpresa: ${job.company}\nURL: ${BASE_URL}/job/${correctSlug}\n\nDATOS DE ACREDITACIÓN OBLIGATORIOS (Reglamento UE 2022/2065 - DSA):\n- Nombre y apellidos del solicitante:\n- Cargo o relación con la empresa / portal fuente:\n- Correo corporativo del dominio oficial de la empresa (obligatorio; no se tramitan solicitudes desde cuentas gratuitas como gmail/hotmail):\n- Motivo de la solicitud (ej. puesto cubierto, error en datos, exclusión de agregador):\n\nDeclaro bajo mi responsabilidad que ostento la representación legítima de la entidad indicada. Las solicitudes fraudulentas o realizadas de mala fe podrán ser puestas en conocimiento de las autoridades competentes.`)}`}
+                      className="text-[11px] text-indigo-600 hover:text-indigo-800 underline transition-colors"
+                      title="Canal de exclusión y retirada inmediata para empleadores y portales titulares"
+                    >
+                      {isEnglish ? '🏢 Are you the employer or source platform? Request verified removal or update' : '🏢 ¿Eres el empleador o la plataforma de origen? Solicitar retirada o actualización verificada'}
+                    </a>
                   </div>
                 </div>
 

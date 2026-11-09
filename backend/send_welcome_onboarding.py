@@ -118,9 +118,18 @@ def build_welcome_email(email, tech_keywords, jobs):
                     👥 <strong>¿Quieres ventajas premium gratis?</strong> Invita a tus amigos usando tu enlace personalizado en nuestro <a href="{referidos_link}" style="color: #4f46e5; font-weight: bold; text-decoration: none;">Programa de Referidos</a>.
                 </p>
             </div>
-            <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
-                <p style="color: #9ca3af; font-size: 11px; margin: 0;">
-                    Portal Trabajo IT · <a href="{unsubscribe_link}" style="color: #6366f1;">Cancelar suscripción</a>
+            <div style="background: #f9fafb; padding: 18px 16px; text-align: center; border-top: 1px solid #e5e7eb; font-size: 10px; color: #9ca3af; line-height: 1.5;">
+                <p style="margin: 0 0 4px 0;">
+                    <strong>Portal Trabajo IT</strong> · Empleo tecnológico en España.<br>
+                    Recibes este aviso informativo porque te suscribiste a las alertas de empleo en portalempleoit.com.
+                </p>
+                <p style="margin: 0;">
+                    <a href="{BASE_URL}" style="color: #6366f1; text-decoration: none;">portalempleoit.com</a> · 
+                    <a href="{BASE_URL}/privacy" style="color: #6b7280; text-decoration: underline;">Política de Privacidad</a> · 
+                    <a href="{unsubscribe_link}" style="color: #ef4444; text-decoration: underline; font-weight: bold;">Darme de baja en 1 clic</a>
+                </p>
+                <p style="margin: 4px 0 0 0; color: #d1d5db; font-size: 9px;">
+                    Derechos de protección de datos: contacto@portalempleoit.com
                 </p>
             </div>
         </div>
@@ -187,9 +196,18 @@ def build_resources_email(email, tech_keywords):
                     </a>
                 </div>
             </div>
-            <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
-                <p style="color: #9ca3af; font-size: 11px; margin: 0;">
-                    Portal Trabajo IT · <a href="{unsubscribe_link}" style="color: #6366f1;">Cancelar suscripción</a>
+            <div style="background: #f9fafb; padding: 18px 16px; text-align: center; border-top: 1px solid #e5e7eb; font-size: 10px; color: #9ca3af; line-height: 1.5;">
+                <p style="margin: 0 0 4px 0;">
+                    <strong>Portal Trabajo IT</strong> · Empleo tecnológico en España.<br>
+                    Recibes este aviso informativo porque te suscribiste a las alertas de empleo en portalempleoit.com.
+                </p>
+                <p style="margin: 0;">
+                    <a href="{BASE_URL}" style="color: #6366f1; text-decoration: none;">portalempleoit.com</a> · 
+                    <a href="{BASE_URL}/privacy" style="color: #6b7280; text-decoration: underline;">Política de Privacidad</a> · 
+                    <a href="{unsubscribe_link}" style="color: #ef4444; text-decoration: underline; font-weight: bold;">Darme de baja en 1 clic</a>
+                </p>
+                <p style="margin: 4px 0 0 0; color: #d1d5db; font-size: 9px;">
+                    Derechos de protección de datos: contacto@portalempleoit.com
                 </p>
             </div>
         </div>
@@ -214,11 +232,15 @@ def run_onboarding():
         print(f"❌ Error conectando a BD: {e}")
         return
 
-    # 2. Obtener usuarios en onboarding_stage < 2
+    # 2. Obtener usuarios en onboarding_stage < 2 (activos, no bajas, excluyendo avisos únicos)
     cur.execute("""
         SELECT email, tech_keywords, onboarding_stage, onboarding_last_sent_at
         FROM subscribers
-        WHERE onboarding_stage < 2 OR onboarding_stage IS NULL
+        WHERE (onboarding_stage < 2 OR onboarding_stage IS NULL)
+          AND email IS NOT NULL
+          AND email NOT LIKE '%@deleted.local'
+          AND (is_active IS NULL OR is_active = TRUE)
+          AND (frequency IS NULL OR frequency != 'once')
     """)
     subscribers = cur.fetchall()
 
@@ -257,11 +279,14 @@ def run_onboarding():
                 print(f"💌 Enviando Email 1 (Bienvenida) a: {email}...")
                 jobs = get_onboarding_jobs(cur, tech_keywords)
                 html_body = build_welcome_email(email, tech_keywords, jobs)
+                unsubscribe_link = generate_unsubscribe_link(email)
                 
                 msg = MIMEMultipart()
                 msg['From'] = f"Portal Trabajo IT <{EMAIL_USER}>"
                 msg['To'] = email
                 msg['Subject'] = "¡Te damos la bienvenida a Portal Trabajo IT! 🚀"
+                msg['List-Unsubscribe'] = f"<{unsubscribe_link}>"
+                msg['List-Unsubscribe-Post'] = "List-Unsubscribe=One-Click"
                 msg.attach(MIMEText(html_body, 'html'))
                 
                 server.send_message(msg)
@@ -283,11 +308,14 @@ def run_onboarding():
                 if time_diff >= timedelta(days=4):
                     print(f"💌 Enviando Email 2 (Recursos y Salarios) a: {email}...")
                     html_body = build_resources_email(email, tech_keywords)
+                    unsubscribe_link = generate_unsubscribe_link(email)
                     
                     msg = MIMEMultipart()
                     msg['From'] = f"Portal Trabajo IT <{EMAIL_USER}>"
                     msg['To'] = email
                     msg['Subject'] = "💰 Recursos recomendados y calculadora de salarios en Portal Trabajo IT"
+                    msg['List-Unsubscribe'] = f"<{unsubscribe_link}>"
+                    msg['List-Unsubscribe-Post'] = "List-Unsubscribe=One-Click"
                     msg.attach(MIMEText(html_body, 'html'))
                     
                     server.send_message(msg)

@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import Link from 'next/link';
 
 interface Job {
   id?: string | number;
@@ -23,6 +24,7 @@ export default function SaveJobButton({ job, variant = 'card' }: SaveJobButtonPr
   const [isSaved, setIsSaved] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [email, setEmail] = useState('');
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [mounted, setMounted] = useState(false);
@@ -84,13 +86,17 @@ export default function SaveJobButton({ job, variant = 'card' }: SaveJobButtonPr
       setEmailError('Introduce un email válido.');
       return;
     }
+    if (!privacyAccepted) {
+      setEmailError('Debes aceptar la Política de Privacidad para activar el recordatorio.');
+      return;
+    }
     setEmailError('');
     try {
       localStorage.setItem('saved_jobs_email', trimmed);
       await fetch('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: trimmed, source: 'saved_jobs_reminder' }),
+        body: JSON.stringify({ email: trimmed, source: 'saved_jobs_reminder', privacy_accepted: true }),
       });
       setEmailSent(true);
     } catch {
@@ -131,6 +137,32 @@ export default function SaveJobButton({ job, variant = 'card' }: SaveJobButtonPr
                   placeholder="tu@email.com"
                   className="w-full border border-gray-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400"
                 />
+
+                <label className="flex items-start gap-2 text-xs text-gray-600 dark:text-slate-400 cursor-pointer text-left">
+                  <input
+                    type="checkbox"
+                    checked={privacyAccepted}
+                    onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                    className="mt-0.5 h-3.5 w-3.5 rounded border-gray-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span>
+                    Acepto la{' '}
+                    <Link href="/privacy" target="_blank" className="text-indigo-600 dark:text-indigo-400 underline">
+                      Política de Privacidad
+                    </Link>{' '}
+                    para recibir este recordatorio puntual por email.*
+                  </span>
+                </label>
+
+                {/* Primera capa informativa AEPD (RGPD Art. 13) */}
+                <div className="p-2.5 bg-gray-50 dark:bg-slate-850/80 border border-gray-200 dark:border-slate-700/80 rounded-lg text-[10px] text-gray-500 dark:text-slate-400 text-left space-y-0.5">
+                  <p><strong>Responsable:</strong> Portal Trabajo IT.</p>
+                  <p><strong>Finalidad:</strong> Envío de recordatorio puntual sobre tus ofertas guardadas.</p>
+                  <p><strong>Legitimación:</strong> Tu consentimiento expreso (Art. 6.1.a RGPD).</p>
+                  <p><strong>Destinatarios:</strong> Plataforma de envío (Resend). No se ceden datos a terceros.</p>
+                  <p><strong>Derechos:</strong> Acceso, rectificación, supresión y baja en <a href="mailto:contacto@portalempleoit.com" className="text-indigo-600 dark:text-indigo-400 underline">contacto@portalempleoit.com</a> (+ info en <Link href="/privacy" className="text-indigo-600 dark:text-indigo-400 underline">Política de Privacidad</Link>).</p>
+                </div>
+
                 {emailError && <p className="text-xs text-rose-600">{emailError}</p>}
                 <button
                   onClick={handleEmailSubmit}

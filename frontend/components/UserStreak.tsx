@@ -47,6 +47,7 @@ export default function UserStreak({ lang = 'es' }: { lang?: string }) {
   const [showModal, setShowModal] = useState<boolean>(false);
   const [mounted, setMounted] = useState<boolean>(false);
   const [email, setEmail] = useState('');
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [emailSaved, setEmailSaved] = useState(false);
   const [emailError, setEmailError] = useState('');
 
@@ -94,7 +95,11 @@ export default function UserStreak({ lang = 'es' }: { lang?: string }) {
   const handleSaveEmail = async () => {
     const trimmed = email.trim();
     if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      setEmailError('Introduce un email válido para recibir el recordatorio.');
+      setEmailError(isEnglish ? 'Enter a valid email address.' : 'Introduce un email válido para recibir el recordatorio.');
+      return;
+    }
+    if (!privacyAccepted) {
+      setEmailError(isEnglish ? 'You must accept the Privacy Policy.' : 'Debes aceptar la Política de Privacidad para activar el aviso.');
       return;
     }
     setEmailError('');
@@ -107,11 +112,11 @@ export default function UserStreak({ lang = 'es' }: { lang?: string }) {
         data.emailCaptured = trimmed;
         localStorage.setItem(storageKey, JSON.stringify(data));
       }
-      // Suscribir también al newsletter si no está ya (silent)
+      // Guardar recordatorio de racha con base jurídica y consentimiento específico
       await fetch('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: trimmed, source: 'streak_reminder' }),
+        body: JSON.stringify({ email: trimmed, source: 'streak_reminder', privacy_accepted: true }),
       });
       setEmailSaved(true);
     } catch {
@@ -210,6 +215,32 @@ export default function UserStreak({ lang = 'es' }: { lang?: string }) {
                   {isEnglish ? 'Save' : 'Guardar'}
                 </button>
               </div>
+
+              <label className="flex items-start gap-1.5 text-[11px] text-gray-500 dark:text-slate-400 cursor-pointer text-left mt-2">
+                <input
+                  type="checkbox"
+                  checked={privacyAccepted}
+                  onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                  className="mt-0.5 h-3.5 w-3.5 rounded border-gray-300 dark:border-slate-700 text-amber-500 focus:ring-amber-400"
+                />
+                <span>
+                  {isEnglish ? 'I accept the ' : 'Acepto la '}
+                  <Link href="/privacy" target="_blank" className="underline hover:text-amber-500">
+                    {isEnglish ? 'Privacy Policy' : 'Política de Privacidad'}
+                  </Link>
+                  {isEnglish ? ' to receive streak reminders.*' : ' para recibir recordatorios puntuales de racha.*'}
+                </span>
+              </label>
+
+              {/* Primera capa informativa AEPD (RGPD Art. 13) */}
+              <div className="p-2.5 bg-gray-50 dark:bg-slate-850/80 border border-gray-200 dark:border-slate-700/80 rounded-lg text-[10px] text-gray-500 dark:text-slate-400 text-left space-y-0.5 mt-2">
+                <p><strong>Responsable:</strong> Portal Trabajo IT.</p>
+                <p><strong>Finalidad:</strong> {isEnglish ? 'Sending streak reminder alerts.' : 'Envío de recordatorio de mantenimiento de racha.'}</p>
+                <p><strong>Legitimación:</strong> {isEnglish ? 'Your express consent (Art. 6.1.a GDPR).' : 'Tu consentimiento expreso (Art. 6.1.a RGPD).'}</p>
+                <p><strong>Destinatarios:</strong> {isEnglish ? 'No third-party transfer except technical delivery.' : 'Plataforma de envío (Resend). No se ceden datos a terceros.'}</p>
+                <p><strong>Derechos:</strong> {isEnglish ? 'Access, rectification, erasure and unsubscribe in ' : 'Acceso, rectificación, supresión y baja en '}<a href="mailto:contacto@portalempleoit.com" className="underline hover:text-amber-500">contacto@portalempleoit.com</a> ({isEnglish ? 'more in ' : '+ info en '}<Link href="/privacy" className="underline hover:text-amber-500">{isEnglish ? 'Privacy Policy' : 'Política de Privacidad'}</Link>).</p>
+              </div>
+
               {emailError && <p className="text-xs text-rose-600 mt-1.5">{emailError}</p>}
             </div>
           ) : (

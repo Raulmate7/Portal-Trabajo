@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { subscribeUser } from '@/app/actions';
 import { sendGAEvent } from '@next/third-parties/google';
 
@@ -255,13 +256,49 @@ export default function SubscribeForm({
             </div>
           )}
 
+          {/* Casilla de verificación obligatoria no premarcada (RGPD Art. 6.1.a y 7) */}
+          <div className="space-y-2 pt-1 text-left">
+            <label className="flex items-start gap-2.5 text-xs text-gray-300 cursor-pointer">
+              <input
+                type="checkbox"
+                name="privacy_accepted"
+                required
+                defaultChecked={false}
+                className="mt-0.5 h-4 w-4 rounded border-gray-600 bg-gray-800 text-indigo-600 focus:ring-indigo-500 shrink-0 cursor-pointer"
+              />
+              <span className="leading-tight">
+                He leído y acepto la{' '}
+                <Link href="/privacy" target="_blank" className="text-indigo-400 underline hover:text-indigo-300">
+                  Política de Privacidad
+                </Link>{' '}
+                y consiento recibir alertas de empleo IT y comunicaciones comerciales del portal. *
+              </span>
+            </label>
+
+            {/* Primera Capa Informativa AEPD */}
+            <div className="p-2.5 rounded-lg bg-gray-800/80 border border-gray-700/80 text-[10px] text-gray-300 leading-relaxed space-y-1">
+              <p className="font-semibold text-gray-200">Información básica sobre protección de datos:</p>
+              <ul className="list-disc pl-3.5 space-y-0.5 text-gray-400">
+                <li><strong>Responsable:</strong> Portal Trabajo IT.</li>
+                <li><strong>Finalidad:</strong> Envío de alertas de empleo tech y resumen semanal según tus filtros.</li>
+                <li><strong>Legitimación:</strong> Tu consentimiento expreso (Art. 6.1.a RGPD).</li>
+                <li><strong>Destinatarios:</strong> No se ceden datos a terceros, salvo obligación legal o encargados técnicos de infraestructura.</li>
+                <li><strong>Derechos:</strong> Acceso, rectificación, supresión y baja instantánea en 1 clic (+ info en <Link href="/privacy" className="text-indigo-400 underline">Política de Privacidad</Link>).</li>
+              </ul>
+            </div>
+          </div>
+
           <button
             type="submit"
             disabled={status === 'loading'}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-400 text-white font-bold py-3 px-4 rounded-lg transition-colors text-sm shadow-md flex justify-center"
+            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-400 text-white font-bold py-3 px-4 rounded-lg transition-colors text-sm shadow-md flex justify-center cursor-pointer"
           >
             {status === 'loading' ? 'Guardando...' : displayButtonText}
           </button>
+
+          <p className="text-[11px] text-gray-400 leading-normal text-center pt-1">
+            Puedes darte de baja en cualquier momento con 1 clic desde el pie de cada correo. Medimos de forma agregada las aperturas para evitar envíos innecesarios.
+          </p>
 
           {status === 'error' && (
             <p className="text-red-400 text-xs text-center mt-2">{message}</p>

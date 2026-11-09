@@ -65,6 +65,10 @@ def run_reactivation():
         SELECT email, tech_keywords FROM subscribers 
         WHERE last_sent_at < %s
           AND (onboarding_stage IS NULL OR onboarding_stage >= 2)
+          AND email IS NOT NULL
+          AND email NOT LIKE '%@deleted.local'
+          AND (is_active IS NULL OR is_active = TRUE)
+          AND (frequency IS NULL OR frequency != 'once')
           AND email NOT IN (
               SELECT DISTINCT email FROM email_tracking WHERE opened_at > %s
           )
@@ -170,9 +174,18 @@ def run_reactivation():
                             </a>
                         </div>
                     </div>
-                    <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
-                        <p style="color: #9ca3af; font-size: 11px; margin: 0;">
-                            Portal Trabajo IT · <a href="{unsubscribe_link}" style="color: #b45309;">Cancelar suscripción</a>
+                    <div style="background: #f9fafb; padding: 18px 16px; text-align: center; border-top: 1px solid #e5e7eb; font-size: 10px; color: #9ca3af; line-height: 1.5;">
+                        <p style="margin: 0 0 4px 0;">
+                            <strong>Portal Trabajo IT</strong> · Alertas de empleo tech en España.<br>
+                            Recibes este aviso porque solicitaste alertas de empleo en portalempleoit.com.
+                        </p>
+                        <p style="margin: 0;">
+                            <a href="{BASE_URL}" style="color: #6366f1; text-decoration: none;">portalempleoit.com</a> · 
+                            <a href="{BASE_URL}/privacy" style="color: #6b7280; text-decoration: underline;">Política de Privacidad</a> · 
+                            <a href="{unsubscribe_link}" style="color: #ef4444; text-decoration: underline; font-weight: bold;">Darme de baja en 1 clic</a>
+                        </p>
+                        <p style="margin: 4px 0 0 0; color: #d1d5db; font-size: 9px;">
+                            Derechos de protección de datos: contacto@portalempleoit.com
                         </p>
                     </div>
                 </div>
@@ -185,6 +198,8 @@ def run_reactivation():
             msg['From'] = f"Portal Trabajo IT <{EMAIL_USER}>"
             msg['To'] = email
             msg['Subject'] = "👋 ¿Sigues buscando trabajo IT? Nuevas ofertas disponibles"
+            msg['List-Unsubscribe'] = f"<{unsubscribe_link}>"
+            msg['List-Unsubscribe-Post'] = "List-Unsubscribe=One-Click"
             msg.attach(MIMEText(email_body, 'html'))
             
             server.send_message(msg)

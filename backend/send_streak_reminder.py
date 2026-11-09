@@ -100,10 +100,20 @@ HTML_TEMPLATE = """
         </a>
       </div>
 
-      <p style="font-size:12px;color:#9ca3af;text-align:center;line-height:1.5;margin:0;">
-        Recibes este email porque activaste los recordatorios de racha en Portal Trabajo IT.<br>
-        <a href="{unsubscribe_link}" style="color:#9ca3af;">Cancelar recordatorios</a>
-      </p>
+      <div style="background: #f9fafb; padding: 18px 16px; text-align: center; border-top: 1px solid #e5e7eb; font-size: 10px; color: #9ca3af; line-height: 1.5; margin-top: 24px; border-radius: 0 0 20px 20px;">
+        <p style="margin: 0 0 4px 0;">
+          <strong>Portal Trabajo IT</strong> · Recordatorio de racha en el portal de empleo tech.<br>
+          Recibes este aviso puntual porque activaste los recordatorios de racha en portalempleoit.com.
+        </p>
+        <p style="margin: 0;">
+          <a href="{base_url}" style="color: #6366f1; text-decoration: none;">portalempleoit.com</a> · 
+          <a href="{base_url}/privacy" style="color: #6b7280; text-decoration: underline;">Política de Privacidad</a> · 
+          <a href="{unsubscribe_link}" style="color: #ef4444; text-decoration: underline; font-weight: bold;">Darme de baja en 1 clic</a>
+        </p>
+        <p style="margin: 4px 0 0 0; color: #d1d5db; font-size: 9px;">
+          Derechos de protección de datos: contacto@portalempleoit.com
+        </p>
+      </div>
     </div>
   </div>
 </body>
@@ -140,6 +150,7 @@ def get_streak_reminder_subscribers(conn):
             SELECT s.email
             FROM subscribers s
             WHERE s.source = 'streak_reminder'
+              AND s.email NOT LIKE '%@deleted.local'
               AND (s.is_active IS NULL OR s.is_active = TRUE)
               AND s.email NOT IN (
                 SELECT sr.email FROM streak_reminders sr
@@ -163,6 +174,7 @@ def send_streak_email(smtp, to_email: str):
     msg['From'] = f"Portal Trabajo IT <{FROM_EMAIL}>"
     msg['To'] = to_email
     msg['List-Unsubscribe'] = f"<{unsubscribe_link}>"
+    msg['List-Unsubscribe-Post'] = "List-Unsubscribe=One-Click"
 
     html_content = HTML_TEMPLATE.replace('{base_url}', BASE_URL).replace('{email}', to_email).replace('{unsubscribe_link}', unsubscribe_link)
     msg.attach(MIMEText(html_content, 'html', 'utf-8'))

@@ -238,9 +238,42 @@ export default function AdBanner({
 
   const adSlot = slot || defaultSlot;
 
-  // Detección de Slots placeholders
+  // Comprobar consentimiento publicitario otorgado (LSSI Art. 22.2 / AEPD)
+  const [hasAdConsent, setHasAdConsent] = useState(false);
+
+  useEffect(() => {
+    const checkConsent = () => {
+      try {
+        const saved = localStorage.getItem('cookies_consent');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return !!parsed.advertising;
+        }
+        return localStorage.getItem('cookies_accepted') === 'true';
+      } catch {
+        return false;
+      }
+    };
+
+    setHasAdConsent(checkConsent());
+
+    const handleConsentUpdate = (event: any) => {
+      if (event && event.detail && typeof event.detail.advertising === 'boolean') {
+        setHasAdConsent(event.detail.advertising);
+      } else {
+        setHasAdConsent(checkConsent());
+      }
+    };
+
+    window.addEventListener('cookie_consent_updated', handleConsentUpdate);
+    return () => {
+      window.removeEventListener('cookie_consent_updated', handleConsentUpdate);
+    };
+  }, []);
+
+  // Detección de Slots placeholders y bloqueo previo de cookies de terceros
   const isDummySlot = adSlot === '9876543210' || adSlot === '1122334455' || adSlot === '1234567890' || adSlot === '2233445566' || adSlot === '3344556677';
-  const shouldTryAdsense = !!adsenseClientId && !isDummySlot;
+  const shouldTryAdsense = !!adsenseClientId && !isDummySlot && hasAdConsent;
 
   const [refreshKey, setRefreshKey] = useState(0);
   const [adError, setAdError] = useState(!shouldTryAdsense);

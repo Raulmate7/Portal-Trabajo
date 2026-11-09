@@ -5,7 +5,7 @@ def get_himalayas_jobs():
     print("🏔️  Conectando con Himalayas Remote Jobs API...")
     url = "https://himalayas.app/jobs/api?limit=50"
 
-    headers = {'User-Agent': 'Mozilla/5.0'}
+    headers = {'User-Agent': 'PortalTrabajoITBot/1.0 (+https://portalempleoit.com/bot; bot@portalempleoit.com)'}
 
     try:
         response = requests.get(url, headers=headers, timeout=10)

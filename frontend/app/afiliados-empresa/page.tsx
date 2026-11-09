@@ -6,6 +6,7 @@ import { registerRecruiterAffiliate } from '@/app/actions';
 
 export default function AfiliadosEmpresaPage() {
   const [email, setEmail] = useState('');
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [result, setResult] = useState<{
@@ -18,6 +19,11 @@ export default function AfiliadosEmpresaPage() {
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim()) return;
+
+    if (!privacyAccepted) {
+      setErrorMsg('Debes aceptar la Política de Privacidad y las condiciones de afiliación.');
+      return;
+    }
 
     setLoading(true);
     setErrorMsg('');
@@ -134,6 +140,33 @@ export default function AfiliadosEmpresaPage() {
                   onChange={e => setEmail(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl bg-gray-950 border border-gray-800 text-white placeholder-gray-550 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-xs"
                 />
+
+                <label className="flex items-start gap-2 text-xs text-gray-400 cursor-pointer text-left">
+                  <input
+                    type="checkbox"
+                    required
+                    checked={privacyAccepted}
+                    onChange={e => setPrivacyAccepted(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-gray-700 bg-gray-950 text-purple-500 focus:ring-purple-400"
+                  />
+                  <span>
+                    He leído y acepto la{' '}
+                    <Link href="/privacy" target="_blank" className="text-purple-400 underline">
+                      Política de Privacidad
+                    </Link>{' '}
+                    y las condiciones del programa de recomendación B2B.*
+                  </span>
+                </label>
+
+                {/* Primera capa informativa AEPD */}
+                <div className="p-3 bg-gray-950/80 border border-gray-800 rounded-xl text-[10px] text-gray-400 text-left space-y-0.5">
+                  <p><strong>Responsable:</strong> Portal Trabajo IT.</p>
+                  <p><strong>Finalidad:</strong> Registro, generación de enlace de afiliado y liquidación de comisiones.</p>
+                  <p><strong>Legitimación:</strong> Ejecución del acuerdo y consentimiento expreso (Art. 6.1.a y b RGPD).</p>
+                  <p><strong>Destinatarios:</strong> No se ceden datos a terceros salvo imperativo legal.</p>
+                  <p><strong>Derechos:</strong> Acceso, rectificación o supresión en <a href="mailto:contacto@portalempleoit.com" className="text-purple-400 underline">contacto@portalempleoit.com</a> (+ info en <Link href="/privacy" className="text-purple-400 underline">Política de Privacidad</Link>).</p>
+                </div>
+
                 <button
                   type="submit"
                   disabled={loading}
