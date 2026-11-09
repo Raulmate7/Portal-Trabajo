@@ -2,28 +2,46 @@
 .env
 .env.*
 .env.local
+!.env.example
+!*.env.example
+!frontend/.env.example
+!backend/.env.example
 *.pem
 *.key
 portalempleoit*.json
-db_proxy.php
 backend/migration_data/
-*.sql
 
 # Python
 venv/
 __pycache__/
 *.pyc
+.pytest_cache/
 
 # Next.js & Node
 node_modules/
 .next/
+frontend/tsconfig.tsbuildinfo
 *.json
 !frontend/package.json
 !frontend/tsconfig.json
+!frontend/public/manifest.json
 
-# Logs
+# SQL (permitir scripts de migración del backend)
+*.sql
+!backend/*.sql
+
+# Logs & temp
 *_log.txt
 log.txt
+scratch/
+*/scratch/
+Navegador/
+Imagen pegada.png
+*.png
+!frontend/public/*.png
+!frontend/public/**/*.png
+frontend/create_table.js
+frontend/test_db.js
 
 # Antigravity artifacts
 brain/

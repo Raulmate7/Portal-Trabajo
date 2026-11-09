@@ -21,11 +21,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # URLs de base de datos
-SUPABASE_URL = os.getenv("DATABASE_URL") # postgresql://...
-# Si DATABASE_URL ya apunta a MySQL, se puede configurar SUPABASE_URL a mano
-if not SUPABASE_URL or not SUPABASE_URL.startswith("postgres"):
-    # Si la variable principal se ha cambiado, buscamos en el entorno
-    SUPABASE_URL = "postgresql://postgres.ggwrsvzlaxeephkhwmtn:Tolili07@aws-1-eu-west-1.pooler.supabase.com:6543/postgres"
+# VULN-05: Credenciales leídas exclusivamente de variables de entorno seguras (sin valores hardcodeados)
+SUPABASE_URL = os.getenv("SUPABASE_DATABASE_URL") or os.getenv("DATABASE_URL")
+if not SUPABASE_URL or not (SUPABASE_URL.startswith("postgresql://") or SUPABASE_URL.startswith("postgres://")):
+    raise ValueError("❌ Error de seguridad: SUPABASE_DATABASE_URL o DATABASE_URL no encontrada en las variables de entorno.")
 
 # Credenciales de MySQL
 MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
@@ -157,16 +156,20 @@ DDL_TABLES = {
     """
 }
 
-# Crear las tablas en MySQL
-print("\n🔨 Creando tablas en MySQL...")
-# Desactivamos comprobaciones de claves foráneas temporalmente para la creación limpia
-mysql_cur.execute("SET FOREIGN_KEY_CHECKS = 0;")
+# VULN-30: Recreación de tablas controlada para prevenir destrucción accidental de datos en producción
+drop_existing = os.getenv("ALLOW_DESTRUCTIVE_MIGRATION") == "true" or os.getenv("DROP_EXISTING_TABLES") == "true"
+if drop_existing:
+    print("\n⚠️ ALERTA: Modo destructivo activo (ALLOW_DESTRUCTIVE_MIGRATION=true). Recreando tablas...")
+    mysql_cur.execute("SET FOREIGN_KEY_CHECKS = 0;")
+    for table in DDL_TABLES.keys():
+        mysql_cur.execute(f"DROP TABLE IF EXISTS `{table}`;")
+    mysql_cur.execute("SET FOREIGN_KEY_CHECKS = 1;")
+else:
+    print("\n🔨 Creando/verificando tablas en MySQL (modo seguro: CREATE TABLE IF NOT EXISTS)...")
+
 for table, ddl in DDL_TABLES.items():
-    print(f"  - Creando tabla '{table}'...")
-    mysql_cur.execute(f"DROP TABLE IF EXISTS {table};")
     mysql_cur.execute(ddl)
-mysql_cur.execute("SET FOREIGN_KEY_CHECKS = 1;")
-print("✅ Creación de tablas e índices completada.")
+print("✅ Creación/verificación de tablas completada.")
 
 # Función genérica de migración de datos
 def migrate_table(table_name, select_cols, insert_cols, convert_row_fn=None):

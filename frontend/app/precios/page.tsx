@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { isSafeStripeRedirectUrl } from '@/lib/urlSafety';
 
 export default function PreciosPage() {
   const [candidateEmail, setCandidateEmail] = useState('');
@@ -23,10 +24,11 @@ export default function PreciosPage() {
       });
 
       const data = await response.json();
-      if (response.ok && data.url) {
+      // VULN-20: Validación de URL antes de la redirección contra Open Redirect
+      if (response.ok && data.url && isSafeStripeRedirectUrl(data.url)) {
         window.location.href = data.url;
       } else {
-        setB2cError(data.error || 'Ocurrió un error al procesar el pago.');
+        setB2cError(data.error || 'Ocurrió un error al procesar el pago o la URL devuelta no es válida.');
       }
     } catch (err) {
       setB2cError('Error de red. Inténtalo de nuevo.');

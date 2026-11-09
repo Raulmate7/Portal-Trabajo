@@ -20,18 +20,16 @@ def migrate():
         conn.commit()
         print("✅ Columna 'is_featured' verificada/creada con éxito.")
 
-        # 2. Marcar algunas ofertas recientes como destacadas para pruebas
+        # 2. Marcar algunas ofertas recientes como destacadas para pruebas (VULN-19: Parametrización estricta)
         print("⭐ Marcando algunas ofertas como destacadas para propósitos de prueba...")
         cursor.execute("SELECT id FROM jobs ORDER BY created_at DESC LIMIT 3;")
         recent_ids = cursor.fetchall()
         if recent_ids:
-            ids_tuple = tuple(r[0] for r in recent_ids)
-            if len(ids_tuple) == 1:
-                cursor.execute(f"UPDATE jobs SET is_featured = TRUE WHERE id = {ids_tuple[0]};")
-            else:
-                cursor.execute(f"UPDATE jobs SET is_featured = TRUE WHERE id IN {ids_tuple};")
+            ids = [r[0] for r in recent_ids]
+            placeholders = ', '.join(['%s'] * len(ids))
+            cursor.execute(f"UPDATE jobs SET is_featured = TRUE WHERE id IN ({placeholders});", tuple(ids))
             conn.commit()
-            print(f"✅ Se han marcado las ofertas con IDs {ids_tuple} como destacadas.")
+            print(f"✅ Se han marcado las ofertas con IDs {ids} como destacadas.")
         else:
             print("⚠️ No se encontraron ofertas en la BD para marcar como destacadas.")
 

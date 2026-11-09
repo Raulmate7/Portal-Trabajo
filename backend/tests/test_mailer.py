@@ -35,7 +35,7 @@ class TestMailer(unittest.TestCase):
             send_newsletter()
 
             mock_print.assert_any_call("🚀 PREPARANDO ENVÍO DE NEWSLETTER SEMANAL...")
-            mock_print.assert_any_call("✅ Login correcto en Gmail SMTP.")
+            mock_print.assert_any_call("✅ Login correcto en servidor SMTP (smtp.gmail.com:587).")
             mock_print.assert_any_call("  ✅ Enviado resumen semanal a: sub-1@gmail.com")
             mock_print.assert_any_call("  ✅ Enviado resumen semanal a: sub-2@gmail.com")
             mock_print.assert_any_call("🎉 Envío completado: 2 enviados, 0 fallidos.")

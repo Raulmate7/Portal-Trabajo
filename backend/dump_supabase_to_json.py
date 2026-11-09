@@ -14,10 +14,11 @@ from datetime import datetime, date
 from dotenv import load_dotenv
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL or not DATABASE_URL.startswith("postgres"):
-    # Si la variable se ha cambiado, forzar la de Supabase
-    DATABASE_URL = "postgresql://postgres.ggwrsvzlaxeephkhwmtn:Tolili07@aws-1-eu-west-1.pooler.supabase.com:6543/postgres"
+# VULN-04: Credenciales leídas exclusivamente de variables de entorno seguras (sin valores hardcodeados)
+DATABASE_URL = os.getenv("SUPABASE_DATABASE_URL") or os.getenv("DATABASE_URL")
+if not DATABASE_URL or not (DATABASE_URL.startswith("postgresql://") or DATABASE_URL.startswith("postgres://")):
+    print("❌ Error de seguridad: SUPABASE_DATABASE_URL o DATABASE_URL no encontrada o no es válida.")
+    sys.exit(1)
 
 print("🔌 Conectando a Supabase para volcado de datos...")
 try:
@@ -45,14 +46,16 @@ def datetime_serializer(obj):
     raise TypeError(f"Type {type(obj)} not serializable")
 
 for table in TABLES:
+    if not table.isidentifier():
+        continue
     print(f"📦 Descargando tabla '{table}'...")
     try:
         # Obtener columnas
-        cur.execute(f"SELECT * FROM {table} LIMIT 0")
+        cur.execute(f"SELECT * FROM \"{table}\" LIMIT 0")
         colnames = [desc[0] for desc in cur.description]
         
         # Obtener todos los registros
-        cur.execute(f"SELECT * FROM {table}")
+        cur.execute(f"SELECT * FROM \"{table}\"")
         rows = cur.fetchall()
         
         # Estructurar datos como lista de diccionarios
@@ -60,12 +63,16 @@ for table in TABLES:
         for row in rows:
             data.append(dict(zip(colnames, row)))
             
-        # Guardar en archivo JSON
+        # VULN-21: Guardar en archivo JSON con permisos restrictivos (0600) para proteger PII en disco
         filepath = os.path.join(output_dir, f"{table}.json")
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(data, f, default=datetime_serializer, indent=2, ensure_ascii=False)
+        try:
+            os.chmod(filepath, 0o600)
+        except OSError:
+            pass
             
-        print(f"  - ✅ Guardados {len(rows)} registros en '{filepath}'")
+        print(f"  - ✅ Guardados {len(rows)} registros protegidos en '{filepath}'")
     except Exception as e:
         print(f"  - ❌ Error volcando tabla '{table}': {e}")
 

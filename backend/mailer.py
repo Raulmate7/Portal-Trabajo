@@ -290,12 +290,17 @@ def send_newsletter():
 
     print(f"👥 Se encontraron {len(subscribers)} suscriptores. Iniciando envíos personalizados...")
 
-    # 5. INICIAR SESIÓN EN GMAIL
+    # 5. INICIAR SESIÓN EN SERVIDOR SMTP
     try:
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.starttls()
+        smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
+        smtp_port = int(os.getenv("SMTP_PORT", "587"))
+        if smtp_port == 465:
+            server = smtplib.SMTP_SSL(smtp_host, smtp_port)
+        else:
+            server = smtplib.SMTP(smtp_host, smtp_port)
+            server.starttls()
         server.login(os.getenv("EMAIL_USER"), os.getenv("EMAIL_PASSWORD"))
-        print("✅ Login correcto en Gmail SMTP.")
+        print(f"✅ Login correcto en servidor SMTP ({smtp_host}:{smtp_port}).")
     except Exception as e:
         print(f"❌ ERROR DE LOGIN SMTP (Revisa tu .env): {e}")
         conn.close()

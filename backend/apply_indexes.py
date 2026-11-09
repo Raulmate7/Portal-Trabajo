@@ -15,29 +15,62 @@ def apply_indexes():
         print(f"❌ Error: No se encontró el archivo {sql_path}")
         return
         
-    print("🔌 Conectando a PostgreSQL...")
+    print("🔌 Conectando a la base de datos...")
     try:
         conn = psycopg2.connect(db_url)
-        # Necesitamos activar autocommit para permitir la creación de extensiones e índices si fuera necesario
         conn.autocommit = True
         cur = conn.cursor()
         
-        print("📖 Leyendo archivo SQL...")
-        with open(sql_path, "r", encoding="utf-8") as f:
-            sql_queries = f.read()
+        # VULN-32: Detectar motor de base de datos para ejecutar sintaxis de índices compatible
+        is_postgres = True
+        try:
+            cur.execute("SELECT version();")
+            ver = str(cur.fetchone()[0]).lower()
+            if "mysql" in ver or "mariadb" in ver:
+                is_postgres = False
+        except Exception:
+            is_postgres = False
             
-        print("⚡ Aplicando optimizaciones de base de datos...")
-        cur.execute(sql_queries)
-        print("✅ ¡Optimizaciones aplicadas correctamente!")
-        
-        # Verificar índices creados
-        cur.execute("SELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'jobs'")
-        indexes = cur.fetchall()
+        print(f"⚡ Aplicando índices de optimización (Motor detectado: {'PostgreSQL' if is_postgres else 'MySQL'})...")
+        if is_postgres:
+            cur.execute("""
+                CREATE EXTENSION IF NOT EXISTS pg_trgm;
+                CREATE INDEX IF NOT EXISTS jobs_title_trgm_idx ON jobs USING gin (title gin_trgm_ops);
+                CREATE INDEX IF NOT EXISTS jobs_location_trgm_idx ON jobs USING gin (location gin_trgm_ops);
+                CREATE INDEX IF NOT EXISTS jobs_category_idx ON jobs (category);
+                CREATE INDEX IF NOT EXISTS jobs_is_featured_idx ON jobs (is_featured);
+                CREATE INDEX IF NOT EXISTS jobs_created_at_idx ON jobs (created_at DESC);
+            """)
+            cur.execute("SELECT indexname FROM pg_indexes WHERE tablename = 'jobs';")
+            indexes = [r[0] for r in cur.fetchall()]
+        else:
+            # Creación segura de índices en MySQL
+            mysql_indexes = [
+                ("idx_jobs_created_at", "CREATE INDEX idx_jobs_created_at ON jobs (created_at DESC);"),
+                ("idx_jobs_is_featured", "CREATE INDEX idx_jobs_is_featured ON jobs (is_featured);"),
+                ("idx_jobs_is_active", "CREATE INDEX idx_jobs_is_active ON jobs (is_active);"),
+                ("idx_jobs_category", "CREATE INDEX idx_jobs_category ON jobs (category);"),
+                ("idx_jobs_search", "CREATE FULLTEXT INDEX idx_jobs_search ON jobs (title, company, location);")
+            ]
+            for idx_name, idx_sql in mysql_indexes:
+                try:
+                    cur.execute(idx_sql)
+                    print(f" - ✅ Creado índice '{idx_name}'")
+                except Exception as idx_err:
+                    err_msg = str(idx_err).lower()
+                    if "duplicate key" in err_msg or "already exists" in err_msg or "1061" in err_msg:
+                        print(f" - ℹ️ El índice '{idx_name}' ya existe.")
+                    else:
+                        print(f" - ⚠️ Nota en índice '{idx_name}': {idx_err}")
+            cur.execute("SHOW INDEX FROM jobs;")
+            indexes = list(set([r[2] for r in cur.fetchall()]))
+            
         print("\n📋 Índices activos en la tabla 'jobs':")
-        for name, definition in indexes:
+        for name in indexes:
             print(f" - {name}")
             
         conn.close()
+        print("✅ ¡Optimizaciones aplicadas correctamente!")
     except Exception as e:
         print(f"❌ Error aplicando optimizaciones: {e}")
 

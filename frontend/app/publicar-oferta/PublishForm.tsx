@@ -7,6 +7,8 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { isSafeStripeRedirectUrl } from "@/lib/urlSafety";
+import { VALID_JOB_PLAN_IDS } from "@/lib/pricingPlans";
 
 const jobSchema = z.object({
   company_name: z.string().min(2, "El nombre de la empresa es muy corto"),
@@ -30,10 +32,15 @@ export default function PublishForm() {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const [selectedPlan, setSelectedPlan] = useState<"basico" | "destacado_basico" | "destacado_pro" | "destacado_enterprise">("destacado_pro");
+  const [honeypot, setHoneypot] = useState("");
 
+  // VULN-22: Validación estricta del plan seleccionado vía parámetro de consulta
   useEffect(() => {
-    if (urlPlan && ["basico", "destacado_basico", "destacado_pro", "destacado_enterprise"].includes(urlPlan)) {
-      setSelectedPlan(urlPlan as any);
+    if (urlPlan) {
+      const normalized = urlPlan.trim().toLowerCase();
+      if (normalized === "basico" || VALID_JOB_PLAN_IDS.has(normalized)) {
+        setSelectedPlan(normalized as any);
+      }
     }
   }, [urlPlan]);
 
@@ -44,6 +51,13 @@ export default function PublishForm() {
   const isLoading = status === "loading" || isSubmitting;
 
   const onSubmitForm = async (data: JobFormValues) => {
+    // VULN-21: Trampa honeypot silenciosa para mitigar bots en envíos gratuitos
+    if (honeypot) {
+      setStatus("success");
+      setMessage("Tu solicitud ha sido recibida y está en proceso de revisión.");
+      return;
+    }
+
     setStatus("loading");
     setMessage("");
 
@@ -52,6 +66,7 @@ export default function PublishForm() {
       if (value) formData.append(key, value);
     });
     formData.append("plan", selectedPlan);
+    formData.append("website_hp", honeypot);
 
     if (selectedPlan === "basico") {
       const result = await submitSponsoredJob(formData);
@@ -85,10 +100,11 @@ export default function PublishForm() {
         });
 
         const resData = await res.json();
-        if (resData.url) {
+        // VULN-20: Validación de destino seguro para prevenir Open Redirect hacia sitios de phishing
+        if (resData.url && isSafeStripeRedirectUrl(resData.url)) {
           window.location.href = resData.url;
         } else {
-          throw new Error(resData.error || "No se pudo iniciar la pasarela de Stripe");
+          throw new Error(resData.error || "URL de pasarela de pago no autorizada o no válida.");
         }
       } catch (err: any) {
         setStatus("error");
@@ -268,6 +284,20 @@ export default function PublishForm() {
       )}
 
       <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-5">
+        {/* VULN-21: Campo trampa honeypot invisible para humanos pero capturado por bots spammers */}
+        <div style={{ display: 'none', position: 'absolute', left: '-9999px' }} aria-hidden="true">
+          <label htmlFor="company_website_hp">No rellenar</label>
+          <input
+            id="company_website_hp"
+            name="company_website_hp"
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
+            value={honeypot}
+            onChange={(e) => setHoneypot(e.target.value)}
+          />
+        </div>
+
         {/* Datos de la empresa */}
         <div className="pb-4 mb-4 border-b border-gray-800">
           <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Datos de contacto</h3>

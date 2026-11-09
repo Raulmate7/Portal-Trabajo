@@ -77,10 +77,11 @@ def migrate_b2b_monetization():
             CREATE TABLE IF NOT EXISTS recruiter_affiliates (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 recruiter_email VARCHAR(255) NOT NULL,
-                affiliate_code VARCHAR(100) UNIQUE NOT NULL,
+                affiliate_code VARCHAR(100) NOT NULL,
                 referred_company_name VARCHAR(255),
                 commission_paid BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_affiliate_code (affiliate_code)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         """)
         

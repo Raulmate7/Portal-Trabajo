@@ -54,7 +54,7 @@ def generate_news_article():
     
     if api_key:
         try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={api_key}"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
             prompt_text = f"""
 Escribe una noticia periodística rigurosa, profesional y atractiva en español para un portal de empleo de tecnología sobre: "{topic['title']}".
 {topic['prompt']}

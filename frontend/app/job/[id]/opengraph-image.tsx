@@ -17,15 +17,27 @@ export const contentType = 'image/png';
 const PROXY_URL = process.env.DB_PROXY_URL || 'https://mail.portalempleoit.com/db_proxy.php';
 const PROXY_TOKEN = process.env.DB_PROXY_TOKEN || '';
 
-/** Extrae el ID numérico de un slug como "developer-react-acme-123" → 123 */
-function extractNumericId(slug: string): string | null {
-  // Formato: cualquier-texto-NUMEROID al final
-  const match = slug.match(/(\d+)$/);
-  return match ? match[1] : slug; // Si no hay match, intentar usar el slug tal cual
+/** Extrae de forma robusta el ID (numérico o UUID) de un slug o identificador */
+function extractJobId(slugOrId: string): string {
+  if (!slugOrId) return '';
+  const trimmed = slugOrId.trim();
+
+  // 1. Si contiene un UUID v4 (ej. titulo-empresa-550e8400-e29b-41d4-a716-446655440000 o directo)
+  const uuidMatch = trimmed.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+  if (uuidMatch) return uuidMatch[0];
+
+  // 2. Si tiene formato con sufijo numérico (ej. developer-react-acme-123 → 123)
+  const numericSuffixMatch = trimmed.match(/-(\d+)$/);
+  if (numericSuffixMatch) return numericSuffixMatch[1];
+
+  // 3. Si es un entero directo o ID simple
+  if (/^\d+$/.test(trimmed)) return trimmed;
+
+  return trimmed;
 }
 
 async function getJobById(id: string) {
-  if (!PROXY_TOKEN) {
+  if (!PROXY_TOKEN || !id) {
     return null;
   }
   try {
@@ -51,9 +63,13 @@ async function getJobById(id: string) {
 
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const numericId = extractNumericId(id);
+  const resolvedId = extractJobId(id);
 
-  const job = numericId ? await getJobById(numericId) : null;
+  let job = resolvedId ? await getJobById(resolvedId) : null;
+  // Fallback si el ID guardado en BD era el slug completo
+  if (!job && resolvedId !== id) {
+    job = await getJobById(id);
+  }
 
   const title = job ? (job.title_es || job.title) : 'Oferta de Empleo IT';
   const company = job ? job.company : 'Portal Trabajo IT';

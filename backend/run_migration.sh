@@ -2,8 +2,10 @@
 # Ir al directorio donde reside este script
 cd "$(dirname "$0")"
 
-# Archivo de log local
+# Archivo de log local con permisos restrictivos (VULN-29)
 LOG_FILE="migration_log.txt"
+touch "$LOG_FILE"
+chmod 600 "$LOG_FILE" 2>/dev/null || true
 
 echo "=== INICIANDO PROCESO DE MIGRACIÓN ===" > "$LOG_FILE"
 echo "Fecha y hora: $(date)" >> "$LOG_FILE"
@@ -36,11 +38,11 @@ if [ ! -f "venv/bin/pip" ]; then
     fi
 fi
 
-# 3. Instalar librerías necesarias
+# 3. Instalar librerías necesarias con versiones fijadas (VULN-29)
 if [ -f "venv/bin/pip" ]; then
     echo "📥 Instalando pip y paquetes requeridos en venv..." >> "$LOG_FILE"
     venv/bin/pip install --upgrade pip >> "$LOG_FILE" 2>&1
-    venv/bin/pip install pymysql cryptography python-dotenv >> "$LOG_FILE" 2>&1
+    venv/bin/pip install pymysql==1.1.1 cryptography==42.0.8 python-dotenv==1.0.1 >> "$LOG_FILE" 2>&1
     PYTHON_EXEC="venv/bin/python"
 else
     echo "⚠️ venv/virtualenv no disponible. Intentando instalación con --user..." >> "$LOG_FILE"
@@ -56,7 +58,7 @@ else
     fi
     
     echo "Usando comando de pip: $PIP_CMD" >> "$LOG_FILE"
-    $PIP_CMD install --user pymysql cryptography python-dotenv >> "$LOG_FILE" 2>&1
+    $PIP_CMD install --user pymysql==1.1.1 cryptography==42.0.8 python-dotenv==1.0.1 >> "$LOG_FILE" 2>&1
 fi
 
 # 4. Ejecutar el script de migración leyendo desde JSON

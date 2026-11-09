@@ -36,7 +36,7 @@ def generate_podcast_episode():
         slug = f"podcast-mercado-it-{date_str}"
         title = f"Podcast El Mercado IT: Episodio [{date_str}] — {total_jobs} Vacantes Analizadas"
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
         prompt = f"""
 Escribe el guion para un episodio de podcast de 5 minutos titulado 'El Mercado IT'.
 Fecha: {date_str}.

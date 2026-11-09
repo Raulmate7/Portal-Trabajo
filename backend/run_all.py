@@ -24,14 +24,7 @@ def run_cmd(args):
 
 # 0. Ejecutar Migraciones de Base de Datos
 print("\n[0/5] 🛠️ Ejecutando Migraciones de Base de Datos...")
-run_cmd([python_bin, "add_referred_by_column.py"])
-run_cmd([python_bin, "add_reactions_table.py"])
-run_cmd([python_bin, "add_pinterest_threads_columns.py"])
-run_cmd([python_bin, "add_referrals_notified_count.py"])
-run_cmd([python_bin, "add_metrics_columns.py"])
-run_cmd([python_bin, "add_company_email_to_jobs.py"])
-run_cmd([python_bin, "add_b2b_monetization_tables.py"])
-run_cmd([python_bin, "add_bluesky_column.py"])
+run_cmd([python_bin, "consolidate_production_schema.py"])
 
 # 1. Ejecutar el Scraper Internacional (WWR, Remotive, JobFluent, RemoteOK, WorkingNomads, Himalayas, Python.org)
 print("\n[1/5] 🌎 Ejecutando Scrapers Internacionales (main.py)...")

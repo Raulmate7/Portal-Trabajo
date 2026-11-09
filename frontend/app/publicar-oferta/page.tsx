@@ -132,14 +132,14 @@ export default function PublicarOfertaPage() {
             </a>
           </div>
 
-          {/* Plan Destacado Rápido */}
+          {/* Plan Destacado Básico */}
           <div className="bg-gray-900/60 border border-amber-500/30 rounded-2xl p-6 flex flex-col hover:border-amber-500/50 transition-all">
             <div className="mb-4">
               <span className="text-xs font-bold uppercase tracking-wider text-amber-500/70 block mb-1">Destaque Corto</span>
-              <h3 className="text-lg font-extrabold text-white">Destacado Rápido</h3>
+              <h3 className="text-lg font-extrabold text-white">Destacado Básico</h3>
               <div className="flex items-end gap-1 mt-2">
-                <span className="text-2xl font-black text-amber-400">19€</span>
-                <span className="text-gray-500 text-xs ml-1 mb-0.5">/ 7 días</span>
+                <span className="text-2xl font-black text-amber-400">9€</span>
+                <span className="text-gray-500 text-xs ml-1 mb-0.5">/ 15 días</span>
               </div>
             </div>
             <p className="text-gray-400 text-xs mb-4 leading-relaxed flex-grow">
@@ -148,7 +148,7 @@ export default function PublicarOfertaPage() {
             <ul className="space-y-2.5 text-xs text-gray-300 border-t border-gray-800/80 pt-4 mb-6">
               <li className="flex items-start gap-2">
                 <span className="text-amber-400">✓</span>
-                Fijada arriba por 7 días
+                Fijada arriba por 15 días
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-amber-400">✓</span>
@@ -163,11 +163,11 @@ export default function PublicarOfertaPage() {
               href="#formulario"
               className="block w-full text-center py-2 px-4 rounded-lg border border-amber-500/50 text-amber-400 font-bold hover:bg-amber-500/10 transition-all text-xs"
             >
-              Seleccionar 19€
+              Seleccionar 9€
             </a>
           </div>
 
-          {/* Plan Destacado Estándar */}
+          {/* Plan Destacado Pro */}
           <div className="relative bg-gradient-to-br from-gray-900 to-gray-950 border-2 border-amber-500 rounded-2xl p-6 flex flex-col shadow-xl shadow-amber-500/5 hover:scale-[1.01] transition-all">
             <div className="absolute -top-3 left-4">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-white text-[9px] font-bold shadow-md uppercase tracking-wider">
@@ -176,9 +176,9 @@ export default function PublicarOfertaPage() {
             </div>
             <div className="mb-4">
               <span className="text-xs font-bold uppercase tracking-wider text-amber-500 block mb-1">Máxima Conversión</span>
-              <h3 className="text-lg font-extrabold text-white">Destacado Estándar</h3>
+              <h3 className="text-lg font-extrabold text-white">Destacado Pro</h3>
               <div className="flex items-end gap-1 mt-2">
-                <span className="text-2xl font-black text-amber-400">39€</span>
+                <span className="text-2xl font-black text-amber-400">19€</span>
                 <span className="text-gray-500 text-xs ml-1 mb-0.5">/ 30 días</span>
               </div>
             </div>
@@ -196,24 +196,24 @@ export default function PublicarOfertaPage() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-amber-400">✓</span>
-                Alerta push a suscriptores
+                Alerta push a suscriptores + Newsletter
               </li>
             </ul>
             <a
               href="#formulario"
               className="block w-full text-center py-2 px-4 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-500 text-gray-900 font-black hover:from-amber-400 hover:to-yellow-400 transition-all text-xs"
             >
-              Seleccionar 39€
+              Seleccionar 19€
             </a>
           </div>
 
-          {/* Plan Destacado Premium */}
+          {/* Plan Destacado Enterprise */}
           <div className="bg-gray-900/60 border border-purple-500/40 rounded-2xl p-6 flex flex-col hover:border-purple-500 transition-all">
             <div className="mb-4">
               <span className="text-xs font-bold uppercase tracking-wider text-purple-400 block mb-1">Cobertura Total</span>
-              <h3 className="text-lg font-extrabold text-white">Destacado Premium</h3>
+              <h3 className="text-lg font-extrabold text-white">Enterprise</h3>
               <div className="flex items-end gap-1 mt-2">
-                <span className="text-2xl font-black text-purple-400">79€</span>
+                <span className="text-2xl font-black text-purple-400">49€</span>
                 <span className="text-gray-500 text-xs ml-1 mb-0.5">/ 30 días</span>
               </div>
             </div>
@@ -238,7 +238,7 @@ export default function PublicarOfertaPage() {
               href="#formulario"
               className="block w-full text-center py-2 px-4 rounded-lg border border-purple-500 text-purple-400 font-bold hover:bg-purple-500/10 transition-all text-xs"
             >
-              Seleccionar 79€
+              Seleccionar 49€
             </a>
           </div>
         </div>

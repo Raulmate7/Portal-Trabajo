@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
+import stripe from '@/lib/stripe';
 import { generateReportToken } from '@/lib/reportToken';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2023-10-16' as any,
-});
-
 export const dynamic = 'force-dynamic';
+
+function maskEmail(emailStr: string): string {
+  if (!emailStr || !emailStr.includes('@')) return '';
+  const [local, domain] = emailStr.split('@');
+  const visible = local.length > 2 ? `${local.slice(0, 2)}***` : `${local.slice(0, 1)}***`;
+  return `${visible}@${domain}`;
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -38,15 +41,28 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // VULN-11: Mitigar reemisión infinita de tokens mediante comprobación del ciclo de vida de la compra
+    // La descarga solo puede realizarse dentro de las 48 horas posteriores al pago en Stripe.
+    const sessionCreatedAtMs = session.created * 1000;
+    const maxAllowedTimestamp = sessionCreatedAtMs + (48 * 60 * 60 * 1000); // 48 horas de caducidad absoluta tras la compra
+    if (Date.now() > maxAllowedTimestamp) {
+      return NextResponse.json(
+        { valid: false, error: 'El plazo de descarga para esta compra (48 horas tras el pago) ha expirado definitivamente.' },
+        { status: 410 }
+      );
+    }
+
     const email = session.customer_details?.email || session.metadata?.email || '';
     const plan = session.metadata?.plan || 'full';
 
-    // 3. Generar un token criptográfico efímero y seguro para autorizar la descarga del dataset
-    const token = generateReportToken(email, plan, session.id);
+    // 3. Generar un token criptográfico acotado al límite temporal estricto
+    const tokenExpiresAt = Math.min(Date.now() + 24 * 60 * 60 * 1000, maxAllowedTimestamp);
+    const token = generateReportToken(email, plan, session.id, tokenExpiresAt);
 
+    // VULN-31: Enmascaramiento de PII en la respuesta pública de verificación de sesión
     return NextResponse.json({
       valid: true,
-      email,
+      email: maskEmail(email),
       plan,
       token,
       downloadUrl: `/api/checkout/report/download?token=${token}`,

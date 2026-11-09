@@ -171,8 +171,11 @@ class CursorWrapper:
         if "INFORMATION_SCHEMA.TABLES" in mysql_query.upper() and "TABLE_SCHEMA = 'PUBLIC'" in mysql_query.upper():
             mysql_query = "SHOW TABLES"
             
-        # 1. Traducir ILIKE a LIKE (MySQL es case-insensitive por defecto)
-        mysql_query = re.sub(r'\bILIKE\b', 'LIKE', mysql_query, flags=re.IGNORECASE)
+        # 1. Traducir ILIKE a LIKE (MySQL es case-insensitive por defecto), respetando cadenas literales (VULN-18)
+        parts = re.split(r"('(?:[^'\\]|\\.)*'|\"(?:[^\"\\]|\\.)*\")", mysql_query)
+        for i in range(0, len(parts), 2):
+            parts[i] = re.sub(r'\bILIKE\b', 'LIKE', parts[i], flags=re.IGNORECASE)
+        mysql_query = "".join(parts)
         
         # 2. Traducir ON CONFLICT (col) DO NOTHING a INSERT IGNORE
         if "ON CONFLICT" in mysql_query.upper():
@@ -188,16 +191,29 @@ class CursorWrapper:
                 new_vars = list(vars)
                 for i, v in enumerate(new_vars):
                     if isinstance(v, (list, tuple)):
-                        placeholders = ', '.join(['%s'] * len(v))
-                        mysql_query = re.sub(
-                            r'\w+\s*=\s*ANY\s*\(\s*%s\s*\)', 
-                            f"{col_name} IN ({placeholders})", 
-                            mysql_query, 
-                            count=1, 
-                            flags=re.IGNORECASE
-                        )
-                        new_vars_expanded = new_vars[:i] + list(v) + new_vars[i+1:]
-                        vars = tuple(new_vars_expanded)
+                        if len(v) == 0:
+                            # VULN-16: Colección vacía: IN () produce error de sintaxis en MySQL.
+                            # Se sustituye por una condición falsa segura (1=0)
+                            mysql_query = re.sub(
+                                r'\w+\s*=\s*ANY\s*\(\s*%s\s*\)', 
+                                "1=0", 
+                                mysql_query, 
+                                count=1, 
+                                flags=re.IGNORECASE
+                            )
+                            new_vars_expanded = new_vars[:i] + new_vars[i+1:]
+                            vars = tuple(new_vars_expanded) if new_vars_expanded else None
+                        else:
+                            placeholders = ', '.join(['%s'] * len(v))
+                            mysql_query = re.sub(
+                                r'\w+\s*=\s*ANY\s*\(\s*%s\s*\)', 
+                                f"{col_name} IN ({placeholders})", 
+                                mysql_query, 
+                                count=1, 
+                                flags=re.IGNORECASE
+                            )
+                            new_vars_expanded = new_vars[:i] + list(v) + new_vars[i+1:]
+                            vars = tuple(new_vars_expanded)
                         break
 
         # 4. Traducir INTERVAL 'N hours' / 'N days' a formato de MySQL
@@ -209,8 +225,8 @@ class CursorWrapper:
         try:
             self.cursor.execute(mysql_query, vars)
         except Exception as e:
-            # Lanzamos error de programación compatible con psycopg2
-            raise ProgrammingError(f"❌ Error ejecutando consulta en MySQL: {e}\nConsulta original: {query}\nConsulta traducida: {mysql_query}")
+            # VULN-17: Lanzamos error de programación genérico sin filtrar el texto completo de las consultas en logs o excepciones no controladas
+            raise ProgrammingError(f"❌ Error ejecutando consulta en MySQL: {e}")
 
     def fetchone(self):
         return self.cursor.fetchone()

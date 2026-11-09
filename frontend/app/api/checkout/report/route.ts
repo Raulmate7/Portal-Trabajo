@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
+import stripe from '@/lib/stripe';
 import { checkoutLimiter, getClientIp } from '@/lib/rate-limit';
 import { BASE_URL } from '@/lib/constants';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2023-10-16' as any,
-});
+import { isValidApiOrigin } from '@/lib/urlSafety';
 
 export async function POST(request: Request) {
+  // VULN-30: Validación estricta de origen permitido (CORS/CSRF prevention)
+  if (!isValidApiOrigin(request, BASE_URL)) {
+    return NextResponse.json({ error: 'Origen de petición no autorizado' }, { status: 403 });
+  }
+
   const ip = getClientIp(request);
   const rateLimit = checkoutLimiter.limit(ip);
   if (!rateLimit.success) {

@@ -17,8 +17,8 @@ Options -Indexes
     </IfModule>
 </FilesMatch>
 
-# Denegar acceso a extensiones críticas, backups y código fuente
-<FilesMatch "(?i)\.(env.*|json|sql|log|py|pyc|sh|md|bak|backup|conf|ini|yml|yaml|ts|tsx|map|lock)$">
+# Denegar acceso a ficheros de logs del sistema (error_log, *_log.txt), extensiones críticas, backups y código fuente
+<FilesMatch "(?i)(^error_log$|.*_log\.txt$|\.(env.*|json|sql|log|py|pyc|sh|md|bak|backup|conf|ini|yml|yaml|ts|tsx|map|lock)$)">
     <IfModule mod_authz_core.c>
         Require all denied
     </IfModule>
@@ -39,8 +39,9 @@ Options -Indexes
     </IfModule>
 </Files>
 
-# Cabeceras de seguridad HTTP a nivel de Apache (Defensa en Profundidad, Vector 31)
+# Cabeceras de seguridad HTTP a nivel de Apache (Defensa en Profundidad, Vector 31 / VULN-33)
 <IfModule mod_headers.c>
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-Frame-Options "DENY"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"

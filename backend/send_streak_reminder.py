@@ -12,6 +12,9 @@ no enviar duplicados y respetar la frecuencia de 1 aviso por racha activa.
 """
 
 import os
+import hmac
+import hashlib
+import urllib.parse
 import smtplib
 import psycopg2
 from email.mime.multipart import MIMEMultipart
@@ -23,10 +26,19 @@ load_dotenv()
 
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER", "")
-SMTP_PASS = os.getenv("SMTP_PASS", "")
+SMTP_USER = os.getenv("SMTP_USER", "") or os.getenv("EMAIL_USER", "")
+SMTP_PASS = os.getenv("SMTP_PASS", "") or os.getenv("EMAIL_PASSWORD", "")
 FROM_EMAIL = os.getenv("FROM_EMAIL", SMTP_USER)
 BASE_URL = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
+
+
+def generate_unsubscribe_link(email: str) -> str:
+    secret = os.getenv("UNSUBSCRIBE_SECRET") or os.getenv("CRON_SECRET")
+    if not secret:
+        raise ValueError("❌ Error crítico: Ni UNSUBSCRIBE_SECRET ni CRON_SECRET están definidos en el entorno.")
+    clean_email = email.strip().lower()
+    token = hmac.new(secret.encode(), clean_email.encode(), hashlib.sha256).hexdigest()
+    return f"{BASE_URL}/api/unsubscribe?email={urllib.parse.quote(clean_email)}&token={token}"
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -90,7 +102,7 @@ HTML_TEMPLATE = """
 
       <p style="font-size:12px;color:#9ca3af;text-align:center;line-height:1.5;margin:0;">
         Recibes este email porque activaste los recordatorios de racha en Portal Trabajo IT.<br>
-        <a href="{base_url}/darse-de-baja?email={email}" style="color:#9ca3af;">Cancelar recordatorios</a>
+        <a href="{unsubscribe_link}" style="color:#9ca3af;">Cancelar recordatorios</a>
       </p>
     </div>
   </div>
@@ -105,11 +117,13 @@ def setup_table(conn):
         cur = conn.cursor()
         cur.execute("""
             CREATE TABLE IF NOT EXISTS streak_reminders (
-                id SERIAL PRIMARY KEY,
+                id INT AUTO_INCREMENT PRIMARY KEY,
                 email VARCHAR(255) NOT NULL,
-                sent_at TIMESTAMP DEFAULT NOW(),
-                UNIQUE(email, sent_at::DATE)
-            )
+                sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                date_sent DATE NULL,
+                INDEX idx_streak_reminders_email (email),
+                UNIQUE KEY uq_streak_email_date (email, date_sent)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """)
         conn.commit()
         cur.close()
@@ -126,10 +140,10 @@ def get_streak_reminder_subscribers(conn):
             SELECT s.email
             FROM subscribers s
             WHERE s.source = 'streak_reminder'
-              AND s.is_active = TRUE
+              AND (s.is_active IS NULL OR s.is_active = TRUE)
               AND s.email NOT IN (
                 SELECT sr.email FROM streak_reminders sr
-                WHERE sr.sent_at::DATE = CURRENT_DATE
+                WHERE DATE(sr.sent_at) = CURRENT_DATE() OR sr.date_sent = CURRENT_DATE()
               )
             LIMIT 200
         """)
@@ -143,13 +157,14 @@ def get_streak_reminder_subscribers(conn):
 
 def send_streak_email(smtp, to_email: str):
     """Envía el email de recordatorio de racha."""
+    unsubscribe_link = generate_unsubscribe_link(to_email)
     msg = MIMEMultipart('alternative')
     msg['Subject'] = "🔥 ¡Tu racha de visitas está en peligro! Entra antes de que sea tarde"
     msg['From'] = f"Portal Trabajo IT <{FROM_EMAIL}>"
     msg['To'] = to_email
-    msg['List-Unsubscribe'] = f"<{BASE_URL}/darse-de-baja?email={to_email}>"
+    msg['List-Unsubscribe'] = f"<{unsubscribe_link}>"
 
-    html_content = HTML_TEMPLATE.replace('{base_url}', BASE_URL).replace('{email}', to_email)
+    html_content = HTML_TEMPLATE.replace('{base_url}', BASE_URL).replace('{email}', to_email).replace('{unsubscribe_link}', unsubscribe_link)
     msg.attach(MIMEText(html_content, 'html', 'utf-8'))
 
     smtp.sendmail(FROM_EMAIL, to_email, msg.as_string())
@@ -160,7 +175,7 @@ def mark_sent(conn, email: str):
     try:
         cur = conn.cursor()
         cur.execute(
-            "INSERT INTO streak_reminders (email, sent_at) VALUES (%s, NOW()) ON CONFLICT DO NOTHING",
+            "INSERT IGNORE INTO streak_reminders (email, sent_at, date_sent) VALUES (%s, NOW(), CURRENT_DATE())",
             (email,)
         )
         conn.commit()
@@ -198,9 +213,11 @@ def send_streak_reminders():
     sent = 0
     errors = 0
     try:
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as smtp:
+        smtp_ctx = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT) if SMTP_PORT == 465 else smtplib.SMTP(SMTP_HOST, SMTP_PORT)
+        with smtp_ctx as smtp:
             smtp.ehlo()
-            smtp.starttls()
+            if SMTP_PORT != 465:
+                smtp.starttls()
             smtp.login(SMTP_USER, SMTP_PASS)
             for email in subscribers:
                 try:

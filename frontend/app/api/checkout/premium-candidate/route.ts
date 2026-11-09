@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
+import stripe from '@/lib/stripe';
+import pool from '@/lib/db';
 import { checkoutLimiter, getClientIp } from '@/lib/rate-limit';
 import { BASE_URL } from '@/lib/constants';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2023-10-16' as any,
-});
+import { isValidApiOrigin } from '@/lib/urlSafety';
 
 export async function POST(request: Request) {
+  // VULN-30: Validación estricta de origen permitido (CORS/CSRF prevention)
+  if (!isValidApiOrigin(request, BASE_URL)) {
+    return NextResponse.json({ error: 'Origen de petición no autorizado' }, { status: 403 });
+  }
+
   const ip = getClientIp(request);
   const rateLimit = checkoutLimiter.limit(ip);
   if (!rateLimit.success) {
@@ -23,6 +26,23 @@ export async function POST(request: Request) {
 
     if (!cleanEmail || !EMAIL_REGEX.test(cleanEmail) || cleanEmail.length > 120) {
       return NextResponse.json({ error: 'Por favor, proporciona un correo válido.' }, { status: 400 });
+    }
+
+    // VULN-18: Comprobar suscripción activa previa para evitar facturación duplicada concurrente
+    const client = await pool.connect();
+    try {
+      const existingSub = await client.query(
+        "SELECT id, is_premium FROM subscribers WHERE email = $1 LIMIT 1",
+        [cleanEmail]
+      );
+      if (existingSub.rows && existingSub.rows.length > 0 && existingSub.rows[0].is_premium) {
+        return NextResponse.json(
+          { error: 'Esta dirección de correo ya cuenta con una suscripción activa a Candidato Premium.' },
+          { status: 409 }
+        );
+      }
+    } finally {
+      client.release();
     }
 
     // Crear sesión de Stripe Checkout en modo Suscripción usando BASE_URL seguro
@@ -46,8 +66,8 @@ export async function POST(request: Request) {
         },
       ],
       mode: 'subscription',
-      success_url: `${BASE_URL}/referidos?checkout_success=true`,
-      cancel_url: `${BASE_URL}/referidos?checkout_canceled=true`,
+      success_url: `${BASE_URL}/talento-premium?checkout_success=true`,
+      cancel_url: `${BASE_URL}/talento-premium?checkout_canceled=true`,
       metadata: {
         email: cleanEmail,
         type: 'premium_candidate',

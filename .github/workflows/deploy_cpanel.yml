@@ -5,12 +5,15 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   deploy-backend:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Prepare Deployment Directory
         id: prep
@@ -32,8 +35,8 @@ jobs:
           # Crear .htaccess para denegar acceso HTTP directo al directorio backend
           printf "Options -Indexes\n<IfModule mod_authz_core.c>\n    Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n    Order Allow,Deny\n    Deny from all\n</IfModule>\n" > deploy_dist/backend/.htaccess
 
-          # Crear .htaccess en deploy_dist para proteger ficheros con extensiones sensibles y dotfiles
-          printf "Options -Indexes\n<FilesMatch \"^\.\">\n    <IfModule mod_authz_core.c>\n        Require all denied\n    </IfModule>\n    <IfModule !mod_authz_core.c>\n        Order Allow,Deny\n        Deny from all\n    </IfModule>\n</FilesMatch>\n<FilesMatch \"(?i)\\\\.(env.*|json|sql|log|py|pyc|sh|md|bak|backup|conf|ini|yml|yaml|ts|tsx|map|lock)$\">\n    <IfModule mod_authz_core.c>\n        Require all denied\n    </IfModule>\n    <IfModule !mod_authz_core.c>\n        Order Allow,Deny\n        Deny from all\n    </IfModule>\n</FilesMatch>\n" > deploy_dist/.htaccess
+          # Crear .htaccess en deploy_dist para proteger ficheros con extensiones sensibles, error_log, *_log.txt y dotfiles
+          printf "Options -Indexes\n<FilesMatch \"^\.\">\n    <IfModule mod_authz_core.c>\n        Require all denied\n    </IfModule>\n    <IfModule !mod_authz_core.c>\n        Order Allow,Deny\n        Deny from all\n    </IfModule>\n</FilesMatch>\n<FilesMatch \"(?i)(^error_log$|.*_log\\\\.txt$|\\\\.(env.*|json|sql|log|py|pyc|sh|md|bak|backup|conf|ini|yml|yaml|ts|tsx|map|lock)$)\">\n    <IfModule mod_authz_core.c>\n        Require all denied\n    </IfModule>\n    <IfModule !mod_authz_core.c>\n        Order Allow,Deny\n        Deny from all\n    </IfModule>\n</FilesMatch>\n<IfModule mod_headers.c>\n    Header always set Strict-Transport-Security \"max-age=31536000; includeSubDomains; preload\"\n</IfModule>\n" > deploy_dist/.htaccess
 
           # Resolver ruta del servidor de forma robusta (evitar evaluación booleana en YAML)
           TARGET_DIR="${{ secrets.FTP_SERVER_DIR }}"
@@ -43,7 +46,7 @@ jobs:
           echo "server_dir=$TARGET_DIR" >> "$GITHUB_OUTPUT"
 
       - name: Deploy via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}

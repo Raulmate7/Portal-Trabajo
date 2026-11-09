@@ -54,12 +54,12 @@ def run_bluesky_bot():
     print("🦋 INICIANDO BOT DE BLUESKY (AT PROTOCOL)")
 
     handle = os.getenv("BLUESKY_HANDLE")
-    password = os.getenv("BLUESKY_APP_PASSWORD")
+    password = os.getenv("BLUESKY_APP_PASSWORD") or os.getenv("BLUESKY_PASSWORD")
     db_url = os.getenv("DATABASE_URL")
     frontend_url = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
 
     if not handle or not password:
-        print("⚠️  Faltan las credenciales BLUESKY_HANDLE o BLUESKY_APP_PASSWORD en las variables de entorno.")
+        print("⚠️  Faltan las credenciales BLUESKY_HANDLE o BLUESKY_PASSWORD en las variables de entorno.")
         print("   Omitiendo publicación en Bluesky.")
         print("===============================================")
         return

@@ -1,18 +1,20 @@
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
+import stripe from '@/lib/stripe';
 import pool from '@/lib/db';
 import crypto from 'crypto';
 import { checkoutLimiter, getClientIp } from '@/lib/rate-limit';
 import { BASE_URL } from '@/lib/constants';
-import { isSafePublicUrl } from '@/lib/urlSafety';
+import { isSafePublicUrl, isValidApiOrigin } from '@/lib/urlSafety';
+import { JOB_PRICING_PLANS, VALID_JOB_PLAN_IDS } from '@/lib/pricingPlans';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2023-10-16' as any,
-});
-
-const VALID_PLANS = new Set(['destacado_basico', 'destacado_30d', 'destacado_pro', 'destacado_enterprise']);
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 export async function POST(request: Request) {
+  // VULN-30: Validación estricta de origen permitido (CORS/CSRF prevention)
+  if (!isValidApiOrigin(request, BASE_URL)) {
+    return NextResponse.json({ error: 'Origen de petición no autorizado' }, { status: 403 });
+  }
+
   const ip = getClientIp(request);
   const rateLimit = checkoutLimiter.limit(ip);
   if (!rateLimit.success) {
@@ -21,7 +23,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json().catch(() => ({}));
-    const { title, company, company_email, company_phone, location, salary, description_snippet, url_source, category, plan = 'destacado_30d', affiliate_code } = body;
+    const { title, company, company_email, company_phone, location, salary, description_snippet, url_source, category, plan = 'destacado_pro', affiliate_code } = body;
 
     if (!title || !company || !url_source) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
@@ -38,10 +40,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'La URL es inválida o supera los 500 caracteres' }, { status: 400 });
     }
 
-    const selectedPlan = (plan || 'destacado_30d').toString().trim().toLowerCase();
-    if (!VALID_PLANS.has(selectedPlan)) {
+    // VULN-14: Normalización canónica del plan seleccionado con matriz centralizada
+    const rawPlan = (plan || 'destacado_pro').toString().trim().toLowerCase();
+    const selectedPlan = rawPlan === 'destacado_30d' ? 'destacado_pro' : rawPlan;
+    if (!VALID_JOB_PLAN_IDS.has(selectedPlan)) {
       return NextResponse.json({ error: 'Plan seleccionado no válido' }, { status: 400 });
     }
+    const planConfig = JOB_PRICING_PLANS[selectedPlan];
 
     // Validar formato, protocolo y destino seguro de url_source (SSRF y Phishing prevention)
     const cleanUrlSource = url_source.trim();
@@ -49,19 +54,48 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'La URL de la oferta no es válida o apunta a una dirección no permitida' }, { status: 400 });
     }
 
-    // Validación de código de afiliado seguro
+    // Validación de código de afiliado seguro y existencia real en la base de datos (VULN-25)
     let cleanAffiliateCode = '';
     if (affiliate_code && typeof affiliate_code === 'string') {
       const trimmedCode = affiliate_code.trim();
       if (/^RECR-[A-Z0-9]{4,12}$/i.test(trimmedCode)) {
         cleanAffiliateCode = trimmedCode.toUpperCase();
+        const checkAffClient = await pool.connect();
+        try {
+          const affRes = await checkAffClient.query(
+            "SELECT 1 FROM recruiter_affiliates WHERE affiliate_code = $1 LIMIT 1",
+            [cleanAffiliateCode]
+          );
+          if (!affRes.rows || affRes.rows.length === 0) {
+            cleanAffiliateCode = ''; // Descartar código inexistente
+          }
+        } catch {
+          cleanAffiliateCode = '';
+        } finally {
+          checkAffClient.release();
+        }
       }
     }
+
+    // Validación rigurosa de formato de correo
+    const validCustomerEmail = (company_email && typeof company_email === 'string' && EMAIL_REGEX.test(company_email.trim())) 
+      ? company_email.trim().toLowerCase() 
+      : undefined;
 
     // 2. Insertar la oferta en la base de datos con is_active = FALSE y is_featured = FALSE (pendiente de pago)
     const jobId = crypto.randomUUID();
     const client = await pool.connect();
     try {
+      // VULN-12 & VULN-13: Purga preventiva de registros huérfanos inactivos con más de 24h sin confirmar
+      try {
+        await client.query(
+          "DELETE FROM jobs WHERE is_active = FALSE AND created_at < DATE_SUB(NOW(), INTERVAL $1 HOUR) AND (plan LIKE 'destacado_%' OR plan = 'abandoned')",
+          [24]
+        );
+      } catch (purgeErr) {
+        // Purga defensiva tolerante a fallos
+      }
+
       const query = `
         INSERT INTO jobs (id, title, company, location, salary, description_snippet, url_source, category, is_active, is_featured, created_at, plan)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, FALSE, FALSE, NOW(), $9)
@@ -81,20 +115,10 @@ export async function POST(request: Request) {
       client.release();
     }
 
-    // 3. Determinar precio y datos del producto según el plan elegido
-    let unitAmount = 1900; // Por defecto 19€ (Destacado Pro 30 días)
-    let planName = 'Oferta Destacada Pro - Portal Trabajo IT';
-    let planDesc = `Destaca tu oferta "${title}" durante 30 días + Inclusión en la newsletter semanal.`;
-
-    if (selectedPlan === 'destacado_basico') {
-      unitAmount = 900; // 9€ (Básico 15 días)
-      planName = 'Oferta Destacada Básica - Portal Trabajo IT';
-      planDesc = `Destaca tu oferta "${title}" en la parte superior y búsquedas del portal durante 15 días.`;
-    } else if (selectedPlan === 'destacado_enterprise') {
-      unitAmount = 4900; // 49€ (Enterprise 30 días + newsletter + Telegram + redes)
-      planName = 'Oferta Destacada Enterprise - Portal Trabajo IT';
-      planDesc = `Destaca tu oferta "${title}" durante 30 días + Boletín exclusivo + Difusión en Telegram y Redes Sociales.`;
-    }
+    // 3. Determinar precio y datos del producto según el plan elegido (VULN-14: Fuente única de verdad)
+    const unitAmount = planConfig.unitAmountCents;
+    const planName = `${planConfig.name} - Portal Trabajo IT`;
+    const planDesc = `${planConfig.description} (Oferta: "${title.trim()}").`;
 
     // 4. Crear la sesión de checkout en Stripe usando BASE_URL seguro
     let session;
@@ -115,23 +139,22 @@ export async function POST(request: Request) {
           },
         ],
         mode: 'payment',
-        customer_email: (company_email && typeof company_email === 'string' && company_email.includes('@')) ? company_email.trim().toLowerCase() : undefined,
+        customer_email: validCustomerEmail,
         success_url: `${BASE_URL}/publicar-oferta?success=true&job_id=${jobId}`,
         cancel_url: `${BASE_URL}/publicar-oferta?canceled=true`,
         metadata: {
           jobId: String(jobId),
           plan: String(selectedPlan),
           affiliate_code: cleanAffiliateCode,
-          company_email: (company_email && typeof company_email === 'string') ? company_email.trim().toLowerCase() : '',
+          company_email: validCustomerEmail || '',
         },
       });
     } catch (stripeErr) {
-      // Limpieza defensiva de registro huérfano si Stripe rechaza la sesión (Vector 24)
+      // VULN-13: Limpieza garantizada de registro huérfano si Stripe rechaza la sesión
       const cleanupClient = await pool.connect();
       try {
         await cleanupClient.query("DELETE FROM jobs WHERE id = $1 AND is_active = FALSE", [jobId]);
-      } catch {
-        // Si DELETE no está permitido en proxy HTTP, asegurar estado inactivo
+      } catch (cleanErr) {
         try {
           await cleanupClient.query("UPDATE jobs SET is_active = FALSE, plan = 'abandoned' WHERE id = $1", [jobId]);
         } catch {}
@@ -144,6 +167,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ url: session.url });
   } catch (error: any) {
     console.error('Error creando Stripe Checkout Session:', error);
-    return NextResponse.json({ error: error.message || 'Error interno del servidor' }, { status: 500 });
+    return NextResponse.json({ error: 'No se pudo iniciar la pasarela de pago. Por favor, revisa los datos e inténtalo de nuevo.' }, { status: 500 });
   }
 }

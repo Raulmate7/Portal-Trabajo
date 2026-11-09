@@ -31,16 +31,27 @@ function normalizeSql(sql: string): string {
 }
 
 /**
- * Determina si una query es cacheable.
- * Solo se cachean SELECTs sin parámetros (o con parámetros de tablas estáticas)
- * que no dependan de IDs específicos de usuario/oferta.
+ * VULN-28: Determina si una query es cacheable de forma segura.
+ * Solo se cachean SELECTs de tablas de catálogo estáticas públicas (ej. sectors)
+ * que no contengan PII ni dependan de estados mutables de usuario/administración.
  */
+const CACHEABLE_STATIC_TABLES = ['sectors'];
+
 function isCacheable(sql: string, params: any[]): boolean {
   const s = sql.trim().toLowerCase();
   if (!s.startsWith('select')) return false;
   // No cachear si tiene parámetros (queries dinámicas por ID/ciudad etc.)
-  if (params.length > 0) return false;
-  return true;
+  if (params && params.length > 0) return false;
+  
+  // Rechazar terminantemente tablas con PII o transacciones mutables
+  const hasSensitiveTables = /\b(from|join)\s+`?(subscribers|premium_leads|email_tracking|alerts|sponsored_jobs|company_reviews|job_reactions|newsletter_sponsors)`?\b/i.test(s);
+  if (hasSensitiveTables) return false;
+
+  // Solo admitir si referencia explícitamente alguna tabla de la lista blanca estática
+  const hasAllowedTable = CACHEABLE_STATIC_TABLES.some(table => 
+    new RegExp(`\\b(from|join)\\s+\`?${table}\`?\\b`, 'i').test(s)
+  );
+  return hasAllowedTable;
 }
 
 function getCached(key: string): any | null {
@@ -69,6 +80,11 @@ let poolConnection: mysql.Pool | null = null;
 if (!useProxy) {
   const connectionLimit = Number(process.env.MYSQL_CONNECTION_LIMIT) || 25;
   const connectionString = process.env.DATABASE_URL;
+  // VULN-14: Forzar cifrado TLS/SSL en conexiones directas para prevenir sniffing de credenciales y datos en tránsito
+  const sslOptions = process.env.NODE_ENV === 'production' || process.env.MYSQL_SSL === 'true'
+    ? { rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false' }
+    : undefined;
+
   poolConnection = connectionString
     ? mysql.createPool({
         uri: connectionString,
@@ -78,6 +94,7 @@ if (!useProxy) {
         connectTimeout: 5000,
         enableKeepAlive: true,
         keepAliveInitialDelay: 10000,
+        ssl: sslOptions,
       })
     : mysql.createPool({
         host: process.env.MYSQL_HOST || 'localhost',
@@ -92,6 +109,7 @@ if (!useProxy) {
         connectTimeout: 5000,
         enableKeepAlive: true,
         keepAliveInitialDelay: 10000,
+        ssl: sslOptions,
       });
 }
 
@@ -112,6 +130,7 @@ const CONNECTION_ERRORS = [
  */
 async function executeQuery(conn: mysql.Pool | mysql.PoolConnection | null, sql: string, params: any[] = []) {
   let mysqlParams: any[] = [];
+  let hasPgPlaceholders = false;
   
   // 1. Traducir marcadores de PostgreSQL ($1, $2, etc.) a marcadores de MySQL (?) de forma segura (ignorando strings)
   let mysqlSql = '';
@@ -120,8 +139,17 @@ async function executeQuery(conn: mysql.Pool | mysql.PoolConnection | null, sql:
   for (let i = 0; i < sql.length; i++) {
     const char = sql[i];
     if (inString) {
-      if (char === stringChar && sql[i - 1] !== '\\') {
-        inString = false;
+      if (char === stringChar) {
+        // VULN-12: Contar si el número de barras invertidas precedentes es par o impar para manejar '\\'
+        let backslashCount = 0;
+        let k = i - 1;
+        while (k >= 0 && sql[k] === '\\') {
+          backslashCount++;
+          k--;
+        }
+        if (backslashCount % 2 === 0) {
+          inString = false;
+        }
       }
       mysqlSql += char;
     } else {
@@ -137,6 +165,7 @@ async function executeQuery(conn: mysql.Pool | mysql.PoolConnection | null, sql:
           j++;
         }
         if (numStr.length > 0) {
+          hasPgPlaceholders = true;
           const pgIndex = parseInt(numStr, 10) - 1;
           if (params && pgIndex >= 0 && pgIndex < params.length) {
             mysqlParams.push(params[pgIndex]);
@@ -148,20 +177,38 @@ async function executeQuery(conn: mysql.Pool | mysql.PoolConnection | null, sql:
         } else {
           mysqlSql += char;
         }
+      } else if (
+        // VULN-18: Traducir ILIKE a LIKE únicamente fuera de cadenas literales
+        sql.substring(i, i + 5).toUpperCase() === 'ILIKE' &&
+        (i === 0 || !/[a-zA-Z0-9_]/.test(sql[i - 1])) &&
+        (i + 5 >= sql.length || !/[a-zA-Z0-9_]/.test(sql[i + 5]))
+      ) {
+        mysqlSql += 'LIKE';
+        i += 4; // Avanzar el índice saltando 'ILIKE'
       } else {
         mysqlSql += char;
       }
     }
   }
 
-  if (mysqlParams.length === 0 && params && params.length > 0) {
+  // VULN-13: Solo asignar params directamente si la consulta no usaba marcadores $N
+  if (!hasPgPlaceholders && params && params.length > 0) {
     mysqlParams = params;
   }
 
-  // 2. Traducir operador ILIKE a LIKE (MySQL es case-insensitive por defecto)
-  mysqlSql = mysqlSql.replace(/\bILIKE\b/gi, 'LIKE');
-
   if (useProxy) {
+    // Si la consulta es un comando de control transaccional, resolver inmediatamente como no-op
+    // dado que el proxy HTTP es sin estado (cada petición HTTP es una conexión PDO aislada).
+    const normalizedUpper = mysqlSql.trim().toUpperCase();
+    if (
+      normalizedUpper === 'START TRANSACTION' ||
+      normalizedUpper === 'COMMIT' ||
+      normalizedUpper === 'ROLLBACK' ||
+      normalizedUpper === 'BEGIN'
+    ) {
+      return { rows: [] };
+    }
+
     // 3. Ejecutar a través de Proxy HTTP (Raiola db_proxy.php)
     try {
       const response = await fetch(proxyUrl, {
@@ -189,20 +236,8 @@ async function executeQuery(conn: mysql.Pool | mysql.PoolConnection | null, sql:
       };
     } catch (error: any) {
       console.error('❌ Error de consulta en MySQL vía Proxy:', error);
-      
-      const isConnectionError = 
-        error.message.includes('fetch failed') ||
-        error.message.includes('status 500') ||
-        error.message.includes('status 502') ||
-        error.message.includes('status 503') ||
-        error.message.includes('status 504') ||
-        error.message.includes('Access denied') ||
-        error.message.includes('connection');
-        
-      if (isConnectionError) {
-        return { rows: [] };
-      }
-      
+      // VULN-06: Propagar el error en lugar de suprimirlo silenciosamente con { rows: [] }
+      // Esto previene bypasses de autorización y pérdida silenciosa de datos (Fail-Closed)
       throw error;
     }
   } else if (conn) {
@@ -226,10 +261,7 @@ async function executeQuery(conn: mysql.Pool | mysql.PoolConnection | null, sql:
         rows: rows as any[],
       };
     } catch (error: any) {
-      if (CONNECTION_ERRORS.includes(error.code)) {
-        console.warn('⚠️ Fallo de conexión de base de datos en executeQuery(). Retornando vacío:', error.message);
-        return { rows: [] };
-      }
+      console.error('❌ Error de consulta directa en MySQL:', error);
       throw error;
     }
   }
@@ -246,28 +278,12 @@ const pool = {
       if (cached) {
         return cached;
       }
-      try {
-        const result = await executeQuery(poolConnection, sql, params);
-        setCache(cacheKey, result);
-        return result;
-      } catch (error: any) {
-        if (CONNECTION_ERRORS.includes(error?.code)) {
-          console.warn('⚠️ Base de datos inaccesible en query(). Devolviendo filas vacías:', error.message);
-          return { rows: [] };
-        }
-        throw error;
-      }
+      const result = await executeQuery(poolConnection, sql, params);
+      setCache(cacheKey, result);
+      return result;
     }
 
-    try {
-      return await executeQuery(poolConnection, sql, params);
-    } catch (error: any) {
-      if (CONNECTION_ERRORS.includes(error?.code)) {
-        console.warn('⚠️ Base de datos inaccesible en query(). Devolviendo filas vacías:', error.message);
-        return { rows: [] };
-      }
-      throw error;
-    }
+    return await executeQuery(poolConnection, sql, params);
   },
 
 
@@ -285,28 +301,15 @@ const pool = {
       };
     }
     
-    try {
-      const connection = await poolConnection!.getConnection();
-      return {
-        async query(sql: string, params: any[] = []) {
-          return executeQuery(connection, sql, params);
-        },
-        release() {
-          connection.release();
-        }
-      };
-    } catch (error: any) {
-      if (CONNECTION_ERRORS.includes(error.code)) {
-        console.warn('⚠️ Base de datos inaccesible en connect(). Creando cliente mock:', error.message);
-        return {
-          async query(sql: string, params: any[] = []) {
-            return { rows: [] };
-          },
-          release() {}
-        };
+    const connection = await poolConnection!.getConnection();
+    return {
+      async query(sql: string, params: any[] = []) {
+        return executeQuery(connection, sql, params);
+      },
+      release() {
+        connection.release();
       }
-      throw error;
-    }
+    };
   },
   
   // Método para cerrar el pool

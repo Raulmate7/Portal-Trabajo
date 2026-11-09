@@ -240,7 +240,7 @@ def generate_article_with_gemini(api_key, topic):
     Realiza una petición HTTP a la API de Gemini para generar un artículo estructurado
     de más de 2000 palabras en formato JSON mediante Structured Outputs.
     """
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
     
     prompt = f"""
 Escribe un artículo de blog técnico completo, exhaustivo y de nivel profesional en español de más de 2000 palabras basándote en la siguiente información temática delimitada:

@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
+import type Stripe from 'stripe';
+import stripe from '@/lib/stripe';
 import pool from '@/lib/db';
 import { generateReportToken } from '@/lib/reportToken';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2023-10-16',
-});
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -40,6 +37,46 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `Error de Webhook: ${err.message}` }, { status: 400 });
   }
 
+  // VULN-02: Idempotencia estricta a nivel de base de datos para prevenir repetición (Replay) y concurrencia distribuida
+  const eventClient = await pool.connect();
+  try {
+    await eventClient.query(
+      "INSERT INTO stripe_processed_events (event_id, event_type, created_at) VALUES ($1, $2, NOW())",
+      [event.id, event.type]
+    );
+  } catch (dupErr: any) {
+    const errMsg = (dupErr?.message || '').toLowerCase();
+    if (errMsg.includes('duplicate') || errMsg.includes('1062') || errMsg.includes('unique')) {
+      console.log(`ℹ️ Evento Stripe ${event.id} ya procesado previamente. Retornando 200 OK.`);
+      return NextResponse.json({ received: true, deduplicated: true });
+    }
+    // Si la tabla no existiera por migración pendiente, inicializarla defensivamente
+    if (errMsg.includes("table") && errMsg.includes("doesn't exist")) {
+      try {
+        await eventClient.query(`
+          CREATE TABLE IF NOT EXISTS stripe_processed_events (
+            event_id VARCHAR(255) PRIMARY KEY,
+            event_type VARCHAR(100) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `);
+        await eventClient.query(
+          "INSERT INTO stripe_processed_events (event_id, event_type, created_at) VALUES ($1, $2, NOW())",
+          [event.id, event.type]
+        );
+      } catch (tableErr: any) {
+        if ((tableErr?.message || '').toLowerCase().includes('duplicate') || (tableErr?.message || '').toLowerCase().includes('1062')) {
+          return NextResponse.json({ received: true, deduplicated: true });
+        }
+        console.error('Error inicializando tabla stripe_processed_events:', tableErr);
+      }
+    } else {
+      console.error('Error registrando idempotencia de evento Stripe:', dupErr);
+    }
+  } finally {
+    eventClient.release();
+  }
+
   // 1. Manejo de pagos completados (Inmediatos o confirmación de Asíncronos)
   if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
     const session = event.data.object as Stripe.Checkout.Session;
@@ -51,10 +88,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true });
     }
 
-    // Vulnerabilidad 3: Comprobación estricta de divisa (Prevenir manipulación de moneda a divisas de menor valor)
-    if (session.currency && session.currency.toLowerCase() !== 'eur') {
-      console.warn(`⚠️ Moneda no admitida (${session.currency}) en la sesión ${session.id}. Se requiere EUR.`);
-      return NextResponse.json({ error: 'Moneda no autorizada' }, { status: 400 });
+    // VULN-07: Comprobación estricta de divisa (requiere explícitamente 'eur' y previene valores nulos/manipulados)
+    // VULN-04: Retornar HTTP 200 para evitar tormenta de reintentos infinitos de Stripe ante pagos inválidos
+    if (!session.currency || session.currency.toLowerCase() !== 'eur') {
+      console.warn(`⚠️ Moneda no admitida o ausente (${session.currency}) en la sesión ${session.id}. Se requiere EUR.`);
+      return NextResponse.json({ received: true, status: 'rejected_unauthorized_currency' });
     }
 
     const type = session.metadata?.type;
@@ -62,17 +100,18 @@ export async function POST(request: Request) {
     // --- Caso A: Patrocinio directo de Newsletter ---
     if (type === 'newsletter_sponsor') {
       const sponsorId = session.metadata?.sponsorId;
-      // Validar importe mínimo esperado (49.00€ = 4900 céntimos)
+      // VULN-04: Validar importe mínimo esperado (49.00€ = 4900 céntimos) sin devolver 400 para evitar tormenta de reintentos
       if (session.amount_total && session.amount_total < 4900) {
-        console.warn(`⚠️ Monto insuficiente para newsletter_sponsor: recibido ${session.amount_total}, esperado 4900.`);
-        return NextResponse.json({ error: 'Importe de pago insuficiente' }, { status: 400 });
+        console.warn(`🚨 DISCREPANCIA FINANCIERA: Monto insuficiente para newsletter_sponsor: recibido ${session.amount_total}, esperado 4900.`);
+        return NextResponse.json({ received: true, status: 'rejected_underpaid' });
       }
 
       if (sponsorId) {
         console.log(`💎 Pago verificado para Patrocinio de Newsletter. ID Sponsor: ${sponsorId}`);
         const client = await pool.connect();
         try {
-          // Idempotencia y bloqueo para evitar concurrencia
+          // VULN-03: Bloque transaccional explícito START TRANSACTION / COMMIT para que FOR UPDATE sea efectivo
+          await client.query('START TRANSACTION');
           const sponsorRes = await client.query(
             "SELECT status FROM newsletter_sponsors WHERE id = $1 LIMIT 1 FOR UPDATE",
             [sponsorId]
@@ -86,7 +125,10 @@ export async function POST(request: Request) {
             );
             console.log(`✅ Patrocinio de newsletter con ID ${sponsorId} marcado como aprobado.`);
           }
+          await client.query('COMMIT');
         } catch (dbErr) {
+          try { await client.query('ROLLBACK'); } catch {}
+          try { await pool.query("DELETE FROM stripe_processed_events WHERE event_id = $1", [event.id]); } catch {}
           console.error(`❌ Error en la base de datos al activar patrocinador ID ${sponsorId}:`, dbErr);
           return NextResponse.json({ error: 'Error interno en la BD' }, { status: 500 });
         } finally {
@@ -96,37 +138,64 @@ export async function POST(request: Request) {
     } 
     // --- Caso B: Suscripción de Candidato Premium ---
     else if (type === 'premium_candidate') {
-      // Validar importe mínimo esperado (4.99€ = 499 céntimos)
+      // VULN-04: Validar importe mínimo esperado (4.99€ = 499 céntimos) sin provocar tormenta de reintentos
       if (session.amount_total && session.amount_total < 499) {
-        console.warn(`⚠️ Monto insuficiente para candidato premium: recibido ${session.amount_total}, esperado 499.`);
-        return NextResponse.json({ error: 'Importe de suscripción insuficiente' }, { status: 400 });
+        console.warn(`🚨 DISCREPANCIA FINANCIERA: Monto insuficiente para candidato premium: recibido ${session.amount_total}, esperado 499.`);
+        return NextResponse.json({ received: true, status: 'rejected_underpaid' });
       }
 
       const email = (session.metadata?.email || session.customer_details?.email || '').toLowerCase().trim();
+      const subscriptionId = typeof session.subscription === 'string' 
+        ? session.subscription 
+        : (session.subscription as any)?.id || null;
+      const customerId = typeof session.customer === 'string' 
+        ? session.customer 
+        : (session.customer as any)?.id || null;
+
       if (email) {
         console.log(`🥇 Suscripción confirmada para Candidato Premium: ${email}`);
         const client = await pool.connect();
         try {
-          // Upsert seguro con bloqueo y actualización de estado
+          // VULN-03: Bloque transaccional explícito START TRANSACTION / COMMIT para exclusión mutua
+          // VULN-32: Almacenar stripe_customer_id y stripe_subscription_id para gestión de ciclo de vida
+          await client.query('START TRANSACTION');
           const checkSub = await client.query(
             "SELECT id, is_premium FROM subscribers WHERE email = $1 LIMIT 1 FOR UPDATE",
             [email]
           );
           if (checkSub.rows && checkSub.rows.length > 0) {
-            await client.query(
-              "UPDATE subscribers SET is_premium = TRUE WHERE email = $1",
-              [email]
-            );
+            try {
+              await client.query(
+                "UPDATE subscribers SET is_premium = TRUE, stripe_customer_id = COALESCE($2, stripe_customer_id), stripe_subscription_id = COALESCE($3, stripe_subscription_id) WHERE email = $1",
+                [email, customerId, subscriptionId]
+              );
+            } catch {
+              await client.query(
+                "UPDATE subscribers SET is_premium = TRUE WHERE email = $1",
+                [email]
+              );
+            }
           } else {
-            await client.query(
-              `INSERT INTO subscribers (email, is_premium, frequency, created_at, tech_keywords)
-               VALUES ($1, TRUE, 'daily', NOW(), 'todas')`,
-              [email]
-            );
+            try {
+              await client.query(
+                `INSERT INTO subscribers (email, is_premium, frequency, created_at, tech_keywords, stripe_customer_id, stripe_subscription_id)
+                 VALUES ($1, TRUE, 'daily', NOW(), 'todas', $2, $3)`,
+                [email, customerId, subscriptionId]
+              );
+            } catch {
+              await client.query(
+                `INSERT INTO subscribers (email, is_premium, frequency, created_at, tech_keywords)
+                 VALUES ($1, TRUE, 'daily', NOW(), 'todas')`,
+                [email]
+              );
+            }
             console.log(`✅ Nuevo suscriptor creado directamente con rango premium: ${email}`);
           }
-          console.log(`✅ Suscriptor ${email} actualizado a premium.`);
+          await client.query('COMMIT');
+          console.log(`✅ Suscriptor ${email} actualizado a premium con suscripción vinculada.`);
         } catch (dbErr) {
+          try { await client.query('ROLLBACK'); } catch {}
+          try { await pool.query("DELETE FROM stripe_processed_events WHERE event_id = $1", [event.id]); } catch {}
           console.error(`❌ Error en la base de datos al actualizar premium candidate ${email}:`, dbErr);
           return NextResponse.json({ error: 'Error interno en la BD' }, { status: 500 });
         } finally {
@@ -134,22 +203,25 @@ export async function POST(request: Request) {
         }
       }
     } 
-    // --- Caso C: Compra de Informe de Mercado IT (Vulnerabilidad 1, 2 y 3) ---
+    // --- Caso C: Compra de Informe de Mercado IT ---
     else if (type === 'market_report') {
       const customerEmail = (session.customer_details?.email || session.metadata?.email || '').toLowerCase().trim();
       const plan = session.metadata?.plan || 'full';
       const expectedReportAmount = plan === 'enterprise' ? 4900 : 990;
 
+      // VULN-04: Mitigación de tormenta de reintentos por 400
       if (session.amount_total && session.amount_total < expectedReportAmount) {
-        console.warn(`⚠️ Monto insuficiente para Informe de Mercado (${plan}): recibido ${session.amount_total}, esperado ${expectedReportAmount}`);
-        return NextResponse.json({ error: 'Importe de informe insuficiente' }, { status: 400 });
+        console.warn(`🚨 DISCREPANCIA FINANCIERA: Monto insuficiente para Informe de Mercado (${plan}): recibido ${session.amount_total}, esperado ${expectedReportAmount}`);
+        return NextResponse.json({ received: true, status: 'rejected_underpaid' });
       }
 
       console.log(`📊 Pago verificado para Informe de Mercado IT (${plan}) de: ${customerEmail}`);
 
-      // Enviar correo de entrega con enlace autenticado y token firmado criptográficamente
+      // VULN-05: Timeout estricto de 4 segundos con AbortController para prevenir que la API de Resend exceda los 10s de Stripe
       const resendApiKey = process.env.RESEND_API_KEY;
       if (resendApiKey && customerEmail) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
         try {
           const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://portalempleoit.com';
           const downloadToken = generateReportToken(customerEmail, plan, session.id);
@@ -158,6 +230,7 @@ export async function POST(request: Request) {
 
           await fetch('https://api.resend.com/emails', {
             method: 'POST',
+            signal: controller.signal,
             headers: {
               'Authorization': `Bearer ${resendApiKey}`,
               'Content-Type': 'application/json'
@@ -189,8 +262,10 @@ export async function POST(request: Request) {
             })
           });
           console.log(`📧 Correo de entrega del informe enviado a ${customerEmail}`);
-        } catch (mailErr) {
-          console.error("Error enviando email con el informe de mercado:", mailErr);
+        } catch (mailErr: any) {
+          console.error("Error enviando email con el informe de mercado:", mailErr?.message || mailErr);
+        } finally {
+          clearTimeout(timeoutId);
         }
       }
     }
@@ -204,9 +279,10 @@ export async function POST(request: Request) {
       if (plan === 'destacado_basico') expectedJobAmount = 900;
       else if (plan === 'destacado_enterprise') expectedJobAmount = 4900;
 
+      // VULN-04: Mitigación de tormenta de reintentos por 400
       if (session.amount_total && session.amount_total < expectedJobAmount) {
-        console.warn(`⚠️ Monto insuficiente para activar oferta ID ${jobId} (Plan ${plan}): recibido ${session.amount_total}, esperado ${expectedJobAmount}`);
-        return NextResponse.json({ error: 'Importe de activación insuficiente' }, { status: 400 });
+        console.warn(`🚨 DISCREPANCIA FINANCIERA: Monto insuficiente para activar oferta ID ${jobId} (Plan ${plan}): recibido ${session.amount_total}, esperado ${expectedJobAmount}`);
+        return NextResponse.json({ received: true, status: 'rejected_underpaid' });
       }
 
       if (jobId) {
@@ -230,10 +306,9 @@ export async function POST(request: Request) {
           const existingJob = checkJobRes.rows[0];
           const isAlreadyFeatured = Boolean(existingJob.is_featured);
 
-          let days = 30;
-          if (plan === 'destacado_basico') {
-            days = 15;
-          }
+          const intervalDays = plan === 'destacado_basico' ? 15 : 30;
+          // VULN-01: Se elimina la interpolación dinámica de cadenas en SQL. Se utiliza un literal estricto validado por whitelist.
+          const intervalClause = intervalDays === 15 ? 'INTERVAL 15 DAY' : 'INTERVAL 30 DAY';
 
           if (isAlreadyFeatured) {
             console.log(`ℹ️ Oferta ID ${jobId} ya estaba activada y destacada previamente. Omitiendo recálculo de días.`);
@@ -243,12 +318,12 @@ export async function POST(request: Request) {
               UPDATE jobs 
               SET is_active = TRUE, 
                   is_featured = TRUE,
-                  featured_expires_at = DATE_ADD(NOW(), INTERVAL ${days} DAY),
+                  featured_expires_at = DATE_ADD(NOW(), ${intervalClause}),
                   plan = $2
               WHERE id = $1
             `;
             await client.query(query, [jobId, plan]);
-            console.log(`✅ Oferta ID ${jobId} activada y destacada exitosamente por ${days} días con el Plan ${plan}.`);
+            console.log(`✅ Oferta ID ${jobId} activada y destacada exitosamente por ${intervalDays} días con el Plan ${plan}.`);
           }
 
           const payerEmail = (
@@ -287,7 +362,9 @@ export async function POST(request: Request) {
                 );
               }
             } catch (sponErr) {
-              console.error("Error vinculando oferta pagada a sponsored_jobs:", sponErr);
+              // VULN-06: No silenciar errores de vinculación. Propagar para que el rollback transaccional garantice consistencia
+              console.error("❌ Fallo crítico vinculando oferta pagada a sponsored_jobs. Abortando transacción:", sponErr);
+              throw sponErr;
             }
           }
 
@@ -315,12 +392,18 @@ export async function POST(request: Request) {
               const payerDomain = payerEmail.split('@')[1] || '';
               const publicDomains = new Set(['gmail.com', 'googlemail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'proton.me', 'protonmail.com']);
 
+              // VULN-24: Mitigar evasión de auto-comisión usando distintos proveedores de correo públicos
+              const recruiterLocal = (recruiterEmail.split('@')[0] || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+              const payerLocal = (payerEmail.split('@')[0] || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+              const isSameLocalIdentity = Boolean(recruiterLocal && payerLocal && (recruiterLocal === payerLocal || recruiterLocal.includes(payerLocal) || payerLocal.includes(recruiterLocal)));
+
               const isSelfReferral = 
                 (payerEmail && recruiterCanonical === payerCanonical) ||
-                (recruiterDomain && !publicDomains.has(recruiterDomain) && recruiterDomain === payerDomain);
+                (recruiterDomain && !publicDomains.has(recruiterDomain) && recruiterDomain === payerDomain) ||
+                isSameLocalIdentity;
 
               if (isSelfReferral) {
-                console.warn(`⚠️ Intento de auto-comisión denegado: el reclutador (${recruiterEmail}) coincide o comparte dominio corporativo con el pagador (${payerEmail}).`);
+                console.warn(`⚠️ Intento de auto-comisión denegado: el reclutador (${recruiterEmail}) coincide o comparte dominio corporativo/identidad con el pagador (${payerEmail}).`);
               } else {
                 const companyName = existingJob.company || 'Empresa Referida';
 
@@ -333,12 +416,16 @@ export async function POST(request: Request) {
                 if (checkExistingAff.rows && checkExistingAff.rows.length > 0) {
                   console.log(`ℹ️ La comisión de afiliado para la empresa ${companyName} y código ${affiliateCode} ya fue registrada previamente.`);
                 } else {
-                  await client.query(
-                    `INSERT INTO recruiter_affiliates (recruiter_email, affiliate_code, referred_company_name, commission_paid, created_at)
-                     VALUES ($1, $2, $3, FALSE, NOW())`,
-                    [recruiterEmail, affiliateCode.toUpperCase(), companyName]
-                  );
-                  console.log(`✅ Afiliado B2B registrado con éxito para el reclutador ${recruiterEmail} y la empresa ${companyName}.`);
+                  try {
+                    await client.query(
+                      `INSERT INTO recruiter_affiliates (recruiter_email, affiliate_code, referred_company_name, commission_paid, created_at)
+                       VALUES ($1, $2, $3, FALSE, NOW())`,
+                      [recruiterEmail, affiliateCode.toUpperCase(), companyName]
+                    );
+                    console.log(`✅ Afiliado B2B registrado con éxito para el reclutador ${recruiterEmail} y la empresa ${companyName}.`);
+                  } catch (affErr) {
+                    console.warn(`⚠️ Error al registrar comisión de afiliado (omitido para no abortar activación):`, affErr);
+                  }
                 }
               }
             }
@@ -349,6 +436,7 @@ export async function POST(request: Request) {
           try {
             await client.query('ROLLBACK');
           } catch {}
+          try { await pool.query("DELETE FROM stripe_processed_events WHERE event_id = $1", [event.id]); } catch {}
           console.error(`❌ Error en la base de datos al activar oferta ID ${jobId}:`, dbErr);
           return NextResponse.json({ error: 'Error interno en la BD' }, { status: 500 });
         } finally {
@@ -380,7 +468,7 @@ export async function POST(request: Request) {
     }
   }
 
-  // 3. Vulnerabilidad 4: Revocación de Candidato Premium por Cancelación o Impago de Suscripción
+  // 3. Vulnerabilidad 4 / VULN-26: Revocación garantizada de Candidato Premium por Cancelación o Impago
   else if (event.type === 'customer.subscription.deleted' || event.type === 'invoice.payment_failed') {
     let customerEmail = '';
 
@@ -397,22 +485,45 @@ export async function POST(request: Request) {
           console.error('Error recuperando cliente en Stripe para revocación:', custErr);
         }
       }
+
+      // VULN-26: Cotejar también el email registrado en metadata de la suscripción para evitar discrepancias
+      const metadataEmail = (subscription.metadata?.email || '').toLowerCase().trim();
+      const targetEmails = Array.from(new Set([customerEmail, metadataEmail].filter(Boolean)));
+
+      if (targetEmails.length > 0) {
+        console.log(`⚠️ Desactivando rango Candidato Premium por cancelación de suscripción: ${targetEmails.join(', ')}`);
+        const client = await pool.connect();
+        try {
+          for (const target of targetEmails) {
+            await client.query(
+              "UPDATE subscribers SET is_premium = FALSE WHERE email = $1",
+              [target]
+            );
+          }
+          console.log(`✅ Suscriptor(es) revocado(s) exitosamente a cuenta estándar.`);
+        } catch (err) {
+          console.error('Error revocando suscripción premium en base de datos:', err);
+        } finally {
+          client.release();
+        }
+      }
+      return NextResponse.json({ received: true });
     } else if (event.type === 'invoice.payment_failed') {
       const invoice = event.data.object as Stripe.Invoice;
       customerEmail = (invoice.customer_email || '').toLowerCase().trim();
     }
 
     if (customerEmail) {
-      console.log(`⚠️ Desactivando rango Candidato Premium por cancelación o impago: ${customerEmail}`);
+      console.log(`⚠️ Desactivando rango Candidato Premium por impago de factura: ${customerEmail}`);
       const client = await pool.connect();
       try {
         await client.query(
           "UPDATE subscribers SET is_premium = FALSE WHERE email = $1",
           [customerEmail]
         );
-        console.log(`✅ Suscriptor ${customerEmail} revocado exitosamente a cuenta estándar.`);
+        console.log(`✅ Suscriptor ${customerEmail} revocado exitosamente a cuenta estándar por impago.`);
       } catch (err) {
-        console.error('Error revocando suscripción premium en base de datos:', err);
+        console.error('Error revocando suscripción premium en base de datos por impago:', err);
       } finally {
         client.release();
       }

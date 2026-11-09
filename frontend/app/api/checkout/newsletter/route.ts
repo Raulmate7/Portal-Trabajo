@@ -1,15 +1,17 @@
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
+import stripe from '@/lib/stripe';
 import pool from '@/lib/db';
 import crypto from 'crypto';
 import { checkoutLimiter, getClientIp } from '@/lib/rate-limit';
 import { BASE_URL } from '@/lib/constants';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2023-10-16' as any,
-});
+import { isValidApiOrigin } from '@/lib/urlSafety';
 
 export async function POST(request: Request) {
+  // VULN-30: Validación estricta de origen permitido (CORS/CSRF prevention)
+  if (!isValidApiOrigin(request, BASE_URL)) {
+    return NextResponse.json({ error: 'Origen de petición no autorizado' }, { status: 403 });
+  }
+
   const ip = getClientIp(request);
   const rateLimit = checkoutLimiter.limit(ip);
   if (!rateLimit.success) {
@@ -32,6 +34,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Nombre de empresa o correo electrónico inválido' }, { status: 400 });
     }
 
+    // VULN-16: Validación estricta contra lista blanca para plan de patrocinio
+    const ALLOWED_NEWSLETTER_PLANS = new Set(['newsletter_sponsorship', 'newsletter_edition_sponsor']);
+    const safePlan = (plan && ALLOWED_NEWSLETTER_PLANS.has(plan)) ? plan : 'newsletter_sponsorship';
+
     // 1. Insertar registro pendiente en newsletter_sponsors con ref única
     const client = await pool.connect();
     let sponsorId: number;
@@ -40,7 +46,7 @@ export async function POST(request: Request) {
       await client.query(
         `INSERT INTO newsletter_sponsors (company_name, company_email, plan, status, stripe_session_id, created_at)
          VALUES ($1, $2, $3, 'pendiente', $4, NOW())`,
-        [cleanName, cleanEmail, String(plan).slice(0, 50), clientRef]
+        [cleanName, cleanEmail, safePlan, clientRef]
       );
       const res = await client.query(
         `SELECT id FROM newsletter_sponsors WHERE stripe_session_id = $1 LIMIT 1`,
@@ -59,31 +65,44 @@ export async function POST(request: Request) {
     const planName = 'Patrocinio de Newsletter - Portal Trabajo IT';
     const planDesc = `Inclusión destacada de tu empresa/producto/oferta en el boletín semanal enviado a más de 8.700 ingenieros.`;
 
-    // 3. Crear sesión de Stripe Checkout usando BASE_URL seguro
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'eur',
-            product_data: {
-              name: planName,
-              description: planDesc,
+    // 3. Crear sesión de Stripe Checkout usando BASE_URL seguro y vinculación garantizada
+    let session;
+    try {
+      session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        customer_email: cleanEmail, // VULN-17: Vincular obligatoriamente el email de la empresa en la sesión
+        line_items: [
+          {
+            price_data: {
+              currency: 'eur',
+              product_data: {
+                name: planName,
+                description: planDesc,
+              },
+              unit_amount: unitAmount,
             },
-            unit_amount: unitAmount,
+            quantity: 1,
           },
-          quantity: 1,
+        ],
+        mode: 'payment',
+        success_url: `${BASE_URL}/publicidad?success=true&sponsor_id=${sponsorId}`,
+        cancel_url: `${BASE_URL}/publicidad?canceled=true`,
+        metadata: {
+          sponsorId: String(sponsorId),
+          company_email: cleanEmail,
+          type: 'newsletter_sponsor',
         },
-      ],
-      mode: 'payment',
-      success_url: `${BASE_URL}/publicidad?success=true&sponsor_id=${sponsorId}`,
-      cancel_url: `${BASE_URL}/publicidad?canceled=true`,
-      metadata: {
-        sponsorId: String(sponsorId),
-        company_email: String(company_email.trim().toLowerCase()),
-        type: 'newsletter_sponsor',
-      },
-    });
+      });
+    } catch (stripeErr) {
+      // VULN-15: Limpieza defensiva inmediata del registro huérfano si Stripe rechaza la sesión
+      const cleanupClient = await pool.connect();
+      try {
+        await cleanupClient.query("DELETE FROM newsletter_sponsors WHERE id = $1 AND status = 'pendiente'", [sponsorId]);
+      } catch {} finally {
+        cleanupClient.release();
+      }
+      throw stripeErr;
+    }
 
     // Actualizar session_id en la BD para rastrear
     const updateClient = await pool.connect();

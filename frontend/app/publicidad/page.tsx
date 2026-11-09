@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { isSafeStripeRedirectUrl } from '@/lib/urlSafety';
 
 export default function PublicidadPage() {
   // Form newsletter sponsor states
@@ -28,10 +29,11 @@ export default function PublicidadPage() {
       });
 
       const data = await response.json();
-      if (response.ok && data.url) {
-        window.location.href = data.url; // Redirigir a Stripe Checkout
+      // VULN-20: Verificación estricta de dominio oficial de Stripe para redirección
+      if (response.ok && data.url && isSafeStripeRedirectUrl(data.url)) {
+        window.location.href = data.url;
       } else {
-        setErrorMsg(data.error || 'Ocurrió un error al procesar la reserva.');
+        setErrorMsg(data.error || 'Ocurrió un error al procesar la reserva o la URL devuelta no es válida.');
       }
     } catch (err) {
       setErrorMsg('Error de red. Inténtalo de nuevo.');

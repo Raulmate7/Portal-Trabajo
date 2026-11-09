@@ -147,11 +147,16 @@ def run_referral_notifications():
     # 3. Iniciar servidor SMTP
     smtp_active = False
     try:
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.starttls()
+        smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
+        smtp_port = int(os.getenv("SMTP_PORT", "587"))
+        if smtp_port == 465:
+            server = smtplib.SMTP_SSL(smtp_host, smtp_port)
+        else:
+            server = smtplib.SMTP(smtp_host, smtp_port)
+            server.starttls()
         server.login(EMAIL_USER, EMAIL_PASSWORD)
         smtp_active = True
-        print("✅ Login en Gmail SMTP correcto.")
+        print(f"✅ Login en servidor SMTP ({smtp_host}:{smtp_port}) correcto.")
     except Exception as e:
         print(f"❌ Error al iniciar sesión en SMTP (se procesará el script pero se omitirán envíos): {e}")
 

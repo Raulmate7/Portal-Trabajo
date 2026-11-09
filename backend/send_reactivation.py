@@ -83,10 +83,15 @@ def run_reactivation():
 
     # 3. Conectar a SMTP
     try:
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.starttls()
+        smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
+        smtp_port = int(os.getenv("SMTP_PORT", "587"))
+        if smtp_port == 465:
+            server = smtplib.SMTP_SSL(smtp_host, smtp_port)
+        else:
+            server = smtplib.SMTP(smtp_host, smtp_port)
+            server.starttls()
         server.login(EMAIL_USER, EMAIL_PASSWORD)
-        print("✅ Conectado a SMTP.")
+        print(f"✅ Conectado a SMTP ({smtp_host}:{smtp_port}).")
     except Exception as e:
         print(f"❌ Error SMTP: {e}")
         cur.close()

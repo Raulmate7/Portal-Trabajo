@@ -230,10 +230,15 @@ def run_onboarding():
 
     # 3. Iniciar servidor SMTP
     try:
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.starttls()
+        smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
+        smtp_port = int(os.getenv("SMTP_PORT", "587"))
+        if smtp_port == 465:
+            server = smtplib.SMTP_SSL(smtp_host, smtp_port)
+        else:
+            server = smtplib.SMTP(smtp_host, smtp_port)
+            server.starttls()
         server.login(EMAIL_USER, EMAIL_PASSWORD)
-        print("✅ Login en Gmail SMTP correcto.")
+        print(f"✅ Login en SMTP ({smtp_host}:{smtp_port}) correcto.")
     except Exception as e:
         print(f"❌ Error al iniciar sesión en SMTP: {e}")
         conn.close()

@@ -303,11 +303,20 @@ export async function subscribeUser(formData: FormData) {
     // 2. Si es nuevo, insertar limpiamente
     const jsonVal = JSON.stringify({ keywords: techKeywords.split(',').map((s: string) => s.trim()).filter(Boolean), operator });
     
-    await client.query(
-      `INSERT INTO subscribers (email, tech_keywords, location_pref, frequency, referred_by, created_at, tech_keywords_json)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [email, techKeywords, locationPref, frequency, referredBy, new Date().toISOString(), jsonVal]
-    );
+    try {
+      await client.query(
+        `INSERT INTO subscribers (email, tech_keywords, location_pref, frequency, referred_by, created_at, tech_keywords_json)
+         VALUES ($1, $2, $3, $4, $5, NOW(), $6)`,
+        [email, techKeywords, locationPref, frequency, referredBy, jsonVal]
+      );
+    } catch (insertErr: any) {
+      // Fallback si la columna tech_keywords_json no existe aún en la tabla subscribers
+      await client.query(
+        `INSERT INTO subscribers (email, tech_keywords, location_pref, frequency, referred_by, created_at)
+         VALUES ($1, $2, $3, $4, $5, NOW())`,
+        [email, techKeywords, locationPref, frequency, referredBy]
+      );
+    }
 
     revalidatePath(pathname);
     return { message: '¡Gracias por suscribirte! Si tu correo es válido, recibirás nuestras alertas de empleo en tu bandeja de entrada. 🚀', success: true };
@@ -357,8 +366,8 @@ export async function submitPremiumLead(formData: FormData) {
     }
 
     await client.query(
-      "INSERT INTO premium_leads (name, email, stack, experience, linkedin, created_at) VALUES ($1, $2, $3, $4, $5, $6)",
-      [name, cleanEmail, stack, experience, linkedin, new Date().toISOString()]
+      "INSERT INTO premium_leads (name, email, stack, experience, linkedin, created_at) VALUES ($1, $2, $3, $4, $5, NOW())",
+      [name, cleanEmail, stack, experience, linkedin]
     );
 
     // Vector 7: Notificación solo al administrador privado (TELEGRAM_ADMIN_ID). Nunca al canal público.
@@ -417,6 +426,13 @@ export async function submitSponsoredJob(formData: FormData) {
   if (!await verifyCsrfOrigin()) {
     return { message: 'Petición rechazada por política de seguridad de origen (CSRF).', success: false };
   }
+
+  // VULN-21: Trampa honeypot en Server Action contra spam bots en publicaciones gratuitas
+  const honeypot = (formData.get('website_hp') || formData.get('company_website_hp') || '') as string;
+  if (honeypot.trim().length > 0) {
+    return { message: 'Tu oferta ha sido enviada para moderación.', success: true, redirectUrl: '/publicar-oferta?success=true&free=true' };
+  }
+
   const company_name = formData.get('company_name') as string;
   const company_email = formData.get('company_email') as string;
   const company_phone = (formData.get('company_phone') as string) || null;
@@ -451,7 +467,7 @@ export async function submitSponsoredJob(formData: FormData) {
 
     await client.query(
       `INSERT INTO sponsored_jobs (company_name, company_email, company_phone, job_title, job_location, job_salary, job_description, job_url, plan, status, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())`,
       [
         company_name,
         company_email,
@@ -462,8 +478,7 @@ export async function submitSponsoredJob(formData: FormData) {
         job_description,
         cleanJobUrl,
         plan,
-        'pendiente', // Vector 21: Toda solicitud pasa por estado 'pendiente' para moderación humana previa
-        new Date().toISOString()
+        'pendiente' // Vector 21: Toda solicitud pasa por estado 'pendiente' para moderación humana previa
       ]
     );
 
@@ -992,12 +1007,21 @@ export async function updateSubscriberPreferences(
 
   const client = await pool.connect();
   try {
-    await client.query(
-      `UPDATE subscribers 
-       SET tech_keywords = $1, location_pref = $2, frequency = $3, tech_keywords_json = $4
-       WHERE email = $5`,
-      [cleanTech, cleanLocation, cleanFreq, validJson, email.trim().toLowerCase()]
-    );
+    try {
+      await client.query(
+        `UPDATE subscribers 
+         SET tech_keywords = $1, location_pref = $2, frequency = $3, tech_keywords_json = $4
+         WHERE email = $5`,
+        [cleanTech, cleanLocation, cleanFreq, validJson, email.trim().toLowerCase()]
+      );
+    } catch {
+      await client.query(
+        `UPDATE subscribers 
+         SET tech_keywords = $1, location_pref = $2, frequency = $3
+         WHERE email = $4`,
+        [cleanTech, cleanLocation, cleanFreq, email.trim().toLowerCase()]
+      );
+    }
     return { success: true, sessionToken: nextSessionToken };
   } catch (error: any) {
     console.error('Error actualizando preferencias de suscriptor:', error);

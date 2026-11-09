@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { subscribeUser } from '@/app/actions';
+import { isSafeStripeRedirectUrl } from '@/lib/urlSafety';
 
 function InformeMercadoContent() {
   const searchParams = useSearchParams();
@@ -102,10 +103,11 @@ function InformeMercadoContent() {
       });
 
       const data = await response.json();
-      if (response.ok && data.url) {
+      // VULN-20: Verificación estricta de redirección contra Open Redirect
+      if (response.ok && data.url && isSafeStripeRedirectUrl(data.url)) {
         window.location.href = data.url; // Redirigir a Stripe Checkout
       } else {
-        setPaidError(data.error || 'Ocurrió un error al procesar el pago.');
+        setPaidError(data.error || 'Ocurrió un error al procesar el pago o la URL recibida no es válida.');
       }
     } catch (err) {
       setPaidError('Error de red. Inténtalo de nuevo.');

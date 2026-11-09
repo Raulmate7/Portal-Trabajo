@@ -151,15 +151,20 @@ DDL_TABLES = {
     """
 }
 
-# Recrear tablas
-print("\n🔨 Recreando tablas en MySQL...")
-mysql_cur.execute("SET FOREIGN_KEY_CHECKS = 0;")
+# VULN-30: Recreación de tablas controlada para prevenir destrucción accidental de datos en producción
+drop_existing = os.getenv("ALLOW_DESTRUCTIVE_MIGRATION") == "true" or os.getenv("DROP_EXISTING_TABLES") == "true"
+if drop_existing:
+    print("\n⚠️ ALERTA: Modo destructivo activo (ALLOW_DESTRUCTIVE_MIGRATION=true). Recreando tablas...")
+    mysql_cur.execute("SET FOREIGN_KEY_CHECKS = 0;")
+    for table in DDL_TABLES.keys():
+        mysql_cur.execute(f"DROP TABLE IF EXISTS `{table}`;")
+    mysql_cur.execute("SET FOREIGN_KEY_CHECKS = 1;")
+else:
+    print("\n🔨 Creando/verificando tablas en MySQL (modo seguro: CREATE TABLE IF NOT EXISTS)...")
+
 for table, ddl in DDL_TABLES.items():
-    print(f"  - Recreando tabla '{table}'...")
-    mysql_cur.execute(f"DROP TABLE IF EXISTS {table};")
     mysql_cur.execute(ddl)
-mysql_cur.execute("SET FOREIGN_KEY_CHECKS = 1;")
-print("✅ Creación de tablas e índices completada.")
+print("✅ Creación/verificación de tablas completada.")
 
 TABLES = ['sectors', 'jobs', 'subscribers', 'alerts', 'sponsored_jobs', 'email_tracking', 'premium_leads']
 
@@ -179,13 +184,18 @@ for table in TABLES:
 
     print(f"  - Cargados {len(data)} registros.")
     
-    # Obtener nombres de las columnas desde el primer registro
-    cols = list(data[0].keys())
+    # VULN-20: Sanitizar y validar estrictamente identificadores de columnas y tablas
+    if not table.isidentifier():
+        raise ValueError(f"Nombre de tabla no válido: {table}")
     
-    # Preparar sentencia de inserción
+    cols = [col for col in data[0].keys() if col.isidentifier()]
+    if not cols:
+        raise ValueError(f"No se encontraron columnas válidas para la tabla {table}")
+    
+    # Preparar sentencia de inserción con backticks y validación
     placeholders = ", ".join(["%s"] * len(cols))
-    cols_str = ", ".join(cols)
-    insert_sql = f"INSERT INTO {table} ({cols_str}) VALUES ({placeholders})"
+    cols_str = ", ".join([f"`{col}`" for col in cols])
+    insert_sql = f"INSERT INTO `{table}` ({cols_str}) VALUES ({placeholders})"
     
     batch_data = []
     for record in data:
