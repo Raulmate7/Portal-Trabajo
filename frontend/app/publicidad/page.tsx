@@ -217,7 +217,7 @@ export default function PublicidadPage() {
                 required
                 checked={privacyAccepted}
                 onChange={e => setPrivacyAccepted(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-gray-700 bg-gray-950 text-purple-500 focus:ring-purple-400"
+                className="mt-0.5 h-4 w-4 rounded border-gray-700 bg-gray-950 text-purple-500 focus:ring-purple-400 shrink-0"
               />
               <span>
                 He leído y acepto las{' '}
@@ -227,16 +227,21 @@ export default function PublicidadPage() {
                 y la{' '}
                 <Link href="/privacy" target="_blank" className="text-purple-400 underline">
                   Política de Privacidad
-                </Link>.*
+                </Link>, solicito la reserva inmediata del bloque publicitario y reconozco la excepción al derecho de desistimiento una vez iniciada la ejecución (Art. 103.m TRLGDCU).*
               </span>
             </label>
+
+            <div className="p-3 rounded-xl bg-gray-950/90 border border-gray-800 text-[10px] text-gray-400 text-left leading-relaxed space-y-0.5">
+              <p className="font-semibold text-gray-300">Información básica sobre protección de datos (RGPD Art. 13):</p>
+              <p><strong>Responsable:</strong> Portal Trabajo IT (<Link href="/aviso-legal" className="underline text-purple-400">ver datos</Link>). <strong>Finalidad:</strong> Gestión de la contratación publicitaria, cobro y facturación fiscal. <strong>Legitimación:</strong> Ejecución de contrato (Art. 6.1.b RGPD) y obligación tributaria (Art. 6.1.c RGPD). <strong>Destinatarios:</strong> Stripe Payments Europe Ltd. y Administración Tributaria. <strong>Derechos:</strong> Acceso, rectificación y supresión en contacto@portalempleoit.com.</p>
+            </div>
 
             <button
               type="submit"
               disabled={loading}
               className="w-full py-3.5 bg-gradient-to-r from-purple-500 to-indigo-650 hover:from-purple-400 hover:to-indigo-550 text-white font-bold rounded-xl transition-all shadow-lg shadow-purple-500/10 disabled:opacity-60 text-xs cursor-pointer"
             >
-              {loading ? 'Redirigiendo a Stripe...' : 'Comprar Patrocinio de Newsletter (49€) →'}
+              {loading ? 'Redirigiendo a Stripe...' : 'Contratar con obligación de pago (49€ + 21% IVA) →'}
             </button>
           </form>
 

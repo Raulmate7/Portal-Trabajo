@@ -73,6 +73,7 @@ export default function InAppNotification() {
       
       <button 
         onClick={() => setShowToast(false)}
+        aria-label="Cerrar notificación"
         className="text-slate-500 hover:text-white font-bold text-xs shrink-0 cursor-pointer"
       >
         ✕

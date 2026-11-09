@@ -193,6 +193,10 @@ def run_migration():
         ('reactivation_last_sent_at', 'TIMESTAMP NULL'),
         ('source', 'VARCHAR(100) NULL'),
         ('is_active', 'BOOLEAN DEFAULT TRUE'),
+        ('consent_timestamp', 'TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP'),
+        ('consent_ip_hash', 'VARCHAR(64) NULL'),
+        ('consent_policy_version', 'VARCHAR(50) DEFAULT "v2026.11"'),
+        ('marketing_accepted', 'BOOLEAN DEFAULT FALSE'),
     ]
     for col, col_def in sub_columns:
         try:
@@ -231,9 +235,26 @@ def run_migration():
             stack VARCHAR(500) NOT NULL,
             experience VARCHAR(100) NOT NULL,
             linkedin VARCHAR(500) NULL,
+            consent_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            consent_ip_hash VARCHAR(64) NULL,
+            consent_policy_version VARCHAR(50) DEFAULT 'v2026.11',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     """)
+
+    lead_columns = [
+        ('consent_timestamp', 'TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP'),
+        ('consent_ip_hash', 'VARCHAR(64) NULL'),
+        ('consent_policy_version', 'VARCHAR(50) DEFAULT "v2026.11"'),
+    ]
+    for col, col_def in lead_columns:
+        try:
+            cols = execute(f"SHOW COLUMNS FROM premium_leads LIKE '{col}'")
+            if not cols:
+                execute(f"ALTER TABLE premium_leads ADD COLUMN {col} {col_def}")
+                print(f"  + Columna '{col}' añadida a premium_leads.")
+        except Exception as err:
+            print(f"  * Nota sobre premium_leads.{col}: {err}")
 
     print("\n📦 [6/10] Verificando tabla 'newsletter_sponsors'...")
     execute("""

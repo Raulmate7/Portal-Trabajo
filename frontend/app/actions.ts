@@ -261,6 +261,7 @@ export async function subscribeUser(formData: FormData) {
   const locationPref = (formData.get('location_pref') as string || '').trim();
   const frequency = (formData.get('frequency') as string || 'weekly').trim();
   const privacyAccepted = formData.get('privacy_accepted') === 'on' || formData.get('privacy_accepted') === 'true';
+  const marketingAccepted = formData.get('marketing_accepted') === 'on' || formData.get('marketing_accepted') === 'true';
 
   if (!privacyAccepted) {
     return { message: 'Debes aceptar la Política de Privacidad para suscribirte.', success: false };
@@ -288,6 +289,10 @@ export async function subscribeUser(formData: FormData) {
     return { message: 'Estás haciendo demasiadas peticiones. Espera un momento.', success: false };
   }
 
+  // RGPD Art. 7.1: Trazabilidad probatoria del consentimiento expreso
+  const consentIpHash = crypto.createHash('sha256').update(clientIp + (process.env.APP_SECRET || 'consent_salt_v1')).digest('hex');
+  const consentPolicyVersion = 'v2026.11';
+
   const client = await pool.connect();
   try {
     // 1. Comprobar si el suscriptor ya existe para evitar que terceros sobreescriban sus preferencias sin autenticación
@@ -305,22 +310,30 @@ export async function subscribeUser(formData: FormData) {
       };
     }
 
-    // 2. Si es nuevo, insertar limpiamente
+    // 2. Si es nuevo, insertar limpiamente con trazabilidad de consentimiento
     const jsonVal = JSON.stringify({ keywords: techKeywords.split(',').map((s: string) => s.trim()).filter(Boolean), operator });
     
     try {
       await client.query(
-        `INSERT INTO subscribers (email, tech_keywords, location_pref, frequency, referred_by, created_at, tech_keywords_json)
-         VALUES ($1, $2, $3, $4, $5, NOW(), $6)`,
-        [email, techKeywords, locationPref, frequency, referredBy, jsonVal]
+        `INSERT INTO subscribers (email, tech_keywords, location_pref, frequency, referred_by, created_at, tech_keywords_json, consent_timestamp, consent_ip_hash, consent_policy_version, marketing_accepted)
+         VALUES ($1, $2, $3, $4, $5, NOW(), $6, NOW(), $7, $8, $9)`,
+        [email, techKeywords, locationPref, frequency, referredBy, jsonVal, consentIpHash, consentPolicyVersion, marketingAccepted]
       );
     } catch (insertErr: any) {
-      // Fallback si la columna tech_keywords_json no existe aún en la tabla subscribers
-      await client.query(
-        `INSERT INTO subscribers (email, tech_keywords, location_pref, frequency, referred_by, created_at)
-         VALUES ($1, $2, $3, $4, $5, NOW())`,
-        [email, techKeywords, locationPref, frequency, referredBy]
-      );
+      // Fallback si la tabla no tiene aún las columnas de trazabilidad o tech_keywords_json
+      try {
+        await client.query(
+          `INSERT INTO subscribers (email, tech_keywords, location_pref, frequency, referred_by, created_at, tech_keywords_json)
+           VALUES ($1, $2, $3, $4, $5, NOW(), $6)`,
+          [email, techKeywords, locationPref, frequency, referredBy, jsonVal]
+        );
+      } catch (innerErr: any) {
+        await client.query(
+          `INSERT INTO subscribers (email, tech_keywords, location_pref, frequency, referred_by, created_at)
+           VALUES ($1, $2, $3, $4, $5, NOW())`,
+          [email, techKeywords, locationPref, frequency, referredBy]
+        );
+      }
     }
 
     revalidatePath(pathname);
@@ -362,6 +375,10 @@ export async function submitPremiumLead(formData: FormData) {
     return { message: 'Estás enviando demasiadas solicitudes. Espera un minuto.', success: false };
   }
 
+  // RGPD Art. 7.1: Trazabilidad probatoria del consentimiento expreso
+  const consentIpHash = crypto.createHash('sha256').update(clientIp + (process.env.APP_SECRET || 'consent_salt_v1')).digest('hex');
+  const consentPolicyVersion = 'v2026.11';
+
   const client = await pool.connect();
   try {
     // Vector 11: Comprobar si ya existe un lead reciente para este correo (últimas 24h)
@@ -375,23 +392,29 @@ export async function submitPremiumLead(formData: FormData) {
       return { message: '¡Gracias! Hemos recibido tu solicitud.', success: true };
     }
 
-    await client.query(
-      "INSERT INTO premium_leads (name, email, stack, experience, linkedin, created_at) VALUES ($1, $2, $3, $4, $5, NOW())",
-      [name, cleanEmail, stack, experience, linkedin]
-    );
+    try {
+      await client.query(
+        "INSERT INTO premium_leads (name, email, stack, experience, linkedin, created_at, consent_timestamp, consent_ip_hash, consent_policy_version) VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), $6, $7)",
+        [name, cleanEmail, stack, experience, linkedin, consentIpHash, consentPolicyVersion]
+      );
+    } catch (insertErr) {
+      await client.query(
+        "INSERT INTO premium_leads (name, email, stack, experience, linkedin, created_at) VALUES ($1, $2, $3, $4, $5, NOW())",
+        [name, cleanEmail, stack, experience, linkedin]
+      );
+    }
 
-    // Vector 7: Notificación solo al administrador privado (TELEGRAM_ADMIN_ID). Nunca al canal público.
+    // Vector 7 & RGPD Art. 5.1.c (Minimización) + Art. 44 (Sin transferencia internacional indebida de PII):
+    // Notificación operativa al administrador sin filtrar datos identificativos personales (nombre, correo o URL de LinkedIn) a la API externa de Telegram.
     const telegramToken = process.env.TELEGRAM_TOKEN;
     const adminChatId = process.env.TELEGRAM_ADMIN_ID;
 
     if (telegramToken && adminChatId) {
-      // Vector 23: Sanitización estricta HTML para prevenir phishing y manipulación de enlaces en Telegram
-      const text = `🚨 <b>NUEVO LEAD PREMIUM</b> 🚨\n\n` +
-        `👤 <b>Nombre:</b> ${escapeTelegramHtml(name)}\n` +
-        `📧 <b>Email:</b> ${escapeTelegramHtml(cleanEmail)}\n` +
+      const text = `🚨 <b>NUEVO CANDIDATO EN TALENTO PREMIUM</b> 🚨\n\n` +
         `💻 <b>Stack:</b> ${escapeTelegramHtml(stack)}\n` +
         `⏱ <b>Experiencia:</b> ${escapeTelegramHtml(experience)} años\n` +
-        `🔗 <b>LinkedIn:</b> ${escapeTelegramHtml(linkedin || 'No proporcionado')}`;
+        `📅 <b>Fecha:</b> ${new Date().toISOString()}\n\n` +
+        `🔒 <i>Por cumplimiento del RGPD, los datos personales identificativos (PII) se almacenan de forma segura en la base de datos interna y no se envían a plataformas externas de mensajería. Consulta el panel de administración privado para revisarlos.</i>`;
       
       try {
         await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { sendGAEvent } from '@next/third-parties/google';
+import { sendSafeGAEvent, hasAnalyticsConsent } from '@/lib/analytics';
 
 const TECH_COURSES: Record<string, { title: string; desc: string; url: string }> = {
   'react': {
@@ -53,20 +53,24 @@ export default function AffiliateCourseCard({ technology }: { technology: string
   };
 
   useEffect(() => {
-    // Asignación persistente de la variante para el test A/B de afiliados
-    const savedVariant = localStorage.getItem('affiliate_cta_variant');
-    if (savedVariant === 'A' || savedVariant === 'B') {
-      setCtaVariant(savedVariant);
+    // Asignación persistente de la variante para el test A/B respetando consentimiento de cookies (LSSI Art. 22.2)
+    if (hasAnalyticsConsent()) {
+      const savedVariant = localStorage.getItem('affiliate_cta_variant');
+      if (savedVariant === 'A' || savedVariant === 'B') {
+        setCtaVariant(savedVariant);
+      } else {
+        const chosenVariant = Math.random() < 0.5 ? 'A' : 'B';
+        localStorage.setItem('affiliate_cta_variant', chosenVariant);
+        setCtaVariant(chosenVariant);
+      }
     } else {
-      const chosenVariant = Math.random() < 0.5 ? 'A' : 'B';
-      localStorage.setItem('affiliate_cta_variant', chosenVariant);
-      setCtaVariant(chosenVariant);
+      setCtaVariant(Math.random() < 0.5 ? 'A' : 'B');
     }
   }, []);
 
   const handleCtaClick = () => {
-    // Evento de GA4 para medir rendimiento del test A/B
-    sendGAEvent({ 
+    // Evento seguro de GA4 para medir rendimiento del test A/B sólo con consentimiento previo
+    sendSafeGAEvent({ 
       event: 'affiliate_click', 
       value: `Udemy_${techLower}_variant_${ctaVariant}`
     });

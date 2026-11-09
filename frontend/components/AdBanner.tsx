@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
-import { sendGAEvent } from '@next/third-parties/google';
+import { sendSafeGAEvent as sendGAEvent } from '@/lib/analytics';
 
 // ─── Singleton de actividad del usuario ──────────────────────────────────────
 // En lugar de registrar 5 event listeners por cada instancia de AdBanner,

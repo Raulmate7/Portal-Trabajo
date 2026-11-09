@@ -4,7 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { subscribeUser } from '@/app/actions';
-import { sendGAEvent } from '@next/third-parties/google';
+import { sendSafeGAEvent, hasAnalyticsConsent } from '@/lib/analytics';
 
 
 const TECH_OPTIONS = [
@@ -54,14 +54,18 @@ export default function SubscribeForm({
   const [ctaVariant, setCtaVariant] = useState<'A' | 'B'>('A');
 
   useEffect(() => {
-    // Asignación persistente de la variante para el test A/B
-    const savedVariant = localStorage.getItem('newsletter_cta_variant');
-    if (savedVariant === 'A' || savedVariant === 'B') {
-      setCtaVariant(savedVariant);
+    // Asignación de la variante para el test A/B respetando consentimiento de cookies (LSSI Art. 22.2)
+    if (hasAnalyticsConsent()) {
+      const savedVariant = localStorage.getItem('newsletter_cta_variant');
+      if (savedVariant === 'A' || savedVariant === 'B') {
+        setCtaVariant(savedVariant);
+      } else {
+        const chosenVariant = Math.random() < 0.5 ? 'A' : 'B';
+        localStorage.setItem('newsletter_cta_variant', chosenVariant);
+        setCtaVariant(chosenVariant);
+      }
     } else {
-      const chosenVariant = Math.random() < 0.5 ? 'A' : 'B';
-      localStorage.setItem('newsletter_cta_variant', chosenVariant);
-      setCtaVariant(chosenVariant);
+      setCtaVariant(Math.random() < 0.5 ? 'A' : 'B');
     }
   }, []);
 
@@ -96,8 +100,8 @@ export default function SubscribeForm({
       if (emailRef.current) emailRef.current.value = '';
       // Guardar palabras clave para compatibilidad local
       localStorage.setItem('subscriber_tech_keywords', selectedTech.join(','));
-      // Evento de GA4 para registrar la conversión y su respectiva variante A/B
-      sendGAEvent({ event: 'newsletter_signup', value: ctaVariant });
+      // Evento de GA4 para registrar la conversión y su respectiva variante A/B con consentimiento verificado
+      sendSafeGAEvent({ event: 'newsletter_signup', value: ctaVariant });
       
       // Redirigir a página de gracias
       window.location.href = '/gracias';
@@ -256,7 +260,7 @@ export default function SubscribeForm({
             </div>
           )}
 
-          {/* Casilla de verificación obligatoria no premarcada (RGPD Art. 6.1.a y 7) */}
+          {/* Casillas de consentimiento no premarcadas con finalidades desglosadas (RGPD Art. 6.1.a, 7.1 y 7.2) */}
           <div className="space-y-2 pt-1 text-left">
             <label className="flex items-start gap-2.5 text-xs text-gray-300 cursor-pointer">
               <input
@@ -271,7 +275,20 @@ export default function SubscribeForm({
                 <Link href="/privacy" target="_blank" className="text-indigo-400 underline hover:text-indigo-300">
                   Política de Privacidad
                 </Link>{' '}
-                y consiento recibir alertas de empleo IT y comunicaciones comerciales del portal. *
+                y consiento recibir alertas de empleo IT personalizadas. *
+              </span>
+            </label>
+
+            {/* Finalidad secundaria opcional separada (RGPD Art. 7.2 - Prohibición estricta de consentimiento agrupado/bundled) */}
+            <label className="flex items-start gap-2.5 text-xs text-gray-400 cursor-pointer">
+              <input
+                type="checkbox"
+                name="marketing_accepted"
+                defaultChecked={false}
+                className="mt-0.5 h-4 w-4 rounded border-gray-600 bg-gray-800 text-indigo-600 focus:ring-indigo-500 shrink-0 cursor-pointer"
+              />
+              <span className="leading-tight">
+                (Opcional) Consiento recibir novedades, ofertas formativas y comunicaciones comerciales relevantes del sector IT.
               </span>
             </label>
 
@@ -280,8 +297,8 @@ export default function SubscribeForm({
               <p className="font-semibold text-gray-200">Información básica sobre protección de datos:</p>
               <ul className="list-disc pl-3.5 space-y-0.5 text-gray-400">
                 <li><strong>Responsable:</strong> Portal Trabajo IT.</li>
-                <li><strong>Finalidad:</strong> Envío de alertas de empleo tech y resumen semanal según tus filtros.</li>
-                <li><strong>Legitimación:</strong> Tu consentimiento expreso (Art. 6.1.a RGPD).</li>
+                <li><strong>Finalidad:</strong> Envío de alertas de empleo tech y, si lo autorizas, comunicaciones formativas o comerciales.</li>
+                <li><strong>Legitimación:</strong> Tu consentimiento expreso e inequívoco para cada finalidad (Art. 6.1.a RGPD).</li>
                 <li><strong>Destinatarios:</strong> No se ceden datos a terceros, salvo obligación legal o encargados técnicos de infraestructura.</li>
                 <li><strong>Derechos:</strong> Acceso, rectificación, supresión y baja instantánea en 1 clic (+ info en <Link href="/privacy" className="text-indigo-400 underline">Política de Privacidad</Link>).</li>
               </ul>

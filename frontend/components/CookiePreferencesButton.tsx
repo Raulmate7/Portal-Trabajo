@@ -12,6 +12,7 @@ export default function CookiePreferencesButton() {
     <button
       type="button"
       onClick={handleClick}
+      aria-label="Configurar preferencias de cookies y privacidad"
       className="hover:text-white transition-colors text-gray-400 text-left cursor-pointer focus:outline-none"
     >
       ⚙️ Configurar Cookies

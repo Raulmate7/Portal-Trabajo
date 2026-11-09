@@ -12,6 +12,10 @@ export const metadata: Metadata = {
 };
 
 export default function PrivacyPage() {
+  const legalOwner = process.env.NEXT_PUBLIC_LEGAL_OWNER || 'Raúl Mateo (Portal Trabajo IT)';
+  const legalNif = process.env.NEXT_PUBLIC_LEGAL_NIF || 'Disponible previa solicitud acreditada en contacto@portalempleoit.com';
+  const legalAddress = process.env.NEXT_PUBLIC_LEGAL_ADDRESS || 'Madrid, España (Atención al usuario y notificaciones: contacto@portalempleoit.com)';
+
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-4 md:px-8">
       <div className="max-w-3xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-gray-100">
@@ -24,13 +28,14 @@ export default function PrivacyPage() {
         
         <div className="prose text-gray-700 space-y-6 text-sm leading-relaxed font-sans">
           <section>
-            <h2 className="text-lg font-bold text-gray-900 mb-2">1. Responsable del Tratamiento de Datos</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">1. Responsable del Tratamiento de Datos (Art. 13.1.a RGPD)</h2>
             <p>
               En cumplimiento del Reglamento General de Protección de Datos (Reglamento UE 2016/679 - RGPD) y la Ley Orgánica 3/2018 (LOPDGDD), se informa que el responsable del tratamiento de los datos recopilados en este portal es:
             </p>
             <ul className="list-disc pl-5 mt-2 space-y-1">
-              <li><strong>Responsable:</strong> Raúl M. (Portal Trabajo IT)</li>
-              <li><strong>Ámbito y residencia:</strong> España (Unión Europea)</li>
+              <li><strong>Identidad del Responsable:</strong> {legalOwner}</li>
+              <li><strong>NIF / CIF:</strong> {legalNif}</li>
+              <li><strong>Domicilio postal:</strong> {legalAddress}</li>
               <li><strong>Contacto de Privacidad y Ejercicio de Derechos:</strong> contacto@portalempleoit.com</li>
               <li><strong>Actividad principal:</strong> Agregador y metabuscador de empleo tecnológico en España, calculadora salarial y servicios de difusión para reclutadores.</li>
             </ul>
@@ -78,11 +83,12 @@ export default function PrivacyPage() {
             <ul className="list-disc pl-5 mt-2 space-y-1.5">
               <li><strong>Pasarelas de Pagos:</strong> Stripe Payments Europe, Ltd. (sede en Irlanda, UE) y PayPal Europe S.à r.l. et Cie, S.C.A. (Luxemburgo, UE), ambas certificadas bajo el estándar de seguridad PCI-DSS.</li>
               <li><strong>Notificaciones Push en Navegador:</strong> OneSignal, Inc. (adherida al marco de privacidad Data Privacy Framework UE-EE.UU.), actuando únicamente si el usuario activa voluntariamente las alertas push.</li>
+              <li><strong>Programas de Afiliación (Cursos y Recursos):</strong> Enlaces recomendados a plataformas educativas externas (Udemy Ireland Ltd., Coursera Inc., Domestika, Platzi y Amazon EU). Al hacer clic en un enlace de afiliado, el usuario es redirigido a la plataforma externa con parámetros de campaña sin que Portal Trabajo IT transmita datos de carácter personal.</li>
               <li><strong>Infraestructura de Alojamiento y Despliegue:</strong> Servidores en la Unión Europea protegidos mediante cifrado TLS v1.3 y túneles proxy de base de datos con autenticación reforzada y listas de control de acceso por IP.</li>
-              <li><strong>Comunicaciones por Correo:</strong> Servidores SMTP seguros con políticas SPF, DKIM y DMARC activas.</li>
+              <li><strong>Comunicaciones por Correo:</strong> Servidores SMTP y servicio transaccional (Resend Inc., bajo Cláusulas Contractuales Tipo de la UE) con políticas SPF, DKIM y DMARC activas.</li>
             </ul>
             <p className="mt-2 text-xs text-gray-650">
-              No vendemos, cedemos ni transferimos datos personales a terceros comerciales ni a empresas de publicidad externa.
+              No vendemos, cedemos ni transferimos datos personales a terceros comerciales ni a redes de compraventa de datos.
             </p>
           </section>
 
@@ -98,10 +104,13 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-bold text-gray-900 mb-2">5. Plazo de Conservación de los Datos</h2>
-            <p>
-              Los datos vinculados a la suscripción de empleo se conservarán hasta que el usuario decida darse de baja o revoque su consentimiento. Los registros de telemetría y métricas de apertura se purgan periódicamente en un plazo no superior a 12 meses. Los datos fiscales de compras comerciales se conservan durante el plazo legal obligatorio establecido por la normativa tributaria española (Ley General Tributaria).
-            </p>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">5. Plazos de Conservación de los Datos (Art. 13.2.a RGPD)</h2>
+            <ul className="list-disc pl-5 mt-2 space-y-1.5">
+              <li><strong>Suscriptores de alertas y boletín:</strong> Se conservan hasta que el usuario decida darse de baja o revoque su consentimiento mediante el enlace de baja en 1 clic o en <Link href="/darse-de-baja" className="underline text-indigo-600">/darse-de-baja</Link>.</li>
+              <li><strong>Datos de facturación y compras comerciales:</strong> Se conservan durante el plazo legal obligatorio de <strong>4 años</strong> (obligaciones tributarias, Art. 66 Ley General Tributaria) y <strong>6 años</strong> (libros de contabilidad y facturas, Art. 30 Código de Comercio).</li>
+              <li><strong>Telemetría técnica y registros de entrega:</strong> Las métricas técnicas de apertura y clics se purgan periódicamente en un plazo no superior a 12 meses.</li>
+              <li><strong>Reseñas y moderación UGC:</strong> Mientras se mantenga la ficha de la empresa y durante los plazos de prescripción de acciones legales civiles aplicables.</li>
+            </ul>
           </section>
 
           <section>
@@ -112,6 +121,28 @@ export default function PrivacyPage() {
             <p className="mt-2">
               Asimismo, puedes cancelar de forma inmediata cualquier suscripción haciendo clic en el enlace &quot;Darse de baja&quot; presente al final de todos nuestros correos. Si consideras que tus derechos no han sido debidamente atendidos, tienes derecho a presentar una reclamación ante la Agencia Española de Protección de Datos (AEPD, <a href="https://www.aepd.es" target="_blank" rel="noopener noreferrer" className="text-indigo-650 hover:underline">www.aepd.es</a>).
             </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">7. Decisiones Automatizadas y Elaboración de Perfiles (Art. 22 RGPD)</h2>
+            <p>
+              De conformidad con el artículo 22 del RGPD, Portal Trabajo IT <strong>no adopta decisiones basadas exclusivamente en el tratamiento automatizado ni elabora perfiles discriminatorios</strong> (<em>profiling</em>) que produzcan efectos jurídicos sobre los candidatos o afecten de forma similar y significativa a sus derechos laborales. 
+            </p>
+            <p className="mt-2">
+              Los sistemas de búsqueda y sugerencias de vacantes operan mediante filtrado objetivo y directo parametrizado por el propio usuario (tecnologías, ubicación o rangos retributivos). Cualquier proceso de valoración cualitativa en el programa de Talento Premium cuenta con intervención, contraste y supervisión de profesionales humanos.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">8. Inteligencia Artificial y Transparencia Algorítmica (Reglamento UE 2024/1689 - AI Act)</h2>
+            <p>
+              En estricto cumplimiento de las exigencias de transparencia del Reglamento Europeo de Inteligencia Artificial (AI Act, Reglamento UE 2024/1689):
+            </p>
+            <ul className="list-disc pl-5 mt-2 space-y-1.5">
+              <li><strong>Transparencia de contenidos (Art. 50.2 AI Act):</strong> En la redacción de informes sectoriales, estadísticas de mercado o artículos divulgativos del blog pueden utilizarse herramientas analíticas y de lenguaje asistido por IA. Todo contenido publicado es revisado, contrastado y avalado bajo la supervisión y responsabilidad editorial de un autor humano identificado.</li>
+              <li><strong>Exclusión de sistemas de alto riesgo:</strong> La plataforma no utiliza algoritmos de IA clasificados como de alto riesgo bajo el Anexo III del AI Act para el descarte automático, análisis psicométrico o clasificación biométrica/conductual de solicitantes de empleo.</li>
+              <li><strong>Prohibición de cesión a LLMs públicos:</strong> Los datos de carácter personal de candidatos, currículos, correos o datos de facturación no son enviados, comercializados ni utilizados para entrenar modelos fundacionales de inteligencia artificial de terceros.</li>
+            </ul>
           </section>
         </div>
       </div>

@@ -383,6 +383,9 @@ export default async function SalarioTechPage({ params }: Props) {
                   </p>
                 </div>
               </div>
+              <div className="mt-4 pt-3 border-t border-gray-100 text-[10px] text-gray-500 leading-relaxed">
+                ⚖️ <strong>Transparencia Retributiva e Igualdad (Directiva UE 2023/970 y Ley 15/2022):</strong> Rangos estadísticos agregados calculados para orientar salarialmente al sector IT y reducir la brecha salarial, de naturaleza no vinculante ni discriminatoria.
+              </div>
             </div>
             <div className="mt-6">
               <AdBanner variant="inline" tech={techSlug} />

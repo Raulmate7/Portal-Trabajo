@@ -99,16 +99,22 @@ export default function AISearchBar() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsFocused(true)}
-          placeholder="Búsqueda Inteligente: ej. 'React en Madrid con más de 40k'..."
+          placeholder="Búsqueda rápida asistida: ej. 'React en Madrid con más de 40k'..."
+          aria-label="Buscar empleo por tecnología, ciudad o salario"
+          title="Filtrado semántico y directo de tecnologías, ciudades y rangos salariales"
           className="w-full px-3 py-2 text-sm text-gray-900 focus:outline-none bg-transparent placeholder-gray-400 font-medium"
         />
         <button
           type="submit"
           disabled={isPending}
+          title="Ejecutar filtrado asistido de ofertas"
           className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-all shadow-md flex items-center gap-1.5 whitespace-nowrap"
         >
-          {isPending ? 'Buscando...' : 'Buscar con IA →'}
+          {isPending ? 'Buscando...' : 'Búsqueda Rápida →'}
         </button>
+      </div>
+      <div className="flex justify-between items-center px-3 pt-1 text-[10px] text-gray-400">
+        <span>✨ Detección automática de tecnología, ubicación y rango salarial por filtrado directo.</span>
       </div>
 
       {/* Dropdown de Búsquedas Recientes */}

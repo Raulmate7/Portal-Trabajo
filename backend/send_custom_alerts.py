@@ -29,6 +29,15 @@ def generate_unsubscribe_link(email: str) -> str:
     return f"{BASE_URL}/api/unsubscribe?email={urllib.parse.quote(clean_email)}&token={token}"
 
 
+def mask_email(email_str: str) -> str:
+    """RGPD Art. 5.1.c y Art. 32: Enmascara el email en logs para evitar fugas de PII."""
+    if not email_str or "@" not in str(email_str):
+        return "***"
+    parts = str(email_str).split("@", 1)
+    user_part, domain = parts[0], parts[1]
+    return f"{user_part[:2]}***@{domain}"
+
+
 def get_jobs_for_subscriber(cur, keywords, operator, location_pref: str, hours: int = 24):
     """Busca ofertas en la BD que coincidan con los filtros del suscriptor."""
     params = []
@@ -141,7 +150,7 @@ def build_email_html(jobs, subscriber_email: str, tech_keywords: str, frequency:
     <!-- Footer Legal conforme a LSSI y RGPD -->
     <div style="background: #f9fafb; padding: 18px 16px; text-align: center; border-top: 1px solid #e5e7eb; font-size: 10px; color: #9ca3af; line-height: 1.5;">
       <p style="margin: 0 0 4px 0;">
-        <strong>Portal Trabajo IT</strong> · Alertas de empleo tech en España.<br>
+        <strong>Portal Trabajo IT</strong> · Responsable: {os.getenv('LEGAL_OWNER', 'Raúl Mateo (Portal Trabajo IT)')} · NIF: {os.getenv('LEGAL_NIF', 'Consulte Aviso Legal')} · {os.getenv('LEGAL_ADDRESS', 'Madrid, España')}<br>
         Recibes este aviso porque solicitaste alertas de empleo en portalempleoit.com.
       </p>
       <p style="margin: 0;">
@@ -149,8 +158,8 @@ def build_email_html(jobs, subscriber_email: str, tech_keywords: str, frequency:
         <a href="{BASE_URL}/privacy" style="color: #6b7280; text-decoration: underline;">Política de Privacidad</a> · 
         <a href="{unsubscribe_link}" style="color: #ef4444; text-decoration: underline; font-weight: bold;">Darme de baja en 1 clic</a>
       </p>
-      <p style="margin: 4px 0 0 0; color: #d1d5db; font-size: 9px;">
-        Derechos de protección de datos: contacto@portalempleoit.com
+      <p style="margin: 4px 0 0 0; color: #9ca3af; font-size: 9px;">
+        Este correo incluye métricas técnicas de entrega (enlaces de redirección segura, Art. 22.2 LSSI). Puedes ejercer tus derechos de acceso, rectificación y supresión en contacto@portalempleoit.com.
       </p>
     </div>
   </div>
@@ -249,7 +258,7 @@ def send_custom_alerts():
 
             if not jobs:
                 skip_count += 1
-                print(f"  ⏭️  Sin nuevas ofertas para {email} — omitiendo.")
+                print(f"  ⏭️  Sin nuevas ofertas para {mask_email(email)} — omitiendo.")
                 continue
 
             # Construir y enviar email
@@ -262,7 +271,8 @@ def send_custom_alerts():
             msg['From'] = f"Portal Trabajo IT <{EMAIL_USER}>"
             msg['To'] = email
             msg['Subject'] = subject
-            msg['List-Unsubscribe'] = f"<{unsubscribe_link}>"
+            # Cabeceras obligatorias RFC 8058 / Google & Yahoo One-Click Unsubscribe (HTTPS + mailto)
+            msg['List-Unsubscribe'] = f"<{unsubscribe_link}>, <mailto:contacto@portalempleoit.com?subject=unsubscribe>"
             msg['List-Unsubscribe-Post'] = "List-Unsubscribe=One-Click"
             msg.attach(MIMEText(html_body, 'html'))
 
@@ -277,11 +287,11 @@ def send_custom_alerts():
             conn.commit()
             
             success_count += 1
-            print(f"  ✅ Enviado a: {email} ({job_count} ofertas)")
+            print(f"  ✅ Enviado a: {mask_email(email)} ({job_count} ofertas)")
 
         except Exception as e:
             error_count += 1
-            print(f"  ⚠️ Error enviando a {email}: {e}")
+            print(f"  ⚠️ Error enviando a {mask_email(email)}: {e}")
 
     server.quit()
     conn.close()

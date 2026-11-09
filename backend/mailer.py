@@ -22,6 +22,14 @@ def generate_unsubscribe_link(email: str) -> str:
     token = hmac.new(secret.encode(), email.strip().lower().encode(), hashlib.sha256).hexdigest()
     return f"{base_url}/api/unsubscribe?email={urllib.parse.quote(email.strip().lower())}&token={token}"
 
+def mask_email(email_str: str) -> str:
+    """RGPD Art. 5.1.c y Art. 32: Enmascara el email en logs de terminal/cron para evitar fugas de PII."""
+    if not email_str or "@" not in str(email_str):
+        return "***"
+    parts = str(email_str).split("@", 1)
+    user_part, domain = parts[0], parts[1]
+    return f"{user_part[:2]}***@{domain}"
+
 def encrypt_referral_code(email: str) -> str:
     """Cifra el correo para generar un enlace de referido opaco AES-256-GCM y prevenir filtración de PII."""
     secret = os.getenv("MAGIC_LINK_SECRET") or os.getenv("CRON_SECRET")
@@ -480,16 +488,16 @@ def send_newsletter():
                             </p>
                             <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 10px; color: #9ca3af; line-height: 1.5; text-align: center;">
                                 <p style="margin: 0 0 4px 0;">
-                                    <strong>Portal Trabajo IT</strong> · Información y alertas de empleo tecnológico en España.<br>
-                                    Recibes este correo porque te suscribiste a las alertas semanales de empleo en nuestro portal.
+                                    <strong>Portal Trabajo IT</strong> · Responsable: {os.getenv('LEGAL_OWNER', 'Raúl Mateo (Portal Trabajo IT)')} · NIF: {os.getenv('LEGAL_NIF', 'Consulte Aviso Legal')} · {os.getenv('LEGAL_ADDRESS', 'Madrid, España')}<br>
+                                    Recibes este correo porque te suscribiste a las alertas de empleo en portalempleoit.com.
                                 </p>
                                 <p style="margin: 0;">
                                     <a href="{visit_web_track}" style="color: #6366f1; text-decoration: none;">portalempleoit.com</a> · 
                                     <a href="{base_url}/privacy" style="color: #6b7280; text-decoration: underline;">Política de Privacidad</a> · 
                                     <a href="{unsubscribe_link}" style="color: #ef4444; text-decoration: underline; font-weight: bold;">Darme de baja en 1 clic</a>
                                 </p>
-                                <p style="margin: 4px 0 0 0; color: #d1d5db; font-size: 9px;">
-                                    Para ejercer tus derechos de acceso, rectificación o supresión: contacto@portalempleoit.com
+                                <p style="margin: 4px 0 0 0; color: #9ca3af; font-size: 9px;">
+                                    Este correo incluye métricas técnicas de entrega (baliza transparente de 1x1 px y enlaces de redirección para depuración de listas inactivas, Art. 22.2 LSSI). Puedes evitar el seguimiento desactivando la descarga de imágenes en tu cliente de correo o ejerciendo tus derechos RGPD en contacto@portalempleoit.com.
                                 </p>
                             </div>
                         </div>
@@ -511,17 +519,17 @@ def send_newsletter():
             msg['From'] = f"Portal Trabajo IT <{os.getenv('EMAIL_USER')}>"
             msg['To'] = email
             msg['Subject'] = subject_line
-            # Cabeceras obligatorias RFC 8058 / Google & Yahoo One-Click Unsubscribe
-            msg['List-Unsubscribe'] = f"<{unsubscribe_link}>"
+            # Cabeceras obligatorias RFC 8058 / Google & Yahoo One-Click Unsubscribe (HTTPS + mailto)
+            msg['List-Unsubscribe'] = f"<{unsubscribe_link}>, <mailto:contacto@portalempleoit.com?subject=unsubscribe>"
             msg['List-Unsubscribe-Post'] = "List-Unsubscribe=One-Click"
             msg.attach(MIMEText(email_body, 'html'))
             
             server.send_message(msg)
-            print(f"  ✅ Enviado resumen semanal a: {email}")
+            print(f"  ✅ Enviado resumen semanal a: {mask_email(email)}")
             success_count += 1
             
         except Exception as e:
-            print(f"  ⚠️ Error enviando resumen semanal a {email}: {e}")
+            print(f"  ⚠️ Error enviando resumen semanal a {mask_email(email)}: {e}")
             error_count += 1
 
     server.quit()

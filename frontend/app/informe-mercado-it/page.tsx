@@ -24,11 +24,12 @@ function InformeMercadoContent() {
     const paypalSuccess = searchParams.get('paypal_success') === 'true';
     const typeParam = searchParams.get('type') || 'full';
     const emailParam = searchParams.get('email') || '';
+    const txParam = searchParams.get('tx') || searchParams.get('PayerID') || '';
 
     if (paypalSuccess && emailParam) {
       setVerifyingPayment(true);
       setVerifyError('');
-      fetch(`/api/checkout/report/verify?paypal_order=true&email=${encodeURIComponent(emailParam)}&plan=${encodeURIComponent(typeParam)}`)
+      fetch(`/api/checkout/report/verify?paypal_order=true&email=${encodeURIComponent(emailParam)}&plan=${encodeURIComponent(typeParam)}&tx=${encodeURIComponent(txParam)}`)
         .then((res) => res.json())
         .then((data) => {
           if (data.valid) {
@@ -144,6 +145,8 @@ function InformeMercadoContent() {
         cancelUrl: `${window.location.origin}/informe-mercado-it?paypal_canceled=true`,
         custom: `report_${reportType}_${paidEmail.trim()}`,
         buyerEmail: paidEmail.trim(),
+        applyVat21: reportType === 'enterprise',
+        requireBillingAddress: true,
       });
 
       window.location.href = paypalUrl;
@@ -297,7 +300,7 @@ function InformeMercadoContent() {
                     : 'bg-gray-950 text-gray-400 border-gray-800 hover:text-white'
                 }`}
               >
-                Completo (9.99€)
+                Completo (9,99€ IVA incl.)
               </button>
               <button
                 type="button"
@@ -308,7 +311,7 @@ function InformeMercadoContent() {
                     : 'bg-gray-950 text-gray-400 border-gray-800 hover:text-white'
                 }`}
               >
-                Empresa (49€)
+                Empresa (49€ + IVA)
               </button>
             </div>
 
@@ -385,7 +388,7 @@ function InformeMercadoContent() {
                   className="w-full py-3 bg-[#0070ba] hover:bg-[#003087] text-white font-bold rounded-xl transition-all text-xs disabled:opacity-60 cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-blue-900/30"
                 >
                   <span className="text-sm font-black text-white">🅿️</span>
-                  {paidLoading ? 'Redirigiendo a PayPal...' : `Pagar con PayPal (${reportType === 'full' ? '9.99€' : '49€'}) →`}
+                  {paidLoading ? 'Redirigiendo a PayPal...' : `Pagar con PayPal (${reportType === 'full' ? '9,99€ IVA incl.' : '49€ + IVA'}) →`}
                 </button>
               </form>
             )}

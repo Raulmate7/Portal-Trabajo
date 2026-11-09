@@ -9,22 +9,41 @@ export default function StickyMobileAd() {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Solo mostrar después de 3 segundos de carga si el usuario ya ha interactuado con el banner de cookies
+    const checkAdConsent = (): boolean => {
+      if (typeof window === 'undefined') return false;
+      try {
+        const saved = localStorage.getItem('cookies_consent');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return parsed.advertising === true;
+        }
+        return localStorage.getItem('cookies_accepted') === 'true';
+      } catch {
+        return false;
+      }
+    };
+
+    // Solo mostrar después de 3 segundos de carga si el usuario otorgó consentimiento publicitario (Art. 22.2 LSSI)
     const timer = setTimeout(() => {
       const excludedPaths = ['/publicar-oferta', '/precios', '/publicidad'];
       const isExcluded = excludedPaths.some(path => pathname?.startsWith(path));
-      const hasCookieDecision = typeof window !== 'undefined' && 
-        (!!localStorage.getItem('cookies_consent') || !!localStorage.getItem('cookies_accepted'));
-      
-      if (!isExcluded && hasCookieDecision) {
+
+      if (!isExcluded && checkAdConsent()) {
         setIsVisible(true);
       }
     }, 3000);
 
-    const onConsent = () => {
+    const onConsent = (event: Event) => {
       const excludedPaths = ['/publicar-oferta', '/precios', '/publicidad'];
-      if (!excludedPaths.some(path => pathname?.startsWith(path))) {
-        setIsVisible(true);
+      if (excludedPaths.some(path => pathname?.startsWith(path))) {
+        setIsVisible(false);
+        return;
+      }
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail && typeof customEvent.detail.advertising === 'boolean') {
+        setIsVisible(customEvent.detail.advertising);
+      } else {
+        setIsVisible(checkAdConsent());
       }
     };
 

@@ -70,6 +70,10 @@ CREATE TABLE IF NOT EXISTS subscribers (
     last_activity_at TIMESTAMP NULL,
     reactivation_stage INT DEFAULT 0,
     reactivation_last_sent_at TIMESTAMP NULL,
+    consent_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    consent_ip_hash VARCHAR(64) NULL,
+    consent_policy_version VARCHAR(50) DEFAULT 'v2026.11',
+    marketing_accepted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -98,6 +102,9 @@ CREATE TABLE IF NOT EXISTS premium_leads (
     stack VARCHAR(500) NOT NULL,
     experience VARCHAR(100) NOT NULL,
     linkedin VARCHAR(500) NULL,
+    consent_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    consent_ip_hash VARCHAR(64) NULL,
+    consent_policy_version VARCHAR(50) DEFAULT 'v2026.11',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

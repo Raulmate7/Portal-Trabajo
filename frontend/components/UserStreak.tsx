@@ -137,6 +137,7 @@ export default function UserStreak({ lang = 'es' }: { lang?: string }) {
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 max-w-sm w-full border border-gray-100 dark:border-slate-800 text-center shadow-2xl relative">
           <button
             onClick={() => setShowModal(false)}
+            aria-label={isEnglish ? "Close streak modal" : "Cerrar ventana de racha de visitas"}
             className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:hover:text-white font-bold cursor-pointer text-lg leading-none"
           >
             ✕
@@ -257,6 +258,7 @@ export default function UserStreak({ lang = 'es' }: { lang?: string }) {
     <>
       <button
         onClick={() => setShowModal(true)}
+        aria-label={isEnglish ? `Current visit streak: ${streak} days` : `Racha de visitas actual: ${streak} días`}
         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-black transition-all cursor-pointer select-none active:scale-95 animate-fade-in ${
           streak >= 30
             ? 'bg-violet-500/10 hover:bg-violet-500/20 border-violet-500/20 text-violet-600 dark:text-violet-400'

@@ -82,13 +82,8 @@ export default function CompanyLogo({ company, size = 12 }: CompanyLogoProps) {
     const matchedKey = Object.keys(COMMON_DOMAINS).find((key) => nameLower.includes(key));
     if (matchedKey) {
       logoUrl = `https://logo.clearbit.com/${COMMON_DOMAINS[matchedKey]}`;
-    } else {
-      // Intentar una conjetura directa quitando caracteres raros y espacios
-      const sanitized = nameLower.replace(/[^a-z0-9]/g, '');
-      if (sanitized) {
-        logoUrl = `https://logo.clearbit.com/${sanitized}.com`;
-      }
     }
+    // No realizar conjeturas ciegas de dominio .com para evitar colisión de marcas registradas ajenas
   }
 
   // Clases de tamaño estáticas y dimensiones fijas inline para evitar CLS
@@ -101,12 +96,14 @@ export default function CompanyLogo({ company, size = 12 }: CompanyLogoProps) {
     return (
       <div 
         style={containerStyle}
+        title={`Signo distintivo referencial de ${cleanCompany} (Art. 37 Ley de Marcas)`}
         className={`relative ${sizeClass} rounded-xl overflow-hidden border border-gray-200 dark:border-slate-800 shrink-0 bg-white flex items-center justify-center shadow-sm`}
       >
         <Image
           src={logoUrl}
-          alt={`Logo de ${cleanCompany}`}
+          alt={`Logo referencial de ${cleanCompany} (uso nominativo)`}
           fill
+          unoptimized
           sizes="(max-width: 768px) 40px, 48px"
           className="object-contain p-1"
           onError={() => setImgFailed(true)}

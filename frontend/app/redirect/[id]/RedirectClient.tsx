@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import AdBanner from '@/components/AdBanner';
 import Link from 'next/link';
-import { sendGAEvent } from '@next/third-parties/google';
+import { sendSafeGAEvent } from '@/lib/analytics';
 import { getSafeRedirectUrl } from '@/lib/urlSafety';
 
 interface Props {
@@ -30,7 +30,7 @@ export default function RedirectClient({ url, company, title, lang }: Props) {
   const destinationHost = getDestinationHost(url);
 
   useEffect(() => {
-    sendGAEvent({ event: 'redirect_page_view', company, job_title: title, destination: destinationHost });
+    sendSafeGAEvent({ event: 'redirect_page_view', company, job_title: title, destination: destinationHost });
   }, [company, title, destinationHost]);
 
   // Temporizador de seguridad de 2 segundos (Vector 22: Transparencia y prevención de phishing ciego)
@@ -42,13 +42,13 @@ export default function RedirectClient({ url, company, title, lang }: Props) {
       return () => clearTimeout(timer);
     } else if (countdown === 0 && !redirected) {
       setRedirected(true);
-      sendGAEvent({ event: 'redirect_auto', company, job_title: title, destination: destinationHost });
+      sendSafeGAEvent({ event: 'redirect_auto', company, job_title: title, destination: destinationHost });
       window.location.replace(getSafeRedirectUrl(url));
     }
   }, [countdown, redirected, url, company, title, destinationHost]);
 
   const handleManualRedirect = () => {
-    sendGAEvent({ event: 'redirect_manual', company, job_title: title, destination: destinationHost });
+    sendSafeGAEvent({ event: 'redirect_manual', company, job_title: title, destination: destinationHost });
     setRedirected(true);
     window.location.replace(getSafeRedirectUrl(url));
   };

@@ -14,6 +14,30 @@ function UnsubscribeContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [manualEmail, setManualEmail] = useState('');
+  const [manualLoading, setManualLoading] = useState(false);
+  const [manualMessage, setManualMessage] = useState('');
+
+  const handleRequestLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualEmail.trim()) return;
+
+    setManualLoading(true);
+    setManualMessage('');
+
+    try {
+      const res = await fetch('/api/unsubscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: manualEmail.trim(), action: 'request_link' }),
+      });
+      const data = await res.json();
+      setManualMessage(data.message || data.error || 'Petición enviada.');
+    } catch {
+      setManualMessage('Error de conexión al solicitar el enlace.');
+    } finally {
+      setManualLoading(false);
+    }
+  };
 
   const handleConfirmUnsubscribe = async () => {
     if (!email || !token) {
@@ -133,25 +157,42 @@ function UnsubscribeContent() {
 
             <div className="p-4 bg-gray-950/70 border border-gray-800 rounded-2xl text-left space-y-3 mb-6">
               <p className="text-xs font-semibold text-gray-300">
-                ¿No encuentras el correo o prefieres solicitar la baja directa?
+                ¿No tienes el enlace directo o quieres recibir un enlace de cancelación inmediata?
               </p>
-              <div className="space-y-2">
+              <form onSubmit={handleRequestLink} className="space-y-2.5">
                 <input
                   type="email"
+                  required
                   value={manualEmail}
                   onChange={(e) => setManualEmail(e.target.value)}
                   placeholder="tu@email.com"
                   className="w-full text-xs px-3.5 py-2.5 rounded-xl bg-gray-900 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
+                <button
+                  type="submit"
+                  disabled={manualLoading}
+                  className="w-full text-center bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-2.5 px-4 rounded-xl transition-all text-xs cursor-pointer shadow-sm"
+                >
+                  {manualLoading ? 'Enviando enlace...' : 'Enviar enlace de baja a mi email ✉️'}
+                </button>
+              </form>
+
+              {manualMessage && (
+                <p className="text-xs text-indigo-300 bg-indigo-950/40 border border-indigo-800/60 p-2.5 rounded-lg leading-relaxed">
+                  {manualMessage}
+                </p>
+              )}
+
+              <div className="pt-2 border-t border-gray-800/80">
                 <a
                   href={`mailto:contacto@portalempleoit.com?subject=${encodeURIComponent('Solicitud de baja de alertas de empleo')}&body=${encodeURIComponent(`Hola equipo de Portal Trabajo IT,\n\nSolicito la baja de mi suscripción de alertas de empleo para el correo: ${manualEmail || '[indica tu email aquí]'}.\n\nGracias.`)}`}
-                  className="w-full inline-block text-center bg-gray-800 hover:bg-gray-700 text-indigo-300 hover:text-white font-bold py-2.5 px-4 rounded-xl transition-all text-xs border border-gray-700"
+                  className="text-[11px] text-gray-400 hover:text-indigo-300 underline block text-center"
                 >
-                  Solicitar baja por email a soporte 📬
+                  O solicitar baja manual escribiendo a soporte (contacto@portalempleoit.com)
                 </a>
               </div>
-              <p className="text-[10px] text-gray-400 leading-tight">
-                Conforme al Art. 21.2 LSSI y Art. 17 RGPD, toda solicitud recibida es tramitada de forma gratuita en un plazo máximo de 24 horas laborables.
+              <p className="text-[10px] text-gray-500 leading-tight">
+                Conforme al Art. 21.2 LSSI y Art. 17 RGPD, la baja es inmediata, gratuita y no requiere justificación.
               </p>
             </div>
 

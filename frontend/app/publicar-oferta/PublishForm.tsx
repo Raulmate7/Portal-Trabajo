@@ -12,7 +12,9 @@ import { VALID_JOB_PLAN_IDS, JOB_PRICING_PLANS } from "@/lib/pricingPlans";
 import { buildPayPalCheckoutUrl } from "@/lib/paypal";
 
 const jobSchema = z.object({
-  company_name: z.string().min(2, "El nombre de la empresa es muy corto"),
+  company_name: z.string().min(2, "El nombre de la empresa o razón social es muy corto"),
+  company_nif: z.string().optional(),
+  company_fiscal_address: z.string().optional(),
   company_email: z.string().email("Correo electrónico inválido"),
   company_phone: z.string().optional(),
   job_title: z.string().min(5, "El título debe tener al menos 5 caracteres"),
@@ -93,6 +95,12 @@ export default function PublishForm() {
         return;
       }
 
+      if (!data.company_nif || data.company_nif.trim().length < 5 || !data.company_fiscal_address || data.company_fiscal_address.trim().length < 5) {
+        setStatus("error");
+        setMessage("Para planes de pago es obligatorio indicar el NIF/CIF y domicilio fiscal de la empresa o profesional para la emisión de factura legal (RD 1619/2012).");
+        return;
+      }
+
       try {
         // 1. Guardar la oferta en la base de datos como solicitud pendiente
         const result = await submitSponsoredJob(formData);
@@ -100,7 +108,7 @@ export default function PublishForm() {
           throw new Error(result.message || "No se pudo registrar la oferta en el sistema.");
         }
 
-        // 2. Redirigir a PayPal para el cobro directo a la cuenta PayPal del administrador
+        // 2. Redirigir a PayPal con desglose de IVA (21%) y dirección de facturación (RD 1619/2012)
         const planConfig = JOB_PRICING_PLANS[selectedPlan];
         const price = planConfig?.priceEur || 19;
         const planName = planConfig?.name || "Oferta Destacada";
@@ -110,8 +118,10 @@ export default function PublishForm() {
           itemName: `${planName} - Portal Trabajo IT ("${data.job_title}")`,
           returnUrl: `${window.location.origin}/publicar-oferta?success=true&plan=${selectedPlan}`,
           cancelUrl: `${window.location.origin}/publicar-oferta?canceled=true`,
-          custom: `job_${selectedPlan}_${data.company_email}`,
+          custom: `job_${selectedPlan}_${data.company_email}_${data.company_nif.trim()}`,
           buyerEmail: data.company_email,
+          applyVat21: true,
+          requireBillingAddress: true,
         });
 
         window.location.href = paypalUrl;
@@ -157,7 +167,7 @@ export default function PublishForm() {
           Tu oferta ha sido publicada y destacada en el portal. Aparecerá en las posiciones prioritarias inmediatamente.
         </p>
         <p className="text-gray-400 text-sm max-w-md mx-auto mb-8">
-          Recibirás el recibo de la transacción de Stripe por correo electrónico.
+          Recibirás el justificante de la transacción y la factura legal correspondiente por correo electrónico.
         </p>
         <Link href="/" className="inline-block px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all">
           Ir al Buscador
@@ -354,6 +364,38 @@ export default function PublishForm() {
                 />
               </div>
             </div>
+            {selectedPlan !== "basico" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-gray-800/70">
+                <div>
+                  <label htmlFor="company_nif" className="block text-sm font-medium text-gray-300 mb-1.5">
+                    NIF / CIF / VAT ID (Facturación RD 1619/2012) *
+                  </label>
+                  <input
+                    id="company_nif"
+                    {...register("company_nif")}
+                    type="text"
+                    required
+                    disabled={isLoading}
+                    placeholder="Ej: B12345678"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all disabled:opacity-50"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="company_fiscal_address" className="block text-sm font-medium text-gray-300 mb-1.5">
+                    Domicilio Fiscal Completo *
+                  </label>
+                  <input
+                    id="company_fiscal_address"
+                    {...register("company_fiscal_address")}
+                    type="text"
+                    required
+                    disabled={isLoading}
+                    placeholder="Calle, Nº, CP, Ciudad, País"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all disabled:opacity-50"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -391,8 +433,9 @@ export default function PublishForm() {
                 {errors.job_location && <p className="text-red-500 text-xs mt-1.5">{errors.job_location.message}</p>}
               </div>
               <div>
-                <label htmlFor="job_salary" className="block text-sm font-medium text-gray-300 mb-1.5">
-                  Salario (opcional)
+                <label htmlFor="job_salary" className="block text-sm font-medium text-gray-300 mb-1.5 flex items-center justify-between">
+                  <span>Rango salarial bruto anual</span>
+                  <span className="text-[10px] text-indigo-400 font-semibold bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-800/50">Recomendado (Directiva UE 2023/970)</span>
                 </label>
                 <input
                   id="job_salary"
@@ -403,6 +446,16 @@ export default function PublishForm() {
                   className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all disabled:opacity-50"
                 />
               </div>
+            </div>
+
+            {/* Aviso de Transparencia Retributiva y No Discriminación */}
+            <div className="p-3.5 bg-indigo-950/40 border border-indigo-500/30 rounded-xl text-xs text-indigo-200/90 leading-relaxed space-y-1">
+              <div className="flex items-center gap-2 font-bold text-indigo-300">
+                <span aria-hidden="true">⚖️</span> Transparencia Retributiva e Igualdad (Directiva UE 2023/970 y Ley 15/2022)
+              </div>
+              <p className="text-[11px] text-gray-300">
+                Se recomienda encarecidamente publicar el rango retributivo previsto. Conforme al Art. 5 de la Directiva (UE) 2023/970, los candidatos tienen derecho a conocer la retribución inicial antes de la entrevista y <strong>queda terminantemente prohibido preguntar al solicitante su historial salarial previo</strong>. Asimismo, la descripción de la vacante debe formularse con criterios objetivos y neutros sin discriminación directa o indirecta por razón de sexo, edad, origen o salud (Ley 15/2022).
+              </p>
             </div>
             <div>
               <label htmlFor="job_description" className="block text-sm font-medium text-gray-300 mb-1.5">

@@ -268,6 +268,15 @@ export default async function NewsDetailPage({ params }: Props) {
               <div className="my-8 border-t border-b border-gray-100 py-6">
                 <AdBanner variant="multiplex" />
               </div>
+
+              {/* Caja de Autor y Transparencia Editorial */}
+              <AuthorBox
+                author={post.author}
+                date={post.date}
+                updatedAt={post.updatedAt}
+                slug={resolvedParams.slug}
+                readingTimeMinutes={Math.max(1, Math.ceil(post.content.split(/\s+/).length / 220))}
+              />
             </article>
           </div>
 

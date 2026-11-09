@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +40,7 @@ export async function POST(request: NextRequest) {
     const email = (body.email as string || '').trim().toLowerCase();
     const source = (body.source as string || 'web').trim().slice(0, 50);
     const privacyAccepted = body.privacy_accepted === true || body.privacy_accepted === 'true';
+    const marketingAccepted = body.marketing_accepted === true || body.marketing_accepted === 'true';
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !emailRegex.test(email) || email.length > 255) {
@@ -74,14 +76,26 @@ export async function POST(request: NextRequest) {
       const frequency = source.includes('reminder') ? 'once' : 'weekly';
       const techKeywords = `origen:${source}`;
 
+      // RGPD Art. 7.1: Trazabilidad del consentimiento
+      const consentIpHash = crypto.createHash('sha256').update(clientIp + (process.env.APP_SECRET || 'consent_salt_v1')).digest('hex');
+      const consentPolicyVersion = 'v2026.11';
+
       try {
         await client.query(
-          `INSERT INTO subscribers (email, tech_keywords, location_pref, frequency, created_at)
-           VALUES ($1, $2, 'Remoto/España', $3, NOW())`,
-          [email, techKeywords, frequency]
+          `INSERT INTO subscribers (email, tech_keywords, location_pref, frequency, created_at, consent_timestamp, consent_ip_hash, consent_policy_version, marketing_accepted)
+           VALUES ($1, $2, 'Remoto/España', $3, NOW(), NOW(), $4, $5, $6)`,
+          [email, techKeywords, frequency, consentIpHash, consentPolicyVersion, marketingAccepted]
         );
       } catch (insertErr) {
-        console.warn('Error en inserción directa de suscriptor puntual:', insertErr);
+        try {
+          await client.query(
+            `INSERT INTO subscribers (email, tech_keywords, location_pref, frequency, created_at)
+             VALUES ($1, $2, 'Remoto/España', $3, NOW())`,
+            [email, techKeywords, frequency]
+          );
+        } catch (innerErr) {
+          console.warn('Error en inserción directa de suscriptor puntual:', innerErr);
+        }
       }
 
       return NextResponse.json({

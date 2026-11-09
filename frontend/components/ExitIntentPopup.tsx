@@ -160,10 +160,10 @@ export default function ExitIntentPopup() {
             </div>
 
             <h2 className="text-2xl font-black mb-2 text-gray-900 dark:text-white tracking-tight">
-              ¡No te vayas sin suscribirte!
+              Alertas Semanales de Empleo Tech
             </h2>
             <p className="text-sm text-gray-650 dark:text-slate-300 mb-6 leading-relaxed">
-              Recibe un resumen semanal con las <strong>ofertas tecnológicas mejor pagadas</strong> en España y consejos de entrevistas antes de que se cierren.
+              Recibe un resumen periódico con las <strong>ofertas tecnológicas destacadas</strong> en España y salarios actualizados. Suscripción voluntaria y cancelable en 1 clic.
             </p>
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-3">
@@ -213,6 +213,15 @@ export default function ExitIntentPopup() {
                 className="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white font-extrabold py-3 rounded-xl transition-all shadow-md shadow-indigo-600/20 text-sm cursor-pointer disabled:opacity-50"
               >
                 {loading ? 'Suscribiendo...' : 'Suscribirme gratis ✉️'}
+              </button>
+
+              {/* Opción de rechazo simétrica y neutral (Directrices EDPB 03/2022 y Art. 25 DSA) */}
+              <button
+                type="button"
+                onClick={handleClose}
+                className="w-full text-xs text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200 py-1.5 transition-colors cursor-pointer text-center"
+              >
+                No, gracias — continuar navegando
               </button>
             </form>
 

@@ -4,9 +4,12 @@ def get_workingnomads_jobs():
     print("🐫 Cruzando el desierto con WorkingNomads (Europa/España)...")
 
     url = "https://www.workingnomads.com/api/exposed_jobs"
+    headers = {
+        'User-Agent': 'PortalTrabajoITBot/1.0 (+https://portalempleoit.com/bot; bot@portalempleoit.com)'
+    }
 
     try:
-        response = requests.get(url, timeout=20)
+        response = requests.get(url, headers=headers, timeout=20)
         response.raise_for_status()
 
         data = response.json()

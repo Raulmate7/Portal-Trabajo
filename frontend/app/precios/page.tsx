@@ -154,7 +154,7 @@ export default function PreciosPage() {
               href="/publicar-oferta?plan=destacado_basico"
               className="mt-6 text-center py-2.5 px-4 rounded-xl border border-amber-500/50 text-amber-400 font-bold hover:bg-amber-500/10 transition-all text-sm"
             >
-              Destacar por 9€
+              Destacar por 9€ (+IVA)
             </Link>
           </div>
 
@@ -198,7 +198,7 @@ export default function PreciosPage() {
               href="/publicar-oferta?plan=destacado_pro"
               className="mt-6 text-center py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-gray-900 font-black hover:from-amber-400 hover:to-yellow-400 transition-all shadow-lg shadow-amber-500/20 text-sm"
             >
-              Destacar por 19€
+              Destacar por 19€ (+IVA)
             </Link>
           </div>
 
@@ -237,7 +237,7 @@ export default function PreciosPage() {
               href="/publicar-oferta?plan=destacado_enterprise"
               className="mt-6 text-center py-2.5 px-4 rounded-xl border border-purple-500 text-purple-400 font-bold hover:bg-purple-500/10 transition-all text-sm"
             >
-              Contratar por 49€
+              Contratar por 49€ (+IVA)
             </Link>
           </div>
         </div>
@@ -294,15 +294,20 @@ export default function PreciosPage() {
                     required
                     checked={termsAccepted}
                     onChange={(e) => setTermsAccepted(e.target.checked)}
-                    className="mt-0.5 h-3.5 w-3.5 rounded border-gray-700 bg-gray-900 text-indigo-500 focus:ring-indigo-400 cursor-pointer"
+                    className="mt-0.5 h-3.5 w-3.5 rounded border-gray-700 bg-gray-900 text-indigo-500 focus:ring-indigo-400 cursor-pointer shrink-0"
                   />
                   <span>
-                    Acepto las <Link href="/aviso-legal" target="_blank" className="text-indigo-400 underline">Condiciones de Contratación</Link> y la <Link href="/privacy" target="_blank" className="text-indigo-400 underline">Política de Privacidad</Link>.*
+                    Acepto las <Link href="/aviso-legal" target="_blank" className="text-indigo-400 underline">Condiciones de Contratación</Link> y la <Link href="/privacy" target="_blank" className="text-indigo-400 underline">Política de Privacidad</Link>. Solicito la activación inmediata del servicio (incluyendo alertas prioritarias diarias por email) y reconozco que con el inicio inmediato de la ejecución pierdo mi derecho de desistimiento de 14 días (Art. 103.m TRLGDCU).*
                   </span>
                 </label>
 
+                <div className="p-2.5 rounded-xl bg-gray-900/90 border border-gray-800 text-[10px] text-gray-400 text-left leading-relaxed space-y-0.5">
+                  <p className="font-semibold text-gray-300">Información básica sobre protección de datos (RGPD Art. 13):</p>
+                  <p><strong>Responsable:</strong> Portal Trabajo IT (<Link href="/aviso-legal" className="underline text-indigo-400">ver datos</Link>). <strong>Finalidad:</strong> Gestión de la suscripción Candidato Premium, envío de alertas prioritarias y facturación. <strong>Legitimación:</strong> Ejecución de contrato (Art. 6.1.b RGPD). <strong>Destinatarios:</strong> Stripe Payments Europe Ltd. <strong>Derechos:</strong> Acceso, rectificación, supresión y baja en contacto@portalempleoit.com o <Link href="/darse-de-baja" className="underline text-indigo-400">/darse-de-baja</Link>.</p>
+                </div>
+
                 <p className="text-[10px] text-gray-500 text-left leading-normal">
-                  Suscripción de 4,99 €/mes (IVA incluido). Renovación mensual automática sin permanencia. Cancela en cualquier momento sin penalización desde tu panel o escribiendo a contacto@portalempleoit.com (Art. 108 bis TRLGDCU).
+                  Suscripción de 4,99 €/mes (IVA incluido). Renovación mensual automática sin permanencia. Cancela en cualquier momento sin penalización escribiendo a contacto@portalempleoit.com (Art. 108 bis TRLGDCU).
                 </p>
 
                 <button
@@ -310,7 +315,7 @@ export default function PreciosPage() {
                   disabled={b2cLoading}
                   className="w-full py-3 px-4 rounded-xl bg-indigo-650 hover:bg-indigo-600 text-white font-bold transition-all text-xs shadow-md shadow-indigo-500/10 disabled:opacity-60 cursor-pointer"
                 >
-                  {b2cLoading ? 'Procesando...' : 'Suscribirme Premium →'}
+                  {b2cLoading ? 'Procesando...' : 'Suscribirme con obligación de pago (4,99€/mes) →'}
                 </button>
               </form>
               

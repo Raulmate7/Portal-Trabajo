@@ -263,12 +263,10 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
   const topTechs = techStack.slice(0, 3).join(', ');
 
   const reviews = await getCompanyReviews(slug);
-  const baseRatingVal = 3.8 + (slug.charCodeAt(0) % 13) / 10;
-  const baseReviewCount = 5 + (slug.charCodeAt(slug.length - 1) % 25);
   const realReviewsCount = reviews.length;
   const realReviewsSum = reviews.reduce((sum: number, r: any) => sum + r.rating, 0);
-  const reviewCount = baseReviewCount + realReviewsCount;
-  const ratingValue = ((baseRatingVal * baseReviewCount + realReviewsSum) / reviewCount).toFixed(1);
+  const reviewCount = realReviewsCount;
+  const ratingValue = realReviewsCount > 0 ? (realReviewsSum / realReviewsCount).toFixed(1) : null;
 
   let titleSeo = isEnglish
     ? `Reviews and Jobs at ${companyName} (${totalJobs} openings) | IT Job Portal`
@@ -280,9 +278,16 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
   const techText = topTechs 
     ? (isEnglish ? ` Specialists in ${topTechs}.` : ` Especialistas en ${topTechs}.`)
     : '';
+  const reviewSeoText = ratingValue
+    ? (isEnglish
+      ? `Employee reviews at ${companyName}: rating ${ratingValue}/5 based on ${reviewCount} user reviews. `
+      : `Opiniones de empleados en ${companyName}: valoración de ${ratingValue}/5 basada en ${reviewCount} opiniones de usuarios. `)
+    : (isEnglish
+      ? `Employee reviews and work environment at ${companyName}. `
+      : `Opiniones de empleados y ambiente laboral en ${companyName}. `);
   const description = isEnglish
-    ? `Employee reviews at ${companyName}: rating ${ratingValue}/5 based on ${reviewCount} reviews. Find ${totalJobs} active tech jobs at ${companyName}.${techText} Software developer jobs, salaries, and remote work.${isPaged ? ` (Page ${page})` : ''}`
-    : `Opiniones de empleados en ${companyName}: valoración de ${ratingValue}/5 basada en ${reviewCount} reseñas. Encuentra ${totalJobs} ofertas de trabajo activas en ${companyName}.${techText} Vacantes de desarrollo de software, salarios y teletrabajo.${isPaged ? ` (Página ${page})` : ''}`;
+    ? `${reviewSeoText}Find ${totalJobs} active tech jobs at ${companyName}.${techText} Software developer jobs, salaries, and remote work.${isPaged ? ` (Page ${page})` : ''}`
+    : `${reviewSeoText}Encuentra ${totalJobs} ofertas de trabajo activas en ${companyName}.${techText} Vacantes de desarrollo de software, salarios y teletrabajo.${isPaged ? ` (Página ${page})` : ''}`;
 
   const queryParam = isEnglish ? '?lang=en' : '';
   const metadata: Metadata = {
@@ -400,12 +405,10 @@ export default async function CompanyPage({ params, searchParams }: Props) {
   const jobs = allJobs.slice(offset, offset + limit);
 
   const reviews = await getCompanyReviews(slug);
-  const baseRatingVal = 3.8 + (slug.charCodeAt(0) % 13) / 10;
-  const baseReviewCount = 5 + (slug.charCodeAt(slug.length - 1) % 25);
   const realReviewsCount = reviews.length;
   const realReviewsSum = reviews.reduce((sum: number, r: any) => sum + r.rating, 0);
-  const reviewCount = baseReviewCount + realReviewsCount;
-  const ratingValue = ((baseRatingVal * baseReviewCount + realReviewsSum) / reviewCount).toFixed(1);
+  const reviewCount = realReviewsCount;
+  const ratingValue = realReviewsCount > 0 ? (realReviewsSum / realReviewsCount).toFixed(1) : null;
 
   const breadcrumbItems = [
     { label: isEnglish ? 'Home' : 'Inicio', href: isEnglish ? '/?lang=en' : '/' },
@@ -431,19 +434,21 @@ export default async function CompanyPage({ params, searchParams }: Props) {
     url: `${BASE_URL}/empresas/${slug}`,
     logo: `${BASE_URL}/og-image.png`,
     description: `Ofertas de trabajo del sector tecnológico en la empresa ${companyName}.`,
-    aggregateRating: {
-      '@type': 'EmployerAggregateRating',
-      'itemReviewed': {
-        '@type': 'Organization',
-        'name': companyName,
-        'url': `${BASE_URL}/empresas/${slug}`
-      },
-      'ratingValue': ratingValue,
-      'bestRating': '5',
-      'worstRating': '1',
-      'ratingCount': reviewCount,
-      'reviewCount': reviewCount
-    },
+    ...(ratingValue && reviewCount > 0 ? {
+      aggregateRating: {
+        '@type': 'EmployerAggregateRating',
+        'itemReviewed': {
+          '@type': 'Organization',
+          'name': companyName,
+          'url': `${BASE_URL}/empresas/${slug}`
+        },
+        'ratingValue': ratingValue,
+        'bestRating': '5',
+        'worstRating': '1',
+        'ratingCount': reviewCount,
+        'reviewCount': reviewCount
+      }
+    } : {}),
     ...(reviews.length > 0 ? {
       review: reviews.map((r: any) => ({
         '@type': 'Review',
@@ -612,18 +617,28 @@ export default async function CompanyPage({ params, searchParams }: Props) {
 
         <div className="bg-amber-50/70 p-5 rounded-xl border border-amber-100 flex flex-col justify-center items-center text-center">
           <h3 className="text-xs font-bold text-amber-900 uppercase tracking-wider m-0 mb-1.5">{isEnglish ? 'Employee Rating' : 'Valoración Empleados'}</h3>
-          <div className="flex items-center gap-0.5 mb-1.5 justify-center">
-            <span className="text-2xl font-extrabold text-amber-700 mr-1.5">{ratingValue}</span>
-            {[1, 2, 3, 4, 5].map((star) => (
-              <span 
-                key={star} 
-                className={star <= Math.round(parseFloat(ratingValue)) ? "text-amber-500 text-lg" : "text-gray-200 text-lg"}
-              >
-                ★
+          {ratingValue && reviewCount > 0 ? (
+            <>
+              <div className="flex items-center gap-0.5 mb-1.5 justify-center">
+                <span className="text-2xl font-extrabold text-amber-700 mr-1.5">{ratingValue}</span>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <span 
+                    key={star} 
+                    className={star <= Math.round(parseFloat(ratingValue)) ? "text-amber-500 text-lg" : "text-gray-200 text-lg"}
+                  >
+                    ★
+                  </span>
+                ))}
+              </div>
+              <span className="text-[10px] text-gray-500">
+                {isEnglish ? `Based on ${reviewCount} verified review(s)` : `Basado en ${reviewCount} ${reviewCount === 1 ? 'opinión moderada' : 'opiniones moderadas'}`}
               </span>
-            ))}
-          </div>
-          <span className="text-[10px] text-gray-500">{isEnglish ? `Based on ${reviewCount} reviews` : `Basado en ${reviewCount} opiniones`}</span>
+            </>
+          ) : (
+            <div className="text-xs text-amber-800 font-medium py-1">
+              {isEnglish ? 'No reviews registered yet' : 'Sin valoraciones aún'}
+            </div>
+          )}
         </div>
         
         <div className="bg-indigo-50/70 p-5 rounded-xl border border-indigo-100 flex flex-col justify-center items-center text-center">
@@ -761,9 +776,26 @@ export default async function CompanyPage({ params, searchParams }: Props) {
           {/* Sección de Reseñas / UGC */}
           <div className="mt-12 space-y-8">
             <div className="bg-white rounded-xl border border-gray-150 shadow-sm p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <span>💬</span> {isEnglish ? `Employee Reviews at ${companyName}` : `Opiniones de Empleados en ${companyName}`}
-              </h2>
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-4">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <span>💬</span> {isEnglish ? `Employee Reviews at ${companyName}` : `Opiniones de Empleados en ${companyName}`}
+                </h2>
+                <span className="text-[11px] text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full border border-gray-200 self-start sm:self-auto">
+                  {isEnglish ? '⚖️ Unverified UGC (EU Omnibus Directive)' : '⚖️ Opiniones no verificadas (Directiva Omnibus UE)'}
+                </span>
+              </div>
+
+              {/* Aviso de Transparencia de Reseñas (Directiva Omnibus UE 2019/2161 / Art. 28.ter LCD) */}
+              <div className="mb-6 p-3.5 bg-blue-50/70 border border-blue-200/70 rounded-xl text-xs text-blue-950 space-y-1">
+                <p className="font-semibold text-blue-900 flex items-center gap-1.5">
+                  <span>ℹ️</span> {isEnglish ? 'Review Transparency & Moderation Policy (Directive EU 2019/2161):' : 'Transparencia sobre las opiniones y política de moderación (Directiva Omnibus UE 2019/2161):'}
+                </p>
+                <p className="text-[11px] text-blue-900/80 leading-relaxed">
+                  {isEnglish
+                    ? 'Reviews are submitted freely and anonymously by job candidates and professionals. Portal Trabajo IT does not verify contractual employment or work relationships with the company, nor are incentives or remuneration provided in exchange for reviews. If you are an employer or affected party and wish to report an inaccurate or defamatory review, use the "Report" button next to each review (Notice & Action, Art. 16 DSA).'
+                    : 'Las opiniones son aportadas libremente por candidatos y profesionales de forma voluntaria. Portal Trabajo IT no comprueba fehacientemente la vinculación laboral contractual de cada usuario con la empresa, ni se ofrecen incentivos ni remuneración a cambio de reseñas. Si eres la empresa evaluada o un tercero afectado y consideras que una opinión es ilícita o difamatoria, utiliza el botón "Reportar" junto a cada reseña (procedimiento Notice & Action, Art. 16 DSA).'}
+                </p>
+              </div>
               
               {reviews.length === 0 ? (
                 <p className="text-sm text-gray-500 italic mb-2">

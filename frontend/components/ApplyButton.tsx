@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { subscribeUser } from '@/app/actions';
-import { sendGAEvent } from '@next/third-parties/google';
+import { sendSafeGAEvent } from '@/lib/analytics';
 
 
 interface ApplyButtonProps {
@@ -37,7 +37,7 @@ export default function ApplyButton({ url, company, title, lang, jobId }: ApplyB
   };
 
   const handleDirectRedirect = () => {
-    sendGAEvent({ event: 'click_apply', value: 'direct', company, job_title: title });
+    sendSafeGAEvent({ event: 'click_apply', value: 'direct', company, job_title: title });
     if (jobId) {
       const queryParam = isEnglish ? '?lang=en' : '';
       window.open(`/redirect/${jobId}${queryParam}`, '_blank', 'noopener,noreferrer');
@@ -90,9 +90,9 @@ export default function ApplyButton({ url, company, title, lang, jobId }: ApplyB
     if (result.success) {
       setStatus('success');
       setMessage(isEnglish ? 'Subscribed successfully! Redirecting...' : '¡Suscrito correctamente! Redirigiendo...');
-      // Disparar eventos de conversión en GA4
-      sendGAEvent({ event: 'newsletter_signup', value: 'apply_modal', company, job_title: title });
-      sendGAEvent({ event: 'generate_lead', value: 'apply_modal', company, job_title: title });
+      // Disparar eventos de conversión en GA4 con consentimiento verificado
+      sendSafeGAEvent({ event: 'newsletter_signup', value: 'apply_modal', company, job_title: title });
+      sendSafeGAEvent({ event: 'generate_lead', value: 'apply_modal', company, job_title: title });
       
       setTimeout(() => {
         if (jobId) {
@@ -212,7 +212,7 @@ export default function ApplyButton({ url, company, title, lang, jobId }: ApplyB
                     onClick={handleDirectRedirect}
                     className="w-full bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 font-semibold py-2.5 rounded-lg transition-colors text-xs cursor-pointer"
                   >
-                    {isEnglish ? 'No thanks, just view the job' : 'No gracias, solo ver oferta'}
+                    {isEnglish ? 'Continue directly to original website without subscribing →' : 'Continuar directamente a la oferta sin suscribirme →'}
                   </button>
                 </div>
 

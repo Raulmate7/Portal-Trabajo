@@ -112,6 +112,7 @@ export default function SaveJobButton({ job, variant = 'card' }: SaveJobButtonPr
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 max-w-sm w-full border border-gray-100 dark:border-slate-800 shadow-2xl relative">
           <button
             onClick={() => setShowEmailModal(false)}
+            aria-label="Cerrar ventana de oferta guardada"
             className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:hover:text-white font-bold cursor-pointer text-lg leading-none"
           >
             ✕

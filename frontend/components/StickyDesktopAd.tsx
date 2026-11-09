@@ -1,21 +1,65 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import AdBanner from './AdBanner';
 
 export default function StickyDesktopAd() {
   const [isVisible, setIsVisible] = useState(false);
+  const pathname = usePathname();
   const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
   const slotId = process.env.NEXT_PUBLIC_ADSENSE_SLOT_STICKY_SIDEBAR;
 
   useEffect(() => {
-    // Retrasar la aparición 2 segundos para evitar intrusión inmediata y clics accidentales
+    const checkAdConsent = (): boolean => {
+      if (typeof window === 'undefined') return false;
+      try {
+        const saved = localStorage.getItem('cookies_consent');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return parsed.advertising === true;
+        }
+        return localStorage.getItem('cookies_accepted') === 'true';
+      } catch {
+        return false;
+      }
+    };
+
+    const excludedPaths = ['/publicar-oferta', '/precios', '/publicidad'];
+    const isExcluded = excludedPaths.some(path => pathname?.startsWith(path));
+
+    // Solo mostrar después de 2 segundos si el usuario otorgó consentimiento publicitario (Art. 22.2 LSSI)
     const timer = setTimeout(() => {
-      setIsVisible(true);
+      if (!isExcluded && checkAdConsent()) {
+        setIsVisible(true);
+      }
     }, 2000);
 
-    return () => clearTimeout(timer);
-  }, []);
+    const onConsent = (event: Event) => {
+      if (isExcluded) {
+        setIsVisible(false);
+        return;
+      }
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail && typeof customEvent.detail.advertising === 'boolean') {
+        setIsVisible(customEvent.detail.advertising);
+      } else {
+        setIsVisible(checkAdConsent());
+      }
+    };
+
+    window.addEventListener('cookie_consent_updated', onConsent);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('cookie_consent_updated', onConsent);
+    };
+  }, [pathname]);
+
+  // Si cambia la ruta, resetear visibilidad
+  useEffect(() => {
+    setIsVisible(false);
+  }, [pathname]);
 
   if (!isVisible || !adsenseClientId) return null;
 

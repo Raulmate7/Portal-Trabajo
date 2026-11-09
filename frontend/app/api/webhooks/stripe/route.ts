@@ -20,6 +20,16 @@ function getCanonicalEmail(email: string): string {
   return `${cleanLocal}@${domain}`;
 }
 
+/**
+ * RGPD Art. 5.1.c y Art. 32: Enmascaramiento de correos en registros de servidor para prevenir fugas de PII
+ */
+function maskEmail(email: string): string {
+  if (!email || !email.includes('@')) return '***';
+  const [user, domain] = email.split('@');
+  const visible = user.slice(0, 2);
+  return `${visible}***@${domain}`;
+}
+
 export async function POST(request: Request) {
   const body = await request.text();
   const sig = request.headers.get('stripe-signature');
@@ -153,7 +163,7 @@ export async function POST(request: Request) {
         : (session.customer as any)?.id || null;
 
       if (email) {
-        console.log(`🥇 Suscripción confirmada para Candidato Premium: ${email}`);
+        console.log(`🥇 Suscripción confirmada para Candidato Premium: ${maskEmail(email)}`);
         const client = await pool.connect();
         try {
           // VULN-03: Bloque transaccional explícito START TRANSACTION / COMMIT para exclusión mutua
@@ -189,14 +199,14 @@ export async function POST(request: Request) {
                 [email]
               );
             }
-            console.log(`✅ Nuevo suscriptor creado directamente con rango premium: ${email}`);
+            console.log(`✅ Nuevo suscriptor creado directamente con rango premium: ${maskEmail(email)}`);
           }
           await client.query('COMMIT');
-          console.log(`✅ Suscriptor ${email} actualizado a premium con suscripción vinculada.`);
+          console.log(`✅ Suscriptor ${maskEmail(email)} actualizado a premium con suscripción vinculada.`);
         } catch (dbErr) {
           try { await client.query('ROLLBACK'); } catch {}
           try { await pool.query("DELETE FROM stripe_processed_events WHERE event_id = $1", [event.id]); } catch {}
-          console.error(`❌ Error en la base de datos al actualizar premium candidate ${email}:`, dbErr);
+          console.error(`❌ Error en la base de datos al actualizar premium candidate ${maskEmail(email)}:`, dbErr);
           return NextResponse.json({ error: 'Error interno en la BD' }, { status: 500 });
         } finally {
           client.release();
@@ -215,7 +225,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ received: true, status: 'rejected_underpaid' });
       }
 
-      console.log(`📊 Pago verificado para Informe de Mercado IT (${plan}) de: ${customerEmail}`);
+      console.log(`📊 Pago verificado para Informe de Mercado IT (${plan}) de: ${maskEmail(customerEmail)}`);
 
       // VULN-05: Timeout estricto de 4 segundos con AbortController para prevenir que la API de Resend exceda los 10s de Stripe
       const resendApiKey = process.env.RESEND_API_KEY;
@@ -261,7 +271,7 @@ export async function POST(request: Request) {
               `
             })
           });
-          console.log(`📧 Correo de entrega del informe enviado a ${customerEmail}`);
+          console.log(`📧 Correo de entrega del informe enviado a ${maskEmail(customerEmail)}`);
         } catch (mailErr: any) {
           console.error("Error enviando email con el informe de mercado:", mailErr?.message || mailErr);
         } finally {
@@ -422,7 +432,7 @@ export async function POST(request: Request) {
                        VALUES ($1, $2, $3, FALSE, NOW())`,
                       [recruiterEmail, affiliateCode.toUpperCase(), companyName]
                     );
-                    console.log(`✅ Afiliado B2B registrado con éxito para el reclutador ${recruiterEmail} y la empresa ${companyName}.`);
+                    console.log(`✅ Afiliado B2B registrado con éxito para el reclutador ${maskEmail(recruiterEmail)} y la empresa ${companyName}.`);
                   } catch (affErr) {
                     console.warn(`⚠️ Error al registrar comisión de afiliado (omitido para no abortar activación):`, affErr);
                   }
@@ -491,7 +501,7 @@ export async function POST(request: Request) {
       const targetEmails = Array.from(new Set([customerEmail, metadataEmail].filter(Boolean)));
 
       if (targetEmails.length > 0) {
-        console.log(`⚠️ Desactivando rango Candidato Premium por cancelación de suscripción: ${targetEmails.join(', ')}`);
+        console.log(`⚠️ Desactivando rango Candidato Premium por cancelación de suscripción: ${targetEmails.map(maskEmail).join(', ')}`);
         const client = await pool.connect();
         try {
           for (const target of targetEmails) {
@@ -514,14 +524,14 @@ export async function POST(request: Request) {
     }
 
     if (customerEmail) {
-      console.log(`⚠️ Desactivando rango Candidato Premium por impago de factura: ${customerEmail}`);
+      console.log(`⚠️ Desactivando rango Candidato Premium por impago de factura: ${maskEmail(customerEmail)}`);
       const client = await pool.connect();
       try {
         await client.query(
           "UPDATE subscribers SET is_premium = FALSE WHERE email = $1",
           [customerEmail]
         );
-        console.log(`✅ Suscriptor ${customerEmail} revocado exitosamente a cuenta estándar por impago.`);
+        console.log(`✅ Suscriptor ${maskEmail(customerEmail)} revocado exitosamente a cuenta estándar por impago.`);
       } catch (err) {
         console.error('Error revocando suscripción premium en base de datos por impago:', err);
       } finally {

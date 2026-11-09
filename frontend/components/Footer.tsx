@@ -147,8 +147,10 @@ export default async function Footer() {
   const legal = [
     { label: 'Mapa del Sitio', href: '/mapa-del-sitio' },
     { label: 'Aviso Legal', href: '/aviso-legal' },
+    { label: 'Términos y Condiciones', href: '/terminos' },
     { label: 'Política de Privacidad', href: '/privacy' },
     { label: 'Política de Cookies', href: '/cookies' },
+    { label: 'Declaración de Accesibilidad', href: '/accesibilidad' },
     { label: 'PortalTrabajoITBot', href: '/bot' },
     { label: 'Contacto', href: '/contacto' },
   ];

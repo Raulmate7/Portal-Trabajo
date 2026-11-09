@@ -83,6 +83,7 @@ export default function Header() {
             {/* Ofertas Guardadas */}
             <Link
               href={`/ofertas-guardadas${queryParam}`}
+              aria-label={isEnglish ? 'View saved jobs' : 'Ver ofertas guardadas'}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-indigo-100/30 dark:border-slate-800/30 text-indigo-600 dark:text-indigo-400 text-xs font-extrabold transition-all cursor-pointer select-none active:scale-95 shadow-sm"
               title={isEnglish ? 'Saved jobs' : 'Ofertas guardadas'}
             >
@@ -139,6 +140,7 @@ export default function Header() {
             {/* Ofertas Guardadas Móvil */}
             <Link
               href={`/ofertas-guardadas${queryParam}`}
+              aria-label={isEnglish ? 'View saved jobs' : 'Ver ofertas guardadas'}
               className="flex items-center justify-center p-2 rounded-xl bg-indigo-50 dark:bg-slate-900 text-indigo-650 dark:text-indigo-400 border border-indigo-100/20 dark:border-slate-800/20 shadow-sm cursor-pointer"
               title={isEnglish ? 'Saved jobs' : 'Ofertas guardadas'}
             >
@@ -171,7 +173,7 @@ export default function Header() {
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="p-2 rounded-xl text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              aria-label="Toggle menu"
+              aria-label={isOpen ? (isEnglish ? 'Close navigation menu' : 'Cerrar menú de navegación') : (isEnglish ? 'Open navigation menu' : 'Abrir menú de navegación')}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 {isOpen ? (

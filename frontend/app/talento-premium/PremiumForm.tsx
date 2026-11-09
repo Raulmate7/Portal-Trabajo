@@ -166,6 +166,7 @@ export default function PremiumForm() {
             <li><strong>Finalidad:</strong> Gestión y valoración de tu perfil profesional para comunicarte ofertas de empleo acordes a tu stack y experiencia.</li>
             <li><strong>Legitimación:</strong> Tu consentimiento expreso (Art. 6.1.a RGPD).</li>
             <li><strong>Destinatarios:</strong> No se cederán datos a empresas contratadoras sin tu visto bueno previo y confidencial.</li>
+            <li><strong>Decisiones automatizadas:</strong> No se adoptan decisiones automatizadas ni perfiles discriminatorios con efectos jurídicos sin intervención humana (Art. 22 RGPD). La adecuación y recomendación se realiza bajo supervisión humana.</li>
             <li><strong>Derechos:</strong> Acceso, rectificación, supresión y otros derechos detallados en nuestra{" "}
               <Link href="/privacy" target="_blank" className="text-amber-400 underline">Política de Privacidad</Link>.
             </li>

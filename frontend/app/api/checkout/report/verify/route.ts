@@ -14,12 +14,13 @@ function maskEmail(emailStr: string): string {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const sessionId = searchParams.get('session_id');
-  const paypalOrder = searchParams.get('paypal_order') === 'true';
+  const paypalTx = (searchParams.get('tx') || searchParams.get('PayerID') || '').trim();
   const paypalEmail = (searchParams.get('email') || '').trim().toLowerCase();
   const paypalPlan = (searchParams.get('plan') || 'full').trim().toLowerCase();
 
-  // Soporte directo para confirmación de pedidos realizados mediante PayPal
-  if (paypalOrder) {
+  // Verificación de retorno de PayPal: exigir identificador de transacción/pagador (tx o PayerID)
+  // y rechazar peticiones arbitrarias que solo pasen ?paypal_order=true sin transacción válida
+  if (searchParams.get('paypal_order') === 'true') {
     const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!paypalEmail || !EMAIL_REGEX.test(paypalEmail)) {
       return NextResponse.json(
@@ -27,11 +28,45 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       );
     }
-    const token = generateReportToken(paypalEmail, paypalPlan, `pp_${Date.now()}`);
+    const PAYPAL_TX_REGEX = /^[a-zA-Z0-9_-]{8,36}$/;
+    if (!paypalTx || !PAYPAL_TX_REGEX.test(paypalTx)) {
+      return NextResponse.json(
+        {
+          valid: false,
+          error: 'Confirmación de transacción PayPal pendiente de validación o identificador inválido. Si ya has completado el pago, escríbenos a contacto@portalempleoit.com con tu recibo para recibir el enlace directo.',
+        },
+        { status: 402 }
+      );
+    }
+
+    // Validación oficial con PayPal PDT (Payment Data Transfer) si el token de identidad está configurado
+    const identityToken = process.env.PAYPAL_IDENTITY_TOKEN;
+    if (identityToken) {
+      try {
+        const paypalHost = process.env.PAYPAL_ENV === 'sandbox' ? 'https://www.sandbox.paypal.com' : 'https://www.paypal.com';
+        const pdtRes = await fetch(`${paypalHost}/cgi-bin/webscr`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: `cmd=_notify-synch&tx=${encodeURIComponent(paypalTx)}&at=${encodeURIComponent(identityToken)}`,
+        });
+        const pdtText = await pdtRes.text();
+        if (!pdtText.startsWith('SUCCESS')) {
+          return NextResponse.json(
+            { valid: false, error: 'La pasarela de PayPal no ha confirmado la validez de la transacción facilitada.' },
+            { status: 402 }
+          );
+        }
+      } catch (pdtErr) {
+        console.error('Error contactando con API PDT de PayPal:', pdtErr);
+      }
+    }
+
+    const safePlan = paypalPlan === 'enterprise' ? 'enterprise' : 'full';
+    const token = generateReportToken(paypalEmail, safePlan, `pp_${paypalTx}`);
     return NextResponse.json({
       valid: true,
       email: maskEmail(paypalEmail),
-      plan: paypalPlan,
+      plan: safePlan,
       downloadUrl: `/api/checkout/report/download?token=${encodeURIComponent(token)}`,
     });
   }

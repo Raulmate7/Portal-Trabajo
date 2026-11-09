@@ -249,8 +249,13 @@ export default async function SalariosPage({ searchParams }: Props) {
               </table>
             </div>
             
-            <div className="mt-4 p-3 bg-gray-50 rounded-xl border border-gray-150 text-[10px] text-gray-550 leading-relaxed">
-              * Los percentiles mostrados representan: <strong>Junior (P25)</strong> representa el 25% inferior de la muestra (salarios de entrada o menor experiencia), <strong>Salario Medio</strong> es el promedio aritmético ponderado de la categoría y <strong>Senior (P75)</strong> representa el 75% superior (profesionales con alta experiencia o trabajo en remoto).
+            <div className="mt-4 p-3.5 bg-gray-50 rounded-xl border border-gray-150 text-[11px] text-gray-550 leading-relaxed space-y-1.5">
+              <p>
+                * Los percentiles mostrados representan: <strong>Junior (P25)</strong> representa el 25% inferior de la muestra (salarios de entrada o menor experiencia), <strong>Salario Medio</strong> es el promedio aritmético ponderado de la categoría y <strong>Senior (P75)</strong> representa el 75% superior (profesionales con alta experiencia o trabajo en remoto).
+              </p>
+              <p className="text-[10px] text-gray-500 border-t border-gray-200/70 pt-1.5">
+                ⚖️ <strong>Transparencia Retributiva e Igualdad (Directiva UE 2023/970 y Ley 15/2022):</strong> Las métricas y bandas expuestas proceden de análisis estadísticos agregados del mercado IT en España. Su finalidad es estrictamente orientativa para promover la transparencia retributiva y la eliminación de la brecha de género, sin constituir tablas vinculantes de convenio ni valoraciones individualizadas.
+              </p>
             </div>
           </div>
 

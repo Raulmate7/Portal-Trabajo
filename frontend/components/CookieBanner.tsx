@@ -35,6 +35,36 @@ export default function CookieBanner() {
     }
   };
 
+  /**
+   * Purga tokens de analítica, cookies de terceros e identificadores de almacenamiento local
+   * cuando el usuario rechaza las cookies o revoca su consentimiento (Art. 22.2 LSSI-CE).
+   */
+  const purgeNonEssentialStorage = () => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.removeItem('affiliate_cta_variant');
+      localStorage.removeItem('newsletter_cta_variant');
+    } catch {}
+
+    try {
+      const cookiesToPurge = ['_ga', '_gid', '_gat', '__gads', '__gpi', '_gcl_au', '_fbp'];
+      const currentCookies = document.cookie.split(';');
+      const hostname = window.location.hostname;
+      const domainParts = hostname.split('.');
+      const rootDomain = domainParts.length > 1 ? '.' + domainParts.slice(-2).join('.') : hostname;
+
+      for (const cookieStr of currentCookies) {
+        const name = cookieStr.split('=')[0].trim();
+        const shouldPurge = cookiesToPurge.some(prefix => name === prefix || name.startsWith(prefix));
+        if (shouldPurge) {
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`;
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${hostname};`;
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${rootDomain};`;
+        }
+      }
+    } catch {}
+  };
+
   useEffect(() => {
     // 1. Comprobar consentimiento previo almacenado
     const savedConsent = localStorage.getItem('cookies_consent');
@@ -104,6 +134,7 @@ export default function CookieBanner() {
     const onlyEssential: CookiePreferences = { essential: true, analytics: false, advertising: false };
     localStorage.setItem('cookies_consent', JSON.stringify(onlyEssential));
     localStorage.setItem('cookies_accepted', 'false');
+    purgeNonEssentialStorage();
     setPreferences(onlyEssential);
     updateGtagConsent(false, false);
     notifyConsentUpdate(onlyEssential);
@@ -119,6 +150,9 @@ export default function CookieBanner() {
     };
     localStorage.setItem('cookies_consent', JSON.stringify(customConsents));
     localStorage.setItem('cookies_accepted', preferences.analytics || preferences.advertising ? 'true' : 'false');
+    if (!preferences.analytics || !preferences.advertising) {
+      purgeNonEssentialStorage();
+    }
     updateGtagConsent(preferences.analytics, preferences.advertising);
     notifyConsentUpdate(customConsents);
     setShow(false);
@@ -136,7 +170,7 @@ export default function CookieBanner() {
     >
       <div className="max-w-6xl mx-auto">
         {!showConfig ? (
-          // Vista 1: Banner Principal (AEPD: Aceptar y Rechazar al mismo nivel visual y jerarquía)
+          // Vista 1: Banner Principal (AEPD: Aceptar y Rechazar con estricta simetría visual y jerarquía neutra)
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div className="text-left max-w-3xl">
               <h3 id="cookie-banner-title" className="text-base font-bold text-white flex items-center gap-2 mb-1.5">
@@ -154,25 +188,25 @@ export default function CookieBanner() {
               </p>
             </div>
 
-            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 w-full lg:w-auto shrink-0 pt-2 lg:pt-0">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full lg:w-auto shrink-0 pt-2 lg:pt-0">
               <button
                 type="button"
                 onClick={handleRejectAll}
-                className="flex-1 sm:flex-none px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white border border-slate-500 rounded-lg text-xs sm:text-sm font-bold shadow-sm transition-all text-center focus:outline-none focus:ring-2 focus:ring-slate-300 cursor-pointer"
+                className="flex-1 sm:flex-none px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 rounded-lg text-xs sm:text-sm font-bold shadow-sm transition-all text-center focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer"
               >
                 Rechazar no esenciales
               </button>
               <button
                 type="button"
                 onClick={() => setShowConfig(true)}
-                className="flex-1 sm:flex-none px-4 py-2.5 bg-transparent hover:bg-slate-800 text-slate-300 border border-slate-600 rounded-lg text-xs sm:text-sm font-medium transition-all text-center focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer"
+                className="flex-1 sm:flex-none px-4 py-2.5 bg-transparent hover:bg-slate-800 text-slate-300 border border-slate-700 rounded-lg text-xs sm:text-sm font-medium transition-all text-center focus:outline-none focus:ring-2 focus:ring-slate-500 cursor-pointer"
               >
                 Configurar
               </button>
               <button
                 type="button"
                 onClick={handleAcceptAll}
-                className="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500 rounded-lg text-xs sm:text-sm font-bold shadow-md transition-all text-center focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"
+                className="flex-1 sm:flex-none px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500 rounded-lg text-xs sm:text-sm font-bold shadow-md transition-all text-center focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"
               >
                 Aceptar todas
               </button>

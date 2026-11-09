@@ -11,6 +11,10 @@ export const metadata: Metadata = {
 };
 
 export default function LegalPage() {
+  const legalOwner = process.env.NEXT_PUBLIC_LEGAL_OWNER || 'Raúl Mateo (Portal Trabajo IT)';
+  const legalNif = process.env.NEXT_PUBLIC_LEGAL_NIF || 'Disponible previa solicitud acreditada en contacto@portalempleoit.com';
+  const legalAddress = process.env.NEXT_PUBLIC_LEGAL_ADDRESS || 'Madrid, España (Atención al usuario y notificaciones: contacto@portalempleoit.com)';
+
   const breadcrumbItems = [
     { label: 'Inicio', href: '/' },
     { label: 'Aviso Legal' }
@@ -26,16 +30,16 @@ export default function LegalPage() {
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 md:p-8 space-y-6 text-gray-750 text-sm leading-relaxed">
         <section>
-          <h2 className="text-lg font-bold text-gray-950 mb-2">1. Datos Identificativos (LSSI-CE Art. 10)</h2>
+          <h2 className="text-lg font-bold text-gray-950 mb-2">1. Datos Identificativos (LSSI-CE Art. 10 y TRLGDCU Art. 97)</h2>
           <p>
-            En cumplimiento del artículo 10 de la Ley 34/2002, de 11 de julio, de Servicios de la Sociedad de la Información y del Comercio Electrónico (LSSI-CE), se facilitan a continuación los datos identificativos del prestador del servicio:
+            En cumplimiento del deber de información general dispuesto en el artículo 10 de la Ley 34/2002, de 11 de julio, de Servicios de la Sociedad de la Información y del Comercio Electrónico (LSSI-CE), y en el artículo 97 del Real Decreto Legislativo 1/2007 (TRLGDCU), se facilitan de forma permanente, directa y gratuita los datos identificativos del prestador del servicio:
           </p>
           <ul className="list-disc pl-5 mt-2 space-y-1">
-            <li><strong>Titular de la plataforma:</strong> Raúl M. (Portal Trabajo IT)</li>
-            <li><strong>Residencia y ámbito de prestación:</strong> España (Unión Europea)</li>
-            <li><strong>Contacto principal, soporte y ejercicio de derechos:</strong> contacto@portalempleoit.com</li>
+            <li><strong>Titular / Denominación social:</strong> {legalOwner}</li>
+            <li><strong>NIF / CIF:</strong> {legalNif}</li>
+            <li><strong>Domicilio social y fiscal:</strong> {legalAddress}</li>
+            <li><strong>Correo electrónico de contacto, soporte y ejercicio de derechos:</strong> contacto@portalempleoit.com</li>
             <li><strong>Sitio Web Oficial:</strong> portalempleoit.com</li>
-            <li><strong>Identificación fiscal (NIF/CIF):</strong> Disponible para clientes, empresas contratantes y administraciones públicas en las facturas expedidas según el RD 1619/2012 o mediante solicitud formal y fehaciente a través del canal de contacto legal.</li>
             <li><strong>Actividad:</strong> Directorio, metabuscador de ofertas tecnológicas y herramientas de orientación laboral para programadores en España.</li>
           </ul>
         </section>
@@ -156,9 +160,12 @@ export default function LegalPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-gray-950 mb-2">10. Legislación Aplicable y Jurisdicción</h2>
+          <h2 className="text-lg font-bold text-gray-950 mb-2">10. Legislación Aplicable, Jurisdicción y Resolución de Litigios en Línea (ODR)</h2>
           <p>
             Para la resolución de todas las controversias o cuestiones relacionadas con el presente sitio web o de las actividades en él desarrolladas, será de aplicación la legislación española, siendo competentes para la resolución de todos los conflictos derivados o relacionados con su uso los Juzgados y Tribunales del domicilio del usuario consumidor, o los Juzgados de Madrid para controversias entre empresas (B2B).
+          </p>
+          <p className="mt-2">
+            <strong>Resolución de litigios en línea en materia de consumo (Art. 14.1 Reglamento UE 524/2013):</strong> Conforme a la normativa europea de protección a los consumidores, se informa de que la Comisión Europea pone a disposición una plataforma de resolución extrajudicial de litigios en línea accesible en el siguiente enlace oficial: <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer" className="text-indigo-650 hover:underline">https://ec.europa.eu/consumers/odr</a>.
           </p>
         </section>
       </div>

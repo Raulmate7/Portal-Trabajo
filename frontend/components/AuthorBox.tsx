@@ -117,7 +117,15 @@ export default function AuthorBox({ author, date, updatedAt, slug, readingTimeMi
               </span>
             </div>
             <p className="text-xs text-indigo-700 font-medium mb-1.5">{meta.role}</p>
-            <p className="text-xs text-gray-600 leading-relaxed">{meta.bio}</p>
+            <p className="text-xs text-gray-600 leading-relaxed mb-3">{meta.bio}</p>
+
+            {/* Transparencia Editorial y AI Act (Reglamento UE 2024/1689 Art. 50.2) */}
+            <div className="pt-2.5 border-t border-indigo-100/70 flex items-start gap-2 text-[11px] text-gray-500 leading-normal">
+              <span className="text-xs mt-0.5" aria-hidden="true">🛡️</span>
+              <div>
+                <strong className="text-gray-700">Transparencia Editorial (AI Act UE 2024/1689):</strong> Contenido revisado y validado bajo supervisión y responsabilidad editorial humana. Las herramientas analíticas o de asistencia de IA se emplean únicamente como soporte de agregación estadística y redacción técnica preliminar.
+              </div>
+            </div>
           </div>
         </div>
       </div>
