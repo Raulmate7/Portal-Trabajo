@@ -233,7 +233,7 @@ export default async function CityLandingPage({ citySlug, cityName, searchParams
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
+    <div className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] font-sans">
       {prevUrl && <link rel="prev" href={prevUrl} />}
       {nextUrl && <link rel="next" href={nextUrl} />}
       <link 
@@ -259,16 +259,16 @@ export default async function CityLandingPage({ citySlug, cityName, searchParams
         />
       ))}
 
-      {/* Hero Section Premium */}
-      <section className="relative bg-slate-900 text-white overflow-hidden py-16 px-4 sm:px-6 lg:px-8 shadow-inner">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-950 via-slate-950 to-indigo-900 z-0" />
-        <div className="absolute inset-0 opacity-35 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-500/25 via-transparent to-transparent z-0" />
+      {/* Hero Section Technical Luxury */}
+      <section className="relative bg-[#090C10] text-white border-b border-white/[0.08] overflow-hidden py-14 px-4 sm:px-6 lg:px-8">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(99,102,241,0.14),transparent_60%)] pointer-events-none" />
         
         <div className="relative max-w-5xl mx-auto text-center z-10">
-          <span className="inline-flex items-center gap-1.5 text-xs text-indigo-300 font-bold bg-indigo-500/10 border border-indigo-500/20 px-3.5 py-1.5 rounded-full mb-6 uppercase tracking-wider">
-            📍 {isEnglish ? `Jobs in ${cityName}` : isCatalan ? `Feina a ${cityName}` : isBasque ? `Lanak ${cityName}n` : `Empleo en ${cityName}`}
+          <span className="inline-flex items-center gap-2 font-mono text-xs text-slate-300 bg-white/[0.05] border border-white/[0.1] px-3 py-1 rounded-full mb-5 uppercase tracking-wider">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" aria-hidden="true" />
+            {isEnglish ? `Jobs in ${cityName}` : isCatalan ? `Feina a ${cityName}` : isBasque ? `Lanak ${cityName}n` : `Empleo en ${cityName}`}
           </span>
-          <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-white mb-6 leading-tight">
+          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white mb-5 leading-tight">
             {isEnglish
               ? `Tech and Programming Jobs in `
               : isCatalan
@@ -276,9 +276,9 @@ export default async function CityLandingPage({ citySlug, cityName, searchParams
               : isBasque
               ? `Informatika eta Garapen Lanak hemen: `
               : `Trabajo de Informática y Desarrollo en `}
-            <span className="bg-gradient-to-r from-indigo-400 via-indigo-300 to-pink-400 bg-clip-text text-transparent">{cityName}</span>
+            <span className="text-indigo-400">{cityName}</span>
           </h1>
-          <p className="text-lg sm:text-xl text-indigo-100 max-w-3xl mx-auto leading-relaxed mb-8">
+          <p className="text-base sm:text-lg text-slate-400 max-w-3xl mx-auto leading-relaxed mb-8">
             {isEnglish
               ? `Find your next role in React, Python, Java, DevOps, Cloud, and Data in ${cityName}. We compile active opportunities daily.`
               : isCatalan
@@ -290,25 +290,25 @@ export default async function CityLandingPage({ citySlug, cityName, searchParams
           </p>
 
           {/* Estadísticas de la ciudad */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-3xl mx-auto mt-12">
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-5 shadow-sm">
-              <p className="text-3xl font-extrabold text-white">{stats.total}</p>
-              <p className="text-xs text-indigo-200 mt-1.5 font-medium uppercase tracking-wider">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-3xl mx-auto mt-10">
+            <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-5">
+              <p className="font-mono tabular-nums text-2xl sm:text-3xl font-bold text-white">{stats.total}</p>
+              <p className="font-mono text-[11px] text-slate-400 mt-1.5 uppercase tracking-wider">
                 {isEnglish ? 'Active vacancies' : isCatalan ? 'Vacants actives' : isBasque ? 'Lanpostu aktiboak' : 'Vacantes activas'}
               </p>
             </div>
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-5 shadow-sm">
-              <p className="text-3xl font-extrabold text-white">
+            <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-5">
+              <p className="font-mono tabular-nums text-2xl sm:text-3xl font-bold text-emerald-400">
                 {stats.avgSalary ? `${stats.avgSalary.toLocaleString('es-ES')}€` : '38.500€'}
               </p>
-              <p className="text-xs text-indigo-200 mt-1.5 font-medium uppercase tracking-wider">
+              <p className="font-mono text-[11px] text-slate-400 mt-1.5 uppercase tracking-wider">
                 {isEnglish ? 'Estimated average salary' : isCatalan ? 'Salari mitjà estimat' : isBasque ? 'Batez besteko soldata' : 'Salario medio estimado'}
               </p>
             </div>
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-5 shadow-sm col-span-1 sm:col-span-2 md:col-span-1">
-              <p className="text-3xl font-extrabold text-white">Cada 6h</p>
-              <p className="text-xs text-indigo-200 mt-1.5 font-medium uppercase tracking-wider">
-                {isEnglish ? 'Update rate' : 'Frecuencia de actualización'}
+            <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-5 col-span-1 sm:col-span-2 md:col-span-1">
+              <p className="font-mono tabular-nums text-2xl sm:text-3xl font-bold text-white">6h</p>
+              <p className="font-mono text-[11px] text-slate-400 mt-1.5 uppercase tracking-wider">
+                {isEnglish ? 'Update cadence' : 'Frecuencia de actualización'}
               </p>
             </div>
           </div>
@@ -316,36 +316,38 @@ export default async function CityLandingPage({ citySlug, cityName, searchParams
       </section>
 
       {/* Enlaces Rápidos a Tecnologías de esta ciudad (Interlinking SEO) */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-4">
-        <div className="text-center max-w-3xl mx-auto mb-8">
-          <h3 className="text-2xl font-extrabold text-gray-900">
-            {isEnglish ? `Search Jobs in ${cityName} by Tech` : `Buscar empleo en ${cityName} por tecnología 🔍`}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-4">
+        <div className="text-center max-w-3xl mx-auto mb-7">
+          <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+            {isEnglish ? `Search Jobs in ${cityName} by Tech` : `Buscar empleo en ${cityName} por tecnología`}
           </h3>
-          <p className="text-sm text-gray-500 mt-2">
+          <p className="text-sm text-[var(--text-secondary)] mt-1.5">
             {isEnglish 
               ? `Access direct listings for the most popular technical profiles in the ${cityName} tech hub.` 
               : `Accede directamente a los listados específicos de las especialidades más demandadas en el mercado informático de ${cityName}.`
             }
           </p>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-5xl mx-auto">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-5xl mx-auto">
           {[
-            { name: 'React', slug: 'react', emoji: '⚛️' },
-            { name: 'Node.js', slug: 'node', emoji: '🟢' },
-            { name: 'Python', slug: 'python', emoji: '🐍' },
-            { name: 'TypeScript', slug: 'typescript', emoji: '🟦' },
-            { name: 'Java', slug: 'java', emoji: '☕' },
-            { name: 'DevOps', slug: 'devops', emoji: 'cloud' },
-            { name: 'Backend', slug: 'backend', emoji: '⚙️' },
-            { name: 'Frontend', slug: 'frontend', emoji: '🎨' },
+            { name: 'React', slug: 'react', tag: 'FE' },
+            { name: 'Node.js', slug: 'node', tag: 'BE' },
+            { name: 'Python', slug: 'python', tag: 'PY' },
+            { name: 'TypeScript', slug: 'typescript', tag: 'TS' },
+            { name: 'Java', slug: 'java', tag: 'JV' },
+            { name: 'DevOps', slug: 'devops', tag: 'OPS' },
+            { name: 'Backend', slug: 'backend', tag: 'API' },
+            { name: 'Frontend', slug: 'frontend', tag: 'UI' },
           ].map((tech) => (
             <Link
               key={tech.slug}
               href={`/trabajos/${tech.slug}-en-${citySlug}${queryParam}`}
-              className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-xl hover:shadow-md hover:border-indigo-200 transition-all group"
+              className="ui-card ui-card-interactive flex items-center gap-3 p-3.5 rounded-xl group"
             >
-              <span className="text-2xl group-hover:scale-110 transition-transform">{tech.emoji}</span>
-              <span className="text-xs font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
+              <span className="w-8 h-8 rounded-md bg-[var(--bg-subtle)] border border-[var(--border-subtle)] font-mono text-[11px] font-semibold text-[var(--accent-primary)] flex items-center justify-center shrink-0">
+                {tech.tag}
+              </span>
+              <span className="text-xs font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors">
                 {tech.name}
               </span>
             </Link>
@@ -354,7 +356,7 @@ export default async function CityLandingPage({ citySlug, cityName, searchParams
       </section>
 
       {/* Layout Principal de Contenido */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 border-t border-gray-150">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 border-t border-[var(--border-subtle)] mt-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           
           {/* Columna de Ofertas */}
@@ -363,20 +365,22 @@ export default async function CityLandingPage({ citySlug, cityName, searchParams
             <Breadcrumbs items={breadcrumbItems} />
 
             {/* Editorial por Ciudad */}
-            <div className="bg-white p-6 md:p-8 rounded-2xl border border-gray-150 shadow-sm">
-              <h2 className="text-xl font-bold text-gray-950 mb-4 flex items-center gap-2">
-                <span>📝</span> {isEnglish ? `The Tech Job Market in ${cityName}` : `El Mercado Laboral Tecnológico en ${cityName}`}
+            <div className="ui-card p-6 md:p-7 rounded-xl">
+              <h2 className="text-lg font-semibold tracking-tight text-[var(--text-primary)] mb-3">
+                {isEnglish ? `The Tech Job Market in ${cityName}` : `El Mercado Laboral Tecnológico en ${cityName}`}
               </h2>
-              {getCityEditorial(cityName, stats.total, stats.avgSalary, isEnglish)}
+              <div className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                {getCityEditorial(cityName, stats.total, stats.avgSalary, isEnglish)}
+              </div>
             </div>
 
-            <h3 className="text-xl font-bold text-gray-900 pt-4 flex items-center gap-2">
-              <span>💼</span> {isEnglish ? `Recent Tech Offers in ${cityName}` : `Ofertas de Empleo IT Recientes en ${cityName}`}
+            <h3 className="text-lg font-semibold tracking-tight text-[var(--text-primary)] pt-2">
+              {isEnglish ? `Recent Tech Offers in ${cityName}` : `Ofertas de Empleo IT Recientes en ${cityName}`}
             </h3>
             
             {jobs && jobs.length > 0 ? (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {jobs.flatMap((job: any, index: number) => {
                     const card = <JobCard key={job.id} job={job} lang={lang} prefetch={index < 5} />;
                     if (index === 3) {
@@ -392,24 +396,24 @@ export default async function CityLandingPage({ citySlug, cityName, searchParams
                 </div>
 
                 {/* Controles de Paginación */}
-                <div className="flex justify-between items-center pt-8 border-t border-gray-200">
+                <div className="flex justify-between items-center pt-6 border-t border-[var(--border-subtle)]">
                   {validPage > 1 ? (
                     <Link
                       href={`/trabajo-${citySlug}?page=${validPage - 1}${isEnglish ? '&lang=en' : ''}`}
-                      className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+                      className="ui-card ui-card-interactive ui-btn-press px-4 py-2 rounded-lg text-xs font-medium text-[var(--text-primary)]"
                     >
                       {isEnglish ? '← Previous' : '← Anterior'}
                     </Link>
                   ) : (
                     <div />
                   )}
-                  <span className="text-sm text-gray-500 font-medium font-sans">
+                  <span className="font-mono tabular-nums text-xs text-[var(--text-muted)]">
                     {isEnglish ? `Page ${validPage}` : `Página ${validPage}`}
                   </span>
                   {jobs.length === 20 ? (
                     <Link
                       href={`/trabajo-${citySlug}?page=${validPage + 1}${isEnglish ? '&lang=en' : ''}`}
-                      className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+                      className="ui-card ui-card-interactive ui-btn-press px-4 py-2 rounded-lg text-xs font-medium text-[var(--text-primary)]"
                     >
                       {isEnglish ? 'Next →' : 'Siguiente →'}
                     </Link>
@@ -419,31 +423,35 @@ export default async function CityLandingPage({ citySlug, cityName, searchParams
                 </div>
               </>
             ) : (
-              <div className="text-center py-20 bg-white rounded-2xl border border-gray-200 border-dashed">
-                <span className="text-4xl">🤷‍♂️</span>
-                <h3 className="text-lg font-bold text-gray-900 mt-4">
+              <div className="ui-card text-center py-16 px-6 rounded-xl">
+                <div className="w-10 h-10 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[var(--text-muted)] flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z" />
+                  </svg>
+                </div>
+                <h3 className="text-base font-semibold text-[var(--text-primary)]">
                   {isEnglish ? 'No job offers available right now' : `No hay ofertas de empleo en ${cityName} ahora mismo`}
                 </h3>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-[var(--text-secondary)] mt-1">
                   {isEnglish ? 'Check back soon for new openings.' : 'Vuelve más tarde para ver nuevas ofertas publicadas.'}
                 </p>
-                <Link href={isEnglish ? '/?lang=en' : '/'} className="inline-block mt-6 text-sm font-semibold text-indigo-600 hover:underline">
-                  {isEnglish ? 'Go back to main search →' : 'Volver al buscador principal &rarr;'}
+                <Link href={isEnglish ? '/?lang=en' : '/'} className="inline-block mt-5 text-xs font-medium text-[var(--accent-primary)] hover:underline">
+                  {isEnglish ? 'Go back to main search →' : 'Volver al buscador principal →'}
                 </Link>
               </div>
             )}
 
             {/* FAQ Visual para SEO y E-E-A-T */}
             {faqItems.length > 0 && (
-              <div className="bg-white p-6 md:p-8 rounded-2xl border border-gray-150 shadow-sm mt-8">
-                <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                  <span>❓</span> {isEnglish ? `Frequently Asked Questions about ${cityName} IT Jobs` : `Preguntas Frecuentes sobre el Empleo IT en ${cityName}`}
+              <div className="ui-card p-6 md:p-7 rounded-xl mt-8">
+                <h2 className="text-lg font-semibold tracking-tight text-[var(--text-primary)] mb-5">
+                  {isEnglish ? `Frequently Asked Questions about ${cityName} IT Jobs` : `Preguntas Frecuentes sobre el Empleo IT en ${cityName}`}
                 </h2>
-                <div className="space-y-6 divide-y divide-gray-100">
+                <div className="space-y-5 divide-y divide-[var(--border-subtle)]">
                   {faqItems.map((item, idx) => (
                     <div key={idx} className={idx > 0 ? "pt-4" : ""}>
-                      <h3 className="text-base font-bold text-gray-850 mb-2">{item.question}</h3>
-                      <p className="text-sm text-gray-600 leading-relaxed m-0">{item.answer}</p>
+                      <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1.5">{item.question}</h3>
+                      <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed m-0">{item.answer}</p>
                     </div>
                   ))}
                 </div>
@@ -453,10 +461,10 @@ export default async function CityLandingPage({ citySlug, cityName, searchParams
           </div>
 
           {/* Sidebar */}
-          <aside className="lg:col-span-1 space-y-6">
+          <aside className="lg:col-span-1 space-y-5">
             <SubscribeForm location={cityName} />
             <PushSubscribe />
-            <div className="lg:sticky lg:top-24">
+            <div className="lg:sticky lg:top-20">
               <AdBanner variant="sidebar" />
             </div>
           </aside>

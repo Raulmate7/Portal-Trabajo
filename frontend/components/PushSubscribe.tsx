@@ -68,20 +68,19 @@ export default function PushSubscribe() {
   }
 
   return (
-    <div className="bg-gradient-to-br from-violet-900 to-indigo-950 text-white p-5 rounded-2xl border border-indigo-500/20 shadow-lg relative overflow-hidden">
-      {/* Círculo de luz decorativo de fondo */}
-      <div className="absolute top-0 right-0 -mr-12 -mt-12 w-32 h-32 bg-indigo-500 rounded-full mix-blend-screen opacity-20 filter blur-xl animate-pulse"></div>
-
-      <div className="relative z-10 flex flex-col gap-3.5">
+    <div className="bg-[#0D1117] text-white p-4 sm:p-5 rounded-xl border border-white/[0.1] relative overflow-hidden">
+      <div className="flex flex-col gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-lg shadow-inner border border-white/5">
-            🔔
+          <div className="w-8 h-8 rounded-lg bg-white/[0.06] border border-white/[0.1] flex items-center justify-center text-indigo-400 shrink-0">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
           </div>
           <div>
-            <h4 className="font-extrabold text-sm tracking-tight text-white leading-tight">
+            <h4 className="font-semibold text-sm tracking-tight text-white leading-tight">
               Alertas en tiempo real
             </h4>
-            <p className="text-[11px] text-indigo-200 mt-0.5">
+            <p className="text-[11px] text-slate-400 mt-0.5">
               Te avisamos al instante de nuevas ofertas de programación.
             </p>
           </div>
@@ -90,18 +89,18 @@ export default function PushSubscribe() {
         <button
           onClick={handleSubscribe}
           disabled={loading}
-          className={`w-full text-center py-2.5 px-4 text-xs font-black rounded-xl transition-all shadow-md active:scale-95 ${
+          className={`ui-btn-press w-full text-center py-2 px-4 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
             isSubscribed
-              ? 'bg-indigo-650 hover:bg-indigo-700 text-indigo-100 border border-indigo-600/30'
-              : 'bg-white hover:bg-indigo-50 text-indigo-900 font-extrabold hover:shadow-lg'
+              ? 'bg-white/[0.08] hover:bg-white/[0.12] text-slate-200 border border-white/[0.12]'
+              : 'bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white'
           }`}
         >
-          {loading ? 'Procesando...' : isSubscribed ? '🔔 Desactivar Alertas' : '🚀 Activar Notificaciones'}
+          {loading ? 'Procesando...' : isSubscribed ? 'Desactivar Alertas' : 'Activar Notificaciones'}
         </button>
 
-        <p className="text-[10px] text-indigo-300/80 text-center leading-normal mt-0.5">
+        <p className="text-[10px] text-slate-500 text-center leading-normal">
           Solo te avisaremos de nuevas ofertas tech. Token anónimo gestionado por OneSignal. Puedes darte de baja en cualquier momento con este botón o desde los ajustes de tu navegador. Consulta nuestra{' '}
-          <Link href="/privacy" className="underline hover:text-white">
+          <Link href="/privacy" className="underline hover:text-slate-300">
             Política de Privacidad
           </Link>.
         </p>

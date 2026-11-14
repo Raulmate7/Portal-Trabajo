@@ -426,9 +426,9 @@ function MiPerfilContent() {
 
   if (loadingData) {
     return (
-      <main className="min-h-screen bg-gray-50 dark:bg-slate-950 flex flex-col items-center justify-center py-16 gap-3">
-        <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-        <p className="text-gray-500 dark:text-slate-400 font-medium">
+      <main className="min-h-screen bg-[var(--bg-canvas)] flex flex-col items-center justify-center py-16 gap-3">
+        <div className="w-8 h-8 border-2 border-[var(--border-subtle)] border-t-[var(--accent-primary)] rounded-full animate-spin" />
+        <p className="text-xs font-mono text-[var(--text-muted)]">
           {isEnglish ? 'Loading your profile...' : 'Cargando tu perfil...'}
         </p>
       </main>
@@ -436,68 +436,68 @@ function MiPerfilContent() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-slate-950 py-12 px-4 md:px-8">
+    <main className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] py-10 px-4 md:px-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 pb-6 border-b border-gray-200 dark:border-slate-800">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 pb-6 border-b border-[var(--border-subtle)]">
           <div>
-            <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-              <span>👤</span> {isEnglish ? 'My Personal Area' : 'Mi Área Personal'}
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] tracking-tight">
+              {isEnglish ? 'My Personal Area' : 'Mi Área Personal'}
             </h1>
-            <p className="text-gray-500 dark:text-slate-400 text-sm mt-1">
+            <p className="text-[var(--text-secondary)] text-sm mt-1">
               {isEnglish
                 ? 'Manage your email preferences, saved jobs and account security.'
-                : 'Gestiona si quieres recibir correos, tus alertas, ofertas guardadas y seguridad.'}
+                : 'Gestiona tus preferencias de correo, alertas, ofertas guardadas y seguridad.'}
             </p>
           </div>
           {authenticated && (
             <button
               onClick={handleLogout}
-              className="px-4 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-700 dark:text-gray-200 font-bold rounded-xl text-xs transition-colors shadow-sm cursor-pointer"
+              className="ui-card ui-card-interactive ui-btn-press px-3.5 py-2 rounded-lg text-xs font-medium text-[var(--text-primary)] cursor-pointer"
             >
-              🚪 {isEnglish ? 'Sign out' : 'Cerrar sesión'} ({subData?.email})
+              {isEnglish ? 'Sign out' : 'Cerrar sesión'} ({subData?.email})
             </button>
           )}
         </div>
 
         {errorMsg && !authenticated && (
-          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-2xl mb-8 text-sm font-medium dark:bg-red-950/20 dark:border-red-900/50 dark:text-red-300">
-            ⚠️ {errorMsg}
+          <div className="bg-rose-500/10 border border-rose-500/25 text-rose-600 dark:text-rose-400 p-4 rounded-xl mb-8 text-sm font-medium">
+            {errorMsg}
           </div>
         )}
 
         {!authenticated ? (
-          <div className="max-w-lg mx-auto space-y-6 mt-4">
-            <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-3xl p-8 shadow-xl text-center space-y-5">
-              <h2 className="text-xl font-black text-gray-950 dark:text-white">
+          <div className="max-w-lg mx-auto space-y-5 mt-4">
+            <div className="ui-card rounded-xl p-6 sm:p-8 text-center space-y-4">
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
                 {isEnglish ? 'Sign in to access your profile' : 'Accede a tu cuenta'}
               </h2>
-              <p className="text-sm text-gray-500 dark:text-slate-400">
+              <p className="text-sm text-[var(--text-secondary)]">
                 {isEnglish
                   ? 'Create a free account or sign in to save jobs and decide whether you want to receive emails.'
                   : 'Inicia sesión o crea tu cuenta gratuita para guardar ofertas en la nube y elegir si quieres recibir correos.'}
               </p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3 pt-1">
                 <Link
                   href={`/login${queryParam}`}
-                  className="py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition-colors shadow-md"
+                  className="ui-btn-press py-2.5 px-4 rounded-lg bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white font-medium text-sm transition-colors"
                 >
                   {isEnglish ? 'Sign in' : 'Iniciar sesión'}
                 </Link>
                 <Link
                   href={`/registro${queryParam}`}
-                  className="py-3 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-900 dark:text-white font-bold text-sm transition-colors"
+                  className="ui-btn-press py-2.5 px-4 rounded-lg bg-[var(--bg-subtle)] hover:border-[var(--border-strong)] border border-[var(--border-subtle)] text-[var(--text-primary)] font-medium text-sm transition-colors"
                 >
                   {isEnglish ? 'Create account' : 'Crear cuenta'}
                 </Link>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
-              <h3 className="text-sm font-bold text-gray-950 dark:text-white mb-1">
+            <div className="ui-card rounded-xl p-6">
+              <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1">
                 {isEnglish ? 'Newsletter subscriber without password?' : '¿Suscrito al boletín sin contraseña?'}
               </h3>
-              <p className="text-gray-500 dark:text-slate-400 text-xs mb-4 leading-relaxed">
+              <p className="text-[var(--text-secondary)] text-xs mb-4 leading-relaxed">
                 Introduce tu correo de suscripción y te enviaremos un enlace temporal de acceso.
               </p>
 
@@ -508,20 +508,20 @@ function MiPerfilContent() {
                   placeholder="nombre@correo.com"
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-950 dark:text-white text-sm"
+                  className="flex-1 px-3.5 py-2 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--border-accent)] focus:ring-2 focus:ring-[var(--accent-tint)] text-sm"
                 />
                 <button
                   type="submit"
                   disabled={authLoading}
-                  className="bg-slate-800 hover:bg-slate-900 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-bold py-2.5 px-5 rounded-xl text-xs cursor-pointer"
+                  className="ui-btn-press bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white font-medium py-2 px-4 rounded-lg text-xs cursor-pointer transition-colors"
                 >
                   {authLoading ? 'Enviando...' : 'Enviar enlace'}
                 </button>
               </form>
 
               {statusMsg && (
-                <p className="mt-3 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                  ✅ {statusMsg}
+                <p className="mt-3 text-xs font-medium text-[var(--status-emerald)]">
+                  {statusMsg}
                 </p>
               )}
             </div>
@@ -529,28 +529,28 @@ function MiPerfilContent() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Columna Izquierda */}
-            <div className="lg:col-span-2 space-y-8">
+            <div className="lg:col-span-2 space-y-6">
               <AdBanner variant="inline" />
 
               {/* Control Principal de Correos Electrónicos */}
               {authMode === 'session' && (
-                <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-sm space-y-5">
+                <div className="ui-card rounded-xl p-6 md:p-7 space-y-5">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
-                      <h2 className="text-xl font-black text-gray-950 dark:text-white flex items-center gap-2">
-                        <span>✉️</span> {isEnglish ? 'Email Preferences' : 'Preferencias de Correos Electrónicos'}
+                      <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                        {isEnglish ? 'Email Preferences' : 'Preferencias de Correos Electrónicos'}
                       </h2>
-                      <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+                      <p className="text-xs text-[var(--text-secondary)] mt-1">
                         {isEnglish
                           ? 'Choose whether you want to receive job alerts and our weekly newsletter.'
                           : 'Marca o desmarca esta casilla en cualquier momento para recibir o dejar de recibir correos.'}
                       </p>
                     </div>
                     <span
-                      className={`px-3 py-1 rounded-full text-xs font-extrabold ${
+                      className={`font-mono px-2.5 py-1 rounded-md text-[11px] font-medium border ${
                         emailNotificationsEnabled
-                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                          : 'bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-slate-400'
+                          ? 'bg-[var(--status-emerald-tint)] text-[var(--status-emerald)] border-[var(--status-emerald)]/25'
+                          : 'bg-[var(--bg-subtle)] text-[var(--text-muted)] border-[var(--border-subtle)]'
                       }`}
                     >
                       {emailNotificationsEnabled
@@ -565,41 +565,41 @@ function MiPerfilContent() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">
+                      <label className="block font-mono text-[11px] font-medium uppercase text-[var(--text-muted)] mb-1.5">
                         {isEnglish ? 'Full name' : 'Nombre completo'}
                       </label>
                       <input
                         type="text"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm text-gray-900 dark:text-white"
+                        className="w-full px-3.5 py-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--border-accent)]"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">
+                      <label className="block font-mono text-[11px] font-medium uppercase text-[var(--text-muted)] mb-1.5">
                         {isEnglish ? 'Account type' : 'Perfil'}
                       </label>
-                      <div className="px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50/70 dark:bg-slate-800/50 text-sm font-semibold text-gray-600 dark:text-slate-300 capitalize">
+                      <div className="px-3.5 py-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] text-sm font-mono text-[var(--text-secondary)] capitalize">
                         {userRole}
                       </div>
                     </div>
                   </div>
 
-                  <label className="flex items-start gap-3 p-4 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 bg-indigo-50/50 dark:bg-indigo-950/20 cursor-pointer">
+                  <label className="flex items-start gap-3 p-4 rounded-lg border border-[var(--border-accent)] bg-[var(--accent-tint)] cursor-pointer">
                     <input
                       type="checkbox"
                       checked={emailNotificationsEnabled}
                       onChange={(e) => handleSavePreferences(e.target.checked)}
                       disabled={saveLoading}
-                      className="mt-0.5 h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 shrink-0 cursor-pointer"
+                      className="mt-0.5 h-4 w-4 rounded border-[var(--border-strong)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)] shrink-0 cursor-pointer"
                     />
-                    <span className="text-sm text-gray-800 dark:text-slate-200">
-                      <strong className="font-bold block">
+                    <span className="text-sm text-[var(--text-primary)]">
+                      <strong className="font-semibold block">
                         {isEnglish
                           ? 'Yes, send me IT job alerts and the weekly newsletter by email'
                           : 'Sí, quiero recibir correos electrónicos con alertas de empleo IT y boletín semanal'}
                       </strong>
-                      <span className="text-xs text-gray-500 dark:text-slate-400">
+                      <span className="text-xs text-[var(--text-secondary)]">
                         {emailConsentUpdatedAt
                           ? `${isEnglish ? 'Last updated:' : 'Última actualización:'} ${new Date(
                               emailConsentUpdatedAt
@@ -615,12 +615,12 @@ function MiPerfilContent() {
 
               {/* Alertas de Empleo (si emails activos o en modo magic link) */}
               {(emailNotificationsEnabled || authMode === 'magic') && (
-                <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-sm space-y-6">
+                <div className="ui-card rounded-xl p-6 md:p-7 space-y-5">
                   <div>
-                    <h2 className="text-xl font-black text-gray-950 dark:text-white flex items-center gap-2">
-                      <span>🔔</span> {isEnglish ? 'Job Alert Filters' : 'Configuración de Alertas de Empleo'}
+                    <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                      {isEnglish ? 'Job Alert Filters' : 'Configuración de Alertas de Empleo'}
                     </h2>
-                    <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+                    <p className="text-xs text-[var(--text-secondary)] mt-1">
                       {isEnglish
                         ? 'Choose the technologies and frequency for your email alerts.'
                         : 'Configura las tecnologías y la frecuencia con la que quieres recibir vacantes.'}
@@ -629,10 +629,10 @@ function MiPerfilContent() {
 
                   <div className="space-y-4">
                     <div>
-                      <label className="text-xs font-black uppercase text-gray-400 tracking-wider mb-2 block">
+                      <label className="font-mono text-[11px] font-medium uppercase text-[var(--text-muted)] tracking-wider mb-2 block">
                         Tecnologías Preferidas
                       </label>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-1.5">
                         {TECH_LIST.map((t) => {
                           const active = selectedTechs.includes(t.value);
                           return (
@@ -644,10 +644,10 @@ function MiPerfilContent() {
                                   prev.includes(t.value) ? prev.filter((v) => v !== t.value) : [...prev, t.value]
                                 )
                               }
-                              className={`text-xs px-3 py-1.5 rounded-full border font-bold transition-all cursor-pointer ${
+                              className={`ui-btn-press font-mono text-[11px] px-2.5 py-1 rounded-md border font-medium transition-colors cursor-pointer ${
                                 active
-                                  ? 'bg-indigo-600 border-indigo-500 text-white'
-                                  : 'bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300'
+                                  ? 'bg-[var(--accent-primary)] border-[var(--accent-primary)] text-white'
+                                  : 'bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)]'
                               }`}
                             >
                               {t.label}
@@ -657,15 +657,15 @@ function MiPerfilContent() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                       <div>
-                        <label className="text-xs font-black uppercase text-gray-400 tracking-wider mb-1.5 block">
+                        <label className="font-mono text-[11px] font-medium uppercase text-[var(--text-muted)] tracking-wider mb-1.5 block">
                           Frecuencia
                         </label>
                         <select
                           value={frequency}
                           onChange={(e) => setFrequency(e.target.value)}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-sm text-gray-900 dark:text-white"
+                          className="w-full px-3.5 py-2 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--border-accent)]"
                         >
                           <option value="weekly">Semanal (Resumen)</option>
                           <option value="daily">Diaria</option>
@@ -674,12 +674,12 @@ function MiPerfilContent() {
                         </select>
                       </div>
                       <div className="flex items-end pb-2">
-                        <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-gray-700 dark:text-slate-300">
+                        <label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-[var(--text-primary)]">
                           <input
                             type="checkbox"
                             checked={remoteOnly}
                             onChange={(e) => setRemoteOnly(e.target.checked)}
-                            className="h-4 w-4 rounded text-indigo-600"
+                            className="h-4 w-4 rounded text-[var(--accent-primary)]"
                           />
                           Solo ofertas 100% remoto
                         </label>
@@ -690,7 +690,7 @@ function MiPerfilContent() {
                       type="button"
                       onClick={() => handleSavePreferences()}
                       disabled={saveLoading}
-                      className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-bold text-sm cursor-pointer shadow-md"
+                      className="ui-btn-press px-5 py-2.5 rounded-lg bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] disabled:opacity-60 text-white font-medium text-xs sm:text-sm cursor-pointer transition-colors"
                     >
                       {saveLoading ? 'Guardando...' : 'Guardar preferencias'}
                     </button>
@@ -699,61 +699,64 @@ function MiPerfilContent() {
               )}
 
               {saveSuccess && (
-                <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 text-xs font-bold text-emerald-700 dark:text-emerald-300">
-                  ✅ {saveSuccess}
+                <div className="p-3.5 rounded-xl bg-[var(--status-emerald-tint)] border border-[var(--status-emerald)]/25 text-xs font-medium text-[var(--status-emerald)]">
+                  {saveSuccess}
                 </div>
               )}
 
               {/* Ofertas Guardadas */}
-              <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-sm space-y-4">
+              <div className="ui-card rounded-xl p-6 md:p-7 space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-black text-gray-950 dark:text-white flex items-center gap-2">
-                    <span>⭐</span> {isEnglish ? 'Saved Jobs' : 'Ofertas Guardadas'}
+                  <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                    {isEnglish ? 'Saved Jobs' : 'Ofertas Guardadas'}
                   </h2>
-                  <span className="bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 text-xs font-bold px-3 py-1 rounded-full">
+                  <span className="font-mono tabular-nums bg-[var(--accent-tint)] border border-[var(--border-accent)] text-[var(--accent-primary)] text-xs font-semibold px-2.5 py-0.5 rounded-md">
                     {savedJobs.length}
                   </span>
                 </div>
 
                 {savedJobs.length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-slate-400">
+                  <p className="text-sm text-[var(--text-secondary)]">
                     {isEnglish
                       ? 'You have no saved jobs yet.'
-                      : 'Aún no tienes ofertas guardadas. Usa el botón de guardar (⭐) en cualquier vacante.'}
+                      : 'Aún no tienes ofertas guardadas. Usa el botón de guardar en cualquier vacante.'}
                   </p>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     {savedJobs.map((j) => {
                       const slug = getJobSlug({ id: j.id, title: j.title, company: j.company });
                       return (
                         <div
                           key={String(j.id)}
-                          className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 bg-gray-50/70 dark:bg-slate-800/40"
+                          className="flex items-center justify-between gap-4 p-3.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)]"
                         >
                           <div className="min-w-0">
                             <Link
                               href={`/job/${slug}${queryParam}`}
-                              className="font-bold text-sm text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 truncate block"
+                              className="font-semibold text-sm text-[var(--text-primary)] hover:text-[var(--accent-primary)] truncate block transition-colors"
                             >
                               {j.title}
                             </Link>
-                            <p className="text-xs text-gray-500 dark:text-slate-400 truncate">
-                              {j.company} • {j.location}
+                            <p className="text-xs text-[var(--text-secondary)] truncate">
+                              {j.company} · {j.location}
                             </p>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             <Link
                               href={`/job/${slug}${queryParam}`}
-                              className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold"
+                              className="ui-btn-press px-3 py-1.5 rounded-md bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white text-xs font-medium transition-colors"
                             >
                               Ver
                             </Link>
                             <button
                               onClick={() => handleRemoveSavedJob(j.id)}
-                              className="p-1.5 border border-gray-200 dark:border-slate-700 text-gray-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
+                              className="w-7 h-7 flex items-center justify-center border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-muted)] hover:text-[var(--status-danger)] rounded-md transition-colors cursor-pointer"
                               title="Eliminar de guardados"
+                              aria-label="Eliminar de guardados"
                             >
-                              ✕
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
                             </button>
                           </div>
                         </div>
@@ -765,14 +768,14 @@ function MiPerfilContent() {
 
               {/* Seguridad y Eliminación RGPD */}
               {authMode === 'session' && (
-                <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-sm space-y-6">
-                  <h2 className="text-lg font-black text-gray-950 dark:text-white flex items-center gap-2">
-                    <span>🛡️</span> {isEnglish ? 'Security & Data Control' : 'Seguridad de Cuenta y Privacidad'}
+                <div className="ui-card rounded-xl p-6 md:p-7 space-y-5">
+                  <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                    {isEnglish ? 'Security & Data Control' : 'Seguridad de Cuenta y Privacidad'}
                   </h2>
 
                   <form onSubmit={handleChangePassword} className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
                     <div>
-                      <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">
+                      <label className="block font-mono text-[11px] font-medium uppercase text-[var(--text-muted)] mb-1.5">
                         Contraseña actual
                       </label>
                       <input
@@ -780,11 +783,11 @@ function MiPerfilContent() {
                         required
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm text-gray-900 dark:text-white"
+                        className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--border-accent)]"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">
+                      <label className="block font-mono text-[11px] font-medium uppercase text-[var(--text-muted)] mb-1.5">
                         Nueva contraseña
                       </label>
                       <input
@@ -793,25 +796,25 @@ function MiPerfilContent() {
                         minLength={8}
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm text-gray-900 dark:text-white"
+                        className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--border-accent)]"
                       />
                     </div>
                     <button
                       type="submit"
-                      className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-900 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white text-xs font-bold cursor-pointer"
+                      className="ui-btn-press py-2 px-4 rounded-lg bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white text-xs font-medium cursor-pointer transition-colors"
                     >
                       Cambiar contraseña
                     </button>
                   </form>
-                  {passwordMsg && <p className="text-xs font-semibold text-emerald-600">{passwordMsg}</p>}
-                  {passwordErr && <p className="text-xs font-semibold text-red-600">{passwordErr}</p>}
+                  {passwordMsg && <p className="text-xs font-medium text-[var(--status-emerald)]">{passwordMsg}</p>}
+                  {passwordErr && <p className="text-xs font-medium text-[var(--status-danger)]">{passwordErr}</p>}
 
                   <form
                     onSubmit={handleDeleteAccount}
-                    className="pt-4 border-t border-gray-100 dark:border-slate-800 flex flex-col sm:flex-row gap-3 items-start sm:items-end justify-between"
+                    className="pt-4 border-t border-[var(--border-subtle)] flex flex-col sm:flex-row gap-3 items-start sm:items-end justify-between"
                   >
                     <div className="flex-1 w-full sm:max-w-xs">
-                      <label className="block text-[11px] font-bold uppercase text-red-500 mb-1">
+                      <label className="block font-mono text-[11px] font-medium uppercase text-[var(--status-danger)] mb-1.5">
                         Eliminar cuenta permanentemente (Art. 17 RGPD)
                       </label>
                       <input
@@ -820,15 +823,15 @@ function MiPerfilContent() {
                         placeholder="Confirma tu contraseña"
                         value={deletePassword}
                         onChange={(e) => setDeletePassword(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50/30 dark:bg-red-950/10 text-sm text-gray-900 dark:text-white"
+                        className="w-full px-3 py-2 rounded-lg border border-rose-500/30 bg-rose-500/5 text-sm text-[var(--text-primary)] focus:outline-none"
                       />
                     </div>
                     <button
                       type="submit"
                       disabled={deleteLoading}
-                      className="py-2.5 px-4 rounded-xl border border-red-300 dark:border-red-900/60 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 text-xs font-bold cursor-pointer"
+                      className="ui-btn-press py-2 px-4 rounded-lg border border-rose-500/40 text-[var(--status-danger)] hover:bg-rose-500/10 text-xs font-medium cursor-pointer transition-colors"
                     >
-                      {deleteLoading ? 'Eliminando...' : '🗑️ Borrar mi cuenta'}
+                      {deleteLoading ? 'Eliminando...' : 'Borrar mi cuenta'}
                     </button>
                   </form>
                 </div>
@@ -836,36 +839,34 @@ function MiPerfilContent() {
             </div>
 
             {/* Columna Derecha: Racha y Referidos */}
-            <div className="lg:col-span-1 space-y-6">
-              <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
-                <span className="text-3xl block">🔥</span>
-                <h3 className="font-bold text-gray-950 dark:text-white text-base">Racha de Visitas Diarias</h3>
+            <div className="lg:col-span-1 space-y-5">
+              <div className="ui-card rounded-xl p-5 space-y-3.5">
+                <h3 className="font-semibold text-[var(--text-primary)] text-sm">Racha de Visitas Diarias</h3>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-black text-amber-500">{streakCount}</span>
-                  <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Días activos</span>
+                  <span className="font-mono tabular-nums text-3xl font-bold text-[var(--status-amber)]">{streakCount}</span>
+                  <span className="font-mono text-[11px] text-[var(--text-muted)] uppercase tracking-wider">Días activos</span>
                 </div>
-                <div className="w-full bg-gray-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                <div className="w-full bg-[var(--bg-subtle)] h-2 rounded-full overflow-hidden border border-[var(--border-subtle)]">
                   <div
-                    className="bg-gradient-to-r from-amber-400 to-amber-500 h-full rounded-full transition-all duration-300"
+                    className="bg-[var(--status-amber)] h-full rounded-full transition-all duration-300"
                     style={{ width: `${Math.min(100, (streakCount / 7) * 100)}%` }}
                   />
                 </div>
-                <p className="text-[11px] text-gray-500 dark:text-slate-400 leading-relaxed">
-                  ¡Sigue visitando diariamente para mantener tu racha y desbloquear guías de salarios y recursos!
+                <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                  Visita diariamente para mantener tu racha y desbloquear guías de salarios y recursos.
                 </p>
               </div>
 
-              <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
-                <span className="text-3xl block">📢</span>
-                <h3 className="font-bold text-gray-950 dark:text-white text-base">Programa de Recomendación</h3>
+              <div className="ui-card rounded-xl p-5 space-y-3.5">
+                <h3 className="font-semibold text-[var(--text-primary)] text-sm">Programa de Recomendación</h3>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-black text-indigo-600 dark:text-indigo-400">{referralCount}</span>
-                  <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Amigos suscritos</span>
+                  <span className="font-mono tabular-nums text-3xl font-bold text-[var(--accent-primary)]">{referralCount}</span>
+                  <span className="font-mono text-[11px] text-[var(--text-muted)] uppercase tracking-wider">Amigos suscritos</span>
                 </div>
-                <div className="text-xs text-gray-600 dark:text-slate-400 leading-relaxed space-y-2">
+                <div className="text-xs text-[var(--text-secondary)] leading-relaxed space-y-2">
                   <p>Consigue que 3 compañeros se unan y obtendrás acceso premium sin anuncios.</p>
-                  <div className="pt-2">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-1.5 block">
+                  <div className="pt-1">
+                    <label className="font-mono text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)] mb-1.5 block">
                       Tu enlace exclusivo:
                     </label>
                     <input
@@ -873,13 +874,13 @@ function MiPerfilContent() {
                       readOnly
                       value={getReferralUrl()}
                       onClick={(e) => (e.target as HTMLInputElement).select()}
-                      className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-xs font-mono font-bold select-all focus:outline-none"
+                      className="w-full px-3 py-2 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-xs font-mono text-[var(--text-primary)] select-all focus:outline-none"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="sticky top-24">
+              <div className="sticky top-20">
                 <AdBanner variant="sidebar" enableRefresh={true} />
               </div>
             </div>
@@ -895,9 +896,9 @@ export default function MiPerfilPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen bg-gray-50 dark:bg-slate-950 flex flex-col items-center justify-center py-16 gap-3">
-          <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-          <p className="text-gray-500 dark:text-slate-400 font-medium">Cargando...</p>
+        <main className="min-h-screen bg-[var(--bg-canvas)] flex flex-col items-center justify-center py-16 gap-3">
+          <div className="w-8 h-8 border-2 border-[var(--border-subtle)] border-t-[var(--accent-primary)] rounded-full animate-spin" />
+          <p className="text-xs font-mono text-[var(--text-muted)]">Cargando...</p>
         </main>
       }
     >

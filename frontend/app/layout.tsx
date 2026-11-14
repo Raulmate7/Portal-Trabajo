@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Footer from "@/components/Footer";
 import { BASE_URL, safeJsonLdString } from "@/lib/constants";
@@ -13,7 +13,15 @@ const inter = Inter({
   subsets: ["latin"],
   display: "swap",
   preload: true,
-  variable: "--font-inter",
+  variable: "--font-sans",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  preload: true,
+  variable: "--font-mono",
 });
 
 export const viewport = {
@@ -113,7 +121,7 @@ export default async function RootLayout({
   const gaMeasurementId = process.env.NEXT_PUBLIC_GA_ID || "";
 
   return (
-    <html lang="es">
+    <html lang="es" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <head>
         <meta name="impact-site-verification" content="2348664d-36c1-45a5-8a74-a2dd472c4343" />
         {/* Preconexión y dns-prefetch respetuosos con privacidad (solo fuentes tipográficas estables) */}
@@ -342,8 +350,8 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.className} min-h-screen flex flex-col bg-gray-50 text-gray-900 dark:bg-slate-950 dark:text-gray-100 transition-colors duration-200`}>
-        <Suspense fallback={<div className="h-16 bg-white dark:bg-slate-950 border-b border-gray-200 dark:border-slate-800"></div>}>
+      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased min-h-screen flex flex-col bg-[var(--bg-canvas)] text-[var(--text-primary)] selection:bg-indigo-500/20 selection:text-indigo-600 dark:selection:text-indigo-300 transition-colors duration-200`}>
+        <Suspense fallback={<div className="h-14 bg-[var(--bg-surface)] border-b border-[var(--border-subtle)]"></div>}>
           <Header />
         </Suspense>
         <div className="flex-grow">

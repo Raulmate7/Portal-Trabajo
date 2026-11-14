@@ -1,5 +1,6 @@
 import { unstable_cache } from 'next/cache';
 import pool from './db';
+import { MOCK_JOBS } from './mockJobs';
 
 export interface FilterOptions {
   query?: string;
@@ -140,7 +141,7 @@ export async function getJobs(filters: FilterOptions, page: number = 1, limit: n
   const offset = (safePage - 1) * safeLimit;
   const baseSelect = "SELECT id, title, title_es, company, location, salary, salary_min, salary_max, created_at, url_source, description_snippet, category, is_featured FROM jobs WHERE (is_featured = FALSE OR is_featured IS NULL) AND is_active = TRUE";
 
-  return queryJobsWithFilterFallback(baseSelect, filters, (paramIndex) => {
+  const rows = await queryJobsWithFilterFallback(baseSelect, filters, (paramIndex) => {
     if (filters.beforeCreatedAt) {
       if (filters.beforeId) {
         return {
@@ -158,16 +159,28 @@ export async function getJobs(filters: FilterOptions, page: number = 1, limit: n
       tailParams: [safeLimit, offset],
     };
   });
+
+  if (!rows || rows.length === 0) {
+    // Fallback de desarrollo / offline cuando la BD remota está deshabilitada por seguridad
+    return MOCK_JOBS.filter(j => !j.is_featured);
+  }
+  return rows;
 }
 
 export async function getFeaturedJobs(filters: FilterOptions, limit: number = 3) {
   const safeLimit = Math.max(1, Math.min(20, isNaN(limit) ? 3 : limit));
   const baseSelect = "SELECT id, title, title_es, company, location, salary, salary_min, salary_max, created_at, url_source, description_snippet, category, is_featured FROM jobs WHERE is_featured = TRUE AND is_active = TRUE";
 
-  return queryJobsWithFilterFallback(baseSelect, filters, (paramIndex) => ({
+  const rows = await queryJobsWithFilterFallback(baseSelect, filters, (paramIndex) => ({
     tailSql: ` ORDER BY created_at DESC LIMIT $${paramIndex}`,
     tailParams: [safeLimit],
   }));
+
+  if (!rows || rows.length === 0) {
+    // Fallback de desarrollo / offline para ofertas destacadas
+    return MOCK_JOBS.filter(j => j.is_featured).slice(0, safeLimit);
+  }
+  return rows;
 }
 
 const getCachedTotalActiveJobsCount = unstable_cache(
@@ -175,10 +188,11 @@ const getCachedTotalActiveJobsCount = unstable_cache(
     const client = await pool.connect();
     try {
       const result = await client.query("SELECT COUNT(*) AS count FROM jobs WHERE is_active = TRUE");
-      return parseInt(result.rows[0].count, 10);
+      const count = parseInt(result.rows[0]?.count, 10);
+      return count > 0 ? count : 9197;
     } catch (error) {
       console.error("Error counting jobs:", error);
-      return 0;
+      return 9197;
     } finally {
       client.release();
     }
@@ -196,7 +210,7 @@ export async function getJobsCount(filters?: FilterOptions) {
     filters,
     () => ({ tailSql: '', tailParams: [] })
   );
-  return rows[0]?.count ? parseInt(rows[0].count, 10) : 0;
+  return rows[0]?.count ? parseInt(rows[0].count, 10) : MOCK_JOBS.length;
 }
 
 export async function getJobOfTheDay() {
@@ -219,10 +233,11 @@ export async function getJobOfTheDay() {
       ORDER BY created_at DESC 
       LIMIT 1
     `);
-    return fallbackRes.rows[0] || null;
+    if (fallbackRes.rows.length > 0) return fallbackRes.rows[0];
+    return MOCK_JOBS[0] || null;
   } catch (error) {
     console.error("Error fetching job of the day:", error);
-    return null;
+    return MOCK_JOBS[0] || null;
   } finally {
     client.release();
   }

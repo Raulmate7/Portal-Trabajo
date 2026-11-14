@@ -100,26 +100,28 @@ export default function Header() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white/85 dark:bg-slate-950/85 backdrop-blur-md border-b border-gray-200/50 dark:border-slate-800/50 transition-colors duration-300">
+    <header className="sticky top-0 z-50 w-full bg-[var(--bg-glass)] backdrop-blur-md border-b border-[var(--border-subtle)] transition-colors duration-200">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between gap-4">
+        <div className="flex h-14 items-center justify-between gap-4">
           
           {/* Logo */}
-          <Link href={`/${queryParam}`} className="group flex items-center gap-2 shrink-0">
-            <span className="text-2xl group-hover:scale-110 transition-transform">🚀</span>
-            <span className="text-lg font-black bg-gradient-to-r from-indigo-900 to-indigo-650 dark:from-white dark:to-indigo-200 bg-clip-text text-transparent group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+          <Link href={`/${queryParam}`} className="group flex items-center gap-2.5 shrink-0">
+            <span className="w-7 h-7 rounded-lg bg-[var(--accent-tint)] border border-[var(--border-accent)] text-[var(--accent-primary)] font-mono text-xs font-bold flex items-center justify-center transition-colors group-hover:bg-[var(--accent-primary)] group-hover:text-white">
+              &lt;/&gt;
+            </span>
+            <span className="text-sm font-semibold tracking-tight text-[var(--text-primary)]">
               Portal Trabajo IT
             </span>
           </Link>
 
           {/* Menú de Navegación de Escritorio */}
-          <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-gray-650 dark:text-gray-300">
+          <nav className="hidden md:flex items-center gap-1 text-[13px] font-medium text-[var(--text-secondary)]">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 prefetch={true}
-                className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors relative py-1 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-indigo-600 dark:after:bg-indigo-450 hover:after:w-full after:transition-all"
+                className="px-2.5 py-1.5 rounded-md hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] transition-colors duration-150 whitespace-nowrap"
               >
                 {link.label}
               </Link>
@@ -127,16 +129,18 @@ export default function Header() {
           </nav>
 
           {/* CTAs de Escritorio (Tema, Idioma, Publicar) */}
-          <div className="hidden md:flex items-center gap-4 shrink-0">
+          <div className="hidden md:flex items-center gap-2 shrink-0">
             
             {/* Ofertas Guardadas */}
             <Link
               href={`/ofertas-guardadas${queryParam}`}
               aria-label={isEnglish ? 'View saved jobs' : 'Ver ofertas guardadas'}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-indigo-100/30 dark:border-slate-800/30 text-indigo-600 dark:text-indigo-400 text-xs font-extrabold transition-all cursor-pointer select-none active:scale-95 shadow-sm"
+              className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs font-medium ui-btn-press cursor-pointer select-none"
               title={isEnglish ? 'Saved jobs' : 'Ofertas guardadas'}
             >
-              <span>⭐</span>
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
               <span className="hidden lg:inline">{isEnglish ? 'Saved' : 'Guardadas'}</span>
             </Link>
 
@@ -146,28 +150,28 @@ export default function Header() {
             {/* Cambiador de Idioma */}
             <Link
               href={isEnglish ? esHref : enHref}
-              className="text-xs font-bold px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 transition-colors border border-gray-200/50 dark:border-slate-700/50"
+              className="font-mono text-[11px] font-medium px-2 h-8 inline-flex items-center justify-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
               title={isEnglish ? 'Switch to Spanish' : 'Cambiar a Inglés'}
             >
-              {isEnglish ? '🇪🇸 ES' : '🇬🇧 EN'}
+              {isEnglish ? 'ES' : 'EN'}
             </Link>
 
             {/* Alternador de Tema */}
             {theme !== null && (
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-xl bg-gray-50 hover:bg-gray-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-gray-200/30 dark:border-slate-700/30 text-yellow-500 dark:text-amber-400 transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:bg-[var(--bg-subtle)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center ui-btn-press cursor-pointer"
                 title={theme === 'dark' ? 'Modo Claro' : 'Modo Oscuro'}
                 aria-label={theme === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
               >
                 {theme === 'dark' ? (
                   /* Sol */
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
                   </svg>
                 ) : (
                   /* Luna */
-                  <svg className="w-5 h-5 text-indigo-900" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                   </svg>
                 )}
@@ -180,9 +184,9 @@ export default function Header() {
                 <button
                   type="button"
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-gray-200/70 dark:border-slate-700/70 text-xs font-bold text-gray-800 dark:text-slate-200 transition-colors cursor-pointer"
+                  className="flex items-center gap-2 h-8 px-2.5 rounded-lg bg-[var(--bg-surface)] hover:bg-[var(--bg-subtle)] border border-[var(--border-subtle)] hover:border-[var(--border-strong)] text-xs font-medium text-[var(--text-primary)] ui-btn-press cursor-pointer"
                 >
-                  <span className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[11px] font-black uppercase">
+                  <span className="w-5 h-5 rounded-md bg-[var(--accent-primary)] text-white flex items-center justify-center font-mono text-[10px] font-bold uppercase">
                     {(authUser.fullName || authUser.email).charAt(0)}
                   </span>
                   <span className="max-w-[90px] truncate hidden xl:inline">
@@ -190,12 +194,12 @@ export default function Header() {
                   </span>
                 </button>
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-xl p-2 z-50 space-y-1">
-                    <div className="px-3 py-2 border-b border-gray-100 dark:border-slate-800">
-                      <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                  <div className="absolute right-0 mt-2 w-56 origin-top-right rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-strong)] shadow-lg p-1.5 z-50 space-y-0.5">
+                    <div className="px-2.5 py-2 border-b border-[var(--border-subtle)] mb-1">
+                      <p className="text-xs font-semibold text-[var(--text-primary)] truncate">
                         {authUser.fullName || authUser.email}
                       </p>
-                      <p className="text-[11px] text-gray-500 dark:text-slate-400 truncate">
+                      <p className="font-mono text-[10px] text-[var(--text-muted)] truncate mt-0.5">
                         {authUser.emailNotificationsEnabled
                           ? isEnglish
                             ? 'Emails: Active'
@@ -208,21 +212,21 @@ export default function Header() {
                     <Link
                       href={`/mi-perfil${queryParam}`}
                       onClick={() => setUserMenuOpen(false)}
-                      className="block px-3 py-2 rounded-xl text-xs font-semibold text-gray-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800"
+                      className="block px-2.5 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors"
                     >
                       {isEnglish ? 'My Profile & Emails' : 'Mi Perfil y Correos'}
                     </Link>
                     <Link
                       href={`/ofertas-guardadas${queryParam}`}
                       onClick={() => setUserMenuOpen(false)}
-                      className="block px-3 py-2 rounded-xl text-xs font-semibold text-gray-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800"
+                      className="block px-2.5 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors"
                     >
                       {isEnglish ? 'Saved Jobs' : 'Ofertas Guardadas'}
                     </Link>
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 cursor-pointer"
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-[var(--status-danger)] hover:bg-rose-500/10 cursor-pointer transition-colors"
                     >
                       {isEnglish ? 'Sign out' : 'Cerrar sesión'}
                     </button>
@@ -230,16 +234,16 @@ export default function Header() {
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <Link
                   href={`/login${queryParam}`}
-                  className="px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                  className="h-8 px-2.5 inline-flex items-center rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors"
                 >
                   {isEnglish ? 'Sign in' : 'Entrar'}
                 </Link>
                 <Link
                   href={`/registro${queryParam}`}
-                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors shadow-sm"
+                  className="h-8 px-2.5 inline-flex items-center rounded-lg text-xs font-medium border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:border-[var(--border-strong)] text-[var(--text-primary)] ui-btn-press"
                 >
                   {isEnglish ? 'Register' : 'Crear cuenta'}
                 </Link>
@@ -249,23 +253,25 @@ export default function Header() {
             {/* CTA Publicar Oferta */}
             <Link
               href={`/publicar-oferta${queryParam}`}
-              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-extrabold px-4 py-2 rounded-xl transition-all shadow-md shadow-green-500/20 active:scale-95"
+              className="h-8 px-3.5 inline-flex items-center justify-center rounded-lg bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white text-xs font-medium shadow-2xs ui-btn-press whitespace-nowrap"
             >
               {isEnglish ? 'Post a Job' : 'Publicar Oferta'}
             </Link>
           </div>
 
           {/* Panel Lateral e Interacciones Móviles */}
-          <div className="flex md:hidden items-center gap-2">
+          <div className="flex md:hidden items-center gap-1.5">
             
             {/* Ofertas Guardadas Móvil */}
             <Link
               href={`/ofertas-guardadas${queryParam}`}
               aria-label={isEnglish ? 'View saved jobs' : 'Ver ofertas guardadas'}
-              className="flex items-center justify-center p-2 rounded-xl bg-indigo-50 dark:bg-slate-900 text-indigo-650 dark:text-indigo-400 border border-indigo-100/20 dark:border-slate-800/20 shadow-sm cursor-pointer"
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] ui-btn-press cursor-pointer"
               title={isEnglish ? 'Saved jobs' : 'Ofertas guardadas'}
             >
-              <span>⭐</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
             </Link>
 
             {/* Racha Móvil */}
@@ -275,15 +281,15 @@ export default function Header() {
             {theme !== null && (
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-xl bg-gray-50 dark:bg-slate-900 text-yellow-500 dark:text-amber-400 cursor-pointer"
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-secondary)] cursor-pointer ui-btn-press"
                 aria-label={theme === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
               >
                 {theme === 'dark' ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
                   </svg>
                 ) : (
-                  <svg className="w-5 h-5 text-indigo-900" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                   </svg>
                 )}
@@ -293,10 +299,10 @@ export default function Header() {
             {/* Hamburger Button */}
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="p-2 rounded-xl text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
               aria-label={isOpen ? (isEnglish ? 'Close navigation menu' : 'Cerrar menú de navegación') : (isEnglish ? 'Open navigation menu' : 'Abrir menú de navegación')}
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
                 {isOpen ? (
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 ) : (
@@ -311,32 +317,31 @@ export default function Header() {
 
       {/* Menú Desplegable Móvil */}
       {isOpen && (
-        <div className="md:hidden border-t border-gray-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 px-4 py-4 space-y-3 shadow-inner animate-in slide-in-from-top duration-200">
-          <div className="flex flex-col gap-2.5">
+        <div className="md:hidden border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-4 space-y-3 shadow-lg">
+          <div className="flex flex-col gap-1">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 prefetch={true}
                 onClick={() => setIsOpen(false)}
-                className="block font-bold py-2 px-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-slate-900 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                className="block text-sm font-medium py-2 px-3 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] transition-colors"
               >
                 {link.label}
               </Link>
             ))}
           </div>
 
-          <hr className="border-gray-200/50 dark:border-slate-800/50 my-3" />
+          <hr className="border-[var(--border-subtle)] my-2" />
 
           <div className="flex items-center justify-between gap-4 px-3">
-            {/* Idioma Móvil */}
-            <span className="text-xs font-semibold text-gray-500">{isEnglish ? 'Language' : 'Idioma'}:</span>
+            <span className="text-xs font-medium text-[var(--text-muted)]">{isEnglish ? 'Language' : 'Idioma'}:</span>
             <Link
               href={isEnglish ? esHref : enHref}
               onClick={() => setIsOpen(false)}
-              className="text-xs font-bold px-3 py-1.5 rounded bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300"
+              className="font-mono text-xs font-medium px-2.5 py-1 rounded-md bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[var(--text-primary)]"
             >
-              {isEnglish ? '🇪🇸 Español' : '🇬🇧 English'}
+              {isEnglish ? 'ES · Español' : 'EN · English'}
             </Link>
           </div>
 
@@ -346,14 +351,14 @@ export default function Header() {
                 <Link
                   href={`/mi-perfil${queryParam}`}
                   onClick={() => setIsOpen(false)}
-                  className="text-center bg-indigo-50 dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 font-bold py-2.5 rounded-xl text-xs border border-indigo-100 dark:border-slate-800"
+                  className="text-center bg-[var(--bg-subtle)] text-[var(--text-primary)] border border-[var(--border-subtle)] font-medium py-2.5 rounded-lg text-xs"
                 >
                   {isEnglish ? 'My Profile' : 'Mi Perfil'}
                 </Link>
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="text-center bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 font-bold py-2.5 rounded-xl text-xs border border-red-100 dark:border-red-900/40 cursor-pointer"
+                  className="text-center bg-rose-500/10 text-[var(--status-danger)] font-medium py-2.5 rounded-lg text-xs border border-rose-500/20 cursor-pointer"
                 >
                   {isEnglish ? 'Sign out' : 'Cerrar sesión'}
                 </button>
@@ -363,14 +368,14 @@ export default function Header() {
                 <Link
                   href={`/login${queryParam}`}
                   onClick={() => setIsOpen(false)}
-                  className="text-center bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-slate-200 font-bold py-2.5 rounded-xl text-xs"
+                  className="text-center bg-[var(--bg-subtle)] text-[var(--text-primary)] border border-[var(--border-subtle)] font-medium py-2.5 rounded-lg text-xs"
                 >
                   {isEnglish ? 'Sign in' : 'Iniciar sesión'}
                 </Link>
                 <Link
                   href={`/registro${queryParam}`}
                   onClick={() => setIsOpen(false)}
-                  className="text-center bg-indigo-600 text-white font-bold py-2.5 rounded-xl text-xs"
+                  className="text-center bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-strong)] font-medium py-2.5 rounded-lg text-xs"
                 >
                   {isEnglish ? 'Create account' : 'Crear cuenta'}
                 </Link>
@@ -379,7 +384,7 @@ export default function Header() {
             <Link
               href={`/publicar-oferta${queryParam}`}
               onClick={() => setIsOpen(false)}
-              className="block w-full text-center bg-gradient-to-r from-green-500 to-emerald-600 text-white font-extrabold py-3 rounded-xl shadow-md active:scale-98"
+              className="block w-full text-center bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white font-medium text-sm py-2.5 rounded-lg ui-btn-press"
             >
               {isEnglish ? 'Post a Job' : 'Publicar Oferta'}
             </Link>

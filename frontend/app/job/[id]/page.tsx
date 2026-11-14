@@ -821,7 +821,7 @@ export default async function JobPage({ params, searchParams }: Props) {
   const videoJsonLd: any = null;
 
   return (
-    <main className="min-h-screen bg-gray-50 py-12 px-4 md:px-8">
+    <main className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] py-8 md:py-12 px-4 md:px-8">
       <RecentlyViewedTracker job={{ id: job.id, title: displayTitle, company: job.company, location: job.location, salary: job.salary }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(breadcrumbJsonLd) }} />
@@ -831,16 +831,16 @@ export default async function JobPage({ params, searchParams }: Props) {
       )}
 
       <div className="max-w-5xl mx-auto">
-        <Breadcrumbs 
+        <Breadcrumbs
           items={[
             { label: isEnglish ? 'Home' : 'Inicio', href: isEnglish ? '/?lang=en' : '/' },
             { label: isEnglish ? 'Jobs' : 'Ofertas', href: isEnglish ? '/trabajos/informatica-tecnologia?lang=en' : '/trabajos/informatica-tecnologia' },
             { label: displayTitle }
-          ]} 
+          ]}
         />
-        
+
         <div className="flex justify-between items-center mb-6">
-          <Link href={isEnglish ? '/?lang=en' : '/'} className="text-indigo-600 hover:underline inline-flex items-center gap-2 font-medium">
+          <Link href={isEnglish ? '/?lang=en' : '/'} className="text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] inline-flex items-center gap-1.5 transition-colors">
             {isEnglish ? '← Back to search' : '← Volver al buscador'}
           </Link>
 
@@ -851,59 +851,60 @@ export default async function JobPage({ params, searchParams }: Props) {
           {/* Main Content */}
           <div className="lg:col-span-2">
             {isExpired && (
-              <div className="mb-6 p-5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 shadow-sm flex items-start gap-4">
-                <span className="text-3xl shrink-0">⚠️</span>
+              <div className="mb-6 p-4 sm:p-5 rounded-xl border border-[var(--border-featured)] bg-[var(--status-amber-tint)] flex items-start gap-3.5">
+                <svg className="w-5 h-5 text-[var(--status-amber)] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
                 <div>
-                  <h4 className="font-extrabold text-sm text-amber-950">
+                  <h4 className="font-semibold text-sm text-[var(--text-primary)]">
                     {isEnglish ? 'This job offer has expired or is more than 30 days old' : 'Esta oferta de empleo ha expirado o tiene más de 30 días'}
                   </h4>
-                  <p className="text-xs text-amber-800 mt-1 leading-relaxed">
-                    {isEnglish 
+                  <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
+                    {isEnglish
                       ? 'It is very likely that this position is already filled. We recommend checking the recommended similar offers at the bottom of the page to find active vacancies.'
                       : 'Es muy probable que este puesto ya esté cubierto. Te recomendamos revisar las ofertas recomendadas de la misma categoría en la parte inferior de la página para encontrar vacantes activas.'}
                   </p>
                 </div>
               </div>
             )}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-              <div className="bg-gradient-to-r from-indigo-900 to-indigo-800 text-white p-6 md:p-8 flex flex-col md:flex-row gap-6 md:items-center">
-                <CompanyLogo company={job.company} size={16} />
-                <div className="flex-grow">
-                  <h1 className="text-2xl md:text-3xl font-bold mb-4 leading-tight flex flex-wrap items-center gap-2">
+
+            <div className="ui-card rounded-xl overflow-hidden">
+              <div className="bg-[#090C10] text-white p-6 md:p-8 border-b border-white/[0.08] flex flex-col md:flex-row gap-5 md:items-center">
+                <CompanyLogo company={job.company} size={14} />
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-xl md:text-2xl font-bold mb-3 leading-snug tracking-tight text-white flex flex-wrap items-center gap-2">
                     {displayTitle}
                     {hasTranslation && (
-                      <span className="inline-flex items-center text-[10px] bg-white/20 text-white px-2 py-0.5 rounded border border-white/10 font-bold uppercase tracking-wider" title={`Título original: ${job.title}`}>
-                        🤖 Traducido
+                      <span className="inline-flex items-center font-mono text-[10px] bg-white/[0.08] text-slate-300 px-2 py-0.5 rounded border border-white/[0.12] font-medium uppercase tracking-wider" title={`Título original: ${job.title}`}>
+                        Traducido
                       </span>
                     )}
                   </h1>
-                <div className="flex flex-wrap gap-3 text-indigo-100 text-sm md:text-base">
-                  {job.company && job.company !== 'Desconocida' ? (
-                    <Link href={`/empresas/${slugify(job.company)}`} className="bg-indigo-700/50 hover:bg-indigo-600/50 px-3 py-1 rounded-full flex items-center gap-2 backdrop-blur-sm transition-colors" title={`Ver todas las ofertas de ${job.company}`}>
-                      🏢 {job.company}
-                    </Link>
-                  ) : (
-                    <span className="bg-indigo-700/50 px-3 py-1 rounded-full flex items-center gap-2 backdrop-blur-sm">
-                      🏢 {job.company || 'Desconocida'}
+                  <div className="flex flex-wrap gap-2 text-xs font-mono">
+                    {job.company && job.company !== 'Desconocida' ? (
+                      <Link href={`/empresas/${slugify(job.company)}`} className="bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.1] text-slate-200 px-2.5 py-1 rounded-md transition-colors" title={`Ver todas las ofertas de ${job.company}`}>
+                        {job.company}
+                      </Link>
+                    ) : (
+                      <span className="bg-white/[0.06] border border-white/[0.1] text-slate-200 px-2.5 py-1 rounded-md">
+                        {job.company || 'Desconocida'}
+                      </span>
+                    )}
+                    <span className="bg-white/[0.06] border border-white/[0.1] text-slate-300 px-2.5 py-1 rounded-md">
+                      {job.location}
                     </span>
-                  )}
-                  <span className="bg-indigo-700/50 px-3 py-1 rounded-full flex items-center gap-2 backdrop-blur-sm">
-                    📍 {job.location}
-                  </span>
-                  <span className="bg-indigo-700/50 px-3 py-1 rounded-full flex items-center gap-2 backdrop-blur-sm">
-                    📅 {new Date(job.created_at).toLocaleDateString()}
-                  </span>
+                    <span className="bg-white/[0.06] border border-white/[0.1] text-slate-400 tabular-nums px-2.5 py-1 rounded-md">
+                      {new Date(job.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
               <div className="p-6 md:p-8">
-
-
-                <h2 className="text-xl font-bold text-gray-900 mb-4">
+                <h2 className="text-lg font-semibold tracking-tight text-[var(--text-primary)] mb-4">
                   {isEnglish ? 'Job Description' : 'Descripción del puesto'}
                 </h2>
-                <div className="prose max-w-none text-gray-650 mb-8 leading-relaxed job-description">
+                <div className="prose max-w-none text-[var(--text-secondary)] dark:prose-invert mb-8 leading-relaxed job-description text-sm sm:text-base">
                   {displayDesc ? (
                     <p className="whitespace-pre-line" dangerouslySetInnerHTML={{ __html: autoLinkDescription(displayDesc, isEnglish) }} />
                   ) : (
@@ -912,8 +913,11 @@ export default async function JobPage({ params, searchParams }: Props) {
                     </p>
                   )}
                   {hasTranslation && (
-                    <p className="text-xs text-gray-400 italic mt-6 border-t border-gray-100 pt-3 flex items-center gap-1.5">
-                      <span>🤖</span> Oferta traducida automáticamente al español. <a href={job.url_source} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800 hover:underline font-semibold">Ver original</a>
+                    <p className="text-xs text-[var(--text-muted)] italic mt-6 border-t border-[var(--border-subtle)] pt-3 flex items-center gap-1.5">
+                      <span>Oferta traducida automáticamente al español.</span>
+                      <a href={job.url_source} target="_blank" rel="noopener noreferrer" className="text-[var(--accent-primary)] hover:underline font-medium">
+                        Ver original
+                      </a>
                     </p>
                   )}
                 </div>
@@ -924,29 +928,29 @@ export default async function JobPage({ params, searchParams }: Props) {
                 </div>
 
                 {relatedBlogPost && (
-                  <div className="mb-8 p-6 bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-950 border border-indigo-800/80 rounded-3xl shadow-lg flex flex-col md:flex-row items-center gap-5 hover:shadow-xl transition-all">
-                    <div className="relative w-full md:w-48 h-32 md:h-28 rounded-2xl overflow-hidden shrink-0 bg-indigo-950 border border-indigo-800/60">
+                  <div className="mb-8 p-5 bg-[var(--bg-subtle)] border border-[var(--border-subtle)] rounded-xl flex flex-col md:flex-row items-center gap-5 group">
+                    <div className="relative w-full md:w-44 h-32 md:h-28 rounded-lg overflow-hidden shrink-0 bg-[#090C10] border border-[var(--border-subtle)]">
                       <Image
                         src={`/blog/${relatedBlogPost.slug}/opengraph-image`}
                         alt={relatedBlogPost.title}
                         fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
-                        sizes="(max-width: 768px) 100vw, 192px"
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, 176px"
                       />
                     </div>
                     <div className="flex-1 text-left">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block mb-1">
-                        💡 {isEnglish ? 'BEFORE YOU APPLY, READ THIS:' : 'ANTES DE APLICAR, LEE ESTO:'}
+                      <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-[var(--accent-primary)] block mb-1">
+                        {isEnglish ? 'BEFORE YOU APPLY, READ THIS' : 'GUÍA RECOMENDADA'}
                       </span>
-                      <h4 className="text-base font-black text-white leading-snug mb-1">
+                      <h4 className="text-base font-semibold text-[var(--text-primary)] leading-snug mb-1">
                         {relatedBlogPost.title}
                       </h4>
-                      <p className="text-xs text-indigo-200 leading-relaxed font-normal mb-3 line-clamp-2">
+                      <p className="text-xs text-[var(--text-secondary)] leading-relaxed mb-3 line-clamp-2">
                         {relatedBlogPost.excerpt}
                       </p>
-                      <Link 
+                      <Link
                         href={`/blog/${relatedBlogPost.slug}${queryParam}`}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 transition-all text-xs font-bold text-white rounded-xl shadow-sm cursor-pointer"
+                        className="ui-btn-press inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] transition-colors text-xs font-medium text-white rounded-lg cursor-pointer"
                       >
                         {isEnglish ? 'Read practical guide →' : 'Leer guía práctica →'}
                       </Link>
@@ -955,58 +959,58 @@ export default async function JobPage({ params, searchParams }: Props) {
                 )}
 
                 {/* Enlaces de Interlinking Contextual de SEO */}
-                <div className="mt-6 p-5 bg-gradient-to-r from-gray-50 to-indigo-50/40 rounded-2xl border border-gray-200/80 text-sm text-gray-700 leading-relaxed mb-8 shadow-sm">
-                  <span className="font-extrabold text-indigo-950 block mb-2 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                    <span>🔍</span> {isEnglish ? 'Related Navigation & Resources' : 'Navegación y Recursos Relacionados'}
+                <div className="mt-6 p-5 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border-subtle)] text-sm leading-relaxed mb-8">
+                  <span className="font-mono text-[11px] font-semibold text-[var(--text-muted)] block mb-3 uppercase tracking-wider">
+                    {isEnglish ? 'Related Navigation & Resources' : 'Recursos Relacionados'}
                   </span>
-                  <div className="flex flex-wrap gap-2.5 text-xs font-semibold">
+                  <div className="flex flex-wrap gap-2 text-xs font-medium">
                     {job.company && job.company !== 'Desconocida' && (
-                      <Link 
+                      <Link
                         href={`/empresas/${slugify(job.company)}${queryParam}`}
-                        className="px-3 py-1.5 bg-white border border-indigo-100 rounded-lg text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all shadow-2xs"
+                        className="px-3 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-md text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:border-[var(--border-accent)] transition-colors"
                       >
-                        🏢 {isEnglish ? `View all ${job.company} jobs` : `Ver todas las ofertas de ${job.company}`}
+                        {isEnglish ? `All ${job.company} jobs` : `Ofertas de ${job.company}`}
                       </Link>
                     )}
                     {detectedTec && tecLabel && (
                       <>
-                        <Link 
+                        <Link
                           href={sectorUrl!}
-                          className="px-3 py-1.5 bg-white border border-indigo-100 rounded-lg text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all shadow-2xs"
+                          className="px-3 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-md text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:border-[var(--border-accent)] transition-colors"
                         >
-                          💻 {isEnglish ? `Jobs for ${tecLabel}` : `Ofertas de ${tecLabel}`}
+                          {isEnglish ? `Jobs for ${tecLabel}` : `Ofertas de ${tecLabel}`}
                         </Link>
                         {sectorLocationUrl && (
-                          <Link 
+                          <Link
                             href={sectorLocationUrl}
-                            className="px-3 py-1.5 bg-white border border-indigo-100 rounded-lg text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all shadow-2xs"
+                            className="px-3 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-md text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:border-[var(--border-accent)] transition-colors"
                           >
-                            📍 {tecLabel} {isRemoteLoc ? (isEnglish ? 'remote' : 'en remoto') : (isEnglish ? `in ${job.location}` : `en ${job.location}`)}
+                            {tecLabel} {isRemoteLoc ? (isEnglish ? 'remote' : 'en remoto') : (isEnglish ? `in ${job.location}` : `en ${job.location}`)}
                           </Link>
                         )}
-                        <Link 
+                        <Link
                           href={`/salarios/${detectedTec}${queryParam}`}
-                          className="px-3 py-1.5 bg-white border border-indigo-100 rounded-lg text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all shadow-2xs"
+                          className="px-3 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-md text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:border-[var(--border-accent)] transition-colors"
                         >
-                          💰 {isEnglish ? `${tecLabel} Salaries` : `Salarios de ${tecLabel}`}
+                          {isEnglish ? `${tecLabel} Salaries` : `Salarios de ${tecLabel}`}
                         </Link>
-                        <Link 
+                        <Link
                           href={`/entrevistas/${detectedTec}${queryParam}`}
-                          className="px-3 py-1.5 bg-white border border-indigo-100 rounded-lg text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all shadow-2xs"
+                          className="px-3 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-md text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:border-[var(--border-accent)] transition-colors"
                         >
-                          🎯 {isEnglish ? `${tecLabel} Interview Questions` : `Preguntas de Entrevista ${tecLabel}`}
+                          {isEnglish ? `${tecLabel} Interview Questions` : `Entrevistas ${tecLabel}`}
                         </Link>
-                        <Link 
+                        <Link
                           href={`/trabajos/${detectedTec}-mid${queryParam}`}
-                          className="px-3 py-1.5 bg-white border border-indigo-100 rounded-lg text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all shadow-2xs"
+                          className="px-3 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-md text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:border-[var(--border-accent)] transition-colors"
                         >
-                          📈 {isEnglish ? `${tecLabel} Mid-Level Jobs` : `Ofertas ${tecLabel} Mid-Level`}
+                          {isEnglish ? `${tecLabel} Mid-Level` : `${tecLabel} Mid-Level`}
                         </Link>
-                        <Link 
+                        <Link
                           href={`/glosario/${detectedTec}${queryParam}`}
-                          className="px-3 py-1.5 bg-white border border-indigo-100 rounded-lg text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all shadow-2xs"
+                          className="px-3 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-md text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:border-[var(--border-accent)] transition-colors"
                         >
-                          📖 {isEnglish ? `${tecLabel} Glossary` : `Glosario: Qué es ${tecLabel}`}
+                          {isEnglish ? `${tecLabel} Glossary` : `Glosario ${tecLabel}`}
                         </Link>
                       </>
                     )}
@@ -1015,33 +1019,33 @@ export default async function JobPage({ params, searchParams }: Props) {
 
                 <CourseAffiliate title={job.title} />
 
-                <div className="bg-indigo-50/80 p-6 rounded-2xl border border-indigo-100/90 text-center mt-8">
-                  <p className="text-indigo-950 mb-1 text-sm font-semibold">
+                <div className="p-6 rounded-xl border border-[var(--border-accent)] bg-[var(--accent-tint)] text-center mt-8">
+                  <p className="text-[var(--text-primary)] mb-1 text-sm font-semibold">
                     {isEnglish ? (
                       <>Job opportunity indexed from <strong>{sourceLabel}</strong></>
                     ) : (
                       <>Oportunidad laboral indexada desde <strong>{sourceLabel}</strong></>
                     )}
                   </p>
-                  <p className="text-xs text-indigo-700/80 mb-4 max-w-md mx-auto">
+                  <p className="text-xs text-[var(--text-secondary)] mb-4 max-w-md mx-auto">
                     {isEnglish
                       ? 'Portal Trabajo IT functions as a search aggregator. Applications are processed directly on the official source site.'
                       : 'Portal Trabajo IT actúa como motor de búsqueda y agregación de enlaces. La postulación se realiza directamente en la plataforma oficial de origen.'}
                   </p>
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
                     <ApplyButton url={job.url_source} company={job.company} title={displayTitle} lang={lang} jobId={job.id} />
                     <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-center">
                       <SaveJobButton job={job} variant="detail" />
                       <ReactionButton jobId={job.id} initialLikes={reactions.likes} initialDislikes={reactions.dislikes} />
                     </div>
                   </div>
-                  <div className="mt-4 pt-3 border-t border-indigo-100 text-center">
+                  <div className="mt-4 pt-3 border-t border-[var(--border-subtle)] text-center">
                     <a
                       href={`mailto:contacto@portalempleoit.com?subject=${encodeURIComponent(`[Retirada de oferta verificada] ID: ${job.id} - ${job.company}`)}&body=${encodeURIComponent(`Hola equipo legal de Portal Trabajo IT,\n\nSolicito la desindexación / actualización de la siguiente oferta de empleo:\n\nTítulo: ${job.title}\nEmpresa: ${job.company}\nURL: ${BASE_URL}/job/${correctSlug}\n\nDATOS DE ACREDITACIÓN OBLIGATORIOS (Reglamento UE 2022/2065 - DSA):\n- Nombre y apellidos del solicitante:\n- Cargo o relación con la empresa / portal fuente:\n- Correo corporativo del dominio oficial de la empresa (obligatorio; no se tramitan solicitudes desde cuentas gratuitas como gmail/hotmail):\n- Motivo de la solicitud (ej. puesto cubierto, error en datos, exclusión de agregador):\n\nDeclaro bajo mi responsabilidad que ostento la representación legítima de la entidad indicada. Las solicitudes fraudulentas o realizadas de mala fe podrán ser puestas en conocimiento de las autoridades competentes.`)}`}
-                      className="text-[11px] text-indigo-600 hover:text-indigo-800 underline transition-colors"
+                      className="text-[11px] text-[var(--text-muted)] hover:text-[var(--accent-primary)] underline transition-colors"
                       title="Canal de exclusión y retirada inmediata para empleadores y portales titulares"
                     >
-                      {isEnglish ? '🏢 Are you the employer or source platform? Request verified removal or update' : '🏢 ¿Eres el empleador o la plataforma de origen? Solicitar retirada o actualización verificada'}
+                      {isEnglish ? 'Are you the employer or source platform? Request verified removal or update' : '¿Eres el empleador o la plataforma de origen? Solicitar retirada o actualización verificada'}
                     </a>
                   </div>
                 </div>
@@ -1050,20 +1054,18 @@ export default async function JobPage({ params, searchParams }: Props) {
               </div>
             </div>
 
-
-
             {/* Sección Visual de Preguntas Frecuentes (FAQ) */}
-            <div className="mt-8 bg-white p-6 rounded-2xl border border-gray-150 shadow-sm space-y-4">
-              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <span>❓</span> {isEnglish ? `Frequently Asked Questions about this position` : `Preguntas Frecuentes sobre esta Vacante`}
+            <div className="mt-8 ui-card p-6 rounded-xl space-y-4">
+              <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+                {isEnglish ? `Frequently Asked Questions about this position` : `Preguntas Frecuentes sobre esta Vacante`}
               </h3>
-              <div className="space-y-3 pt-2">
+              <div className="space-y-3 pt-1">
                 {faqJsonLd.mainEntity.map((faq: any, idx: number) => (
-                  <div key={idx} className="p-4 rounded-xl bg-gray-50 border border-gray-100/80">
-                    <h4 className="text-sm font-extrabold text-indigo-950 mb-1.5 flex items-start gap-2">
-                      <span className="text-indigo-600 font-black">Q:</span> {faq.name}
+                  <div key={idx} className="p-4 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)]">
+                    <h4 className="text-sm font-semibold text-[var(--text-primary)] mb-1.5 flex items-start gap-2">
+                      <span className="font-mono text-[var(--accent-primary)]">Q.</span> {faq.name}
                     </h4>
-                    <p className="text-xs text-gray-650 leading-relaxed pl-6">
+                    <p className="text-xs text-[var(--text-secondary)] leading-relaxed pl-6">
                       {faq.acceptedAnswer.text}
                     </p>
                   </div>
@@ -1074,30 +1076,38 @@ export default async function JobPage({ params, searchParams }: Props) {
             {/* Ofertas Recomendadas */}
             {similarJobs && similarJobs.length > 0 && (
               <div className="mt-8 space-y-4">
-                <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                  <span>💼</span> {isEnglish ? 'Recommended similar job offers' : 'Ofertas de empleo similares recomendadas'}
+                <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+                  {isEnglish ? 'Recommended similar job offers' : 'Ofertas de empleo similares recomendadas'}
                 </h3>
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 gap-3.5">
                   {similarJobs.map((simJob: any) => {
                     const simSlug = getJobSlug(simJob);
                     const simUrl = `/job/${simSlug}${queryParam}`;
                     const displaySimTitle = isEnglish ? simJob.title : (simJob.title_es || simJob.title);
                     return (
-                      <div key={simJob.id} className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                        <div>
-                          <Link href={simUrl} className="font-bold text-indigo-900 hover:text-indigo-600 transition-colors line-clamp-1">
+                      <div key={simJob.id} className="relative group ui-card ui-card-interactive p-4 sm:p-5 rounded-xl flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                        <div className="min-w-0 flex-1">
+                          <Link href={simUrl} className="after:absolute after:inset-0 font-semibold text-sm sm:text-base text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors line-clamp-1">
                             {displaySimTitle}
                           </Link>
-                          <p className="text-xs text-gray-500 font-medium mt-1">
-                            🏢 {simJob.company} · 📍 {simJob.location} {simJob.salary && simJob.salary !== 'Consultar' && `· 💰 ${simJob.salary}`}
+                          <p className="text-xs text-[var(--text-secondary)] mt-1 flex flex-wrap items-center gap-x-2">
+                            <span className="font-medium">{simJob.company}</span>
+                            <span className="text-[var(--text-muted)]" aria-hidden="true">·</span>
+                            <span>{simJob.location}</span>
+                            {simJob.salary && simJob.salary !== 'Consultar' && (
+                              <>
+                                <span className="text-[var(--text-muted)]" aria-hidden="true">·</span>
+                                <span className="font-mono tabular-nums text-[var(--status-emerald)]">{simJob.salary}</span>
+                              </>
+                            )}
                           </p>
                         </div>
-                        <Link 
-                          href={simUrl} 
-                          className="shrink-0 px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors text-xs font-bold rounded-lg text-center"
+                        <span
+                          aria-hidden="true"
+                          className="shrink-0 text-xs font-medium text-[var(--text-muted)] group-hover:text-[var(--accent-primary)] transition-colors"
                         >
-                          {isEnglish ? 'View offer' : 'Ver oferta'}
-                        </Link>
+                          {isEnglish ? 'View offer →' : 'Ver oferta →'}
+                        </span>
                       </div>
                     );
                   })}
@@ -1108,61 +1118,59 @@ export default async function JobPage({ params, searchParams }: Props) {
 
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
-            <div className="space-y-6">
-              <SubscribeForm 
-                location={job.location || 'España'} 
+            <div className="lg:sticky lg:top-20 space-y-5">
+              <SubscribeForm
+                location={job.location || 'España'}
                 defaultTech={detectedTec || undefined}
                 defaultLocation={isRemote ? 'remoto' : undefined}
               />
               <PushSubscribe />
               <ReferralWidget lang={lang} />
-              <div className="lg:sticky lg:top-24">
-                <AdBanner variant="sidebar" enableRefresh={true} />
-              </div>
+              <AdBanner variant="sidebar" enableRefresh={true} />
             </div>
           </div>
         </div>
 
         {/* Enlaces de Interlinking Popular */}
-        <div className="mt-12 pt-8 border-t border-gray-200">
-          <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4">
-            {isEnglish ? '🔍 Most Searched IT Jobs' : '🔍 Empleos IT más buscados'}
+        <div className="mt-12 pt-8 border-t border-[var(--border-subtle)]">
+          <h3 className="font-mono text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-4">
+            {isEnglish ? 'Most Searched IT Jobs' : 'Empleos IT más buscados'}
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-xs text-gray-500">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-xs text-[var(--text-secondary)]">
             <div>
-              <h4 className="font-semibold text-gray-700 mb-2">{isEnglish ? 'Core Technologies' : 'Tecnologías Principales'}</h4>
+              <h4 className="font-semibold text-[var(--text-primary)] mb-2">{isEnglish ? 'Core Technologies' : 'Tecnologías Principales'}</h4>
               <ul className="space-y-2">
-                <li><Link href={`/trabajos/react${queryParam}`} className="hover:text-indigo-650 hover:underline">{isEnglish ? 'React Jobs' : 'Ofertas de React'}</Link></li>
-                <li><Link href={`/trabajos/node${queryParam}`} className="hover:text-indigo-650 hover:underline">{isEnglish ? 'Node.js Jobs' : 'Ofertas de Node.js'}</Link></li>
-                <li><Link href={`/trabajos/python${queryParam}`} className="hover:text-indigo-650 hover:underline">{isEnglish ? 'Python Jobs' : 'Ofertas de Python'}</Link></li>
-                <li><Link href={`/trabajos/java${queryParam}`} className="hover:text-indigo-650 hover:underline">{isEnglish ? 'Java Jobs' : 'Ofertas de Java'}</Link></li>
+                <li><Link href={`/trabajos/react${queryParam}`} className="hover:text-[var(--accent-primary)] hover:underline">{isEnglish ? 'React Jobs' : 'Ofertas de React'}</Link></li>
+                <li><Link href={`/trabajos/node${queryParam}`} className="hover:text-[var(--accent-primary)] hover:underline">{isEnglish ? 'Node.js Jobs' : 'Ofertas de Node.js'}</Link></li>
+                <li><Link href={`/trabajos/python${queryParam}`} className="hover:text-[var(--accent-primary)] hover:underline">{isEnglish ? 'Python Jobs' : 'Ofertas de Python'}</Link></li>
+                <li><Link href={`/trabajos/java${queryParam}`} className="hover:text-[var(--accent-primary)] hover:underline">{isEnglish ? 'Java Jobs' : 'Ofertas de Java'}</Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold text-gray-700 mb-2">{isEnglish ? 'Infrastructure & DevOps' : 'Infraestructura y DevOps'}</h4>
+              <h4 className="font-semibold text-[var(--text-primary)] mb-2">{isEnglish ? 'Infrastructure & DevOps' : 'Infraestructura y DevOps'}</h4>
               <ul className="space-y-2">
-                <li><Link href={`/trabajos/aws${queryParam}`} className="hover:text-indigo-650 hover:underline">{isEnglish ? 'AWS Jobs' : 'Ofertas de AWS'}</Link></li>
-                <li><Link href={`/trabajos/docker${queryParam}`} className="hover:text-indigo-650 hover:underline">{isEnglish ? 'Docker Jobs' : 'Ofertas de Docker'}</Link></li>
-                <li><Link href={`/trabajos/kubernetes${queryParam}`} className="hover:text-indigo-650 hover:underline">{isEnglish ? 'Kubernetes Jobs' : 'Ofertas de Kubernetes'}</Link></li>
-                <li><Link href={`/trabajos/cloud${queryParam}`} className="hover:text-indigo-650 hover:underline">{isEnglish ? 'Cloud Jobs' : 'Ofertas de Cloud Computing'}</Link></li>
+                <li><Link href={`/trabajos/aws${queryParam}`} className="hover:text-[var(--accent-primary)] hover:underline">{isEnglish ? 'AWS Jobs' : 'Ofertas de AWS'}</Link></li>
+                <li><Link href={`/trabajos/docker${queryParam}`} className="hover:text-[var(--accent-primary)] hover:underline">{isEnglish ? 'Docker Jobs' : 'Ofertas de Docker'}</Link></li>
+                <li><Link href={`/trabajos/kubernetes${queryParam}`} className="hover:text-[var(--accent-primary)] hover:underline">{isEnglish ? 'Kubernetes Jobs' : 'Ofertas de Kubernetes'}</Link></li>
+                <li><Link href={`/trabajos/cloud${queryParam}`} className="hover:text-[var(--accent-primary)] hover:underline">{isEnglish ? 'Cloud Jobs' : 'Ofertas de Cloud Computing'}</Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold text-gray-700 mb-2">{isEnglish ? 'Jobs by Location' : 'Empleos por Ubicación'}</h4>
+              <h4 className="font-semibold text-[var(--text-primary)] mb-2">{isEnglish ? 'Jobs by Location' : 'Empleos por Ubicación'}</h4>
               <ul className="space-y-2">
-                <li><Link href={`/trabajo-remoto${queryParam}`} className="hover:text-indigo-650 hover:underline">{isEnglish ? '100% Remote Jobs' : 'Trabajo 100% Remoto'}</Link></li>
-                <li><Link href={`/trabajo-madrid${queryParam}`} className="hover:text-indigo-650 hover:underline">{isEnglish ? 'Jobs in Madrid' : 'Trabajo en Madrid'}</Link></li>
-                <li><Link href={`/trabajo-barcelona${queryParam}`} className="hover:text-indigo-650 hover:underline">{isEnglish ? 'Jobs in Barcelona' : 'Trabajo en Barcelona'}</Link></li>
-                <li><Link href={`/trabajo-valencia${queryParam}`} className="hover:text-indigo-650 hover:underline">{isEnglish ? 'Jobs in Valencia' : 'Trabajo en Valencia'}</Link></li>
+                <li><Link href={`/trabajo-remoto${queryParam}`} className="hover:text-[var(--accent-primary)] hover:underline">{isEnglish ? '100% Remote Jobs' : 'Trabajo 100% Remoto'}</Link></li>
+                <li><Link href={`/trabajo-madrid${queryParam}`} className="hover:text-[var(--accent-primary)] hover:underline">{isEnglish ? 'Jobs in Madrid' : 'Trabajo en Madrid'}</Link></li>
+                <li><Link href={`/trabajo-barcelona${queryParam}`} className="hover:text-[var(--accent-primary)] hover:underline">{isEnglish ? 'Jobs in Barcelona' : 'Trabajo en Barcelona'}</Link></li>
+                <li><Link href={`/trabajo-valencia${queryParam}`} className="hover:text-[var(--accent-primary)] hover:underline">{isEnglish ? 'Jobs in Valencia' : 'Trabajo en Valencia'}</Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold text-gray-700 mb-2">{isEnglish ? 'Other Links' : 'Otros Enlaces de Interés'}</h4>
+              <h4 className="font-semibold text-[var(--text-primary)] mb-2">{isEnglish ? 'Other Links' : 'Otros Enlaces de Interés'}</h4>
               <ul className="space-y-2">
-                <li><Link href={`/salarios${queryParam}`} className="hover:text-indigo-650 hover:underline font-bold text-indigo-600">{isEnglish ? 'IT Salary Calculator' : 'Calculadora de Salarios IT'}</Link></li>
-                <li><Link href={`/empresas${queryParam}`} className="hover:text-indigo-650 hover:underline">{isEnglish ? 'Company Directory' : 'Directorio de Empresas'}</Link></li>
-                <li><Link href={`/blog${queryParam}`} className="hover:text-indigo-650 hover:underline">{isEnglish ? 'Career Advice (Blog)' : 'Consejos de Empleo (Blog)'}</Link></li>
-                <li><Link href={`/talento-premium${queryParam}`} className="hover:text-indigo-650 hover:underline">{isEnglish ? 'Register as Candidate' : 'Registrarme como Candidato'}</Link></li>
+                <li><Link href={`/salarios${queryParam}`} className="hover:text-[var(--accent-primary)] hover:underline font-medium text-[var(--accent-primary)]">{isEnglish ? 'IT Salary Calculator' : 'Calculadora de Salarios IT'}</Link></li>
+                <li><Link href={`/empresas${queryParam}`} className="hover:text-[var(--accent-primary)] hover:underline">{isEnglish ? 'Company Directory' : 'Directorio de Empresas'}</Link></li>
+                <li><Link href={`/blog${queryParam}`} className="hover:text-[var(--accent-primary)] hover:underline">{isEnglish ? 'Career Advice (Blog)' : 'Consejos de Empleo (Blog)'}</Link></li>
+                <li><Link href={`/talento-premium${queryParam}`} className="hover:text-[var(--accent-primary)] hover:underline">{isEnglish ? 'Register as Candidate' : 'Registrarme como Candidato'}</Link></li>
               </ul>
             </div>
           </div>

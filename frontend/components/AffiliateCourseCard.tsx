@@ -77,39 +77,41 @@ export default function AffiliateCourseCard({ technology }: { technology: string
   };
 
   // Textos y copys del Test A/B
-  const buttonText = ctaVariant === 'A' 
-    ? '🎓 Ver Curso Recomendado' 
-    : '🔥 Certificar mi stack de programación (Udemy)';
+  const buttonText = ctaVariant === 'A'
+    ? 'Ver curso recomendado →'
+    : 'Certificar mi stack (Udemy) →';
 
   return (
-    <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 p-6 rounded-2xl border border-indigo-500/20 shadow-xl text-white my-8 hover:shadow-indigo-500/10 transition-all duration-300 transform hover:-translate-y-0.5">
-      <div className="flex items-center gap-2.5 mb-3">
-        <span className="text-2xl">🎓</span>
-        <span className="bg-indigo-500/20 border border-indigo-400/30 text-indigo-200 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full">
-          Recomendación de Formación
+    <div className="relative ui-card ui-card-interactive rounded-xl border-[var(--border-accent)] p-5 sm:p-6 my-8 overflow-hidden">
+      <span aria-hidden="true" className="absolute inset-y-0 left-0 w-0.5 bg-[var(--accent-primary)]" />
+
+      <div className="flex items-center gap-2 mb-2.5">
+        <span className="font-mono text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md bg-[var(--accent-tint)] border border-[var(--border-accent)] text-[var(--accent-primary)]">
+          Recurso Formativo Verificado
         </span>
       </div>
-      
-      <h3 className="font-extrabold text-xl text-white mb-2 leading-snug">
+
+      <h3 className="font-semibold text-base sm:text-lg tracking-tight text-[var(--text-primary)] mb-1.5 leading-snug">
         {course.title}
       </h3>
-      
-      <p className="text-gray-300 text-sm mb-5 leading-relaxed">
+
+      <p className="text-[var(--text-secondary)] text-xs sm:text-sm mb-4 leading-relaxed">
         {course.desc}
       </p>
 
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-3 border-t border-indigo-900/40">
-        <div className="flex items-center gap-2">
-          <span className="text-yellow-400 text-lg">⭐</span>
-          <span className="text-gray-300 text-xs font-medium">Valoración 4.7/5 • Garantía de reembolso de 30 días</span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3.5 border-t border-[var(--border-subtle)]">
+        <div className="flex items-center gap-2 font-mono tabular-nums text-[11px] text-[var(--text-muted)]">
+          <span className="text-[var(--status-amber)] font-semibold">4.7/5</span>
+          <span aria-hidden="true">·</span>
+          <span>Garantía 30 días (Udemy)</span>
         </div>
-        
+
         <a
           href={course.url}
           target="_blank"
           rel="noopener noreferrer nofollow"
           onClick={handleCtaClick}
-          className="w-full sm:w-auto bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-slate-950 font-extrabold text-sm py-3 px-6 rounded-xl transition-all duration-350 shadow-lg text-center active:scale-[0.98]"
+          className="ui-btn-press w-full sm:w-auto bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white font-medium text-xs sm:text-sm py-2 px-4 rounded-lg transition-colors text-center"
         >
           {buttonText}
         </a>

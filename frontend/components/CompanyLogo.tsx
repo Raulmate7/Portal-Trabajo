@@ -42,16 +42,6 @@ const COMMON_DOMAINS: Record<string, string> = {
   gitlab: 'gitlab.com',
 };
 
-const GRADIENTS = [
-  'from-blue-500 to-indigo-600 text-white',
-  'from-emerald-400 to-teal-600 text-white',
-  'from-rose-500 to-pink-600 text-white',
-  'from-amber-400 to-orange-500 text-white',
-  'from-violet-500 to-purple-600 text-white',
-  'from-cyan-500 to-blue-600 text-white',
-  'from-fuchsia-500 to-purple-600 text-white',
-];
-
 interface CompanyLogoProps {
   company: string;
   size?: number; // Tailwind class size (e.g. 10, 12, 16)
@@ -63,14 +53,20 @@ const SIZE_MAP: Record<number, { tailwind: string; px: number }> = {
   16: { tailwind: 'w-16 h-16', px: 64 },
 };
 
+function getCompanyInitials(name: string): string {
+  const cleaned = name
+    .replace(/\b(S\.?L\.?U?\.?|S\.?A\.?|Inc\.?|Ltd\.?|GmbH|LLC|Corp\.?)\b/gi, '')
+    .trim();
+  const words = cleaned.split(/\s+/).filter(Boolean);
+  if (words.length === 0) return 'IT';
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return `${words[0].charAt(0)}${words[1].charAt(0)}`.toUpperCase();
+}
+
 export default function CompanyLogo({ company, size = 12 }: CompanyLogoProps) {
   const [imgFailed, setImgFailed] = useState(false);
   const cleanCompany = company ? company.trim() : 'Empresa';
-  const firstLetter = cleanCompany.charAt(0).toUpperCase();
-
-  // Calcular un degradado consistente basado en el hash del nombre
-  const charCodeSum = cleanCompany.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  const gradientClass = GRADIENTS[charCodeSum % GRADIENTS.length];
+  const initials = getCompanyInitials(cleanCompany);
 
   // Intentar inferir el dominio (SEC-041: servido vía proxy propio cacheado sin exponer IP/Referer del usuario a terceros)
   let logoUrl = null;
@@ -91,14 +87,14 @@ export default function CompanyLogo({ company, size = 12 }: CompanyLogoProps) {
   const sizeConfig = SIZE_MAP[size] || { tailwind: 'w-12 h-12', px: 48 };
   const sizeClass = sizeConfig.tailwind;
   const containerStyle = { width: `${sizeConfig.px}px`, height: `${sizeConfig.px}px` };
-  const textClass = size >= 16 ? 'text-2xl' : size >= 12 ? 'text-lg font-bold' : 'text-xs font-semibold';
+  const textClass = size >= 16 ? 'text-lg' : size >= 12 ? 'text-sm' : 'text-xs';
 
   if (logoUrl && !imgFailed) {
     return (
       <div 
         style={containerStyle}
         title={`Signo distintivo referencial de ${cleanCompany} (Art. 37 Ley de Marcas)`}
-        className={`relative ${sizeClass} rounded-xl overflow-hidden border border-gray-200 dark:border-slate-800 shrink-0 bg-white flex items-center justify-center shadow-sm`}
+        className={`relative ${sizeClass} rounded-lg overflow-hidden border border-[var(--border-subtle)] shrink-0 bg-white dark:bg-slate-900 flex items-center justify-center`}
       >
         <Image
           src={logoUrl}
@@ -106,7 +102,7 @@ export default function CompanyLogo({ company, size = 12 }: CompanyLogoProps) {
           fill
           unoptimized
           sizes="(max-width: 768px) 40px, 48px"
-          className="object-contain p-1"
+          className="object-contain p-1.5"
           onError={() => setImgFailed(true)}
         />
       </div>
@@ -116,10 +112,10 @@ export default function CompanyLogo({ company, size = 12 }: CompanyLogoProps) {
   return (
     <div
       style={containerStyle}
-      className={`shrink-0 ${sizeClass} rounded-xl bg-gradient-to-br ${gradientClass} flex items-center justify-center ${textClass} shadow-sm border border-black/5 dark:border-white/5 uppercase`}
+      className={`shrink-0 ${sizeClass} rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[var(--text-secondary)] font-mono font-semibold tracking-tight flex items-center justify-center ${textClass} select-none uppercase`}
       aria-hidden="true"
     >
-      {firstLetter}
+      {initials}
     </div>
   );
 }

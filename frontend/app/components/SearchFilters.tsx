@@ -22,6 +22,27 @@ export default function SearchFilters() {
   const [showLocSuggestions, setShowLocSuggestions] = useState(false);
   const techRef = useRef<HTMLDivElement>(null);
   const locRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      event.preventDefault();
+      searchInputRef.current?.focus();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -88,140 +109,165 @@ export default function SearchFilters() {
   const filteredLoc = LOC_OPTIONS.filter(l => l.toLowerCase().includes(location.toLowerCase()));
 
   return (
-    <div role="search" className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800/80 transition-all">
-      <div className="flex flex-col md:flex-row gap-4">
+    <div role="search" className="ui-card rounded-xl p-3 sm:p-4">
+      {/* BARRA UNIFICADA SPOTLIGHT / COMMAND-BAR */}
+      <div className="bg-[var(--bg-subtle)] border border-[var(--border-subtle)] rounded-lg flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-[var(--border-subtle)] focus-within:border-[var(--border-accent)] focus-within:ring-2 focus-within:ring-[var(--accent-tint)] transition-[border-color,box-shadow] duration-150">
         {/* BUSCADOR */}
-        <div className="flex-1">
-          <label className="block text-xs font-bold text-gray-400 dark:text-slate-500 uppercase mb-1.5 tracking-wider">¿Qué cargo o tecnología buscas?</label>
-          <div className="relative" ref={techRef}>
-            <span className="absolute left-3 top-2.5 text-gray-400">🔍</span>
-            <input
-              type="text"
-              placeholder="Ej: React, Node, Python, C#..."
-              className="w-full pl-9 pr-10 py-2.5 border border-gray-200 dark:border-slate-850 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-gray-50/50 dark:bg-slate-950 text-gray-900 dark:text-white transition-all text-sm"
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setShowTechSuggestions(true);
-              }}
-              onFocus={() => setShowTechSuggestions(true)}
-            />
-            {query && (
-              <button 
-                onClick={() => setQuery("")}
-                className="absolute right-3 top-3 text-gray-400 hover:text-red-500 font-bold px-1.5 cursor-pointer text-xs"
-                title="Borrar"
-                aria-label="Borrar búsqueda"
-              >
-                ✕
-              </button>
-            )}
-            {showTechSuggestions && filteredTech.length > 0 && (
-              <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                {filteredTech.map(tech => (
-                  <li 
-                    key={tech} 
-                    className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-slate-800 cursor-pointer text-sm text-gray-700 dark:text-gray-300 transition-colors"
-                    onMouseDown={() => {
-                      setQuery(tech);
-                      setShowTechSuggestions(false);
-                    }}
-                  >
-                    {tech}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+        <div className="flex-1 relative" ref={techRef}>
+          <label htmlFor="search-tech-input" className="sr-only">
+            ¿Qué cargo o tecnología buscas?
+          </label>
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none" aria-hidden="true">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z" />
+            </svg>
+          </span>
+          <input
+            id="search-tech-input"
+            ref={searchInputRef}
+            type="text"
+            placeholder="Cargo, stack o empresa (React, Go, Python...)"
+            className="w-full pl-10 pr-12 py-2.5 bg-transparent outline-none text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setShowTechSuggestions(true);
+            }}
+            onFocus={() => setShowTechSuggestions(true)}
+          />
+          {query ? (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--status-danger)] p-1 rounded cursor-pointer transition-colors"
+              title="Borrar"
+              aria-label="Borrar búsqueda"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          ) : (
+            <kbd
+              aria-hidden="true"
+              className="hidden sm:inline-flex items-center justify-center absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-mono text-[var(--text-muted)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded pointer-events-none"
+            >
+              /
+            </kbd>
+          )}
+          {showTechSuggestions && filteredTech.length > 0 && (
+            <ul className="absolute z-20 left-0 right-0 mt-1.5 bg-[var(--bg-elevated)] border border-[var(--border-strong)] rounded-lg shadow-[var(--shadow-card-hover)] max-h-48 overflow-y-auto py-1">
+              {filteredTech.map(tech => (
+                <li
+                  key={tech}
+                  className="px-3.5 py-1.5 hover:bg-[var(--bg-subtle)] cursor-pointer text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-mono transition-colors"
+                  onMouseDown={() => {
+                    setQuery(tech);
+                    setShowTechSuggestions(false);
+                  }}
+                >
+                  {tech}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {/* UBICACIÓN */}
-        <div className="flex-1">
-          <label className="block text-xs font-bold text-gray-400 dark:text-slate-500 uppercase mb-1.5 tracking-wider">¿En qué ciudad o provincia?</label>
-          <div className="relative" ref={locRef}>
-            <span className="absolute left-3 top-2.5 text-gray-400">📍</span>
-            <input
-              type="text"
-              placeholder="Ej: Madrid, Barcelona, Remoto..."
-              className="w-full pl-9 pr-10 py-2.5 border border-gray-200 dark:border-slate-850 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-gray-50/50 dark:bg-slate-950 text-gray-900 dark:text-white transition-all text-sm"
-              value={location}
-              onChange={(e) => {
-                setLocation(e.target.value);
-                setShowLocSuggestions(true);
-              }}
-              onFocus={() => setShowLocSuggestions(true)}
-            />
-            {location && (
-              <button 
-                onClick={() => setLocation("")}
-                className="absolute right-3 top-3 text-gray-400 hover:text-red-500 font-bold px-1.5 cursor-pointer text-xs"
-                title="Borrar"
-                aria-label="Borrar ubicación"
-              >
-                ✕
-              </button>
-            )}
-            {showLocSuggestions && filteredLoc.length > 0 && (
-              <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                {filteredLoc.map(loc => (
-                  <li 
-                    key={loc} 
-                    className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-slate-800 cursor-pointer text-sm text-gray-700 dark:text-gray-300 transition-colors"
-                    onMouseDown={() => {
-                      setLocation(loc);
-                      setShowLocSuggestions(false);
-                    }}
-                  >
-                    {loc}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+        <div className="flex-1 md:max-w-xs relative" ref={locRef}>
+          <label htmlFor="search-loc-input" className="sr-only">
+            ¿En qué ciudad o provincia?
+          </label>
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none" aria-hidden="true">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M12 21s-6-5.686-6-10a6 6 0 1112 0c0 4.314-6 10-6 10z" />
+              <circle cx="12" cy="11" r="2.25" strokeWidth="1.75" />
+            </svg>
+          </span>
+          <input
+            id="search-loc-input"
+            type="text"
+            placeholder="Madrid, Barcelona, Remoto..."
+            className="w-full pl-10 pr-9 py-2.5 bg-transparent outline-none text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
+            value={location}
+            onChange={(e) => {
+              setLocation(e.target.value);
+              setShowLocSuggestions(true);
+            }}
+            onFocus={() => setShowLocSuggestions(true)}
+          />
+          {location && (
+            <button
+              type="button"
+              onClick={() => setLocation("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--status-danger)] p-1 rounded cursor-pointer transition-colors"
+              title="Borrar"
+              aria-label="Borrar ubicación"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+          {showLocSuggestions && filteredLoc.length > 0 && (
+            <ul className="absolute z-20 left-0 right-0 mt-1.5 bg-[var(--bg-elevated)] border border-[var(--border-strong)] rounded-lg shadow-[var(--shadow-card-hover)] max-h-48 overflow-y-auto py-1">
+              {filteredLoc.map(loc => (
+                <li
+                  key={loc}
+                  className="px-3.5 py-1.5 hover:bg-[var(--bg-subtle)] cursor-pointer text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                  onMouseDown={() => {
+                    setLocation(loc);
+                    setShowLocSuggestions(false);
+                  }}
+                >
+                  {loc}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
 
       {/* FILTROS AVANZADOS EXPANDIBLES */}
       {showAdvanced && (
-        <div className="mt-5 pt-5 border-t border-gray-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in duration-200">
-          
+        <div className="mt-3.5 pt-3.5 border-t border-[var(--border-subtle)] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* MODALIDAD */}
           <div>
-            <label className="block text-xs font-bold text-gray-400 dark:text-slate-550 uppercase mb-1.5 tracking-wider">Modalidad</label>
+            <label className="block text-[11px] font-mono font-medium text-[var(--text-muted)] uppercase mb-1.5 tracking-wider">Modalidad</label>
             <select
               value={modality}
               onChange={(e) => setModality(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-200 dark:border-slate-850 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-gray-50/50 dark:bg-slate-950 text-gray-900 dark:text-white transition-all text-sm cursor-pointer"
+              className="w-full px-3 py-2 border border-[var(--border-subtle)] rounded-lg focus:border-[var(--border-accent)] focus:ring-2 focus:ring-[var(--accent-tint)] outline-none bg-[var(--bg-subtle)] text-[var(--text-primary)] transition-colors text-sm cursor-pointer"
             >
               <option value="">Cualquier modalidad</option>
-              <option value="remoto">🌐 100% Teletrabajo</option>
-              <option value="hibrido">🏢 Híbrido / Mixto</option>
-              <option value="presencial">📍 Oficina / Presencial</option>
+              <option value="remoto">100% Teletrabajo</option>
+              <option value="hibrido">Híbrido / Mixto</option>
+              <option value="presencial">Oficina / Presencial</option>
             </select>
           </div>
 
           {/* EXPERIENCIA */}
           <div>
-            <label className="block text-xs font-bold text-gray-400 dark:text-slate-550 uppercase mb-1.5 tracking-wider">Experiencia</label>
+            <label className="block text-[11px] font-mono font-medium text-[var(--text-muted)] uppercase mb-1.5 tracking-wider">Experiencia</label>
             <select
               value={experience}
               onChange={(e) => setExperience(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-200 dark:border-slate-850 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-gray-50/50 dark:bg-slate-950 text-gray-900 dark:text-white transition-all text-sm cursor-pointer"
+              className="w-full px-3 py-2 border border-[var(--border-subtle)] rounded-lg focus:border-[var(--border-accent)] focus:ring-2 focus:ring-[var(--accent-tint)] outline-none bg-[var(--bg-subtle)] text-[var(--text-primary)] transition-colors text-sm cursor-pointer"
             >
               <option value="">Cualquier experiencia</option>
-              <option value="junior">🌱 Junior (0 - 2 años)</option>
-              <option value="mid">⚖️ Mid-level (2 - 5 años)</option>
-              <option value="senior">🏆 Senior / Lead (5+ años)</option>
+              <option value="junior">Junior (0 - 2 años)</option>
+              <option value="mid">Mid-level (2 - 5 años)</option>
+              <option value="senior">Senior / Lead (5+ años)</option>
             </select>
           </div>
 
           {/* RANGO SALARIAL */}
           <div>
-            <label className="block text-xs font-bold text-gray-400 dark:text-slate-550 uppercase mb-1.5 tracking-wider">Salario Mínimo</label>
+            <label className="block text-[11px] font-mono font-medium text-[var(--text-muted)] uppercase mb-1.5 tracking-wider">Salario Mínimo</label>
             <select
               value={minSalary}
               onChange={(e) => setMinSalary(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-200 dark:border-slate-850 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-gray-50/50 dark:bg-slate-950 text-gray-900 dark:text-white transition-all text-sm cursor-pointer"
+              className="w-full px-3 py-2 border border-[var(--border-subtle)] rounded-lg focus:border-[var(--border-accent)] focus:ring-2 focus:ring-[var(--accent-tint)] outline-none bg-[var(--bg-subtle)] text-[var(--text-primary)] transition-colors text-sm cursor-pointer"
             >
               <option value="">Cualquier salario</option>
               <option value="20000">Más de 20.000€</option>
@@ -234,11 +280,11 @@ export default function SearchFilters() {
 
           {/* FECHA DE PUBLICACIÓN */}
           <div>
-            <label className="block text-xs font-bold text-gray-400 dark:text-slate-550 uppercase mb-1.5 tracking-wider">Fecha de Publicación</label>
+            <label className="block text-[11px] font-mono font-medium text-[var(--text-muted)] uppercase mb-1.5 tracking-wider">Publicación</label>
             <select
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-200 dark:border-slate-850 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-gray-50/50 dark:bg-slate-950 text-gray-900 dark:text-white transition-all text-sm cursor-pointer"
+              className="w-full px-3 py-2 border border-[var(--border-subtle)] rounded-lg focus:border-[var(--border-accent)] focus:ring-2 focus:ring-[var(--accent-tint)] outline-none bg-[var(--bg-subtle)] text-[var(--text-primary)] transition-colors text-sm cursor-pointer"
             >
               <option value="">Cualquier fecha</option>
               <option value="24h">Últimas 24 horas</option>
@@ -246,15 +292,14 @@ export default function SearchFilters() {
               <option value="month">Último mes</option>
             </select>
           </div>
-
         </div>
       )}
 
       {/* ACCIONES Y CHIPS */}
-      <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-gray-100 dark:border-slate-800/60 pt-4">
+      <div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-[var(--border-subtle)]">
         {/* Sugerencias rápidas (Chips) */}
-        <div className="flex flex-wrap gap-1.5 items-center text-xs">
-          <span className="font-semibold text-gray-400 mr-1">Rápido:</span>
+        <div className="flex flex-wrap gap-1.5 items-center">
+          <span className="text-[11px] font-mono text-[var(--text-muted)] mr-1">Stack:</span>
           {["React", "Node", "Python", "DevOps"].map((tech) => {
             const isActive = query.toLowerCase() === tech.toLowerCase();
             return (
@@ -262,36 +307,43 @@ export default function SearchFilters() {
                 key={tech}
                 onClick={() => setQuery(query === tech ? "" : tech)}
                 type="button"
-                className={`px-3 py-1 rounded-full border transition-all duration-200 cursor-pointer ${
+                className={`ui-btn-press px-2.5 py-1 rounded-md border font-mono text-[11px] font-medium transition-colors duration-150 cursor-pointer ${
                   isActive
-                    ? "bg-indigo-600 border-indigo-500 text-white font-semibold shadow-sm"
-                    : "bg-gray-50 border-gray-200 text-gray-650 hover:bg-gray-100 dark:bg-slate-850 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
+                    ? "bg-[var(--accent-primary)] border-[var(--accent-primary)] text-white"
+                    : "bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)]"
                 }`}
               >
                 {tech}
               </button>
             );
           })}
-          <div className="h-4 w-px bg-gray-200 dark:bg-slate-800 mx-1 hidden sm:block" />
+          <div className="h-3.5 w-px bg-[var(--border-subtle)] mx-1 hidden sm:block" />
           <button
             onClick={() => setModality(modality === "remoto" ? "" : "remoto")}
             type="button"
-            className={`px-3 py-1 rounded-full border transition-all duration-200 cursor-pointer ${
+            className={`ui-btn-press inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border font-mono text-[11px] font-medium transition-colors duration-150 cursor-pointer ${
               modality === "remoto"
-                ? "bg-emerald-600 border-emerald-500 text-white font-semibold shadow-sm"
-                : "bg-gray-50 border-gray-200 text-gray-650 hover:bg-gray-100 dark:bg-slate-850 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
+                ? "bg-[var(--status-emerald-tint)] border-[var(--status-emerald)] text-[var(--status-emerald)]"
+                : "bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)]"
             }`}
           >
-            🌐 Remoto
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-emerald)]" aria-hidden="true" />
+            Remoto
           </button>
+          {isPending && (
+            <span className="text-[11px] font-mono text-[var(--text-muted)] ml-1" aria-live="polite">
+              Filtrando…
+            </span>
+          )}
         </div>
 
         {/* Botones de acción */}
         <div className="flex items-center gap-3 self-end sm:self-auto">
           {hasActiveFilters && (
             <button
+              type="button"
               onClick={clearFilters}
-              className="text-xs font-semibold text-red-500 hover:text-red-650 transition-colors cursor-pointer"
+              className="text-xs font-medium text-[var(--status-danger)] hover:underline transition-colors cursor-pointer"
             >
               Limpiar filtros
             </button>
@@ -300,10 +352,17 @@ export default function SearchFilters() {
           <button
             type="button"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="text-xs font-bold text-indigo-650 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors cursor-pointer"
+            className="text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1.5 transition-colors cursor-pointer"
           >
-            <span>{showAdvanced ? "▲ Ocultar" : "▼ Más"}</span>
-            <span>filtros avanzados</span>
+            <svg
+              className={`w-3.5 h-3.5 transition-transform duration-150 ${showAdvanced ? "rotate-180" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            </svg>
+            <span>{showAdvanced ? "Ocultar filtros" : "Filtros avanzados"}</span>
           </button>
         </div>
       </div>

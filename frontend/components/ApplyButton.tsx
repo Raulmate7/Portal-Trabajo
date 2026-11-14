@@ -110,48 +110,53 @@ export default function ApplyButton({ url, company, title, lang, jobId }: ApplyB
     <>
       <button
         onClick={handleOpenModal}
-        className="inline-flex w-full sm:w-auto justify-center items-center bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-indigo-700 shadow-md hover:shadow-lg transition-all cursor-pointer"
+        className="ui-btn-press inline-flex w-full sm:w-auto justify-center items-center gap-1.5 bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white font-medium text-sm py-2.5 px-6 rounded-lg transition-colors cursor-pointer"
       >
-        {isEnglish ? '👉 Apply on original website' : '👉 Aplicar en la web original'}
+        {isEnglish ? 'Apply on original website →' : 'Aplicar en la web original →'}
       </button>
 
       {/* Modal Overlay */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           {/* Modal Container */}
-          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 rounded-2xl shadow-2xl p-6 overflow-hidden text-gray-900 dark:text-white animate-in zoom-in duration-200">
+          <div className="relative w-full max-w-md ui-card rounded-2xl border-[var(--border-strong)] shadow-[var(--shadow-card-hover)] p-6 overflow-hidden text-[var(--text-primary)]">
             {/* Botón cerrar */}
             <button
               onClick={handleCloseModal}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 font-bold p-1 cursor-pointer"
+              className="absolute top-4 right-4 w-7 h-7 rounded-md flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] cursor-pointer transition-colors"
               title={isEnglish ? 'Close' : 'Cerrar'}
+              aria-label={isEnglish ? 'Close' : 'Cerrar'}
             >
-              ✕
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
 
             {/* Icono de Alerta */}
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-950/40 rounded-full flex items-center justify-center text-4xl">
-                📬
+              <div className="w-12 h-12 bg-[var(--accent-tint)] border border-[var(--border-accent)] text-[var(--accent-primary)] rounded-xl flex items-center justify-center">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
               </div>
             </div>
 
             {/* Título */}
-            <h3 className="text-xl font-extrabold text-center mb-2 leading-tight">
-              {isEnglish 
-                ? 'Don\'t miss similar opportunities!' 
+            <h3 className="text-lg font-semibold tracking-tight text-center mb-2 leading-tight">
+              {isEnglish
+                ? 'Don\'t miss similar opportunities!'
                 : '¡No dejes pasar ofertas similares!'}
             </h3>
 
             {/* Subtítulo */}
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-6 leading-relaxed">
+            <p className="text-xs sm:text-sm text-[var(--text-secondary)] text-center mb-5 leading-relaxed">
               {isEnglish
                 ? `Before applying at ${company}, subscribe to receive new Tech alerts matching your profile.`
                 : `Antes de ir a la web de ${company}, suscríbete para recibir alertas de nuevos empleos Tech.`}
             </p>
 
             {status === 'success' ? (
-              <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-250 p-4 rounded-xl text-center font-medium animate-pulse text-sm">
+              <div className="bg-[var(--status-emerald-tint)] border border-[var(--status-emerald)]/30 text-[var(--status-emerald)] p-4 rounded-xl text-center font-medium text-sm">
                 {message}
               </div>
             ) : (
@@ -163,21 +168,21 @@ export default function ApplyButton({ url, company, title, lang, jobId }: ApplyB
                     placeholder="tu@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--border-accent)] focus:ring-2 focus:ring-[var(--accent-tint)] transition-colors text-sm"
                   />
                 </div>
 
-                <label className="flex items-start gap-2 text-xs text-gray-600 dark:text-gray-400 cursor-pointer text-left">
+                <label className="flex items-start gap-2 text-xs text-[var(--text-secondary)] cursor-pointer text-left">
                   <input
                     type="checkbox"
                     required
                     checked={privacyAccepted}
                     onChange={(e) => setPrivacyAccepted(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-gray-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500"
+                    className="mt-0.5 h-4 w-4 rounded border-[var(--border-strong)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
                   />
                   <span>
                     {isEnglish ? 'I have read and accept the ' : 'He leído y acepto la '}
-                    <Link href="/privacy" target="_blank" className="text-indigo-600 dark:text-indigo-400 underline">
+                    <Link href="/privacy" target="_blank" className="text-[var(--accent-primary)] underline">
                       {isEnglish ? 'Privacy Policy' : 'Política de Privacidad'}
                     </Link>
                     {isEnglish ? ' and agree to receive job alerts.*' : ' y consiento recibir alertas de ofertas tech.*'}
@@ -185,36 +190,36 @@ export default function ApplyButton({ url, company, title, lang, jobId }: ApplyB
                 </label>
 
                 {/* Primera capa informativa AEPD (RGPD Art. 13) */}
-                <div className="p-2.5 bg-gray-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700/80 rounded-lg text-[10px] text-gray-500 dark:text-slate-400 text-left space-y-0.5">
+                <div className="p-2.5 bg-[var(--bg-subtle)] border border-[var(--border-subtle)] rounded-lg text-[10px] text-[var(--text-muted)] text-left space-y-0.5">
                   <p><strong>Responsable:</strong> Portal Trabajo IT.</p>
                   <p><strong>Finalidad:</strong> {isEnglish ? 'Sending tech job alerts.' : 'Envío de alertas de empleo tech.'}</p>
                   <p><strong>Legitimación:</strong> {isEnglish ? 'Your express consent (Art. 6.1.a GDPR).' : 'Tu consentimiento expreso (Art. 6.1.a RGPD).'}</p>
                   <p><strong>Destinatarios:</strong> {isEnglish ? 'No third-party transfer except technical delivery.' : 'Plataforma de envío (Resend). No se ceden datos a terceros.'}</p>
-                  <p><strong>Derechos:</strong> {isEnglish ? 'Access, rectification, erasure and 1-click unsubscribe (' : 'Acceso, rectificación, supresión y baja en 1 clic ('}<Link href="/privacy" className="text-indigo-600 dark:text-indigo-400 underline">{isEnglish ? 'Privacy Policy' : 'Política de Privacidad'}</Link>).</p>
+                  <p><strong>Derechos:</strong> {isEnglish ? 'Access, rectification, erasure and 1-click unsubscribe (' : 'Acceso, rectificación, supresión y baja en 1 clic ('}<Link href="/privacy" className="text-[var(--accent-primary)] underline">{isEnglish ? 'Privacy Policy' : 'Política de Privacidad'}</Link>).</p>
                 </div>
 
                 <div className="flex flex-col gap-2">
                   <button
                     type="submit"
                     disabled={status === 'loading'}
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-400 text-white font-bold py-3 rounded-lg transition-colors text-sm shadow-md flex justify-center cursor-pointer"
+                    className="ui-btn-press w-full bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] disabled:opacity-60 text-white font-medium py-2.5 rounded-lg transition-colors text-sm flex justify-center cursor-pointer"
                   >
-                    {status === 'loading' 
-                      ? (isEnglish ? 'Subscribing...' : 'Suscribiendo...') 
-                      : (isEnglish ? '🔔 Yes, subscribe and apply' : '🔔 Sí, suscribirme y ver oferta')}
+                    {status === 'loading'
+                      ? (isEnglish ? 'Subscribing...' : 'Suscribiendo...')
+                      : (isEnglish ? 'Subscribe and apply →' : 'Suscribirme y ver oferta →')}
                   </button>
-                  
+
                   <button
                     type="button"
                     onClick={handleDirectRedirect}
-                    className="w-full bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 font-semibold py-2.5 rounded-lg transition-colors text-xs cursor-pointer"
+                    className="ui-btn-press w-full bg-[var(--bg-subtle)] hover:border-[var(--border-strong)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-medium py-2 rounded-lg transition-colors text-xs cursor-pointer"
                   >
-                    {isEnglish ? 'Continue directly to original website without subscribing →' : 'Continuar directamente a la oferta sin suscribirme →'}
+                    {isEnglish ? 'Continue directly without subscribing →' : 'Continuar directamente sin suscribirme →'}
                   </button>
                 </div>
 
                 {status === 'error' && (
-                  <p className="text-red-500 dark:text-red-400 text-xs text-center mt-2 leading-relaxed">{message}</p>
+                  <p className="text-[var(--status-danger)] text-xs text-center mt-2 leading-relaxed">{message}</p>
                 )}
               </form>
             )}

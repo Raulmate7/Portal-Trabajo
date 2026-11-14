@@ -108,18 +108,24 @@ export default function SaveJobButton({ job, variant = 'card' }: SaveJobButtonPr
   const renderModal = () => {
     if (!showEmailModal) return null;
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 max-w-sm w-full border border-gray-100 dark:border-slate-800 shadow-2xl relative">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="ui-card rounded-2xl p-6 md:p-7 max-w-sm w-full border border-[var(--border-strong)] shadow-[var(--shadow-card-hover)] relative">
           <button
             onClick={() => setShowEmailModal(false)}
             aria-label="Cerrar ventana de oferta guardada"
-            className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:hover:text-white font-bold cursor-pointer text-lg leading-none"
+            className="absolute right-4 top-4 w-7 h-7 rounded-md flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] cursor-pointer transition-colors"
           >
-            ✕
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
 
-          <span className="text-4xl block mb-3">⭐</span>
-          <h3 className="text-lg font-extrabold text-gray-900 dark:text-white mb-2">
+          <div className="w-10 h-10 rounded-lg bg-[var(--status-amber-tint)] border border-[var(--border-featured)] text-[var(--status-amber)] flex items-center justify-center mb-3.5">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M11.049 2.927c.3-.9 1.603-.9 1.902 0l1.519 4.674a1 1 0 00.95.69h4.907c.961 0 1.36 1.252.583 1.812l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.9-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.218-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.777-.56-.378-1.812.583-1.812h4.907a1 1 0 00.95-.69l1.519-4.674z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold tracking-tight text-[var(--text-primary)] mb-2">
             ¡Oferta guardada!
           </h3>
 
@@ -217,15 +223,15 @@ export default function SaveJobButton({ job, variant = 'card' }: SaveJobButtonPr
       <>
         <button
           onClick={toggleSave}
-          className={`flex items-center justify-center gap-2 px-5 py-3 rounded-xl border font-semibold text-sm transition-all duration-200 ${
+          className={`ui-btn-press flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border font-medium text-sm transition-colors duration-150 cursor-pointer ${
             isSaved
-              ? 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100 shadow-sm'
-              : 'bg-white text-gray-700 border-gray-200 hover:text-gray-900 hover:bg-gray-50'
+              ? 'bg-[var(--status-amber-tint)] text-[var(--status-amber)] border-[var(--border-featured)]'
+              : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] hover:border-[var(--border-strong)]'
           }`}
           title={isSaved ? "Quitar de favoritos" : "Guardar esta oferta"}
         >
-          <svg className="w-5 h-5" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.9 1.603-.9 1.902 0l1.519 4.674a1 1 0 00.95.69h4.907c.961 0 1.36 1.252.583 1.812l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.9-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.218-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.777-.56-.378-1.812.583-1.812h4.907a1 1 0 00.95-.69l1.519-4.674z" />
+          <svg className="w-4 h-4" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M11.049 2.927c.3-.9 1.603-.9 1.902 0l1.519 4.674a1 1 0 00.95.69h4.907c.961 0 1.36 1.252.583 1.812l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.9-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.218-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.777-.56-.378-1.812.583-1.812h4.907a1 1 0 00.95-.69l1.519-4.674z" />
           </svg>
           <span>{isSaved ? "Guardada" : "Guardar Oferta"}</span>
         </button>
@@ -244,16 +250,16 @@ export default function SaveJobButton({ job, variant = 'card' }: SaveJobButtonPr
     <>
       <button
         onClick={toggleSave}
-        className={`p-2 rounded-lg transition-colors border shrink-0 ${
+        className={`ui-btn-press w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-150 border shrink-0 cursor-pointer ${
           isSaved
-            ? 'bg-amber-50 text-amber-500 border-amber-200 hover:bg-amber-100'
-            : 'bg-white text-gray-400 border-gray-200 hover:text-gray-600 hover:bg-gray-50'
+            ? 'bg-[var(--status-amber-tint)] text-[var(--status-amber)] border-[var(--border-featured)]'
+            : 'bg-[var(--bg-surface)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] hover:border-[var(--border-strong)]'
         }`}
         title={isSaved ? "Quitar de guardadas" : "Guardar oferta"}
         aria-label={isSaved ? "Quitar de guardadas" : "Guardar oferta"}
       >
-        <svg className="w-5 h-5" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.9 1.603-.9 1.902 0l1.519 4.674a1 1 0 00.95.69h4.907c.961 0 1.36 1.252.583 1.812l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.9-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.218-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.777-.56-.378-1.812.583-1.812h4.907a1 1 0 00.95-.69l1.519-4.674z" />
+        <svg className="w-4 h-4" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M11.049 2.927c.3-.9 1.603-.9 1.902 0l1.519 4.674a1 1 0 00.95.69h4.907c.961 0 1.36 1.252.583 1.812l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.9-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.218-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.777-.56-.378-1.812.583-1.812h4.907a1 1 0 00.95-.69l1.519-4.674z" />
         </svg>
       </button>
       {mounted && typeof document !== 'undefined' && createPortal(

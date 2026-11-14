@@ -154,129 +154,137 @@ function EmpresaDashboardContent() {
 
   if (loadingData) {
     return (
-      <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center py-16 gap-3">
-        <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-        <p className="text-gray-550 font-medium">Cargando panel de reclutador...</p>
+      <main className="min-h-screen bg-[var(--bg-canvas)] flex flex-col items-center justify-center py-16 gap-3">
+        <div className="w-8 h-8 border-2 border-[var(--border-subtle)] border-t-[var(--accent-primary)] rounded-full animate-spin" />
+        <p className="text-xs font-mono text-[var(--text-muted)]">Cargando panel de reclutador...</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 py-12 px-4 md:px-8">
+    <main className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] py-10 px-4 md:px-8">
       <div className="max-w-6xl mx-auto">
-        
+
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 pb-6 border-b border-gray-200">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 pb-6 border-b border-[var(--border-subtle)]">
           <div>
-            <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-              <span>🏢</span> Área de Empresas y Reclutadores
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] tracking-tight">
+              Área de Empresas y Reclutadores
             </h1>
-            <p className="text-gray-500 text-sm mt-1">Consulta el rendimiento de tus ofertas de empleo y tus solicitudes patrocinadas.</p>
+            <p className="text-[var(--text-secondary)] text-sm mt-1">
+              Consulta el rendimiento de tus ofertas de empleo y tus solicitudes patrocinadas.
+            </p>
           </div>
           {authenticated && (
             <button
               onClick={handleLogout}
-              className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold rounded-xl text-xs transition-colors shadow-sm cursor-pointer"
+              className="ui-card ui-card-interactive ui-btn-press px-3.5 py-2 rounded-lg text-xs font-medium text-[var(--text-primary)] cursor-pointer"
             >
-              🚪 Cerrar sesión ({activeEmail || emailParam})
+              Cerrar sesión ({activeEmail || emailParam})
             </button>
           )}
         </div>
 
         {/* Auth Error Box */}
         {errorMsg && !authenticated && (
-          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-2xl mb-8 text-sm font-medium">
-            ⚠️ {errorMsg}
+          <div className="bg-rose-500/10 border border-rose-500/25 text-rose-600 dark:text-rose-400 p-4 rounded-xl mb-8 text-sm font-medium">
+            {errorMsg}
           </div>
         )}
 
         {/* 1. Login Panel (no autenticado) */}
         {!authenticated ? (
-          <div className="max-w-md mx-auto bg-white border border-gray-150 rounded-3xl p-8 shadow-xl mt-8">
-            <h2 className="text-lg font-bold text-gray-900 mb-2">Ingresar a mi panel</h2>
-            <p className="text-gray-550 text-xs mb-6 leading-relaxed">
+          <div className="max-w-md mx-auto ui-card rounded-xl p-6 sm:p-8 mt-8">
+            <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Ingresar a mi panel</h2>
+            <p className="text-[var(--text-secondary)] text-xs mb-6 leading-relaxed">
               Introduce el correo electrónico que utilizaste para publicar ofertas de empleo en nuestro portal. Te proporcionaremos un enlace de acceso seguro.
             </p>
 
             <form onSubmit={handleLoginRequest} className="space-y-4">
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">Email de Contacto</label>
+                <label className="block font-mono text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)] mb-1.5">
+                  Email de Contacto
+                </label>
                 <input
                   type="email"
                   required
                   placeholder="empresa@correo.com"
                   value={emailInput}
                   onChange={e => setEmailInput(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-sm"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--border-accent)] focus:ring-2 focus:ring-[var(--accent-tint)] transition-colors text-sm"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-md disabled:opacity-60 text-sm cursor-pointer"
+                className="ui-btn-press w-full bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white font-medium py-2.5 px-5 rounded-lg transition-colors disabled:opacity-60 text-sm cursor-pointer"
               >
                 {loading ? 'Generando...' : 'Obtener Enlace de Acceso →'}
               </button>
             </form>
 
             {statusMsg && (
-              <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs space-y-2">
-                <p className="font-semibold">✅ {statusMsg}</p>
-                <p className="text-emerald-700 text-[11px]">
+              <div className="mt-5 p-4 bg-[var(--status-emerald-tint)] border border-[var(--status-emerald)]/25 text-[var(--status-emerald)] rounded-xl text-xs space-y-1.5">
+                <p className="font-semibold">{statusMsg}</p>
+                <p className="text-[var(--text-secondary)] text-[11px]">
                   Por motivos de seguridad, el enlace no se muestra en pantalla. Haz clic en el enlace recibido en tu bandeja de entrada para iniciar sesión.
                 </p>
               </div>
             )}
           </div>
         ) : (
-          
+
           // 2. Dashboard View (autenticado)
-          <div className="space-y-8">
-            
+          <div className="space-y-6">
+
             {/* Global Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white border border-gray-150 rounded-2xl p-6 shadow-sm flex items-center gap-4">
-                <span className="text-4xl">👁️</span>
-                <div>
-                  <span className="text-3xl font-black text-gray-900 block">{totalImpressions.toLocaleString('es-ES')}</span>
-                  <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider block mt-0.5">Impresiones Totales</span>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="ui-card rounded-xl p-5">
+                <span className="font-mono text-[11px] text-[var(--text-muted)] uppercase tracking-wider block">
+                  Impresiones Totales
+                </span>
+                <span className="font-mono tabular-nums text-3xl font-bold text-[var(--text-primary)] block mt-1.5">
+                  {totalImpressions.toLocaleString('es-ES')}
+                </span>
               </div>
-              <div className="bg-white border border-gray-150 rounded-2xl p-6 shadow-sm flex items-center gap-4">
-                <span className="text-4xl">👆</span>
-                <div>
-                  <span className="text-3xl font-black text-indigo-600 block">{totalClicks.toLocaleString('es-ES')}</span>
-                  <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider block mt-0.5">Clics de Candidatos</span>
-                </div>
+              <div className="ui-card rounded-xl p-5">
+                <span className="font-mono text-[11px] text-[var(--text-muted)] uppercase tracking-wider block">
+                  Clics de Candidatos
+                </span>
+                <span className="font-mono tabular-nums text-3xl font-bold text-[var(--accent-primary)] block mt-1.5">
+                  {totalClicks.toLocaleString('es-ES')}
+                </span>
               </div>
-              <div className="bg-white border border-gray-150 rounded-2xl p-6 shadow-sm flex items-center gap-4">
-                <span className="text-4xl">📈</span>
-                <div>
-                  <span className="text-3xl font-black text-emerald-650 block">{avgCtr}%</span>
-                  <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider block mt-0.5">CTR Promedio (Clics/Visitas)</span>
-                </div>
+              <div className="ui-card rounded-xl p-5">
+                <span className="font-mono text-[11px] text-[var(--text-muted)] uppercase tracking-wider block">
+                  CTR Promedio
+                </span>
+                <span className="font-mono tabular-nums text-3xl font-bold text-[var(--status-emerald)] block mt-1.5">
+                  {avgCtr}%
+                </span>
               </div>
             </div>
 
             {/* Ofertas Activas y Métricas */}
-            <div className="bg-white border border-gray-150 rounded-3xl p-6 md:p-8 shadow-sm">
-              <h2 className="text-lg font-black text-gray-900 mb-1 flex items-center gap-2">
-                <span>📋</span> Tus ofertas de empleo publicadas ({jobs.length})
+            <div className="ui-card rounded-xl p-6 md:p-7">
+              <h2 className="text-base sm:text-lg font-semibold text-[var(--text-primary)] mb-1">
+                Tus ofertas de empleo publicadas <span className="font-mono text-sm text-[var(--text-muted)]">({jobs.length})</span>
               </h2>
-              <p className="text-xs text-gray-450 mb-6">Métricas de visualización y clics recopiladas en tiempo real en nuestro portal.</p>
+              <p className="text-xs text-[var(--text-secondary)] mb-5">
+                Métricas de visualización y clics recopiladas en tiempo real en nuestro portal.
+              </p>
 
               {jobs.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                  <span className="text-4xl block mb-3">📭</span>
-                  <p className="text-gray-500 font-medium">No se encontraron ofertas activas en la base de datos principal.</p>
-                  <p className="text-xs text-gray-400 mt-1">Las ofertas cargadas mediante patrocinio aparecerán aquí una vez activadas.</p>
+                <div className="text-center py-12 bg-[var(--bg-subtle)] rounded-xl border border-dashed border-[var(--border-strong)]">
+                  <p className="text-sm text-[var(--text-primary)] font-medium">No se encontraron ofertas activas en la base de datos principal.</p>
+                  <p className="text-xs text-[var(--text-muted)] mt-1">Las ofertas cargadas mediante patrocinio aparecerán aquí una vez activadas.</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-gray-200 text-[10px] font-black uppercase text-gray-400 tracking-wider">
+                      <tr className="border-b border-[var(--border-subtle)] font-mono text-[10px] font-semibold uppercase text-[var(--text-muted)] tracking-wider">
                         <th className="pb-3 pr-4">Título del puesto</th>
                         <th className="pb-3 px-4">Fecha Publicación</th>
                         <th className="pb-3 px-4 text-center">Estado</th>
@@ -285,31 +293,33 @@ function EmpresaDashboardContent() {
                         <th className="pb-3 pl-4 text-right">CTR</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
+                    <tbody className="divide-y divide-[var(--border-subtle)] text-sm text-[var(--text-secondary)]">
                       {jobs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((job) => {
                         const imp = job.impressions_count || 0;
                         const cli = job.clicks_count || 0;
                         const ctr = imp > 0 ? ((cli / imp) * 100).toFixed(2) : '0.00';
                         return (
-                          <tr key={job.id} className="hover:bg-gray-50/50 transition-colors">
-                            <td className="py-4 pr-4 font-bold text-gray-900 max-w-xs truncate">
-                              <Link href={`/job/${job.id}`} className="hover:text-indigo-600 hover:underline">
+                          <tr key={job.id} className="hover:bg-[var(--bg-subtle)] transition-colors">
+                            <td className="py-3.5 pr-4 font-medium text-[var(--text-primary)] max-w-xs truncate">
+                              <Link href={`/job/${job.id}`} className="hover:text-[var(--accent-primary)] hover:underline">
                                 {job.title}
                               </Link>
                             </td>
-                            <td className="py-4 px-4 text-xs text-gray-500">
+                            <td className="py-3.5 px-4 font-mono tabular-nums text-xs text-[var(--text-muted)]">
                               {new Date(job.created_at).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' })}
                             </td>
-                            <td className="py-4 px-4 text-center">
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                job.is_active ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-gray-100 text-gray-500 border border-gray-200'
+                            <td className="py-3.5 px-4 text-center">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-md font-mono text-[10px] font-medium border ${
+                                job.is_active
+                                  ? 'bg-[var(--status-emerald-tint)] text-[var(--status-emerald)] border-[var(--status-emerald)]/25'
+                                  : 'bg-[var(--bg-subtle)] text-[var(--text-muted)] border-[var(--border-subtle)]'
                               }`}>
                                 {job.is_active ? 'Activo' : 'Expirado'}
                               </span>
                             </td>
-                            <td className="py-4 px-4 text-right font-semibold font-mono text-xs">{imp.toLocaleString('es-ES')}</td>
-                            <td className="py-4 px-4 text-right font-semibold font-mono text-xs text-indigo-650">{cli.toLocaleString('es-ES')}</td>
-                            <td className="py-4 pl-4 text-right font-black font-mono text-xs text-emerald-650">{ctr}%</td>
+                            <td className="py-3.5 px-4 text-right font-mono tabular-nums text-xs text-[var(--text-primary)]">{imp.toLocaleString('es-ES')}</td>
+                            <td className="py-3.5 px-4 text-right font-mono tabular-nums text-xs text-[var(--accent-primary)]">{cli.toLocaleString('es-ES')}</td>
+                            <td className="py-3.5 pl-4 text-right font-mono tabular-nums font-semibold text-xs text-[var(--status-emerald)]">{ctr}%</td>
                           </tr>
                         );
                       })}
@@ -320,22 +330,22 @@ function EmpresaDashboardContent() {
 
               {/* Controles de Paginación */}
               {jobs.length > itemsPerPage && (
-                <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100">
-                  <p className="text-xs text-gray-500">
-                    Mostrando {(currentPage - 1) * itemsPerPage + 1} a {Math.min(currentPage * itemsPerPage, jobs.length)} de {jobs.length} ofertas
+                <div className="flex items-center justify-between mt-5 pt-4 border-t border-[var(--border-subtle)]">
+                  <p className="font-mono text-xs text-[var(--text-muted)] tabular-nums">
+                    Mostrando {(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, jobs.length)} de {jobs.length}
                   </p>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                       disabled={currentPage === 1}
-                      className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold disabled:opacity-50 hover:bg-gray-50 transition-colors text-gray-700 cursor-pointer"
+                      className="ui-card ui-btn-press px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 text-[var(--text-primary)] cursor-pointer"
                     >
                       Anterior
                     </button>
                     <button
                       onClick={() => setCurrentPage(p => p + 1)}
                       disabled={currentPage >= Math.ceil(jobs.length / itemsPerPage)}
-                      className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold disabled:opacity-50 hover:bg-gray-50 transition-colors text-gray-700 cursor-pointer"
+                      className="ui-card ui-btn-press px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 text-[var(--text-primary)] cursor-pointer"
                     >
                       Siguiente
                     </button>
@@ -345,40 +355,42 @@ function EmpresaDashboardContent() {
             </div>
 
             {/* Solicitudes Patrocinadas (Stripe) */}
-            <div className="bg-white border border-gray-150 rounded-3xl p-6 md:p-8 shadow-sm">
-              <h2 className="text-lg font-black text-gray-900 mb-1 flex items-center gap-2">
-                <span>💎</span> Historial de compras y planes patrocinados ({sponsoredJobs.length})
+            <div className="ui-card rounded-xl p-6 md:p-7">
+              <h2 className="text-base sm:text-lg font-semibold text-[var(--text-primary)] mb-1">
+                Historial de compras y planes patrocinados <span className="font-mono text-sm text-[var(--text-muted)]">({sponsoredJobs.length})</span>
               </h2>
-              <p className="text-xs text-gray-450 mb-6">Estado de tus solicitudes de publicación destacada.</p>
+              <p className="text-xs text-[var(--text-secondary)] mb-5">Estado de tus solicitudes de publicación destacada.</p>
 
               {sponsoredJobs.length === 0 ? (
-                <div className="text-center py-8 bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-gray-500 text-sm">
+                <div className="text-center py-8 bg-[var(--bg-subtle)] rounded-xl border border-dashed border-[var(--border-strong)] text-[var(--text-muted)] text-xs">
                   No tienes solicitudes de patrocinio cargadas.
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-gray-200 text-[10px] font-black uppercase text-gray-400 tracking-wider">
+                      <tr className="border-b border-[var(--border-subtle)] font-mono text-[10px] font-semibold uppercase text-[var(--text-muted)] tracking-wider">
                         <th className="pb-3 pr-4">Puesto Solicitado</th>
                         <th className="pb-3 px-4">Fecha Solicitud</th>
                         <th className="pb-3 px-4">Plan Adquirido</th>
-                        <th className="pb-3 pl-4 text-right">Estado Solicitud</th>
+                        <th className="pb-3 pl-4 text-right">Estado</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
+                    <tbody className="divide-y divide-[var(--border-subtle)] text-sm text-[var(--text-secondary)]">
                       {sponsoredJobs.map((sj) => (
-                        <tr key={sj.id}>
-                          <td className="py-4 pr-4 font-bold text-gray-900">{sj.job_title}</td>
-                          <td className="py-4 px-4 text-xs text-gray-500">
+                        <tr key={sj.id} className="hover:bg-[var(--bg-subtle)] transition-colors">
+                          <td className="py-3.5 pr-4 font-medium text-[var(--text-primary)]">{sj.job_title}</td>
+                          <td className="py-3.5 px-4 font-mono tabular-nums text-xs text-[var(--text-muted)]">
                             {new Date(sj.created_at).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' })}
                           </td>
-                          <td className="py-4 px-4 font-medium text-xs uppercase text-indigo-650">
+                          <td className="py-3.5 px-4 font-mono text-xs uppercase text-[var(--accent-primary)]">
                             {sj.plan.replace('_', ' ')}
                           </td>
-                          <td className="py-4 pl-4 text-right">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              sj.status === 'aprobado' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-amber-50 text-amber-700 border border-amber-100'
+                          <td className="py-3.5 pl-4 text-right">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md font-mono text-[10px] font-medium border ${
+                              sj.status === 'aprobado'
+                                ? 'bg-[var(--status-emerald-tint)] text-[var(--status-emerald)] border-[var(--status-emerald)]/25'
+                                : 'bg-[var(--status-amber-tint)] text-[var(--status-amber)] border-[var(--border-featured)]'
                             }`}>
                               {sj.status}
                             </span>
@@ -392,16 +404,18 @@ function EmpresaDashboardContent() {
             </div>
 
             {/* CTA to post new jobs */}
-            <div className="bg-gradient-to-r from-indigo-900 to-violet-900 text-white rounded-3xl p-8 shadow-md flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="bg-[#090C10] text-white border border-white/[0.08] rounded-xl p-6 sm:p-7 flex flex-col md:flex-row justify-between items-center gap-5">
               <div>
-                <h3 className="text-xl font-bold mb-1">¿Necesitas contratar más desarrolladores?</h3>
-                <p className="text-indigo-200 text-xs max-w-lg leading-relaxed">Publica tus nuevas ofertas de empleo IT y destácalas en las tecnologías con más tráfico para recibir más clics.</p>
+                <h3 className="text-lg font-semibold mb-1 text-white">¿Necesitas contratar más desarrolladores?</h3>
+                <p className="text-slate-400 text-xs max-w-lg leading-relaxed">
+                  Publica tus nuevas ofertas de empleo IT y destácalas en las tecnologías con más tráfico para recibir más clics.
+                </p>
               </div>
               <Link
                 href="/publicar-oferta"
-                className="shrink-0 bg-amber-400 hover:bg-amber-300 text-gray-900 font-bold px-6 py-3 rounded-xl text-sm transition-colors shadow-sm"
+                className="ui-btn-press shrink-0 bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white font-medium px-5 py-2.5 rounded-lg text-xs sm:text-sm transition-colors"
               >
-                ➕ Publicar Nueva Oferta →
+                Publicar Nueva Oferta →
               </Link>
             </div>
 
@@ -415,9 +429,9 @@ function EmpresaDashboardContent() {
 export default function EmpresaDashboardPage() {
   return (
     <Suspense fallback={
-      <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center py-16 gap-3">
-        <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-        <p className="text-gray-500 font-medium">Cargando panel de reclutador...</p>
+      <main className="min-h-screen bg-[var(--bg-canvas)] flex flex-col items-center justify-center py-16 gap-3">
+        <div className="w-8 h-8 border-2 border-[var(--border-subtle)] border-t-[var(--accent-primary)] rounded-full animate-spin" />
+        <p className="text-xs font-mono text-[var(--text-muted)]">Cargando panel de reclutador...</p>
       </main>
     }>
       <EmpresaDashboardContent />

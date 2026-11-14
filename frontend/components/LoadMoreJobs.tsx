@@ -3,10 +3,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import CompanyLogo from './CompanyLogo';
 import AdBanner from './AdBanner';
+import JobCard from './JobCard';
 import JobCardSkeleton from './JobCardSkeleton';
-import { getJobSlug } from '@/lib/slug';
 
 interface Job {
   id: string;
@@ -14,6 +13,9 @@ interface Job {
   title_es?: string | null;
   company: string;
   location: string;
+  url_source?: string;
+  description_snippet?: string | null;
+  category?: string | null;
   salary?: string | null;
   salary_min?: number | null;
   salary_max?: number | null;
@@ -109,87 +111,25 @@ export default function LoadMoreJobs({ lang = 'es', initiallyHasMore }: LoadMore
     };
   }, [hasMore, loading, loadMore]);
 
-  const queryParam = isEnglish ? '?lang=en' : '';
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Listado de ofertas adicionales cargadas por el cliente */}
-      {jobs.map((job, index) => {
-        const jobSlug = getJobSlug(job);
-        const detailUrl = `/job/${jobSlug}${queryParam}`;
-        const displayJobTitle = isEnglish ? job.title : (job.title_es || job.title);
-        
-        return (
-          <React.Fragment key={job.id}>
-            {/* Intercalar anuncios cada 10 ofertas (índice 9, 19, etc.) */}
-            {index > 0 && index % 10 === 0 && (
-              <div className="my-6">
-                <AdBanner variant="inline" />
-              </div>
-            )}
-
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800/80 hover:shadow-md transition-shadow">
-              <div className="flex gap-4 items-start">
-                <CompanyLogo company={job.company} size={12} />
-                <div className="flex-grow w-full flex flex-col md:flex-row justify-between md:items-start gap-4">
-                  <div className="w-full">
-                    <Link href={detailUrl}>
-                      <h3 className="text-xl font-semibold text-indigo-900 dark:text-indigo-400 hover:text-indigo-650 dark:hover:text-indigo-300 transition-colors">
-                        {displayJobTitle}
-                      </h3>
-                    </Link>
-                    <p className="text-gray-650 dark:text-slate-350 font-medium mt-1">{job.company}</p>
-                    
-                    <div className="flex flex-wrap gap-3 mt-3 text-sm text-gray-500 dark:text-slate-400">
-                      <a 
-                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 bg-gray-50 dark:bg-slate-850 px-2 py-1 rounded hover:bg-indigo-50 dark:hover:bg-indigo-950/20 text-indigo-650 dark:text-indigo-400 font-medium border border-gray-200 dark:border-slate-800"
-                      >
-                        📍 {job.location}
-                      </a>
-                      {(() => {
-                        const hasSalaryStr = job.salary && job.salary !== 'Consultar' && job.salary !== 'Negotiable' && job.salary !== 'Ver salario';
-                        let displaySalary = job.salary;
-                        if (!hasSalaryStr && job.salary_min && job.salary_max) {
-                          const minK = Math.round(job.salary_min / 1000);
-                          const maxK = Math.round(job.salary_max / 1000);
-                          displaySalary = `${minK}k - ${maxK}k €/año`;
-                        } else if (!hasSalaryStr && job.salary_min) {
-                          const minK = Math.round(job.salary_min / 1000);
-                          displaySalary = isEnglish ? `From ${minK}k €/yr` : `Desde ${minK}k €/año`;
-                        } else if (!hasSalaryStr && job.salary_max) {
-                          const maxK = Math.round(job.salary_max / 1000);
-                          displaySalary = isEnglish ? `Up to ${maxK}k €/yr` : `Hasta ${maxK}k €/año`;
-                        }
-                        if (!displaySalary) {
-                          displaySalary = isEnglish ? 'Negotiable' : 'Consultar';
-                        }
-                        return (
-                          <span className="bg-gray-50 dark:bg-slate-850 px-2 py-1 rounded border border-gray-200 dark:border-slate-800">
-                            💰 {displaySalary}
-                          </span>
-                        );
-                      })()}
-                      <span className="bg-gray-50 dark:bg-slate-850 px-2 py-1 rounded border border-gray-200 dark:border-slate-800">
-                        📅 {new Date(job.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-
-                  <Link 
-                    href={detailUrl}
-                    className="px-5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-750 dark:bg-indigo-950/30 dark:hover:bg-indigo-950/60 dark:text-indigo-300 font-semibold rounded-lg transition-colors text-center shrink-0 cursor-pointer"
-                  >
-                    {isEnglish ? 'View offer' : 'Ver oferta'}
-                  </Link>
-                </div>
-              </div>
+      {jobs.map((job, index) => (
+        <React.Fragment key={job.id}>
+          {/* Intercalar anuncios cada 10 ofertas (índice 9, 19, etc.) */}
+          {index > 0 && index % 10 === 0 && (
+            <div className="my-4">
+              <AdBanner variant="inline" />
             </div>
-          </React.Fragment>
-        );
-      })}
+          )}
+
+          <JobCard
+            job={{ ...job, url_source: job.url_source || '' }}
+            lang={lang}
+            variant="feed"
+          />
+        </React.Fragment>
+      ))}
 
       {/* Centinela invisible para scroll infinito */}
       {hasMore && (
@@ -198,7 +138,7 @@ export default function LoadMoreJobs({ lang = 'es', initiallyHasMore }: LoadMore
 
       {/* Skeleton Loading — se muestra mientras se carga la siguiente página */}
       {loading && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <JobCardSkeleton key={`skeleton-${i}`} />
           ))}
@@ -223,14 +163,14 @@ export default function LoadMoreJobs({ lang = 'es', initiallyHasMore }: LoadMore
             <button
               onClick={loadMore}
               disabled={loading}
-              className="px-6 py-3 bg-white dark:bg-slate-900 hover:bg-gray-50 dark:hover:bg-slate-850 border border-gray-300 dark:border-slate-800 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-200 transition-colors shadow-sm disabled:opacity-60 cursor-pointer flex items-center gap-2"
+              className="ui-card ui-card-interactive ui-btn-press px-5 py-2.5 rounded-lg text-xs font-medium text-[var(--text-primary)] disabled:opacity-60 cursor-pointer flex items-center gap-2"
             >
               <span>{isEnglish ? 'Load more offers' : 'Cargar más ofertas'}</span>
             </button>
             <Link
               href={nextPageHref}
               rel="next"
-              className="text-xs text-gray-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 underline-offset-2 hover:underline"
+              className="text-xs font-mono text-[var(--text-muted)] hover:text-[var(--accent-primary)] underline-offset-2 hover:underline transition-colors"
             >
               {isEnglish ? `Page ${page}` : `Página ${page}`}
             </Link>

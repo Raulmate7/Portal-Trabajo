@@ -46,63 +46,82 @@ export default function FeaturedJobCard({ job, lang }: { job: FeaturedJob; lang?
     displaySalary = isEnglish ? 'Negotiable' : 'Consultar';
   }
 
+  const hasKnownSalary = Boolean(displaySalary && displaySalary !== 'Consultar' && displaySalary !== 'Negotiable');
+
   return (
-    <div className="relative bg-gradient-to-br from-amber-50 via-white to-yellow-50 p-6 rounded-2xl border-2 border-amber-300/70 shadow-lg shadow-amber-100/50 hover:shadow-xl hover:shadow-amber-200/50 transition-all duration-300 group">
-      {/* Badge Destacada */}
-      <div className="absolute -top-3 left-5">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-white text-xs font-bold shadow-md shadow-amber-200/60 uppercase tracking-wider">
-          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-          </svg>
-          {isEnglish ? 'Featured' : 'Destacada'}
-        </span>
-      </div>
+    <article className="relative group ui-card ui-card-interactive rounded-xl border-[var(--border-featured)] p-4 sm:p-5 overflow-hidden">
+      {/* Acento lateral ámbar de 2px */}
+      <span aria-hidden="true" className="absolute inset-y-0 left-0 w-0.5 bg-[var(--status-amber)]" />
 
-      <div className="flex flex-col md:flex-row justify-between md:items-start gap-4 mt-2">
-        <div className="flex gap-4 items-start w-full">
-          <CompanyLogo company={job.company} size={12} />
-          <div className="w-full">
-          <Link href={detailUrl} prefetch={true}>
-            <h2 className="text-xl font-bold text-gray-900 group-hover:text-amber-700 transition-colors">
-               {displayTitle}
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+        <div className="flex gap-3.5 items-start min-w-0 flex-1">
+          <CompanyLogo company={job.company} size={11} />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--status-amber-tint)] text-[var(--status-amber)] border border-[var(--border-featured)] font-mono text-[10px] font-semibold uppercase tracking-wider">
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                {isEnglish ? 'FEATURED' : 'DESTACADA'}
+              </span>
+              {isRecent && (
+                <span className="font-mono text-[10px] font-semibold px-2 py-0.5 rounded-md bg-[var(--status-emerald-tint)] text-[var(--status-emerald)] border border-[var(--status-emerald)]/25 uppercase tracking-wider shrink-0">
+                  {isEnglish ? 'New' : 'Reciente'}
+                </span>
+              )}
+              {isExpiringSoon && (
+                <span className="font-mono text-[10px] font-semibold px-2 py-0.5 rounded-md bg-[var(--status-amber-tint)] text-[var(--status-amber)] border border-[var(--border-featured)] uppercase tracking-wider shrink-0">
+                  {isEnglish ? 'Closing soon' : 'Últimos días'}
+                </span>
+              )}
+            </div>
+
+            <h2 className="text-base sm:text-lg font-semibold tracking-tight text-[var(--text-primary)] leading-snug line-clamp-2">
+              <Link
+                href={detailUrl}
+                prefetch={true}
+                className="after:absolute after:inset-0 after:z-0 focus:outline-none group-hover:text-[var(--accent-primary)] transition-colors duration-150"
+              >
+                {displayTitle}
+              </Link>
             </h2>
-          </Link>
-          <div className="flex items-center gap-2 mt-1">
-            <p className="text-gray-600 font-medium">{job.company}</p>
-            {isRecent && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 uppercase tracking-wider shrink-0 animate-pulse">
-                {isEnglish ? '🆕 Recent' : '🆕 Reciente'}
-              </span>
-            )}
-            {isExpiringSoon && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider shrink-0">
-                {isEnglish ? '⚠️ Expiring soon' : '⚠️ Caduca pronto'}
-              </span>
-            )}
-          </div>
 
-          <div className="flex flex-wrap gap-3 mt-3 text-sm text-gray-500">
-            <span className="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded border border-amber-200 text-amber-800 font-medium">
-              📍 {job.location}
-            </span>
-            <span className="bg-amber-50 px-2 py-1 rounded border border-amber-200 text-amber-800">
-              💰 {displaySalary}
-            </span>
-            <span className="bg-gray-50 px-2 py-1 rounded">
-              📅 {new Date(job.created_at).toLocaleDateString()}
-            </span>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-xs text-[var(--text-secondary)]">
+              <span className="font-medium text-[var(--text-primary)] truncate max-w-[200px]">
+                {job.company}
+              </span>
+              <span className="text-[var(--text-muted)]" aria-hidden="true">·</span>
+              <span className="truncate max-w-[200px]">{job.location}</span>
+              <span className="text-[var(--text-muted)]" aria-hidden="true">·</span>
+              <span className="font-mono tabular-nums text-[11px] text-[var(--text-muted)]">
+                {new Date(job.created_at).toLocaleDateString()}
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 mt-3">
+              <span
+                className={`font-mono tabular-nums text-xs font-medium px-2.5 py-0.5 rounded-md border ${
+                  hasKnownSalary
+                    ? 'bg-[var(--status-emerald-tint)] text-[var(--status-emerald)] border-[var(--status-emerald)]/25'
+                    : 'bg-[var(--bg-subtle)] text-[var(--text-muted)] border-[var(--border-subtle)]'
+                }`}
+              >
+                {displaySalary}
+              </span>
+            </div>
           </div>
         </div>
-        </div>
 
-        <Link
-          href={detailUrl}
-          prefetch={true}
-          className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-bold rounded-xl hover:from-amber-600 hover:to-yellow-600 transition-all text-center shrink-0 shadow-md shadow-amber-200/50 hover:shadow-lg"
-        >
-          {isEnglish ? 'View Job ⭐' : 'Ver oferta ⭐'}
-        </Link>
+        <div className="shrink-0 flex items-center md:justify-end">
+          <span
+            aria-hidden="true"
+            className="ui-btn-press inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--accent-primary)] group-hover:bg-[var(--accent-hover)] text-white text-xs font-medium transition-colors duration-150"
+          >
+            {isEnglish ? 'View role' : 'Ver oferta'}
+            <span>→</span>
+          </span>
+        </div>
       </div>
-    </div>
+    </article>
   );
 }

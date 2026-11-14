@@ -46,63 +46,56 @@ export default function CourseAffiliate({ title }: { title: string }) {
   const bootcampLink = getUdemyLink(matchedKey || null);
 
   return (
-    <div className="mt-8 space-y-4">
-      {/* Banner Principal - Bootcamp */}
-      <div className="relative overflow-hidden p-6 md:p-8 bg-gradient-to-br from-indigo-900 via-purple-900 to-indigo-950 rounded-2xl border border-indigo-500/30 shadow-2xl">
-        {/* Decoración de fondo */}
-        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
-        <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-64 h-64 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '2s' }}></div>
-        
+    <div className="mt-8 space-y-3.5">
+      {/* Recurso Formativo Editorial Nativo */}
+      <div className="relative overflow-hidden p-5 sm:p-6 ui-card ui-card-interactive rounded-xl border-[var(--border-accent)]">
+        <span aria-hidden="true" className="absolute inset-y-0 left-0 w-0.5 bg-[var(--accent-primary)]" />
+
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 mb-4 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-200 text-xs font-bold uppercase tracking-wider backdrop-blur-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
-            Patrocinado · Enlace de afiliación
+          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 mb-3 rounded-md bg-[var(--accent-tint)] border border-[var(--border-accent)] text-[var(--accent-primary)] font-mono text-[10px] font-semibold uppercase tracking-wider">
+            Patrocinado · Recurso Formativo
           </div>
-          
-          <h3 className="text-white font-black text-2xl md:text-3xl mb-2 tracking-tight">
-            {course.emoji} {course.name}
+
+          <h3 className="text-[var(--text-primary)] font-semibold text-base sm:text-lg mb-1.5 tracking-tight">
+            {course.name}
           </h3>
-          
-          <p className="text-indigo-200 text-sm md:text-base mb-6 max-w-xl leading-relaxed">
-            {course.desc} Las empresas están buscando este perfil de forma urgente. 
-            Aprovecha para formarte en un entorno inmersivo.
+
+          <p className="text-[var(--text-secondary)] text-xs sm:text-sm mb-4 max-w-xl leading-relaxed">
+            {course.desc} Formación orientada a los requisitos técnicos más demandados para este perfil.
           </p>
-          
-          <a
-            href={bootcampLink}
-            target="_blank"
-            rel="noopener noreferrer sponsored"
-            className="inline-flex justify-center items-center gap-2 bg-gradient-to-r from-green-400 to-emerald-500 text-gray-900 text-base font-bold py-3 px-8 rounded-xl hover:from-green-300 hover:to-emerald-400 hover:scale-105 transition-all shadow-[0_0_20px_rgba(52,211,153,0.3)]"
-          >
-            Ver Bootcamp Completo →
-          </a>
-          <p className="text-[11px] text-indigo-300/80 mt-3">
-            Publicidad / Enlace afiliado de Udemy: podemos recibir una comisión sin coste adicional para ti.
-          </p>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-[var(--border-subtle)]">
+            <p className="font-mono text-[11px] text-[var(--text-muted)]">
+              Enlace afiliado de Udemy · Sin coste adicional
+            </p>
+            <a
+              href={bootcampLink}
+              target="_blank"
+              rel="noopener noreferrer sponsored"
+              className="ui-btn-press inline-flex justify-center items-center gap-1.5 bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white text-xs sm:text-sm font-medium py-2 px-4 rounded-lg transition-colors shrink-0"
+            >
+              Ver programa formativo →
+            </a>
+          </div>
         </div>
       </div>
 
-      {/* Banner Secundario - Formación Udemy (Afiliado) */}
-      <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-xl">
-            🎓
-          </div>
-          <div>
-            <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded mb-1">
-              Patrocinado · Enlace afiliado
-            </span>
-            <h4 className="text-gray-900 font-bold text-sm">¿Quieres reforzar tu perfil técnico?</h4>
-            <p className="text-gray-500 text-xs">Explora cursos de preparación técnica y entrevistas en Udemy.</p>
-          </div>
+      {/* Recurso Secundario */}
+      <div className="ui-card ui-card-interactive flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl gap-3">
+        <div className="min-w-0">
+          <span className="inline-block font-mono text-[10px] font-semibold uppercase tracking-wider text-[var(--status-amber)] bg-[var(--status-amber-tint)] border border-[var(--border-featured)] px-2 py-0.5 rounded-md mb-1.5">
+            Patrocinado · Afiliado
+          </span>
+          <h4 className="text-[var(--text-primary)] font-semibold text-sm">¿Quieres reforzar tu perfil técnico?</h4>
+          <p className="text-[var(--text-secondary)] text-xs">Explora cursos de preparación técnica y entrevistas en Udemy.</p>
         </div>
-        <a 
+        <a
           href={CV_BUILDER_LINK}
           target="_blank"
           rel="noopener noreferrer sponsored"
-          className="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-indigo-700 text-sm font-semibold rounded-lg transition-colors whitespace-nowrap"
+          className="ui-btn-press px-3.5 py-2 bg-[var(--bg-subtle)] hover:border-[var(--border-strong)] border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-medium rounded-lg transition-colors whitespace-nowrap text-center shrink-0"
         >
-          Ver cursos en Udemy
+          Ver cursos →
         </a>
       </div>
     </div>

@@ -3,18 +3,96 @@
 @variant dark (.dark &);
 
 :root {
-  --background: #f9fafb;
-  --foreground: #111827;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+
+  /* Surface Architecture */
+  --bg-canvas: #f8fafc;
+  --bg-subtle: #f1f5f9;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-glass: rgba(248, 250, 252, 0.82);
+
+  /* Hairline Borders */
+  --border-subtle: rgba(15, 23, 42, 0.08);
+  --border-strong: rgba(15, 23, 42, 0.16);
+  --border-accent: rgba(79, 70, 229, 0.28);
+  --border-featured: rgba(217, 119, 6, 0.32);
+
+  /* Typography Hierarchy */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+
+  /* Accents & Status */
+  --accent-primary: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-tint: rgba(79, 70, 229, 0.08);
+  --status-emerald: #059669;
+  --status-emerald-tint: rgba(5, 150, 105, 0.08);
+  --status-amber: #d97706;
+  --status-amber-tint: rgba(217, 119, 6, 0.08);
+  --status-danger: #e11d48;
+
+  /* Contact Shadows */
+  --shadow-card: 0 1px 2px 0 rgba(15, 23, 42, 0.03), 0 1px 1px -1px rgba(15, 23, 42, 0.02);
+  --shadow-card-hover: 0 8px 20px -4px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+
+  /* Emil Kowalski Motion Tokens */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .dark {
-  --background: #090d16;
-  --foreground: #f3f4f6;
+  --background: #090c10;
+  --foreground: #f8fafc;
+
+  /* Surface Architecture (Obsidian) */
+  --bg-canvas: #090c10;
+  --bg-subtle: #0d1117;
+  --bg-surface: #111622;
+  --bg-elevated: #161c2b;
+  --bg-glass: rgba(9, 12, 16, 0.82);
+
+  /* Hairline Borders */
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --border-accent: rgba(99, 102, 241, 0.35);
+  --border-featured: rgba(245, 158, 11, 0.35);
+
+  /* Typography Hierarchy */
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  /* Accents & Status */
+  --accent-primary: #6366f1;
+  --accent-hover: #818cf8;
+  --accent-tint: rgba(99, 102, 241, 0.12);
+  --status-emerald: #10b981;
+  --status-emerald-tint: rgba(16, 185, 129, 0.12);
+  --status-amber: #f59e0b;
+  --status-amber-tint: rgba(245, 158, 11, 0.10);
+  --status-danger: #f43f5e;
+
+  /* Contact Shadows */
+  --shadow-card: 0 1px 0 0 rgba(255, 255, 255, 0.03) inset, 0 2px 4px 0 rgba(0, 0, 0, 0.35);
+  --shadow-card-hover: 0 1px 0 0 rgba(255, 255, 255, 0.06) inset, 0 12px 24px -6px rgba(0, 0, 0, 0.55);
 }
 
 @theme inline {
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-canvas: var(--bg-canvas);
+  --color-subtle: var(--bg-subtle);
+  --color-surface: var(--bg-surface);
+  --color-elevated: var(--bg-elevated);
+
   --color-indigo-550: #5850ec;
   --color-indigo-650: #493de0;
   --color-indigo-750: #3d33b8;
@@ -23,6 +101,7 @@
   --color-gray-250: #dcdff5;
   --color-gray-405: #98a0ae;
   --color-gray-450: #838b99;
+  --color-gray-550: #64748b;
   --color-gray-650: #424b59;
   --color-gray-750: #293241;
   --color-gray-850: #18202c;
@@ -33,7 +112,45 @@
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  /* La fuente Inter se aplica desde layout.tsx via next/font/google className */
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  /* Las fuentes Inter y JetBrains Mono se aplican desde layout.tsx via next/font/google */
+}
+
+/* Tactile Card & Button Utilities (GPU Composite Only) */
+.ui-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+  transition: transform 205ms var(--ease-spring), border-color 205ms var(--ease-out), box-shadow 205ms var(--ease-out), background-color 205ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ui-card-interactive:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-card-hover);
+    background-color: var(--bg-elevated);
+  }
+}
+
+.ui-btn-press {
+  transition: transform 150ms var(--ease-out), background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.ui-btn-press:active {
+  transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-card,
+  .ui-card-interactive:hover,
+  .ui-btn-press,
+  .ui-btn-press:active,
+  [data-enter] {
+    transform: none !important;
+    transition-duration: 0ms !important;
+    animation: none !important;
+  }
 }

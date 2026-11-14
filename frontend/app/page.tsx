@@ -6,10 +6,9 @@ import SearchFilters from "./components/SearchFilters";
 import AdBanner from "@/components/AdBanner";
 import SubscribeForm from "@/components/SubscribeForm";
 import FeaturedJobCard from "@/components/FeaturedJobCard";
+import JobCard from "@/components/JobCard";
 import PushSubscribe from "@/components/PushSubscribe";
-import CompanyLogo from "@/components/CompanyLogo";
 import { Suspense } from "react";
-import { getJobSlug } from "@/lib/slug";
 import { getJobs, getFeaturedJobs, getJobsCount, getJobOfTheDay, getTrendingTech } from "@/lib/jobs";
 import LoadMoreJobs from "@/components/LoadMoreJobs";
 import { RecentlyViewedList } from "@/components/RecentlyViewed";
@@ -317,7 +316,7 @@ export default async function Home({ searchParams }: Props) {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-slate-950">
+    <main className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)]">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLdString(websiteJsonLd) }}
@@ -330,48 +329,62 @@ export default async function Home({ searchParams }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLdString(faqJsonLd) }}
       />
-      
-      {/* Hero Section Premium */}
-      <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-900 text-white relative overflow-hidden py-16">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.15),transparent_45%)]"></div>
+
+      {/* Hero Section Technical Luxury */}
+      <div className="bg-[#090C10] text-white border-b border-white/[0.08] relative overflow-hidden py-12 md:py-16">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(99,102,241,0.14),transparent_60%)] pointer-events-none" />
         <div className="max-w-5xl mx-auto px-4 text-center relative z-10">
-          
           {totalJobs > 0 && (
-            <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-200 text-xs font-semibold mb-6 shadow-sm backdrop-blur-sm animate-pulse">
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.05] border border-white/[0.1] text-slate-300 text-xs font-mono tabular-nums mb-5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
               {isEnglish ? (
-                <>✨ More than <strong className="text-white font-bold">{totalJobs}</strong> active tech job openings</>
+                <><strong className="text-white font-semibold">{totalJobs.toLocaleString('es-ES')}</strong> active tech openings</>
               ) : (
-                <>✨ Más de <strong className="text-white font-bold">{totalJobs}</strong> ofertas de empleo tecnológico activas</>
+                <><strong className="text-white font-semibold">{totalJobs.toLocaleString('es-ES')}</strong> ofertas tech activas</>
               )}
             </span>
           )}
-          
-          <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tight">
+
+          <h1 className="text-3xl md:text-5xl font-bold mb-3 tracking-tight text-white">
             {isEnglish ? (
-              <>IT Job <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500">Portal</span></>
+              <>IT Job <span className="text-indigo-400">Portal</span></>
             ) : (
-              <>Portal Empleo <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500">IT</span></>
+              <>Portal Empleo <span className="text-indigo-400">IT</span></>
             )}
           </h1>
-          <p className="text-gray-300 max-w-xl mx-auto mb-8 text-sm md:text-base leading-relaxed">
-            {isEnglish 
-              ? 'Your trusted technology aggregator. Get the best national and international job openings updated in real time.'
-              : 'Tu agregador tecnológico de confianza. Consigue las mejores vacantes nacionales e internacionales actualizadas en tiempo real.'}
+          <p className="text-slate-400 max-w-xl mx-auto mb-7 text-sm md:text-base leading-relaxed">
+            {isEnglish
+              ? 'Your specialized technology job aggregator. Verified national and remote openings updated in real time.'
+              : 'Tu agregador especializado en empleo tecnológico. Vacantes verificadas en España y remoto actualizadas en tiempo real.'}
           </p>
 
-          <div className="flex flex-wrap justify-center gap-3.5">
-            <a href="https://t.me/PortalDeTrabajo" target="_blank" className="bg-white text-indigo-900 font-extrabold py-2.5 px-6 rounded-xl hover:bg-gray-100 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-indigo-950/20 flex items-center gap-2">
-              <span>✈️</span> {isEnglish ? 'View on Telegram' : 'Ver en Telegram'}
+          <div className="flex flex-wrap justify-center gap-2.5">
+            <a
+              href="https://t.me/PortalDeTrabajo"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ui-btn-press bg-white/[0.07] hover:bg-white/[0.12] border border-white/[0.12] text-white font-medium text-xs sm:text-sm py-2 px-4 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <svg className="w-4 h-4 text-sky-400" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.828.94z" />
+              </svg>
+              {isEnglish ? 'Telegram Channel' : 'Canal Telegram'}
             </a>
-            <Link href={`/talento-premium${queryParam}`} className="bg-gradient-to-r from-amber-400 to-yellow-500 text-gray-900 font-extrabold py-2.5 px-6 rounded-xl hover:from-amber-300 hover:to-yellow-400 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-amber-500/25 flex items-center gap-2">
-              <span>⭐</span> {isEnglish ? 'Premium Talent' : 'Talento Premium'}
+            <Link
+              href={`/talento-premium${queryParam}`}
+              className="ui-btn-press bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/30 text-amber-300 font-medium text-xs sm:text-sm py-2 px-4 rounded-lg transition-colors flex items-center gap-1.5"
+            >
+              {isEnglish ? 'Premium Talent' : 'Talento Premium'}
             </Link>
-            <Link href={`/publicar-oferta${queryParam}`} className="bg-gradient-to-r from-green-400 to-emerald-500 text-gray-900 font-extrabold py-2.5 px-6 rounded-xl hover:from-green-300 hover:to-emerald-400 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-green-500/25 flex items-center gap-2">
-              <span>🏢</span> {isEnglish ? 'Post a Job' : 'Publicar Oferta'}
+            <Link
+              href={`/publicar-oferta${queryParam}`}
+              className="ui-btn-press bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white font-medium text-xs sm:text-sm py-2 px-4 rounded-lg transition-colors flex items-center gap-1.5"
+            >
+              {isEnglish ? 'Post a Job' : 'Publicar Oferta'}
             </Link>
           </div>
 
-          <div className="mt-8 flex justify-center">
+          <div className="mt-7 flex justify-center">
             <div className="w-full max-w-md text-left">
               <PushSubscribe />
             </div>
@@ -380,12 +393,12 @@ export default async function Home({ searchParams }: Props) {
       </div>
 
       {/* Main Container Layout de 2 Columnas */}
-      <div className="max-w-7xl mx-auto px-4 py-8 -mt-8 relative z-20">
+      <div className="max-w-7xl mx-auto px-4 py-8 -mt-6 relative z-20">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
+
           {/* COLUMNA PRINCIPAL (Filtros + Listado) */}
           <div className="lg:col-span-2 space-y-6">
-            <Suspense fallback={<div className="h-24 bg-white rounded-2xl shadow animate-pulse"></div>}>
+            <Suspense fallback={<div className="h-24 ui-card rounded-xl animate-pulse" />}>
               <SearchFilters />
             </Suspense>
 
@@ -396,11 +409,12 @@ export default async function Home({ searchParams }: Props) {
 
             {/* Ofertas Destacadas */}
             {featuredJobs.length > 0 && (
-              <div className="space-y-4 pt-2">
-                <h2 className="text-xs font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wider flex items-center gap-1.5">
-                  ⭐ {isEnglish ? 'Featured Jobs' : 'Ofertas Destacadas'}
+              <div className="space-y-3 pt-1">
+                <h2 className="font-mono text-xs font-semibold text-[var(--status-amber)] uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-amber)]" aria-hidden="true" />
+                  {isEnglish ? 'Featured Jobs' : 'Ofertas Destacadas'}
                 </h2>
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 gap-3.5">
                   {featuredJobs.map((job: any) => (
                     <FeaturedJobCard key={job.id} job={job} lang={lang} />
                   ))}
@@ -415,27 +429,27 @@ export default async function Home({ searchParams }: Props) {
 
             {/* Listado Reciente */}
             <div className="space-y-4">
-              <div className="flex justify-between items-center pt-2">
-                <h2 className="text-xl font-bold text-gray-800 dark:text-white">
-                  {jobs.length === 0 
-                    ? (isEnglish ? "No results" : "Sin resultados") 
+              <div className="flex justify-between items-center pt-1">
+                <h2 className="text-lg font-semibold tracking-tight text-[var(--text-primary)] font-mono tabular-nums">
+                  {jobs.length === 0
+                    ? (isEnglish ? "No results" : "Sin resultados")
                     : (isEnglish ? `${jobs.length} recent offers` : `${jobs.length} ofertas recientes`)}
                 </h2>
               </div>
 
               {(q || loc) && (
-                <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/50 rounded-xl p-5 mb-2 mt-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
+                <div className="ui-card rounded-xl p-5 border-[var(--border-accent)] bg-[var(--accent-tint)] flex flex-col md:flex-row items-center justify-between gap-4">
                   <div className="flex-1">
-                    <h3 className="font-bold text-indigo-900 dark:text-indigo-300 text-lg">
+                    <h3 className="font-semibold text-[var(--text-primary)] text-base">
                       {isEnglish ? `Don't miss any offers ${q ? 'for '+q : ''} ${loc ? 'in '+loc : ''}` : `No te pierdas nuevas ofertas ${q ? 'de '+q : ''} ${loc ? 'en '+loc : ''}`}
                     </h3>
-                    <p className="text-sm text-indigo-700 dark:text-indigo-400 mt-1">
+                    <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-1">
                       {isEnglish ? 'Create a custom alert and receive new vacancies in your inbox.' : 'Crea una alerta personalizada y recibe nuevas vacantes en tu correo antes que nadie.'}
                     </p>
                   </div>
                   <div className="w-full md:w-auto">
-                    <SubscribeForm 
-                      location={loc || "España"} 
+                    <SubscribeForm
+                      location={loc || "España"}
                       defaultTech={q || undefined}
                       defaultLocation={loc || undefined}
                     />
@@ -445,87 +459,55 @@ export default async function Home({ searchParams }: Props) {
 
               {jobs.length > 0 ? (
                 <div className="space-y-4">
-                  {jobs.map((job: any, index: number) => {
-                    const jobSlug = getJobSlug(job);
-                    const detailUrl = `/job/${jobSlug}${queryParam}`;
-                    const displayJobTitle = isEnglish ? job.title : (job.title_es || job.title);
-                    
-                    return (
-                      <div key={job.id}>
-                        {/* CTA Newsletter in-feed */}
-                        {index === 6 && (
-                          <div className="my-6">
-                            <SubscribeForm 
-                              location={loc || "España"} 
-                              defaultTech={q || undefined}
-                              defaultLocation={loc || undefined}
-                            />
-                          </div>
-                        )}
-                        {/* AdSense inline in-feed */}
-                        {index === 5 && (
-                          <div className="my-4">
-                            <AdBanner variant="infeed" />
-                          </div>
-                        )}
-                        {/* Segundo AdSense inline in-feed */}
-                        {index === 15 && (
-                          <div className="my-4">
-                            <AdBanner variant="infeed" />
-                          </div>
-                        )}
-
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800/80 hover:shadow-md transition-shadow">
-                          <div className="flex gap-4 items-start">
-                            <CompanyLogo company={job.company} size={12} />
-                            <div className="flex-grow w-full flex flex-col md:flex-row justify-between md:items-start gap-4">
-                              <div className="w-full">
-                                <Link href={detailUrl} prefetch={index < 5 ? true : false}>
-                                  <h3 className="text-xl font-semibold text-indigo-900 dark:text-indigo-400 hover:text-indigo-650 dark:hover:text-indigo-300 transition-colors">
-                                    {displayJobTitle}
-                                  </h3>
-                                </Link>
-                                <p className="text-gray-650 dark:text-slate-350 font-medium mt-1">{job.company}</p>
-                                
-                                <div className="flex flex-wrap gap-3 mt-3 text-sm text-gray-500 dark:text-slate-400">
-                                  <a 
-                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-1 bg-gray-50 dark:bg-slate-850 px-2 py-1 rounded hover:bg-indigo-50 dark:hover:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 font-medium border border-gray-200 dark:border-slate-800"
-                                  >
-                                    📍 {job.location}
-                                  </a>
-                                  <span className="bg-gray-50 dark:bg-slate-850 px-2 py-1 rounded border border-gray-200 dark:border-slate-800">💰 {job.salary || (isEnglish ? "Negotiable" : "Consultar")}</span>
-                                  <span className="bg-gray-50 dark:bg-slate-850 px-2 py-1 rounded border border-gray-200 dark:border-slate-800">📅 {new Date(job.created_at).toLocaleDateString()}</span>
-                                </div>
-                              </div>
- 
-                              <Link 
-                                href={detailUrl}
-                                prefetch={index < 5 ? true : false}
-                                className="px-5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/30 dark:hover:bg-indigo-950/60 dark:text-indigo-300 font-semibold rounded-lg transition-colors text-center shrink-0 cursor-pointer"
-                              >
-                                {isEnglish ? 'View offer' : 'Ver oferta'}
-                              </Link>
-                            </div>
-                          </div>
+                  {jobs.map((job: any, index: number) => (
+                    <div key={job.id}>
+                      {/* CTA Newsletter in-feed */}
+                      {index === 6 && (
+                        <div className="my-5">
+                          <SubscribeForm
+                            location={loc || "España"}
+                            defaultTech={q || undefined}
+                            defaultLocation={loc || undefined}
+                          />
                         </div>
-                      </div>
-                    );
-                  })}
+                      )}
+                      {/* AdSense inline in-feed */}
+                      {index === 5 && (
+                        <div className="my-4">
+                          <AdBanner variant="infeed" />
+                        </div>
+                      )}
+                      {/* Segundo AdSense inline in-feed */}
+                      {index === 15 && (
+                        <div className="my-4">
+                          <AdBanner variant="infeed" />
+                        </div>
+                      )}
+
+                      <JobCard
+                        job={job}
+                        lang={lang}
+                        prefetch={index < 5}
+                        variant="feed"
+                      />
+                    </div>
+                  ))}
 
                   {/* Carga Incremental client-side */}
                   <LoadMoreJobs lang={lang} initiallyHasMore={hasNextPage} />
                 </div>
               ) : (
-                <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-xl border border-gray-150 dark:border-slate-800/80 shadow-sm">
-                  <span className="text-5xl block mb-4">📭</span>
-                  <p className="text-lg text-gray-800 dark:text-slate-200 font-medium">
+                <div className="ui-card rounded-xl text-center py-14 px-6">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[var(--text-muted)] flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z" />
+                    </svg>
+                  </div>
+                  <p className="text-base text-[var(--text-primary)] font-semibold">
                     {isEnglish ? 'No offers were found matching your criteria.' : 'No se encontraron ofertas con esos filtros.'}
                   </p>
-                  <p className="text-gray-450 dark:text-slate-500 mt-2 text-sm max-w-sm mx-auto leading-relaxed">
-                    {isEnglish 
+                  <p className="text-[var(--text-secondary)] mt-1.5 text-sm max-w-sm mx-auto leading-relaxed">
+                    {isEnglish
                       ? 'Try clearing some filters or searching for general keywords like React, Node or Python.'
                       : 'Intenta limpiar algunos filtros avanzados o buscar términos generales como React, Java o Python.'}
                   </p>
@@ -536,12 +518,12 @@ export default async function Home({ searchParams }: Props) {
 
           {/* COLUMNA LATERAL (Widgets de Retención y AdSense Sticky) */}
           <div className="lg:col-span-1 space-y-6">
-            <div className="lg:sticky lg:top-20 space-y-6">
-              
+            <div className="lg:sticky lg:top-20 space-y-5">
+
               {/* Widget: Boletín de Empleo */}
               <div className="hidden lg:block">
-                <SubscribeForm 
-                  location={loc || "España"} 
+                <SubscribeForm
+                  location={loc || "España"}
                   defaultTech={q || undefined}
                   defaultLocation={loc || undefined}
                 />
@@ -571,17 +553,17 @@ export default async function Home({ searchParams }: Props) {
       </div>
 
       {/* SECCIÓN EDITORIAL INFERIOR E-E-A-T */}
-      <div className="bg-white border-t border-gray-200 dark:bg-slate-900/60 dark:border-slate-800/80 mt-12 py-16">
-        <div className="max-w-7xl mx-auto px-4 space-y-16">
-          
+      <div className="bg-[var(--bg-surface)] border-t border-[var(--border-subtle)] mt-12 py-14">
+        <div className="max-w-7xl mx-auto px-4 space-y-14">
+
           {/* 1. ¿Por qué Portal Trabajo IT? & Estadísticas */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-4 text-sm leading-relaxed text-gray-650 dark:text-slate-350">
-              <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+            <div className="lg:col-span-2 space-y-4 text-sm leading-relaxed text-[var(--text-secondary)]">
+              <h2 className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">
                 {isEnglish ? 'Why search for job offers on Portal Trabajo IT?' : '¿Por qué buscar ofertas de empleo en Portal Trabajo IT?'}
               </h2>
               <p>
-                {isEnglish 
+                {isEnglish
                   ? 'Portal Trabajo IT is not just another job portal. We are a specialized technology job aggregator that indexes, cleans, and deduplicates hundreds of vacancies daily from major IT boards and software companies in Spain. Our mission is to save you time and offer complete salary transparency.'
                   : 'Portal Trabajo IT no es un portal de empleo más. Somos un agregador de ofertas de trabajo especializado en tecnología que rastrea, limpia y deduplica cientos de vacantes diariamente procedentes de las principales bolsas de empleo y empresas de software en España. Nuestra misión es ahorrarte tiempo y ofrecerte transparencia salarial.'}
               </p>
@@ -593,36 +575,36 @@ export default async function Home({ searchParams }: Props) {
             </div>
 
             {/* 2. Estadísticas en tiempo real */}
-            <div className="bg-indigo-50/50 dark:bg-indigo-950/20 p-6 rounded-2xl border border-indigo-100/50 dark:border-indigo-900/50 flex flex-col justify-center gap-4 text-center">
-              <h3 className="text-xs font-bold text-indigo-950 dark:text-indigo-300 uppercase tracking-widest">
+            <div className="ui-card rounded-xl p-6 flex flex-col justify-center gap-4 text-center">
+              <h3 className="font-mono text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-widest">
                 {isEnglish ? 'Live Portal Stats' : 'Estadísticas en Tiempo Real'}
               </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-indigo-50 dark:border-slate-800 shadow-sm">
-                  <span className="text-2xl font-black text-indigo-900 dark:text-indigo-400 block">{totalJobs.toLocaleString('es-ES')}</span>
-                  <span className="text-[10px] text-gray-550 dark:text-slate-400 font-bold uppercase tracking-wide">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-[var(--bg-subtle)] p-4 rounded-lg border border-[var(--border-subtle)]">
+                  <span className="font-mono tabular-nums text-2xl font-bold text-[var(--text-primary)] block">{totalJobs.toLocaleString('es-ES')}</span>
+                  <span className="font-mono text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
                     {isEnglish ? 'Offers Today' : 'Ofertas Activas'}
                   </span>
                 </div>
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-indigo-50 dark:border-slate-800 shadow-sm">
-                  <span className="text-2xl font-black text-indigo-900 dark:text-indigo-400 block">100% IT</span>
-                  <span className="text-[10px] text-gray-550 dark:text-slate-400 font-bold uppercase tracking-wide">
+                <div className="bg-[var(--bg-subtle)] p-4 rounded-lg border border-[var(--border-subtle)]">
+                  <span className="font-mono tabular-nums text-2xl font-bold text-[var(--accent-primary)] block">100% IT</span>
+                  <span className="font-mono text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
                     {isEnglish ? 'Verified Tech' : 'Empleo Tech'}
                   </span>
                 </div>
               </div>
-              <p className="text-[11px] text-gray-550 dark:text-slate-400 m-0">
-                {isEnglish ? 'Data updated automatically every 6 hours' : 'Datos actualizados de forma automática cada 6 horas'}
+              <p className="font-mono text-[11px] text-[var(--text-muted)] m-0">
+                {isEnglish ? 'Updated automatically every 6 hours' : 'Actualización automática cada 6 horas'}
               </p>
             </div>
           </div>
 
           {/* 3. Tecnologías más buscadas */}
-          <div className="border-t border-gray-150 dark:border-slate-800/80 pt-8">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+          <div className="border-t border-[var(--border-subtle)] pt-8">
+            <h3 className="text-base font-semibold text-[var(--text-primary)] mb-4">
               {isEnglish ? 'Most Searched IT Categories in Spain' : 'Tecnologías y Categorías más buscadas en España'}
             </h3>
-            <div className="flex flex-wrap gap-2.5">
+            <div className="flex flex-wrap gap-2">
               {[
                 { label: 'React Developer', slug: 'react' },
                 { label: 'Angular', slug: 'angular' },
@@ -639,12 +621,12 @@ export default async function Home({ searchParams }: Props) {
                 { label: 'C# / .NET', slug: 'csharp' },
                 { label: 'Flutter Developer', slug: 'flutter' }
               ].map((tech) => (
-                <Link 
-                  key={tech.slug} 
+                <Link
+                  key={tech.slug}
                   href={`/trabajos/${tech.slug}${queryParam}`}
-                  className="text-xs bg-gray-50 hover:bg-indigo-50/50 hover:text-indigo-600 dark:bg-slate-850 dark:hover:bg-slate-800 dark:text-slate-300 dark:hover:text-indigo-400 px-3.5 py-2 rounded-lg font-semibold border border-gray-200 dark:border-slate-800 shadow-sm transition-all"
+                  className="font-mono text-xs bg-[var(--bg-subtle)] hover:bg-[var(--accent-tint)] hover:text-[var(--accent-primary)] text-[var(--text-secondary)] px-3 py-1.5 rounded-md font-medium border border-[var(--border-subtle)] hover:border-[var(--border-accent)] transition-colors"
                 >
-                  🔍 {tech.label}
+                  {tech.label}
                 </Link>
               ))}
             </div>
@@ -652,35 +634,35 @@ export default async function Home({ searchParams }: Props) {
 
           {/* 4. Últimos artículos del Blog */}
           {lastPosts && lastPosts.length > 0 && (
-            <div className="border-t border-gray-150 dark:border-slate-800/80 pt-8">
-              <div className="flex items-center justify-between gap-4 mb-6">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+            <div className="border-t border-[var(--border-subtle)] pt-8">
+              <div className="flex items-center justify-between gap-4 mb-5">
+                <h3 className="text-lg font-semibold text-[var(--text-primary)]">
                   {isEnglish ? 'Latest Career & IT Guides' : 'Últimas Guías de Carrera e Informática'}
                 </h3>
-                <Link href={`/blog${queryParam}`} className="text-sm font-bold text-indigo-650 hover:text-indigo-850 dark:text-indigo-400 dark:hover:text-indigo-300 hover:underline">
+                <Link href={`/blog${queryParam}`} className="text-xs font-medium text-[var(--accent-primary)] hover:underline">
                   {isEnglish ? 'View Blog →' : 'Ver todo el Blog →'}
                 </Link>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {lastPosts.map((post: any) => (
-                  <div key={post.slug} className="bg-gray-50 dark:bg-slate-850/40 p-5 rounded-2xl border border-gray-200 dark:border-slate-800/80 flex flex-col justify-between hover:shadow-sm transition-shadow">
+                  <div key={post.slug} className="ui-card ui-card-interactive p-5 rounded-xl flex flex-col justify-between">
                     <div>
-                      <span className="text-[10px] font-bold text-indigo-650 dark:text-indigo-400 uppercase tracking-widest">
+                      <span className="font-mono text-[10px] font-semibold text-[var(--accent-primary)] uppercase tracking-widest">
                         {post.category || (isEnglish ? 'Career' : 'Orientación')}
                       </span>
-                      <h4 className="font-bold text-gray-900 dark:text-white text-base mt-2 mb-1.5 line-clamp-2">
-                        <Link href={`/blog/${post.slug}${queryParam}`} className="hover:text-indigo-650 hover:underline transition-colors">
+                      <h4 className="font-semibold text-[var(--text-primary)] text-sm sm:text-base mt-2 mb-1.5 line-clamp-2">
+                        <Link href={`/blog/${post.slug}${queryParam}`} className="hover:text-[var(--accent-primary)] transition-colors">
                           {post.title}
                         </Link>
                       </h4>
-                      <p className="text-xs text-gray-550 dark:text-slate-400 line-clamp-3 leading-relaxed mb-4">
+                      <p className="text-xs text-[var(--text-secondary)] line-clamp-3 leading-relaxed mb-4">
                         {post.excerpt}
                       </p>
                     </div>
-                    <Link 
+                    <Link
                       href={`/blog/${post.slug}${queryParam}`}
-                      className="text-xs font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1"
+                      className="text-xs font-medium text-[var(--accent-primary)] hover:underline flex items-center gap-1"
                     >
                       {isEnglish ? 'Read article' : 'Leer artículo'} →
                     </Link>
@@ -691,17 +673,17 @@ export default async function Home({ searchParams }: Props) {
           )}
 
           {/* 5. Preguntas Frecuentes (FAQ Visual para SEO y E-E-A-T) */}
-          <div className="border-t border-gray-150 dark:border-slate-800/80 pt-8 mt-8">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
-              ❓ {isEnglish ? 'Frequently Asked Questions' : 'Preguntas Frecuentes sobre Portal Trabajo'}
+          <div className="border-t border-[var(--border-subtle)] pt-8">
+            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-5">
+              {isEnglish ? 'Frequently Asked Questions' : 'Preguntas Frecuentes sobre Portal Trabajo'}
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {faqItems.map((item, idx) => (
-                <div key={idx} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm flex flex-col justify-start">
-                  <h4 className="font-bold text-gray-900 dark:text-white text-base mb-2.5">
+                <div key={idx} className="ui-card p-5 rounded-xl flex flex-col justify-start">
+                  <h4 className="font-semibold text-[var(--text-primary)] text-sm sm:text-base mb-2">
                     {item.question}
                   </h4>
-                  <p className="text-xs text-gray-550 dark:text-slate-400 leading-relaxed m-0">
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed m-0">
                     {item.answer}
                   </p>
                 </div>

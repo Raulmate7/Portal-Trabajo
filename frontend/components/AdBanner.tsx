@@ -619,8 +619,16 @@ export default function AdBanner({
     }
   }
 
-  // Si no está configurada la variable de entorno o hay un error de carga, usar afiliación Udemy
+  // Si no está configurada la variable de entorno o hay un error de carga, usar integración editorial nativa
   if (!adsenseClientId || adError) {
+    const providerName = ad.id.includes('coursera') || ad.id.includes('react-advanced') || ad.id.includes('devops-adv')
+      ? 'Coursera'
+      : ad.id.includes('linkedin')
+      ? 'LinkedIn'
+      : ad.id.includes('books')
+      ? 'Amazon'
+      : 'Udemy';
+
     if (variant === 'inline' || variant === 'leaderboard') {
       if (raw) {
         return (
@@ -628,37 +636,40 @@ export default function AdBanner({
             href={getUtmUrl(ad.href, ad.id, variant)}
             target="_blank"
             rel="noopener noreferrer sponsored"
-            className={`flex items-center justify-between w-full h-[60px] px-4 rounded-lg bg-gradient-to-r ${ad.colors} border shadow-sm text-xs font-semibold`}
+            className="ui-card ui-card-interactive flex items-center justify-between w-full h-[60px] px-4 rounded-xl text-xs font-medium overflow-hidden relative"
             onClick={() => sendGAEvent({ event: 'click_affiliate', value: ad.id })}
           >
-            <span className="truncate mr-2 font-bold text-gray-900">
-              <span className="text-[10px] uppercase tracking-wider text-gray-500 mr-1.5">[Patrocinado]</span>
-              {ad.emoji} {ad.title}
+            <span aria-hidden="true" className="absolute inset-y-0 left-0 w-0.5 bg-[var(--status-amber)]" />
+            <span className="truncate mr-3 font-medium text-[var(--text-primary)]">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--status-amber)] mr-2">[Patrocinado]</span>
+              {ad.title}
             </span>
-            <span className={`shrink-0 px-3 py-1 rounded text-[11px] font-bold ${ad.ctaColors}`}>{ad.cta}</span>
+            <span className="shrink-0 px-3 py-1 rounded-md bg-[var(--accent-primary)] text-white text-[11px] font-medium">
+              {ad.cta}
+            </span>
           </a>
         );
       }
       return (
-        <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-xl bg-gradient-to-r ${ad.colors} border shadow-sm`}>
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">{ad.emoji}</span>
-            <div>
-              <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-0.5">
-                Patrocinado · Enlace de afiliación
+        <div className="relative overflow-hidden ui-card ui-card-interactive rounded-xl border-[var(--border-featured)] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <span aria-hidden="true" className="absolute inset-y-0 left-0 w-0.5 bg-[var(--status-amber)]" />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-mono text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md bg-[var(--status-amber-tint)] text-[var(--status-amber)] border border-[var(--border-featured)]">
+                Patrocinado · {providerName}
               </span>
-              <h4 className="font-bold text-gray-900 text-sm">{ad.title}</h4>
-              <p className="text-gray-600 text-xs">{ad.desc}</p>
             </div>
+            <h4 className="font-semibold text-[var(--text-primary)] text-sm sm:text-[15px] leading-snug">{ad.title}</h4>
+            <p className="text-[var(--text-secondary)] text-xs mt-0.5 line-clamp-1">{ad.desc}</p>
           </div>
           <a
             href={getUtmUrl(ad.href, ad.id, variant)}
             target="_blank"
             rel="noopener noreferrer sponsored"
-            className={`shrink-0 px-5 py-2 text-sm font-bold rounded-lg transition-colors shadow-sm ${ad.ctaColors}`}
+            className="ui-btn-press shrink-0 px-4 py-2 text-xs font-medium rounded-lg bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white transition-colors text-center"
             onClick={() => sendGAEvent({ event: 'click_affiliate', value: ad.id })}
           >
-            {ad.cta}
+            {ad.cta} →
           </a>
         </div>
       );
@@ -666,26 +677,28 @@ export default function AdBanner({
 
     if (variant === 'multiplex') {
       return (
-        <div className="w-full mt-8 p-6 bg-white border border-gray-100 rounded-xl shadow-sm">
-          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-4 block text-center">Patrocinado · Enlaces de afiliación</span>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="w-full mt-8 ui-card rounded-xl p-5 sm:p-6">
+          <span className="font-mono text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-widest mb-4 block text-center">
+            Recursos Recomendados · Patrocinado
+          </span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {ADS.map((adItem) => (
-              <div key={adItem.id} className={`p-5 rounded-xl bg-gradient-to-br ${adItem.colors} border shadow-sm flex flex-col justify-between h-full`}>
+              <div key={adItem.id} className="ui-card ui-card-interactive p-4 rounded-xl flex flex-col justify-between h-full bg-[var(--bg-subtle)]">
                 <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-2xl">{adItem.emoji}</span>
-                  </div>
-                  <h4 className="font-bold text-gray-900 text-sm mb-1">{adItem.title}</h4>
-                  <p className="text-gray-600 text-xs mb-4 leading-relaxed">{adItem.desc}</p>
+                  <span className="inline-block font-mono text-[10px] text-[var(--status-amber)] uppercase tracking-wider mb-2">
+                    Patrocinado
+                  </span>
+                  <h4 className="font-semibold text-[var(--text-primary)] text-sm mb-1 leading-snug">{adItem.title}</h4>
+                  <p className="text-[var(--text-secondary)] text-xs mb-4 leading-relaxed line-clamp-2">{adItem.desc}</p>
                 </div>
                 <a
                   href={getUtmUrl(adItem.href, adItem.id, variant)}
                   target="_blank"
                   rel="noopener noreferrer sponsored"
-                  className={`block w-full text-center px-4 py-2 text-xs font-bold rounded-lg transition-colors shadow-sm ${adItem.ctaColors}`}
+                  className="ui-btn-press block w-full text-center px-3.5 py-2 text-xs font-medium rounded-lg bg-[var(--bg-surface)] hover:border-[var(--border-accent)] border border-[var(--border-subtle)] text-[var(--text-primary)] transition-colors"
                   onClick={() => sendGAEvent({ event: 'click_affiliate', value: adItem.id })}
                 >
-                  {adItem.cta}
+                  {adItem.cta} →
                 </a>
               </div>
             ))}
@@ -693,65 +706,61 @@ export default function AdBanner({
         </div>
       );
     }
+
     if (variant === 'infeed') {
       const isUrgent = ad.id === 'bootcamp' || ad.id === 'linkedin-premium';
       return (
-        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 dark:border-slate-800 overflow-hidden flex flex-col h-full text-left">
-          <div className="p-6 flex-grow">
-            <div className="flex justify-between items-start gap-4 mb-3">
-              <div className="flex gap-3.5 items-start">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-550 to-violet-650 flex items-center justify-center text-white shrink-0 font-bold text-lg">
-                  {ad.emoji}
-                </div>
-                <div className="flex flex-col gap-1.5 font-sans">
-                  <h3 className="text-base font-bold text-gray-900 dark:text-white leading-tight">
-                    {ad.title}
-                  </h3>
-                  <div className="flex flex-wrap gap-1.5">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-900/50 uppercase tracking-wider shrink-0">
-                      💡 Recomendado
-                    </span>
-                    {isUrgent && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-900/50 uppercase tracking-wider shrink-0">
-                        🔥 Popular
-                      </span>
-                    )}
-                  </div>
-                </div>
+        <article className="relative group ui-card ui-card-interactive rounded-xl border-[var(--border-featured)] p-4 sm:p-5 flex flex-col h-full text-left overflow-hidden">
+          <span aria-hidden="true" className="absolute inset-y-0 left-0 w-0.5 bg-[var(--status-amber)]" />
+          <div className="flex justify-between items-start gap-3">
+            <div className="flex gap-3.5 items-start min-w-0 flex-1">
+              <div className="w-10 h-10 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] flex items-center justify-center font-mono text-xs font-semibold text-[var(--accent-primary)] shrink-0">
+                PRO
               </div>
-
-              <div className="flex flex-col items-end gap-2 shrink-0">
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full border bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-950/30 dark:text-violet-300 dark:border-violet-900/50 whitespace-nowrap">
-                  Patrocinado
-                </span>
+              <div className="min-w-0 flex-1 flex flex-col gap-1">
+                <h3 className="text-[15px] sm:text-base font-semibold tracking-tight text-[var(--text-primary)] leading-snug line-clamp-2">
+                  {ad.title}
+                </h3>
+                <div className="flex flex-wrap items-center gap-x-2 text-xs text-[var(--text-secondary)]">
+                  <span className="font-medium text-[var(--text-primary)]">{providerName}</span>
+                  <span className="text-[var(--text-muted)]" aria-hidden="true">·</span>
+                  <span>Online / Flexible</span>
+                </div>
               </div>
             </div>
 
-            <div className="flex items-center text-xs text-gray-500 dark:text-slate-400 mb-4 font-sans">
-              <span className="font-semibold">
-                {ad.id.includes('coursera') || ad.id.includes('react-advanced') || ad.id.includes('devops-adv') ? 'Coursera' : ad.id.includes('linkedin') ? 'LinkedIn' : ad.id.includes('books') ? 'Amazon' : 'Udemy'}
-              </span>
-              <span className="mx-2">•</span>
-              <span>Online / Flexible</span>
-            </div>
-
-            <p className="text-xs text-gray-650 dark:text-slate-350 line-clamp-2 mb-4 leading-relaxed font-sans">
-              {ad.desc}
-            </p>
+            <span className="font-mono text-[10px] font-semibold px-2 py-0.5 rounded-md border bg-[var(--status-amber-tint)] text-[var(--status-amber)] border-[var(--border-featured)] uppercase tracking-wider shrink-0">
+              Patrocinado
+            </span>
           </div>
 
-          <div className="px-6 pb-6 mt-auto">
+          <div className="flex flex-wrap items-center gap-1.5 mt-3">
+            <span className="font-mono text-[10px] font-medium px-2 py-0.5 rounded-md border bg-[var(--accent-tint)] text-[var(--accent-primary)] border-[var(--border-accent)] uppercase tracking-wider">
+              Recurso Verificado
+            </span>
+            {isUrgent && (
+              <span className="font-mono text-[10px] font-medium px-2 py-0.5 rounded-md border bg-[var(--status-emerald-tint)] text-[var(--status-emerald)] border-[var(--status-emerald)]/25 uppercase tracking-wider">
+                Popular
+              </span>
+            )}
+          </div>
+
+          <p className="text-xs sm:text-[13px] text-[var(--text-secondary)] line-clamp-2 mt-2.5 leading-relaxed">
+            {ad.desc}
+          </p>
+
+          <div className="mt-auto pt-3.5 flex items-center justify-end">
             <a
               href={getUtmUrl(ad.href, ad.id, variant)}
               target="_blank"
               rel="noopener noreferrer sponsored"
-              className={`block w-full text-center font-bold py-2.5 px-4 rounded-lg transition-colors duration-205 text-sm ${ad.ctaColors}`}
+              className="ui-btn-press inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white text-xs font-medium transition-colors"
               onClick={() => sendGAEvent({ event: 'click_affiliate', value: ad.id })}
             >
-              {ad.cta}
+              {ad.cta} →
             </a>
           </div>
-        </div>
+        </article>
       );
     }
 
@@ -762,30 +771,34 @@ export default function AdBanner({
           href={getUtmUrl(ad.href, ad.id, variant)}
           target="_blank"
           rel="noopener noreferrer sponsored"
-          className={`block p-3.5 rounded-lg bg-gradient-to-br ${ad.colors} border shadow-sm text-xs text-center`}
+          className="ui-card ui-card-interactive block p-3.5 rounded-xl text-xs text-center"
           onClick={() => sendGAEvent({ event: 'click_affiliate', value: ad.id })}
         >
-          <span className="block font-bold text-gray-900 mb-1.5">{ad.emoji} {ad.title}</span>
-          <span className={`block w-full py-1.5 rounded text-[11px] font-bold ${ad.ctaColors}`}>{ad.cta}</span>
+          <span className="block font-semibold text-[var(--text-primary)] mb-2">{ad.title}</span>
+          <span className="block w-full py-1.5 rounded-md bg-[var(--accent-primary)] text-white text-[11px] font-medium">
+            {ad.cta}
+          </span>
         </a>
       );
     }
     return (
-      <div className={`p-5 rounded-xl bg-gradient-to-br ${ad.colors} border shadow-sm`}>
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-2xl">{ad.emoji}</span>
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Patrocinado</p>
+      <div className="relative overflow-hidden ui-card ui-card-interactive rounded-xl border-[var(--border-featured)] p-5">
+        <span aria-hidden="true" className="absolute inset-y-0 left-0 w-0.5 bg-[var(--status-amber)]" />
+        <div className="flex items-center justify-between gap-2 mb-2.5">
+          <span className="font-mono text-[10px] font-semibold text-[var(--status-amber)] uppercase tracking-wider">
+            Patrocinado · {providerName}
+          </span>
         </div>
-        <h4 className="font-bold text-gray-900 text-sm mb-1">{ad.title}</h4>
-        <p className="text-gray-600 text-xs mb-4 leading-relaxed">{ad.desc}</p>
+        <h4 className="font-semibold text-[var(--text-primary)] text-sm mb-1.5 leading-snug">{ad.title}</h4>
+        <p className="text-[var(--text-secondary)] text-xs mb-4 leading-relaxed">{ad.desc}</p>
         <a
           href={getUtmUrl(ad.href, ad.id, variant)}
           target="_blank"
           rel="noopener noreferrer sponsored"
-          className={`block w-full text-center px-4 py-2.5 text-sm font-bold rounded-lg transition-colors shadow-sm ${ad.ctaColors}`}
+          className="ui-btn-press block w-full text-center px-4 py-2 text-xs font-medium rounded-lg bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white transition-colors"
           onClick={() => sendGAEvent({ event: 'click_affiliate', value: ad.id })}
         >
-          {ad.cta}
+          {ad.cta} →
         </a>
       </div>
     );
@@ -794,26 +807,25 @@ export default function AdBanner({
   // Renderizado de la variante nativa In-feed de AdSense
   if (variant === 'infeed') {
     return (
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 dark:border-slate-800 overflow-hidden flex flex-col h-full p-4 items-center">
-        <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mb-2 block text-center">Anuncio Patrocinado</span>
-        <div 
-          className={`w-full flex justify-center items-center overflow-hidden transition-all duration-300 relative bg-gradient-to-r from-gray-50 via-gray-100 to-gray-50 dark:from-slate-800 dark:via-slate-800/80 dark:to-slate-800 rounded-lg border border-gray-100/50 dark:border-slate-800/50 ${
+      <div className="ui-card rounded-xl overflow-hidden flex flex-col h-full p-4 items-center">
+        <span className="font-mono text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-widest mb-2 block text-center">Anuncio Patrocinado</span>
+        <div
+          className={`w-full flex justify-center items-center overflow-hidden relative bg-[var(--bg-subtle)] rounded-lg border border-[var(--border-subtle)] ${
             isLoading ? 'animate-pulse' : ''
           } flex-grow`}
           style={{ minHeight: '250px' }}
         >
           {isLoading && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-gray-300 dark:text-slate-650">
-              <span className="text-xl mb-1">📢</span>
-              <span className="text-[9px] uppercase tracking-wider font-medium">Cargando anuncio...</span>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-[var(--text-muted)]">
+              <span className="font-mono text-[10px] uppercase tracking-wider">Cargando anuncio...</span>
             </div>
           )}
           <ins
             key={refreshKey}
             ref={insRef}
             className="adsbygoogle relative z-10"
-            style={{ 
-              display: 'block', 
+            style={{
+              display: 'block',
               width: '100%',
               textAlign: 'center'
             }}
@@ -829,25 +841,23 @@ export default function AdBanner({
   // Renderizado del bloque Multiplex de AdSense
   if (variant === 'multiplex') {
     return (
-      <div className="w-full overflow-hidden bg-white border border-gray-100 rounded-xl shadow-sm p-4 mt-8 flex flex-col items-center">
-        <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mb-2 block text-center">Contenido Patrocinado</span>
-        <div 
-          className={`w-full flex justify-center items-center overflow-hidden relative bg-gradient-to-r from-gray-50 via-gray-100 to-gray-50 rounded-lg border border-gray-100/50 ${isLoading ? 'animate-pulse' : ''}`}
+      <div className="w-full overflow-hidden ui-card rounded-xl p-4 mt-8 flex flex-col items-center">
+        <span className="font-mono text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-widest mb-2 block text-center">Contenido Patrocinado</span>
+        <div
+          className={`w-full flex justify-center items-center overflow-hidden relative bg-[var(--bg-subtle)] rounded-lg border border-[var(--border-subtle)] ${isLoading ? 'animate-pulse' : ''}`}
           style={{ minHeight: '250px' }}
         >
-          {/* Fondo elegante del placeholder que se tapará cuando cargue el anuncio */}
           {isLoading && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-gray-300">
-              <span className="text-2xl mb-1">📰</span>
-              <span className="text-[10px] uppercase tracking-wider font-medium">Recomendados para ti</span>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-[var(--text-muted)]">
+              <span className="font-mono text-[10px] uppercase tracking-wider">Recomendados para ti</span>
             </div>
           )}
           <ins
             key={refreshKey}
             ref={insRef}
             className="adsbygoogle relative z-10"
-            style={{ 
-              display: 'block', 
+            style={{
+              display: 'block',
               width: '100%',
               textAlign: 'center'
             }}
@@ -866,26 +876,25 @@ export default function AdBanner({
   // Renderizado del formato Leaderboard de AdSense
   if (variant === 'leaderboard') {
     return (
-      <div className="w-full overflow-hidden bg-white border border-gray-100 rounded-xl shadow-sm p-4 flex flex-col items-center">
-        <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mb-2 block text-center">Anuncio</span>
-        <div 
-          className={`w-full flex justify-center items-center overflow-hidden transition-all duration-300 relative bg-gradient-to-r from-gray-50 via-gray-100 to-gray-50 rounded-lg border border-gray-100/50 ${
+      <div className="w-full overflow-hidden ui-card rounded-xl p-4 flex flex-col items-center">
+        <span className="font-mono text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-widest mb-2 block text-center">Anuncio</span>
+        <div
+          className={`w-full flex justify-center items-center overflow-hidden relative bg-[var(--bg-subtle)] rounded-lg border border-[var(--border-subtle)] ${
             isLoading ? 'animate-pulse' : ''
           }`}
           style={{ minHeight: '90px', maxWidth: '728px' }}
         >
           {isLoading && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-gray-300">
-              <span className="text-xl mb-1">📢</span>
-              <span className="text-[9px] uppercase tracking-wider font-medium">Cargando anuncio...</span>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-[var(--text-muted)]">
+              <span className="font-mono text-[10px] uppercase tracking-wider">Cargando anuncio...</span>
             </div>
           )}
           <ins
             key={refreshKey}
             ref={insRef}
             className="adsbygoogle relative z-10"
-            style={{ 
-              display: 'inline-block', 
+            style={{
+              display: 'inline-block',
               width: '728px',
               height: '90px',
               textAlign: 'center'
@@ -902,25 +911,25 @@ export default function AdBanner({
 
   // Renderizado del banner estándar de Google AdSense (inline / sidebar)
   if (raw) {
-    const rawMinHStyle = variant === 'inline' 
-      ? { minHeight: '90px' } 
+    const rawMinHStyle = variant === 'inline'
+      ? { minHeight: '90px' }
       : { minHeight: '250px' };
     return (
-      <div 
+      <div
         className={`w-full flex justify-center items-center overflow-hidden relative ${isLoading ? 'animate-pulse' : ''}`}
         style={rawMinHStyle}
       >
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-gray-300 dark:text-slate-600">
-            <span className="text-[9px] uppercase tracking-wider font-medium">Cargando...</span>
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-[var(--text-muted)]">
+            <span className="font-mono text-[10px] uppercase tracking-wider">Cargando...</span>
           </div>
         )}
         <ins
           key={refreshKey}
           ref={insRef}
           className="adsbygoogle relative z-10"
-          style={{ 
-            display: 'block', 
+          style={{
+            display: 'block',
             width: '100%',
             textAlign: 'center'
           }}
@@ -933,32 +942,30 @@ export default function AdBanner({
     );
   }
 
-  const wrapperMinHStyle = variant === 'inline' 
-    ? { minHeight: '90px' } 
+  const wrapperMinHStyle = variant === 'inline'
+    ? { minHeight: '90px' }
     : { minHeight: '250px' };
 
   return (
-    <div className="w-full overflow-hidden bg-white border border-gray-100 rounded-xl shadow-sm p-4 flex flex-col items-center">
-      <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mb-2 block text-center">Anuncio</span>
-      <div 
-        className={`w-full flex justify-center items-center overflow-hidden transition-all duration-300 relative bg-gradient-to-r from-gray-50 via-gray-100 to-gray-50 rounded-lg border border-gray-100/50 ${
+    <div className="w-full overflow-hidden ui-card rounded-xl p-4 flex flex-col items-center">
+      <span className="font-mono text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-widest mb-2 block text-center">Anuncio</span>
+      <div
+        className={`w-full flex justify-center items-center overflow-hidden relative bg-[var(--bg-subtle)] rounded-lg border border-[var(--border-subtle)] ${
           isLoading ? 'animate-pulse' : ''
         }`}
         style={wrapperMinHStyle}
       >
-        {/* Fondo elegante del placeholder que se tapará cuando cargue el anuncio */}
         {isLoading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-gray-300">
-            <span className="text-xl mb-1">📢</span>
-            <span className="text-[9px] uppercase tracking-wider font-medium">Cargando anuncio...</span>
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-[var(--text-muted)]">
+            <span className="font-mono text-[10px] uppercase tracking-wider">Cargando anuncio...</span>
           </div>
         )}
         <ins
           key={refreshKey}
           ref={insRef}
           className="adsbygoogle relative z-10"
-          style={{ 
-            display: 'block', 
+          style={{
+            display: 'block',
             width: '100%',
             textAlign: 'center'
           }}

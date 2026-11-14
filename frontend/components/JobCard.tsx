@@ -25,9 +25,10 @@ interface JobCardProps {
   job: Job;
   lang?: string;
   prefetch?: boolean;
+  variant?: 'default' | 'feed';
 }
 
-export default function JobCard({ job, lang, prefetch }: JobCardProps) {
+export default function JobCard({ job, lang, prefetch, variant = 'default' }: JobCardProps) {
   const isEnglish = lang === 'en';
   const [compatScore, setCompatScore] = React.useState<number | null>(null);
 
@@ -54,23 +55,20 @@ export default function JobCard({ job, lang, prefetch }: JobCardProps) {
     }
   }, [job.title, job.description_snippet]);
 
-  const getCategoryColor = (cat: string | null | undefined) => {
-    const category = cat ? cat.toLowerCase() : 'otros';
+  const createdDate = job.created_at ? new Date(job.created_at) : null;
+  const diffMs = createdDate ? Math.max(0, Date.now() - createdDate.getTime()) : 0;
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  const isRecent = createdDate ? diffDays <= 1 : false;
+  const isExpiringSoon = createdDate ? diffDays >= 25 : false;
 
-    if (category.includes('frontend')) return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/30 dark:text-green-300 dark:border-green-900/50';
-    if (category.includes('backend')) return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-900/50';
-    if (category.includes('data')) return 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-900/50';
-    if (category.includes('cloud') || category.includes('devops')) return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/30 dark:text-orange-300 dark:border-orange-900/50';
-    if (category.includes('mobile')) return 'bg-pink-100 text-pink-800 border-pink-200 dark:bg-pink-950/30 dark:text-pink-300 dark:border-pink-900/50';
-    
-    return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700/50';
-  };
-
-  const createdDate = job.created_at ? new Date(job.created_at) : new Date();
-  const diffTime = Math.abs(new Date().getTime() - createdDate.getTime());
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  const isRecent = diffDays <= 1; 
-  const isExpiringSoon = diffDays >= 25; 
+  const relativeTime = createdDate
+    ? diffHours < 1
+      ? isEnglish ? 'just now' : 'ahora'
+      : diffHours < 24
+        ? isEnglish ? `${diffHours}h ago` : `hace ${diffHours}h`
+        : isEnglish ? `${diffDays}d ago` : `hace ${diffDays}d`
+    : null;
 
   const textToLower = `${job.title} ${job.description_snippet || ''}`.toLowerCase();
   const isUrgent = textToLower.includes('urgente') || textToLower.includes('incorporación inmediata') || textToLower.includes('incorporacion inmediata') || textToLower.includes('urgent');
@@ -81,132 +79,163 @@ export default function JobCard({ job, lang, prefetch }: JobCardProps) {
 
   const displayTitle = isEnglish ? job.title : (job.title_es || job.title);
 
+  const priorityBadges: Array<{ key: string; label: string; tone: 'accent' | 'danger' | 'emerald' | 'amber' }> = [];
+  if (compatScore !== null) {
+    priorityBadges.push({
+      key: 'compat',
+      label: `${compatScore}% ${isEnglish ? 'match' : 'match'}`,
+      tone: 'accent',
+    });
+  }
+  if (isUrgent) {
+    priorityBadges.push({
+      key: 'urgent',
+      label: isEnglish ? 'Urgent' : 'Urgente',
+      tone: 'danger',
+    });
+  }
+  if (isRecent) {
+    priorityBadges.push({
+      key: 'recent',
+      label: isEnglish ? 'New' : 'Reciente',
+      tone: 'emerald',
+    });
+  }
+  if (isExpiringSoon) {
+    priorityBadges.push({
+      key: 'expiring',
+      label: isEnglish ? 'Closing soon' : 'Últimos días',
+      tone: 'amber',
+    });
+  }
+  const visibleBadges = priorityBadges.slice(0, 2);
+
+  const badgeToneClasses: Record<'accent' | 'danger' | 'emerald' | 'amber', string> = {
+    accent: 'bg-[var(--accent-tint)] text-[var(--accent-primary)] border-[var(--border-accent)]',
+    danger: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
+    emerald: 'bg-[var(--status-emerald-tint)] text-[var(--status-emerald)] border-[var(--status-emerald)]/25',
+    amber: 'bg-[var(--status-amber-tint)] text-[var(--status-amber)] border-[var(--border-featured)]',
+  };
+
+  const hasSalaryStr = job.salary && job.salary !== 'Consultar' && job.salary !== 'Negotiable' && job.salary !== 'Ver salario';
+  let displaySalary = job.salary;
+  if (!hasSalaryStr && job.salary_min && job.salary_max) {
+    const minK = Math.round(job.salary_min / 1000);
+    const maxK = Math.round(job.salary_max / 1000);
+    displaySalary = `${minK}k–${maxK}k €`;
+  } else if (!hasSalaryStr && job.salary_min) {
+    const minK = Math.round(job.salary_min / 1000);
+    displaySalary = isEnglish ? `From ${minK}k €` : `Desde ${minK}k €`;
+  } else if (!hasSalaryStr && job.salary_max) {
+    const maxK = Math.round(job.salary_max / 1000);
+    displaySalary = isEnglish ? `Up to ${maxK}k €` : `Hasta ${maxK}k €`;
+  }
+  const hasKnownSalary = Boolean(displaySalary && displaySalary !== 'Consultar' && displaySalary !== 'Negotiable');
+
+  const titleLower = job.title.toLowerCase();
+  const techs = ['react', 'node', 'python', 'java', 'typescript', 'devops', 'php', 'sql', 'go', 'rust', 'angular', 'vue'];
+  const detectedTech = techs.find(t => titleLower.includes(t)) || null;
+
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 dark:border-slate-800 overflow-hidden flex flex-col h-full">
-      <div className="p-6 flex-grow">
-        <div className="flex justify-between items-start gap-4 mb-3">
-          <div className="flex gap-3.5 items-start">
-            <CompanyLogo company={job.company} size={10} />
-            <div className="flex flex-col gap-1.5">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
+    <article
+      data-variant={variant}
+      className="relative group ui-card ui-card-interactive rounded-xl p-4 sm:p-5 flex flex-col h-full"
+    >
+      {/* Cabecera: Logo + Título (stretched link) + Acciones rápidas */}
+      <div className="flex justify-between items-start gap-3">
+        <div className="flex gap-3.5 items-start min-w-0 flex-1">
+          <CompanyLogo company={job.company} size={10} />
+          <div className="min-w-0 flex-1 flex flex-col gap-1">
+            <h3 className="text-[15px] sm:text-base font-semibold tracking-tight text-[var(--text-primary)] leading-snug line-clamp-2">
+              <Link
+                href={detailUrl}
+                prefetch={prefetch}
+                className="after:absolute after:inset-0 after:z-0 focus:outline-none group-hover:text-[var(--accent-primary)] transition-colors duration-150"
+              >
                 {displayTitle}
-              </h3>
-              <div className="flex flex-wrap gap-1.5">
-                {compatScore !== null && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-300 dark:border-indigo-900/50 uppercase tracking-wider shrink-0">
-                    🎯 {compatScore}% {isEnglish ? 'match' : 'compatible'}
+              </Link>
+            </h3>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[var(--text-secondary)]">
+              <span className="font-medium text-[var(--text-primary)] truncate max-w-[180px]">
+                {job.company}
+              </span>
+              <span className="text-[var(--text-muted)]" aria-hidden="true">·</span>
+              <span className="truncate max-w-[180px]">{job.location}</span>
+              {relativeTime && (
+                <>
+                  <span className="text-[var(--text-muted)]" aria-hidden="true">·</span>
+                  <span className="font-mono tabular-nums text-[11px] text-[var(--text-muted)]">
+                    {relativeTime}
                   </span>
-                )}
-                {isRecent && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-900/50 uppercase tracking-wider shrink-0">
-                    {isEnglish ? '🆕 Recent' : '🆕 Reciente'}
-                  </span>
-                )}
-                {isUrgent && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200 dark:bg-rose-950/30 dark:text-rose-300 dark:border-rose-900/50 uppercase tracking-wider shrink-0">
-                    {isEnglish ? '🔥 Urgent' : '🔥 Urgente'}
-                  </span>
-                )}
-                {isExpiringSoon && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-900/50 uppercase tracking-wider shrink-0">
-                    {isEnglish ? '⚠️ Expiring soon' : '⚠️ Caduca pronto'}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex flex-col items-end gap-2 shrink-0">
-            <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${getCategoryColor(job.category)}`}>
-              {job.category || (isEnglish ? 'General' : 'General')}
-            </span>
-            <div className="flex items-center gap-1.5">
-              <CompareJobButton job={job} />
-              <SaveJobButton job={job} />
+                </>
+              )}
             </div>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-y-1.5 text-sm text-gray-500 dark:text-slate-400 mb-4">
-          <div className="flex items-center mr-3">
-            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-            <span className="font-medium">{job.company}</span>
-            <span className="mx-2">•</span>
-            <span>{job.location}</span>
-          </div>
-          {(() => {
-            const hasSalaryStr = job.salary && job.salary !== 'Consultar' && job.salary !== 'Negotiable' && job.salary !== 'Ver salario';
-            let displaySalary = job.salary;
-            if (!hasSalaryStr && job.salary_min && job.salary_max) {
-              const minK = Math.round(job.salary_min / 1000);
-              const maxK = Math.round(job.salary_max / 1000);
-              displaySalary = `${minK}k - ${maxK}k €/año`;
-            } else if (!hasSalaryStr && job.salary_min) {
-              const minK = Math.round(job.salary_min / 1000);
-              displaySalary = isEnglish ? `From ${minK}k €/yr` : `Desde ${minK}k €/año`;
-            } else if (!hasSalaryStr && job.salary_max) {
-              const maxK = Math.round(job.salary_max / 1000);
-              displaySalary = isEnglish ? `Up to ${maxK}k €/yr` : `Hasta ${maxK}k €/año`;
-            }
-            
-            if (displaySalary && displaySalary !== 'Consultar' && displaySalary !== 'Negotiable') {
-              return (
-                <div className="flex items-center text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100/30 dark:bg-indigo-950/20 dark:text-indigo-300 px-2 py-0.5 rounded-md shrink-0">
-                  💰 {displaySalary}
-                </div>
-              );
-            }
-            return (
-              <div className="flex items-center text-xs font-semibold bg-gray-50 text-gray-500 border border-gray-100 dark:bg-slate-800/40 dark:text-slate-450 px-2 py-0.5 rounded-md shrink-0">
-                💰 {isEnglish ? 'Negotiable' : 'Consultar'}
-              </div>
-            );
-          })()}
+        <div className="flex items-center gap-1.5 shrink-0 relative z-10">
+          <CompareJobButton job={job} />
+          <SaveJobButton job={job} />
         </div>
+      </div>
 
-        {job.description_snippet && (
-          <p className="text-sm text-gray-650 dark:text-slate-350 line-clamp-2 mb-4">
-            {job.description_snippet}
-          </p>
+      {/* Metadatos técnicos: Salario mono + Categoría + Máx 2 badges prioritarios */}
+      <div className="flex flex-wrap items-center gap-1.5 mt-3">
+        <span
+          className={`font-mono tabular-nums text-[11px] font-medium px-2 py-0.5 rounded-md border shrink-0 ${
+            hasKnownSalary
+              ? 'bg-[var(--status-emerald-tint)] text-[var(--status-emerald)] border-[var(--status-emerald)]/25'
+              : 'bg-[var(--bg-subtle)] text-[var(--text-muted)] border-[var(--border-subtle)]'
+          }`}
+        >
+          {hasKnownSalary ? displaySalary : (isEnglish ? 'Negotiable' : 'Consultar')}
+        </span>
+
+        {job.category && (
+          <span className="font-mono text-[11px] px-2 py-0.5 rounded-md border bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-subtle)] whitespace-nowrap">
+            {job.category}
+          </span>
         )}
 
-        {(() => {
-          const titleLower = job.title.toLowerCase();
-          const techs = ['react', 'node', 'python', 'java', 'typescript', 'devops', 'php', 'sql', 'go', 'rust', 'angular', 'vue'];
-          let detected = null;
-          for (const t of techs) {
-            if (titleLower.includes(t)) {
-              detected = t;
-              break;
-            }
-          }
-          if (detected) {
-            return (
-              <div className="mb-4 text-xs">
-                <Link 
-                  href={`/salarios/${detected}${queryParam}`} 
-                  className="text-indigo-650 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-350 font-bold hover:underline inline-flex items-center gap-0.5"
-                >
-                  📊 {isEnglish ? `View ${detected.toUpperCase()} salaries in Spain →` : `Ver salarios de ${detected.toUpperCase()} en España →`}
-                </Link>
-              </div>
-            );
-          }
-          return null;
-        })()}
+        {visibleBadges.map(badge => (
+          <span
+            key={badge.key}
+            className={`font-mono tabular-nums text-[10px] font-semibold px-2 py-0.5 rounded-md border uppercase tracking-wider shrink-0 ${badgeToneClasses[badge.tone]}`}
+          >
+            {badge.label}
+          </span>
+        ))}
       </div>
 
-      <div className="px-6 pb-6 mt-auto">
-        <Link 
-          href={detailUrl} 
-          prefetch={prefetch}
-          className="block w-full text-center bg-gray-900 hover:bg-black text-white dark:bg-indigo-650 dark:hover:bg-indigo-700 font-medium py-2.5 px-4 rounded-lg transition-colors duration-200"
+      {/* Snippet */}
+      {job.description_snippet && (
+        <p className="text-xs sm:text-[13px] text-[var(--text-secondary)] line-clamp-2 leading-relaxed mt-2.5">
+          {job.description_snippet}
+        </p>
+      )}
+
+      {/* Pie de tarjeta */}
+      <div className="mt-auto pt-3.5 flex items-center justify-between gap-3">
+        {detectedTech ? (
+          <Link
+            href={`/salarios/${detectedTech}${queryParam}`}
+            className="relative z-10 text-[11px] font-mono text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors inline-flex items-center gap-1"
+          >
+            {isEnglish ? `${detectedTech.toUpperCase()} salaries` : `Salarios ${detectedTech.toUpperCase()}`}
+            <span aria-hidden="true">→</span>
+          </Link>
+        ) : (
+          <span />
+        )}
+
+        <span
+          aria-hidden="true"
+          className="text-xs font-medium text-[var(--text-muted)] group-hover:text-[var(--accent-primary)] transition-colors inline-flex items-center gap-1"
         >
-          {isEnglish ? 'View Job' : 'Ver Oferta'}
-        </Link>
+          {isEnglish ? 'View role' : 'Ver oferta'}
+          <span>→</span>
+        </span>
       </div>
-    </div>
+    </article>
   );
 }

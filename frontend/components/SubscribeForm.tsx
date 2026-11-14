@@ -137,21 +137,21 @@ export default function SubscribeForm({
         Únete a +5.000 programadores y recibe empleos de <strong className="text-gray-200">{location}</strong> directamente en tu inbox.
       </>
     );
-    displayButtonText = '🔥 ¡Recibir Ofertas IT Ya!';
+    displayButtonText = 'Recibir ofertas IT →';
   }
 
   return (
-    <div className="bg-gray-900 p-6 rounded-xl shadow-lg text-white border border-gray-800">
+    <div className="bg-[#0D1117] p-5 sm:p-6 rounded-xl text-white border border-white/[0.1]">
       <div className="flex items-center gap-2 mb-1">
-        <span className="text-2xl">{ctaVariant === 'B' ? '🚀' : '⚡'}</span>
-        <h3 className="font-bold text-lg text-white">{displayTitle}</h3>
+        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" aria-hidden="true" />
+        <h3 className="font-semibold text-base tracking-tight text-white">{displayTitle}</h3>
       </div>
-      <p className="text-gray-400 text-xs mb-4 leading-relaxed">
+      <p className="text-slate-400 text-xs mb-4 leading-relaxed">
         {displaySubtitle}
       </p>
 
       {status === 'success' ? (
-        <div className="bg-green-500/20 border border-green-500 text-green-200 p-3 rounded-lg text-sm text-center font-medium animate-pulse">
+        <div className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 p-3 rounded-lg text-xs text-center font-medium">
           {message}
         </div>
       ) : (
@@ -163,24 +163,31 @@ export default function SubscribeForm({
             type="email"
             required
             placeholder="tu@email.com"
-            className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+            className="w-full px-3.5 py-2.5 rounded-lg bg-white/[0.05] border border-white/[0.12] text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-colors"
           />
 
           {/* Botón para mostrar opciones de personalización */}
           <button
             type="button"
             onClick={() => setShowOptions(!showOptions)}
-            className="w-full text-xs text-indigo-400 hover:text-indigo-300 flex items-center justify-center gap-1 transition-colors py-1"
+            className="w-full text-xs text-slate-400 hover:text-indigo-400 flex items-center justify-center gap-1.5 transition-colors py-1 cursor-pointer"
           >
-            <span>{showOptions ? '▲' : '▼'}</span>
-            {showOptions ? 'Ocultar filtros' : 'Personalizar mis alertas (opcional)'}
+            <svg
+              className={`w-3 h-3 transition-transform duration-150 ${showOptions ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            </svg>
+            {showOptions ? 'Ocultar filtros' : 'Personalizar alertas (opcional)'}
           </button>
 
           {showOptions && (
-            <div className="space-y-3 p-3 bg-gray-800/60 rounded-lg border border-gray-700 animate-in fade-in">
+            <div className="space-y-3 p-3.5 bg-white/[0.03] rounded-lg border border-white/[0.08]">
               {/* Selección de stack tecnológico */}
               <div>
-                <label className="text-xs text-gray-400 font-medium mb-2 block">🔧 Tecnología preferida</label>
+                <label className="font-mono text-[10px] uppercase tracking-wider text-slate-400 font-medium mb-2 block">Tecnología preferida</label>
                 <div className="flex flex-wrap gap-1.5">
                   {TECH_OPTIONS.map((tech) => (
                     <button
@@ -193,10 +200,10 @@ export default function SubscribeForm({
                             : [...prev, tech.value]
                         );
                       }}
-                      className={`text-[10px] px-2 py-1 rounded-full border font-medium transition-all ${
+                      className={`ui-btn-press font-mono text-[10px] px-2 py-1 rounded-md border font-medium transition-colors cursor-pointer ${
                         selectedTech.includes(tech.value)
-                          ? 'bg-indigo-600 border-indigo-500 text-white'
-                          : 'bg-gray-700 border-gray-600 text-gray-300 hover:border-indigo-500'
+                          ? 'bg-[var(--accent-primary)] border-[var(--accent-primary)] text-white'
+                          : 'bg-white/[0.04] border-white/[0.1] text-slate-300 hover:border-white/[0.25]'
                       }`}
                     >
                       {tech.label}
@@ -211,28 +218,28 @@ export default function SubscribeForm({
                   type="button"
                   onClick={() => setRemoteOnly(!remoteOnly)}
                   id="remote-toggle"
-                  className={`w-9 h-5 rounded-full border-2 transition-all relative ${
-                    remoteOnly ? 'bg-indigo-600 border-indigo-500' : 'bg-gray-700 border-gray-600'
+                  className={`w-9 h-5 rounded-full border transition-colors relative cursor-pointer ${
+                    remoteOnly ? 'bg-[var(--accent-primary)] border-[var(--accent-primary)]' : 'bg-white/[0.08] border-white/[0.15]'
                   }`}
                 >
-                  <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${remoteOnly ? 'left-4' : 'left-0.5'}`} />
+                  <span className={`absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white transition-all ${remoteOnly ? 'left-4' : 'left-0.5'}`} />
                 </button>
-                <label htmlFor="remote-toggle" className="text-xs text-gray-300 cursor-pointer">Solo ofertas en remoto</label>
+                <label htmlFor="remote-toggle" className="text-xs text-slate-300 cursor-pointer">Solo ofertas en remoto</label>
               </div>
 
               {/* Lógica de filtrado */}
               <div>
-                <label className="text-xs text-gray-400 font-medium mb-1 block">🔍 Lógica de coincidencia</label>
+                <label className="font-mono text-[10px] uppercase tracking-wider text-slate-400 font-medium mb-1.5 block">Lógica de coincidencia</label>
                 <div className="flex gap-2">
                   {['OR', 'AND'].map((op) => (
                     <button
                       key={op}
                       type="button"
                       onClick={() => setOperator(op as 'OR' | 'AND')}
-                      className={`flex-grow-0 flex-1 text-xs py-1.5 rounded-lg border font-medium transition-all ${
+                      className={`ui-btn-press flex-1 text-xs py-1.5 rounded-md border font-medium transition-colors cursor-pointer ${
                         operator === op
-                          ? 'bg-indigo-600 border-indigo-500 text-white'
-                          : 'bg-gray-700 border-gray-600 text-gray-300 hover:border-indigo-500'
+                          ? 'bg-[var(--accent-primary)] border-[var(--accent-primary)] text-white'
+                          : 'bg-white/[0.04] border-white/[0.1] text-slate-300 hover:border-white/[0.25]'
                       }`}
                     >
                       {op === 'OR' ? 'Alguna (OR)' : 'Todas (AND)'}
@@ -243,20 +250,20 @@ export default function SubscribeForm({
 
               {/* Frecuencia */}
               <div>
-                <label className="text-xs text-gray-400 font-medium mb-1 block">📅 Frecuencia de envío</label>
+                <label className="font-mono text-[10px] uppercase tracking-wider text-slate-400 font-medium mb-1.5 block">Frecuencia de envío</label>
                 <div className="flex gap-2">
                   {['daily', 'weekly'].map((f) => (
                     <button
                       key={f}
                       type="button"
                       onClick={() => setFrequency(f as 'daily' | 'weekly')}
-                      className={`flex-1 text-xs py-1.5 rounded-lg border font-medium transition-all ${
+                      className={`ui-btn-press flex-1 text-xs py-1.5 rounded-md border font-medium transition-colors cursor-pointer ${
                         frequency === f
-                          ? 'bg-indigo-600 border-indigo-500 text-white'
-                          : 'bg-gray-700 border-gray-600 text-gray-300 hover:border-indigo-500'
+                          ? 'bg-[var(--accent-primary)] border-[var(--accent-primary)] text-white'
+                          : 'bg-white/[0.04] border-white/[0.1] text-slate-300 hover:border-white/[0.25]'
                       }`}
                     >
-                      {f === 'daily' ? '⚡ Diario' : '📋 Semanal'}
+                      {f === 'daily' ? 'Diario' : 'Semanal'}
                     </button>
                   ))}
                 </div>
@@ -274,17 +281,17 @@ export default function SubscribeForm({
           <button
             type="submit"
             disabled={status === 'loading'}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-400 text-white font-bold py-3 px-4 rounded-lg transition-colors text-sm shadow-md flex justify-center cursor-pointer"
+            className="ui-btn-press w-full bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] disabled:opacity-60 text-white font-medium py-2.5 px-4 rounded-lg transition-colors text-xs sm:text-sm flex justify-center cursor-pointer"
           >
             {status === 'loading' ? 'Guardando...' : displayButtonText}
           </button>
 
-          <p className="text-[11px] text-gray-400 leading-normal text-center pt-1">
+          <p className="text-[10px] text-slate-500 leading-normal text-center pt-1">
             Puedes darte de baja en cualquier momento con 1 clic desde el pie de cada correo. Medimos de forma agregada las aperturas para evitar envíos innecesarios.
           </p>
 
           {status === 'error' && (
-            <p className="text-red-400 text-xs text-center mt-2">{message}</p>
+            <p className="text-rose-400 text-xs text-center mt-2">{message}</p>
           )}
         </form>
       )}

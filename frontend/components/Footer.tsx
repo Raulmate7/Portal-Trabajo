@@ -115,33 +115,33 @@ export default async function Footer() {
   const navigation = [
     { label: 'Inicio', href: '/' },
     { label: 'Buscador de Empleo', href: '/trabajos/informatica-tecnologia' },
-    { label: '💻 Trabajo Remoto', href: '/trabajo-remoto' },
-    { label: '🏠 Empresas en Remoto', href: '/empresas-remotas' },
-    {label: '💰 Calculadora de Salarios', href: '/salarios' },
-    { label: '📊 Salarios por Nivel de Experiencia', href: '/salarios/por-nivel' },
-    { label: '🏢 Salarios por Empresa', href: '/salarios/por-empresa' },
-    { label: '📘 Guía de Salarios IT', href: '/recursos/guia-salarios-it' },
-    { label: '🎯 Preguntas de Entrevistas', href: '/entrevistas' },
-    { label: '🎓 Hub de Guías de Carrera IT', href: '/convertirse-en' },
-    { label: '🎓 Prácticas y Becas IT', href: '/practicas-informatica' },
-    { label: '⚖️ Directorio de Comparativas', href: '/comparar' },
-    { label: '🏢 Directorio de Empresas', href: '/empresas' },
+    { label: 'Trabajo Remoto', href: '/trabajo-remoto' },
+    { label: 'Empresas en Remoto', href: '/empresas-remotas' },
+    { label: 'Calculadora de Salarios', href: '/salarios' },
+    { label: 'Salarios por Nivel de Experiencia', href: '/salarios/por-nivel' },
+    { label: 'Salarios por Empresa', href: '/salarios/por-empresa' },
+    { label: 'Guía de Salarios IT', href: '/recursos/guia-salarios-it' },
+    { label: 'Preguntas de Entrevistas', href: '/entrevistas' },
+    { label: 'Hub de Guías de Carrera IT', href: '/convertirse-en' },
+    { label: 'Prácticas y Becas IT', href: '/practicas-informatica' },
+    { label: 'Directorio de Comparativas', href: '/comparar' },
+    { label: 'Directorio de Empresas', href: '/empresas' },
     { label: 'Talento Premium', href: '/talento-premium' },
     { label: 'Publicar Oferta', href: '/publicar-oferta' },
     { label: 'Tarifas y Precios', href: '/precios' },
-    { label: '📢 Anúnciate / Publicidad', href: '/publicidad' },
+    { label: 'Anúnciate / Publicidad', href: '/publicidad' },
     { label: 'Blog', href: '/blog' },
-    { label: '📊 Informe de Mercado IT', href: '/informe-mercado-it' },
-    { label: '🤝 Afiliados para Empresas', href: '/afiliados-empresa' },
-    { label: '📡 RSS Feed', href: '/feed.xml' },
-    { label: '🏢 Área de Empresas', href: '/empresa-dashboard' },
-    { label: '🛠️ Herramientas', href: '/herramientas' },
-    { label: '📖 Glosario IT', href: '/glosario' },
-    { label: '📰 Noticias Tech', href: '/noticias' },
-    { label: '📈 Tendencias Tech', href: '/tendencias' },
-    { label: '👥 Programa de Referidos', href: '/referidos' },
-    { label: '❓ Preguntas Frecuentes', href: '/faq' },
-    { label: 'ℹ️ Sobre Nosotros', href: '/sobre-nosotros' },
+    { label: 'Informe de Mercado IT', href: '/informe-mercado-it' },
+    { label: 'Afiliados para Empresas', href: '/afiliados-empresa' },
+    { label: 'RSS Feed', href: '/feed.xml' },
+    { label: 'Área de Empresas', href: '/empresa-dashboard' },
+    { label: 'Herramientas', href: '/herramientas' },
+    { label: 'Glosario IT', href: '/glosario' },
+    { label: 'Noticias Tech', href: '/noticias' },
+    { label: 'Tendencias Tech', href: '/tendencias' },
+    { label: 'Programa de Referidos', href: '/referidos' },
+    { label: 'Preguntas Frecuentes', href: '/faq' },
+    { label: 'Sobre Nosotros', href: '/sobre-nosotros' },
   ];
 
 
@@ -157,35 +157,43 @@ export default async function Footer() {
   ];
 
   return (
-    <footer className="bg-gray-900 text-gray-300 border-t border-gray-800" id="global-footer">
+    <footer className="bg-[#090C10] text-slate-400 border-t border-white/[0.08]" id="global-footer">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           {/* Logo & description */}
           <div className="col-span-1 md:col-span-1">
-            <Link href="/" className="flex items-center gap-2 mb-4">
-              <span className="text-2xl" role="img" aria-label="rocket">🚀</span>
-              <span className="text-xl font-bold text-white">Portal Trabajo IT</span>
+            <Link href="/" className="flex items-center gap-2.5 mb-4">
+              <span className="w-7 h-7 rounded-lg bg-indigo-500/15 border border-indigo-400/30 text-indigo-400 font-mono text-xs font-bold flex items-center justify-center">
+                &lt;/&gt;
+              </span>
+              <span className="text-sm font-semibold tracking-tight text-white">Portal Trabajo IT</span>
             </Link>
-            <p className="text-sm text-gray-400 leading-relaxed mb-4">
-              Encuentra las mejores ofertas de empleo tecnológico en España. Actualizado cada 6 horas automáticamente.
+            <p className="text-xs text-slate-400 leading-relaxed mb-4">
+              Agregador especializado de empleo tecnológico en España y remoto. Actualizado cada 6 horas automáticamente.
             </p>
             {/* Indicadores de confianza E-E-A-T */}
-            <div className="space-y-2 mb-4 text-xs text-gray-400 font-medium">
+            <div className="space-y-2 mb-5 text-xs text-slate-400">
               <div className="flex items-center gap-2">
-                <span className="text-emerald-500">✓</span> 
-                <span>{activeJobsCount !== null ? `${activeJobsCount.toLocaleString('es-ES')} ofertas activas hoy` : 'Ofertas tecnológicas activas hoy'}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                <span>
+                  {activeJobsCount !== null ? (
+                    <>
+                      <span className="font-mono tabular-nums text-emerald-400 font-medium">{activeJobsCount.toLocaleString('es-ES')}</span> ofertas activas hoy
+                    </>
+                  ) : 'Ofertas tecnológicas activas hoy'}
+                </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-indigo-400">✓</span> 
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />
                 <span>Comunidad activa de profesionales IT</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-blue-400">✓</span> 
-                <span>Datos actualizados cada 6h</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0" />
+                <span>Sincronización cada 6h</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-purple-400">✓</span> 
-                <span>Fuentes 100% verificadas</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0" />
+                <span>Fuentes verificadas</span>
               </div>
             </div>
             <div className="flex gap-4">
@@ -193,29 +201,29 @@ export default async function Footer() {
                 href="https://t.me/PortalDeTrabajo" 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="text-gray-400 hover:text-indigo-400 transition-colors font-medium text-sm flex items-center gap-1.5"
+                className="text-slate-400 hover:text-white transition-colors font-mono text-xs flex items-center gap-1.5"
                 id="telegram-footer-link"
               >
-                ✈️ Telegram
+                Telegram →
               </a>
               <a 
                 href="/feed.xml" 
                 target="_blank" 
-                className="text-gray-400 hover:text-orange-400 transition-colors font-medium text-sm flex items-center gap-1.5"
+                className="text-slate-400 hover:text-white transition-colors font-mono text-xs flex items-center gap-1.5"
                 id="rss-footer-link"
               >
-                📡 RSS Feed
+                RSS Feed →
               </a>
             </div>
           </div>
 
           {/* Sectores */}
           <div>
-            <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Sectores</h4>
-            <ul className="space-y-2.5 text-sm">
+            <h4 className="text-white font-mono font-semibold mb-4 text-[11px] uppercase tracking-wider">Sectores</h4>
+            <ul className="space-y-2 text-xs">
               {categories.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="hover:text-white transition-colors text-gray-400">
+                  <Link href={link.href} className="hover:text-white transition-colors text-slate-400">
                     {link.label}
                   </Link>
                 </li>
@@ -225,11 +233,11 @@ export default async function Footer() {
 
           {/* Búsquedas Populares (Programmatic SEO) */}
           <div>
-            <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Búsquedas Populares</h4>
-            <ul className="space-y-2.5 text-sm">
+            <h4 className="text-white font-mono font-semibold mb-4 text-[11px] uppercase tracking-wider">Búsquedas Populares</h4>
+            <ul className="space-y-2 text-xs">
               {programmaticLinks.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="hover:text-white transition-colors text-gray-400">
+                  <Link href={link.href} className="hover:text-white transition-colors text-slate-400">
                     {link.label}
                   </Link>
                 </li>
@@ -239,21 +247,21 @@ export default async function Footer() {
 
           {/* Navegación y Legal */}
           <div>
-            <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Enlaces Útiles</h4>
-            <ul className="space-y-2.5 text-sm mb-6">
+            <h4 className="text-white font-mono font-semibold mb-4 text-[11px] uppercase tracking-wider">Enlaces Útiles</h4>
+            <ul className="space-y-2 text-xs mb-6">
               {navigation.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="hover:text-white transition-colors text-gray-400">
+                  <Link href={link.href} className="hover:text-white transition-colors text-slate-400">
                     {link.label}
                   </Link>
                 </li>
               ))}
             </ul>
-            <h4 className="text-white font-semibold mb-3 text-sm uppercase tracking-wider">Legal</h4>
-            <ul className="space-y-2.5 text-sm">
+            <h4 className="text-white font-mono font-semibold mb-3 text-[11px] uppercase tracking-wider">Legal</h4>
+            <ul className="space-y-2 text-xs">
               {legal.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="hover:text-white transition-colors text-gray-400">
+                  <Link href={link.href} className="hover:text-white transition-colors text-slate-400">
                     {link.label}
                   </Link>
                 </li>
@@ -265,10 +273,10 @@ export default async function Footer() {
           </div>
         </div>
 
-        <div className="pt-8 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-gray-500">
-          <p>© {currentYear} Portal Trabajo IT. Todos los derechos reservados.</p>
+        <div className="pt-8 border-t border-white/[0.08] flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-500">
+          <p className="font-mono">© {currentYear} Portal Trabajo IT</p>
           <p>
-            Desarrollado con ❤️ para la comunidad de programadores.
+            Infraestructura de empleo tecnológico en España.
           </p>
         </div>
       </div>

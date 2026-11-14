@@ -67,15 +67,15 @@ export default function CompareJobButton({ job }: CompareJobButtonProps) {
   return (
     <button
       onClick={toggleCompare}
-      className={`p-2 rounded-lg transition-colors border shrink-0 ${
+      className={`ui-btn-press w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-150 border shrink-0 cursor-pointer ${
         isCompared
-          ? 'bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100'
-          : 'bg-white text-gray-400 border-gray-200 hover:text-gray-600 hover:bg-gray-50 dark:bg-slate-900 dark:border-slate-800'
+          ? 'bg-[var(--accent-tint)] text-[var(--accent-primary)] border-[var(--border-accent)]'
+          : 'bg-[var(--bg-surface)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] hover:border-[var(--border-strong)]'
       }`}
       title={isCompared ? "Quitar del comparador" : "Añadir al comparador"}
       aria-label={isCompared ? "Quitar del comparador" : "Añadir al comparador"}
     >
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
       </svg>
     </button>
