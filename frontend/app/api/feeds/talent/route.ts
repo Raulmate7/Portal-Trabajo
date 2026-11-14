@@ -1,5 +1,6 @@
 import pool from '@/lib/db';
 import { BASE_URL } from '@/lib/constants';
+import { getJobSlug } from '@/lib/slug';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,7 +47,7 @@ export async function GET() {
     <title><![CDATA[${cleanCdata(job.title)}]]></title>
     <date><![CDATA[${formattedDate}]]></date>
     <referencenumber><![CDATA[${cleanCdata(job.id)}]]></referencenumber>
-    <url><![CDATA[${cleanCdata(`${BASE_URL}/job/${job.id}`)}]]></url>
+    <url><![CDATA[${cleanCdata(`${BASE_URL}/job/${getJobSlug(job)}`)}]]></url>
     <company><![CDATA[${cleanCdata(job.company || 'Desconocida')}]]></company>
     <city><![CDATA[${cleanCdata(job.location || 'Remoto')}]]></city>
     <country><![CDATA[${country}]]></country>

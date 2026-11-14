@@ -50,7 +50,7 @@ export default function BotPage() {
           </p>
           <ul className="list-disc pl-5 mt-2 space-y-1.5 text-xs text-gray-650">
             <li>
-              <strong>Cumplimiento riguroso de Robots.txt:</strong> El rastreador consulta y obedece escrupulosamente las directivas de exclusión de <code>robots.txt</code> con carácter previo a cualquier descarga de contenido.
+              <strong>Cumplimiento riguroso de Robots.txt y TDMRep:</strong> El rastreador consulta y obedece las directivas de exclusión de <code>robots.txt</code>, cabeceras <code>TDM-Reservation: 1</code> (Directiva UE 2019/790) y <code>X-Robots-Tag</code> con carácter previo a cualquier descarga, priorizando APIs y feeds públicos autorizados.
             </li>
             <li>
               <strong>Limitación estricta de velocidad y concurrencia:</strong> Aplica retardos mínimos de cortesía entre peticiones (entre 3 y 5 segundos por dominio) y mantiene una concurrencia máxima de 1 sola petición simultánea por host.
@@ -62,7 +62,7 @@ export default function BotPage() {
               <strong>Extracción no sustancial (LPI Art. 133 / Directiva 96/9/CE):</strong> El robot no descarga ni replica bases de datos de forma íntegra o sustancial. Únicamente extrae metadatos indispensables para la referencia (título del puesto, empresa, ubicación aproximada y breves citas o extractos descriptivos no superiores a 200 caracteres con mención expresa de la fuente).
             </li>
             <li>
-              <strong>Uso leal de signos distintivos (Ley de Marcas 17/2001, Art. 37):</strong> No se descargan ni almacenan logotipos corporativos en nuestros servidores; las marcas se citan exclusivamente con finalidad referencial e identificativa de la vacante.
+              <strong>Uso leal de signos distintivos (Ley de Marcas 17/2001, Art. 37):</strong> Los nombres comerciales y logotipos referenciales se gestionan mediante proxy interno cacheado en servidor sin exponer direcciones IP de los visitantes a terceros y con finalidad estrictamente identificativa de la vacante.
             </li>
           </ul>
         </section>

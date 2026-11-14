@@ -1,10 +1,36 @@
 import os
+import re
 import requests
 import psycopg2
 import random
-from datetime import datetime
+from datetime import datetime, timezone
 import time
 from logic.slug import get_job_slug
+
+
+def build_bsky_facets(text: str) -> list:
+    """Construye facets AT Protocol (rangos de bytes UTF-8) para enlaces y hashtags (FUNC-024)."""
+    facets = []
+    # Enlaces http(s)
+    for match in re.finditer(r'https?://[^\s]+', text):
+        url = match.group(0).rstrip('.,;:!?')
+        start_byte = len(text[:match.start()].encode('utf-8'))
+        end_byte = start_byte + len(url.encode('utf-8'))
+        facets.append({
+            "index": {"byteStart": start_byte, "byteEnd": end_byte},
+            "features": [{"$type": "app.bsky.richtext.facet#link", "uri": url}],
+        })
+    # Hashtags
+    for match in re.finditer(r'(?<!\w)#([A-Za-z0-9_]+)', text):
+        tag = match.group(1)
+        start_byte = len(text[:match.start()].encode('utf-8'))
+        end_byte = len(text[:match.end()].encode('utf-8'))
+        facets.append({
+            "index": {"byteStart": start_byte, "byteEnd": end_byte},
+            "features": [{"$type": "app.bsky.richtext.facet#tag", "tag": tag}],
+        })
+    return facets
+
 
 def post_to_bluesky(handle, password, text_content):
     """Autentica y publica una entrada en la red social Bluesky (AT Protocol)."""
@@ -25,15 +51,21 @@ def post_to_bluesky(handle, password, text_content):
             "Content-Type": "application/json"
         }
         
-        now_iso = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+        now_iso = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+        record = {
+            "$type": "app.bsky.feed.post",
+            "text": text_content,
+            "langs": ["es"],
+            "createdAt": now_iso,
+        }
+        facets = build_bsky_facets(text_content)
+        if facets:
+            record["facets"] = facets
+
         payload = {
             "repo": did,
             "collection": "app.bsky.feed.post",
-            "record": {
-                "$type": "app.bsky.feed.post",
-                "text": text_content,
-                "createdAt": now_iso
-            }
+            "record": record,
         }
         
         post_res = requests.post(post_url, json=payload, headers=headers, timeout=15)
@@ -82,7 +114,7 @@ def run_bluesky_bot():
         cur = conn.cursor()
         
         query = """
-            SELECT id, title, company, location, salary, category 
+            SELECT id, COALESCE(NULLIF(title_es, ''), title) AS display_title, company, location, salary, category 
             FROM jobs 
             WHERE is_active = TRUE AND last_bluesky_posted_at IS NULL
             ORDER BY created_at DESC 

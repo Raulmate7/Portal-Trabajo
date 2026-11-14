@@ -44,9 +44,9 @@ class PostgresPipeline:
             # Insertamos la oferta buscando automáticamente el ID del sector y clasificando la categoría
             category = classify_job(item['title'], item['description_snippet'])
             
-            # En MySQL usamos INSERT IGNORE en lugar de ON CONFLICT DO NOTHING
+            # En MySQL usamos ON DUPLICATE KEY UPDATE para enriquecer ofertas modificadas (FUNC-044)
             self.cur.execute("""
-                INSERT IGNORE INTO jobs (
+                INSERT INTO jobs (
                     title, 
                     company, 
                     location, 
@@ -62,6 +62,12 @@ class PostgresPipeline:
                     (SELECT id FROM sectors WHERE slug = %s),
                     %s
                 )
+                ON DUPLICATE KEY UPDATE
+                    salary = COALESCE(NULLIF(VALUES(salary), 'Consultar'), salary),
+                    description_snippet = COALESCE(NULLIF(VALUES(description_snippet), 'Oferta de TecnoEmpleo'), description_snippet),
+                    category = COALESCE(NULLIF(VALUES(category), 'Otros'), category),
+                    updated_at = NOW(),
+                    is_active = TRUE
             """, (
                 item['title'],
                 item['company'],

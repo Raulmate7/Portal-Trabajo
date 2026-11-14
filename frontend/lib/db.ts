@@ -126,13 +126,12 @@ const CONNECTION_ERRORS = [
 ];
 
 /**
- * Helper interno para traducir y ejecutar consultas SQL de formato Postgres a MySQL.
+ * Traduce marcadores de PostgreSQL ($1, $2, ...) y sintaxis ILIKE a MySQL (?).
  */
-async function executeQuery(conn: mysql.Pool | mysql.PoolConnection | null, sql: string, params: any[] = []) {
+function translatePostgresToMysql(sql: string, params: any[] = []): { mysqlSql: string; mysqlParams: any[] } {
   let mysqlParams: any[] = [];
   let hasPgPlaceholders = false;
-  
-  // 1. Traducir marcadores de PostgreSQL ($1, $2, etc.) a marcadores de MySQL (?) de forma segura (ignorando strings)
+
   let mysqlSql = '';
   let inString = false;
   let stringChar = '';
@@ -140,7 +139,6 @@ async function executeQuery(conn: mysql.Pool | mysql.PoolConnection | null, sql:
     const char = sql[i];
     if (inString) {
       if (char === stringChar) {
-        // VULN-12: Contar si el número de barras invertidas precedentes es par o impar para manejar '\\'
         let backslashCount = 0;
         let k = i - 1;
         while (k >= 0 && sql[k] === '\\') {
@@ -173,71 +171,76 @@ async function executeQuery(conn: mysql.Pool | mysql.PoolConnection | null, sql:
             mysqlParams.push(null);
           }
           mysqlSql += '?';
-          i = j - 1; // Avanzar el índice
+          i = j - 1;
         } else {
           mysqlSql += char;
         }
       } else if (
-        // VULN-18: Traducir ILIKE a LIKE únicamente fuera de cadenas literales
         sql.substring(i, i + 5).toUpperCase() === 'ILIKE' &&
         (i === 0 || !/[a-zA-Z0-9_]/.test(sql[i - 1])) &&
         (i + 5 >= sql.length || !/[a-zA-Z0-9_]/.test(sql[i + 5]))
       ) {
         mysqlSql += 'LIKE';
-        i += 4; // Avanzar el índice saltando 'ILIKE'
+        i += 4;
       } else {
         mysqlSql += char;
       }
     }
   }
 
-  // VULN-13: Solo asignar params directamente si la consulta no usaba marcadores $N
   if (!hasPgPlaceholders && params && params.length > 0) {
     mysqlParams = params;
   }
 
+  return { mysqlSql, mysqlParams };
+}
+
+/**
+ * Envía una petición HTTP al proxy PHP con timeout estricto (SEC-012).
+ */
+async function sendProxyRequest(payload: Record<string, any>) {
+  const response = await fetch(proxyUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Proxy-Token': proxyToken,
+    },
+    body: JSON.stringify(payload),
+    cache: 'no-store',
+    signal: AbortSignal.timeout(8000),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Proxy status ${response.status}: ${errText}`);
+  }
+
+  const resJson = await response.json();
+  if (!resJson.success) {
+    throw new Error(resJson.error || 'Unknown proxy error');
+  }
+  return resJson;
+}
+
+/**
+ * Helper interno para traducir y ejecutar consultas SQL de formato Postgres a MySQL.
+ */
+async function executeQuery(conn: mysql.Pool | mysql.PoolConnection | null, sql: string, params: any[] = []) {
+  const { mysqlSql, mysqlParams } = translatePostgresToMysql(sql, params);
+
   if (useProxy) {
-    // Si la consulta es un comando de control transaccional, resolver inmediatamente como no-op
-    // dado que el proxy HTTP es sin estado (cada petición HTTP es una conexión PDO aislada).
-    const normalizedUpper = mysqlSql.trim().toUpperCase();
-    if (
-      normalizedUpper === 'START TRANSACTION' ||
-      normalizedUpper === 'COMMIT' ||
-      normalizedUpper === 'ROLLBACK' ||
-      normalizedUpper === 'BEGIN'
-    ) {
-      return { rows: [] };
-    }
-
-    // 3. Ejecutar a través de Proxy HTTP (Raiola db_proxy.php)
     try {
-      const response = await fetch(proxyUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Proxy-Token': proxyToken,
-        },
-        body: JSON.stringify({ sql: mysqlSql, params: mysqlParams }),
-        cache: 'no-store', // Evitar almacenamiento en Next.js Data Cache para operaciones de base de datos
-      });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Proxy status ${response.status}: ${errText}`);
-      }
-
-      const resJson = await response.json();
-      if (!resJson.success) {
-        throw new Error(resJson.error || 'Unknown proxy error');
-      }
-
+      const resJson = await sendProxyRequest({ sql: mysqlSql, params: mysqlParams });
+      const rows = resJson.rows || [];
+      const rowCount = typeof resJson.affected_rows === 'number'
+        ? resJson.affected_rows
+        : (Array.isArray(rows) ? rows.length : 0);
       return {
-        rows: resJson.rows || [],
+        rows,
+        rowCount,
       };
     } catch (error: any) {
       console.error('❌ Error de consulta en MySQL vía Proxy:', error);
-      // VULN-06: Propagar el error en lugar de suprimirlo silenciosamente con { rows: [] }
-      // Esto previene bypasses de autorización y pérdida silenciosa de datos (Fail-Closed)
       throw error;
     }
   } else if (conn) {
@@ -257,15 +260,19 @@ async function executeQuery(conn: mysql.Pool | mysql.PoolConnection | null, sql:
         const [result] = await conn.query(mysqlSql);
         rows = result;
       }
+      const rowCount = Array.isArray(rows)
+        ? rows.length
+        : (typeof (rows as any)?.affectedRows === 'number' ? (rows as any).affectedRows : 0);
       return {
         rows: rows as any[],
+        rowCount,
       };
     } catch (error: any) {
       console.error('❌ Error de consulta directa en MySQL:', error);
       throw error;
     }
   }
-  return { rows: [] };
+  return { rows: [], rowCount: 0 };
 }
 
 const pool = {
@@ -290,13 +297,56 @@ const pool = {
   // Método connect para adquirir un cliente de forma compatible con PG
   async connect() {
     if (useProxy) {
-      // Si usamos proxy, no hay "conexión física" real. Retornamos un cliente mock.
+      // SEC-009: En modo proxy HTTP, acumular sentencias entre START TRANSACTION y COMMIT
+      // para ejecutarlas como un lote transaccional atómico real ($pdo->beginTransaction() en db_proxy.php).
+      let inTransaction = false;
+      let txQueue: Array<{ sql: string; params: any[] }> = [];
+
       return {
         async query(sql: string, params: any[] = []) {
+          const { mysqlSql, mysqlParams } = translatePostgresToMysql(sql, params);
+          const upper = mysqlSql.trim().toUpperCase();
+
+          if (upper === 'START TRANSACTION' || upper === 'BEGIN') {
+            inTransaction = true;
+            txQueue = [];
+            return { rows: [], rowCount: 0 };
+          }
+          if (upper === 'ROLLBACK') {
+            inTransaction = false;
+            txQueue = [];
+            return { rows: [], rowCount: 0 };
+          }
+          if (upper === 'COMMIT') {
+            if (!inTransaction) return { rows: [], rowCount: 0 };
+            const batchToRun = txQueue;
+            inTransaction = false;
+            txQueue = [];
+            if (batchToRun.length === 0) return { rows: [], rowCount: 0 };
+            const resJson = await sendProxyRequest({ batch: batchToRun });
+            const last = Array.isArray(resJson.results) && resJson.results.length > 0
+              ? resJson.results[resJson.results.length - 1]
+              : { rows: [] };
+            const lastRows = last.rows || [];
+            const lastRowCount = typeof last.affected_rows === 'number'
+              ? last.affected_rows
+              : (Array.isArray(lastRows) ? lastRows.length : 0);
+            return { rows: lastRows, rowCount: lastRowCount };
+          }
+
+          if (inTransaction) {
+            if (upper.startsWith('SELECT') || upper.startsWith('SHOW')) {
+              throw new Error('Las lecturas SELECT intermedias dentro de transacciones no están soportadas vía db_proxy.php; use conexión MySQL directa.');
+            }
+            txQueue.push({ sql: mysqlSql, params: mysqlParams });
+            return { rows: [], rowCount: 0 };
+          }
+
           return executeQuery(null, sql, params);
         },
         release() {
-          // No hace falta liberar nada
+          inTransaction = false;
+          txQueue = [];
         }
       };
     }

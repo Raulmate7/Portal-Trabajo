@@ -1,5 +1,6 @@
-import requests
 from bs4 import BeautifulSoup
+from logic.ssrf import safe_http_get
+from logic.tdm import is_scraping_allowed, truncate_snippet
 
 def get_remotive_jobs():
     print("⚡ Conectando con API de Remotive...")
@@ -8,7 +9,7 @@ def get_remotive_jobs():
     headers = {'User-Agent': 'PortalTrabajoITBot/1.0 (+https://portalempleoit.com/bot; bot@portalempleoit.com)'}
 
     try:
-        response = requests.get(url, headers=headers, timeout=10)
+        response = safe_http_get(url, headers=headers, timeout=(5, 15))
         response.raise_for_status()
 
         data = response.json()
@@ -22,10 +23,7 @@ def get_remotive_jobs():
                 location = item.get('candidate_required_location', 'Remoto')
                 url_source = item.get('url', '')
                 description_html = item.get('description', '')
-
-                # Limpieza HTML con BeautifulSoup para snippet limpio
-                clean_text = BeautifulSoup(description_html, 'html.parser').get_text()
-                description_snippet = clean_text[:200].strip() + "..."
+                description_snippet = truncate_snippet(description_html, 200)
 
                 if not title or not url_source:
                     continue

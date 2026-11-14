@@ -60,27 +60,103 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// 3. Control perimetral de IP si está configurado ALLOWED_PROXY_IPS en el entorno (Vector 23)
+/**
+ * Verifica si una IP IPv4 o IPv6 pertenece a un bloque CIDR usando aritmética binaria exacta.
+ */
+function ip_in_cidr(string $ip, string $cidr): bool {
+    if (strpos($cidr, '/') === false) {
+        return $ip === $cidr;
+    }
+    list($subnet, $prefix_str) = explode('/', $cidr, 2);
+    $ip_bin = @inet_pton($ip);
+    $subnet_bin = @inet_pton($subnet);
+    if ($ip_bin === false || $subnet_bin === false || strlen($ip_bin) !== strlen($subnet_bin)) {
+        return false;
+    }
+    $prefix = (int) $prefix_str;
+    $max_bits = strlen($ip_bin) * 8;
+    if ($prefix < 0 || $prefix > $max_bits) {
+        return false;
+    }
+    $bytes = intdiv($prefix, 8);
+    $bits = $prefix % 8;
+    if ($bytes > 0 && substr($ip_bin, 0, $bytes) !== substr($subnet_bin, 0, $bytes)) {
+        return false;
+    }
+    if ($bits > 0) {
+        $mask = (0xFF << (8 - $bits)) & 0xFF;
+        if ((ord($ip_bin[$bytes]) & $mask) !== (ord($subnet_bin[$bytes]) & $mask)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * Rangos oficiales de Cloudflare (IPv4 e IPv6) + TRUSTED_PROXY_IPS opcionales.
+ * Solo si REMOTE_ADDR pertenece a un proxy de confianza se lee CF-Connecting-IP.
+ */
+function is_trusted_proxy_ip(string $remote_addr): bool {
+    $cf_ranges = [
+        '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22',
+        '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20',
+        '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13',
+        '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22',
+        '2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32',
+        '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32'
+    ];
+    $extra_proxies = get_proxy_env('TRUSTED_PROXY_IPS');
+    if (!empty($extra_proxies)) {
+        foreach (array_map('trim', explode(',', $extra_proxies)) as $cidr) {
+            if ($cidr !== '') $cf_ranges[] = $cidr;
+        }
+    }
+    foreach ($cf_ranges as $cidr) {
+        if (ip_in_cidr($remote_addr, $cidr)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// 3. Control perimetral de IP si está configurado ALLOWED_PROXY_IPS en el entorno (SEC-008)
 $allowed_ips_env = get_proxy_env('ALLOWED_PROXY_IPS');
 if (!empty($allowed_ips_env)) {
     $allowed_ips = array_map('trim', explode(',', $allowed_ips_env));
-    // VULN-27: Soporte para detección de IP en topologías con Cloudflare / Reverse Proxy confiable
-    $client_ip = $_SERVER['REMOTE_ADDR'] ?? '';
-    if (!empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
-        $client_ip = $_SERVER['HTTP_CF_CONNECTING_IP'];
+    $remote_addr = $_SERVER['REMOTE_ADDR'] ?? '';
+    $client_ip = $remote_addr;
+
+    if (is_trusted_proxy_ip($remote_addr) && !empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
+        $cf_ip = trim($_SERVER['HTTP_CF_CONNECTING_IP']);
+        if (filter_var($cf_ip, FILTER_VALIDATE_IP) !== false) {
+            $client_ip = $cf_ip;
+        }
     }
-    if (!in_array($client_ip, $allowed_ips, true)) {
+
+    $ip_authorized = false;
+    foreach ($allowed_ips as $allowed) {
+        if ($allowed !== '' && ip_in_cidr($client_ip, $allowed)) {
+            $ip_authorized = true;
+            break;
+        }
+    }
+    if (!$ip_authorized) {
         http_response_code(403);
         echo json_encode(['error' => 'IP de origen no autorizada para el proxy de base de datos.']);
         exit;
     }
 }
 
-// 4. Token de seguridad leído exclusivamente de variables de entorno (mínimo 32 caracteres)
+// 4. Token de seguridad leído exclusivamente de variables de entorno (mínimo 32 caracteres).
+// Soporta rotación sin caída aceptando opcionalmente PROXY_SECRET_PREVIOUS / DB_PROXY_TOKEN_PREVIOUS.
 $secret = $_SERVER['HTTP_X_PROXY_TOKEN'] ?? '';
 $expected_secret = get_proxy_env('PROXY_SECRET') ?: get_proxy_env('DB_PROXY_TOKEN') ?: '';
+$previous_secret = get_proxy_env('PROXY_SECRET_PREVIOUS') ?: get_proxy_env('DB_PROXY_TOKEN_PREVIOUS') ?: '';
 
-if (empty($expected_secret) || strlen($expected_secret) < 32 || empty($secret) || !hash_equals($expected_secret, $secret)) {
+$valid_primary = !empty($expected_secret) && strlen($expected_secret) >= 32 && !empty($secret) && hash_equals($expected_secret, $secret);
+$valid_previous = !empty($previous_secret) && strlen($previous_secret) >= 32 && !empty($secret) && hash_equals($previous_secret, $secret);
+
+if (!$valid_primary && !$valid_previous) {
     // VULN-02: Se elimina usleep() para prevenir amplificación DoS / agotamiento de workers de Apache (Slowloris)
     http_response_code(403);
     echo json_encode(['error' => 'Acceso denegado: Token no válido, ausente o insuficiente.']);
@@ -96,119 +172,212 @@ if (strlen($raw_input) > 524288) { // 512KB máximo por payload
 }
 
 $input = json_decode($raw_input, true);
-$sql = $input['sql'] ?? '';
-$params = $input['params'] ?? [];
-
-if (!is_array($params)) {
-    $params = [];
-}
-
-// Vector 26: Prevención de DoS por memoria en PDO por exceso de parámetros
-if (count($params) > 200) {
+if (!is_array($input)) {
     http_response_code(400);
-    echo json_encode(['error' => 'Exceso de parámetros en la consulta (máximo 200 permitidos).']);
+    echo json_encode(['error' => 'Payload JSON inválido.']);
     exit;
 }
 
-foreach ($params as $param) {
-    // VULN-24: Validar tipos escalares para prevenir fatal TypeErrors en PDOStatement::execute()
-    if (!is_scalar($param) && !is_null($param)) {
+/**
+ * Elimina el contenido de cadenas literales ('...' y "...") para analizar únicamente la sintaxis SQL.
+ */
+function strip_sql_string_literals(string $sql): string {
+    $out = '';
+    $len = strlen($sql);
+    $in_quote = false;
+    $quote_char = '';
+
+    for ($i = 0; $i < $len; $i++) {
+        $ch = $sql[$i];
+        if ($in_quote) {
+            if ($ch === '\\' && $i + 1 < $len) {
+                $i++; // Saltar carácter escapado dentro del literal
+                continue;
+            }
+            if ($ch === $quote_char) {
+                if ($i + 1 < $len && $sql[$i + 1] === $quote_char) {
+                    $i++; // Comilla doblada SQL ('')
+                    continue;
+                }
+                $in_quote = false;
+                $out .= "''";
+            }
+        } else {
+            if ($ch === "'" || $ch === '"') {
+                $in_quote = true;
+                $quote_char = $ch;
+            } else {
+                $out .= $ch;
+            }
+        }
+    }
+    return $out;
+}
+
+/**
+ * Valida parámetros y reglas de seguridad SQL para una sentencia preparada (SEC-009, SEC-010, SEC-011).
+ * Devuelve el SQL en mayúsculas sin literales o termina con respuesta HTTP de error.
+ */
+function validate_sql_and_params($sql, $params): string {
+    if (!is_array($params)) {
         http_response_code(400);
-        echo json_encode(['error' => 'Los parámetros de la consulta deben ser valores escalares o nulos.']);
+        echo json_encode(['error' => 'Los parámetros deben enviarse como lista JSON.']);
         exit;
     }
-    if (is_string($param) && strlen($param) > 65536) {
+
+    if (count($params) > 200) {
         http_response_code(400);
-        echo json_encode(['error' => 'Parámetro individual excede la longitud máxima permitida (64KB).']);
+        echo json_encode(['error' => 'Exceso de parámetros en la consulta (máximo 200 permitidos).']);
         exit;
     }
-}
 
-if (empty($sql) || !is_string($sql)) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Consulta SQL no proporcionada.']);
-    exit;
-}
+    foreach ($params as $param) {
+        if (!is_scalar($param) && !is_null($param)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Los parámetros de la consulta deben ser valores escalares o nulos.']);
+            exit;
+        }
+        if (is_string($param) && strlen($param) > 65536) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Parámetro individual excede la longitud máxima permitida (64KB).']);
+            exit;
+        }
+    }
 
-// === VALIDACIÓN DE SEGURIDAD SQL (Vector 24 y 25) ===
+    if (empty($sql) || !is_string($sql)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Consulta SQL no proporcionada.']);
+        exit;
+    }
 
-// VULN-26: Rechazar consultas apiladas (stacked queries) verificando que el punto y coma no esté dentro de comillas literales
-$sql_no_quotes = preg_replace('/(\'(?:[^\'\\\\]|\\\\.)*\'|"(?:[^"\\\\]|\\\\.)*")/s', '', rtrim($sql, "; \t\n\r\0\x0B"));
-if (strpos($sql_no_quotes, ';') !== false) {
-    http_response_code(403);
-    echo json_encode(['error' => 'Consultas múltiples no permitidas por políticas de seguridad.']);
-    exit;
-}
+    $sql_trimmed = rtrim($sql, "; \t\n\r\0\x0B");
+    $sql_structural = strip_sql_string_literals($sql_trimmed);
 
-// Vector 24: Rechazar sintaxis de comentarios condicionales de MySQL (ej. /*!50000DELETE... */)
-if (strpos($sql, '/*!') !== false) {
-    http_response_code(403);
-    echo json_encode(['error' => 'Sintaxis de comentarios condicionales de MySQL no permitida.']);
-    exit;
-}
-
-// Normalizar y limpiar comentarios en bloque e inline para análisis semántico estricto
-$sql_clean = preg_replace('/\/\*.*?\*\//s', ' ', $sql);
-$sql_clean = preg_replace('/--[^\r\n]*/', ' ', $sql_clean);
-$sql_clean = preg_replace('/#[^\r\n]*/', ' ', $sql_clean);
-$sql_clean_upper = strtoupper(trim($sql_clean));
-
-// Soporte seguro para comandos de control transaccional como no-op en proxy HTTP sin estado
-if (preg_match('/^(START\s+TRANSACTION|COMMIT|ROLLBACK|BEGIN)\b/i', $sql_clean_upper)) {
-    echo json_encode([
-        'success' => true,
-        'rows' => [],
-        'affected_rows' => 0,
-        'insert_id' => 0
-    ]);
-    exit;
-}
-
-// Rechazar acceso a esquemas y tablas internas de MySQL
-if (preg_match('/\b(INFORMATION_SCHEMA|PERFORMANCE_SCHEMA|MYSQL|SYS)\b/i', $sql_clean_upper)) {
-    http_response_code(403);
-    echo json_encode(['error' => 'Acceso a esquemas de sistema no permitido.']);
-    exit;
-}
-
-// Rechazar funciones de archivos o temporización
-if (preg_match('/\b(OUTFILE|DUMPFILE|LOAD_FILE|BENCHMARK|SLEEP)\b/i', $sql_clean_upper)) {
-    http_response_code(403);
-    echo json_encode(['error' => 'Operación de archivo o temporización bloqueada.']);
-    exit;
-}
-
-// VULN-01: Rechazar operaciones destructivas masivas con límites de palabra (\b) para evitar falsos positivos con "skills", "Grant Thornton", etc.
-if (preg_match('/\b(DROP|ALTER|TRUNCATE|GRANT|REVOKE|RENAME|FLUSH|KILL|SHUTDOWN)\b/i', $sql_clean_upper)) {
-    http_response_code(403);
-    echo json_encode(['error' => 'Operación SQL destructiva no permitida por políticas de seguridad.']);
-    exit;
-}
-
-// Vector 25: Control de operaciones DELETE para posibilitar el derecho de supresión RGPD y purgas defensivas
-// Solo se autoriza DELETE si tiene cláusula WHERE parametrizada sobre tablas permitidas (con modificador multilínea s)
-if (preg_match('/^DELETE\b/i', $sql_clean_upper)) {
-    if (!preg_match('/^DELETE\s+FROM\s+`?(subscribers|jobs|job_reactions|newsletter_sponsors|stripe_processed_events|report_downloads|email_tracking|company_reviews|review_reports)`?\s+WHERE\s+/is', $sql_clean_upper) || count($params) === 0) {
+    // Rechazar consultas apiladas (stacked queries) fuera de literales
+    if (strpos($sql_structural, ';') !== false) {
         http_response_code(403);
-        echo json_encode(['error' => 'Operación DELETE no autorizada sin cláusula WHERE parametrizada.']);
+        echo json_encode(['error' => 'Consultas múltiples no permitidas por políticas de seguridad.']);
         exit;
     }
-}
 
-// VULN-07: Control estricto de operaciones UPDATE para prevenir sobreescrituras masivas sin cláusula WHERE (con modificador multilínea s)
-if (preg_match('/^UPDATE\b/i', $sql_clean_upper)) {
-    if (!preg_match('/^UPDATE\s+`?[a-zA-Z0-9_]+`?\s+SET\s+.+\s+WHERE\s+/is', $sql_clean_upper) || count($params) === 0) {
+    // SEC-010: Rechazar estrictamente cualquier sintaxis de comentario SQL fuera de parámetros (?)
+    if (
+        strpos($sql_structural, '/*') !== false ||
+        strpos($sql_structural, '*/') !== false ||
+        strpos($sql_structural, '--') !== false ||
+        strpos($sql_structural, '#') !== false
+    ) {
         http_response_code(403);
-        echo json_encode(['error' => 'Operación UPDATE no autorizada sin cláusula WHERE parametrizada.']);
+        echo json_encode(['error' => 'Comentarios SQL no permitidos fuera de parámetros enlazados.']);
         exit;
     }
+
+    // Verificar correspondencia exacta entre placeholders (?) y parámetros enviados
+    $placeholder_count = substr_count($sql_structural, '?');
+    if ($placeholder_count !== count($params)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Desajuste entre placeholders SQL (?) y número de parámetros.']);
+        exit;
+    }
+
+    $sql_upper = strtoupper(trim($sql_structural));
+
+    // SEC-009: Prohibir comandos transaccionales sueltos sin estado (usar modo batch atómico)
+    if (preg_match('/^(START\s+TRANSACTION|COMMIT|ROLLBACK|BEGIN)\b/i', $sql_upper)) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Transacciones stateless deshabilitadas; use el modo batch transaccional.']);
+        exit;
+    }
+
+    // Rechazar acceso a esquemas y tablas internas de MySQL
+    if (preg_match('/\b(INFORMATION_SCHEMA|PERFORMANCE_SCHEMA|MYSQL|SYS)\b/i', $sql_upper)) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Acceso a esquemas de sistema no permitido.']);
+        exit;
+    }
+
+    // Rechazar funciones de archivos o temporización
+    if (preg_match('/\b(OUTFILE|DUMPFILE|LOAD_FILE|BENCHMARK|SLEEP)\b/i', $sql_upper)) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Operación de archivo o temporización bloqueada.']);
+        exit;
+    }
+
+    // Rechazar operaciones DDL/administrativas destructivas
+    if (preg_match('/\b(DROP|ALTER|TRUNCATE|GRANT|REVOKE|RENAME|FLUSH|KILL|SHUTDOWN)\b/i', $sql_upper)) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Operación SQL destructiva no permitida por políticas de seguridad.']);
+        exit;
+    }
+
+    // SEC-011: Bloquear tautologías triviales en WHERE de DELETE/UPDATE y prohibir DELETE sobre stripe_processed_events
+    if (preg_match('/^(DELETE|UPDATE)\b/i', $sql_upper)) {
+        if (preg_match('/\bWHERE\b.*\b(1\s*=\s*1|0\s*=\s*0|\?\s*=\s*\?|TRUE|1\s+OR)\b/is', $sql_upper)) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Condición WHERE potencialmente tautológica bloqueada por seguridad.']);
+            exit;
+        }
+    }
+
+    if (preg_match('/^DELETE\b/i', $sql_upper)) {
+        if (
+            !preg_match('/^DELETE\s+FROM\s+`?(subscribers|jobs|job_reactions|newsletter_sponsors|report_downloads|email_tracking|company_reviews|review_reports)`?\s+WHERE\s+/is', $sql_upper) ||
+            preg_match('/\bOR\b/i', $sql_upper) ||
+            !preg_match('/\bWHERE\s+.*`?[a-zA-Z_][a-zA-Z0-9_]*`?\s*=\s*\?/is', $sql_upper) ||
+            count($params) === 0
+        ) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Operación DELETE no autorizada sin cláusula WHERE estrictamente parametrizada.']);
+            exit;
+        }
+    }
+
+    if (preg_match('/^UPDATE\b/i', $sql_upper)) {
+        if (
+            !preg_match('/^UPDATE\s+`?[a-zA-Z0-9_]+`?\s+SET\s+.+\s+WHERE\s+.*`?[a-zA-Z_][a-zA-Z0-9_]*`?\s*(?:=|IN)\s*/is', $sql_upper) ||
+            count($params) === 0
+        ) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Operación UPDATE no autorizada sin cláusula WHERE parametrizada.']);
+            exit;
+        }
+    }
+
+    // Whitelist general
+    if (!preg_match('/^(SELECT|INSERT|UPDATE|SHOW|DELETE)\b/i', $sql_upper) && !preg_match('/^CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\b/i', $sql_upper)) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Tipo de consulta SQL no soportada.']);
+        exit;
+    }
+
+    return $sql_upper;
 }
 
-// Whitelist general: La consulta debe comenzar estrictamente por SELECT, INSERT, UPDATE, SHOW, CREATE TABLE IF NOT EXISTS o DELETE controlado
-if (!preg_match('/^(SELECT|INSERT|UPDATE|SHOW|DELETE)\b/i', $sql_clean_upper) && !preg_match('/^CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\b/i', $sql_clean_upper)) {
-    http_response_code(403);
-    echo json_encode(['error' => 'Tipo de consulta SQL no soportada.']);
-    exit;
+$is_batch = isset($input['batch']) && is_array($input['batch']);
+$queries_to_run = [];
+
+if ($is_batch) {
+    if (count($input['batch']) === 0 || count($input['batch']) > 25) {
+        http_response_code(400);
+        echo json_encode(['error' => 'El lote transaccional debe contener entre 1 y 25 sentencias.']);
+        exit;
+    }
+    foreach ($input['batch'] as $item) {
+        if (!is_array($item)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Elemento de lote inválido.']);
+            exit;
+        }
+        $q_sql = $item['sql'] ?? '';
+        $q_params = $item['params'] ?? [];
+        $q_upper = validate_sql_and_params($q_sql, $q_params);
+        $queries_to_run[] = ['sql' => $q_sql, 'params' => $q_params, 'upper' => $q_upper];
+    }
+} else {
+    $sql = $input['sql'] ?? '';
+    $params = $input['params'] ?? [];
+    $sql_upper = validate_sql_and_params($sql, $params);
+    $queries_to_run[] = ['sql' => $sql, 'params' => $params, 'upper' => $sql_upper];
 }
 // ====================================
 
@@ -227,37 +396,78 @@ if (empty($db) || empty($user) || empty($pass)) {
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
 $options = [
-    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    PDO::ATTR_EMULATE_PREPARES   => false,
-    PDO::MYSQL_ATTR_MULTI_STATEMENTS => false,
+    PDO::ATTR_ERRMODE                 => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_DEFAULT_FETCH_MODE      => PDO::FETCH_ASSOC,
+    PDO::ATTR_EMULATE_PREPARES        => false,
+    PDO::ATTR_TIMEOUT                 => 5,
+    PDO::MYSQL_ATTR_MULTI_STATEMENTS  => false,
 ];
 
+$pdo = null;
 try {
     $pdo = new PDO($dsn, $user, $pass, $options);
-    $stmt = $pdo->prepare($sql);
-    
-    // Ejecutar con parámetros
-    $stmt->execute($params);
-    
-    // VULN-11: Límite defensivo de filas por consulta para prevenir DoS por agotamiento de memoria (OOM)
-    $max_rows = 1000;
-    $rows = [];
-    if (strpos($sql_clean_upper, 'SELECT') === 0 || strpos($sql_clean_upper, 'SHOW') === 0) {
-        $count = 0;
-        while ($count < $max_rows && ($row = $stmt->fetch())) {
-            $rows[] = $row;
-            $count++;
-        }
+    // SEC-012: Límite máximo de tiempo de ejecución SQL en sesión (MySQL max_execution_time / MariaDB max_statement_time)
+    try {
+        $pdo->exec('SET SESSION max_execution_time = 5000');
+    } catch (\Throwable $timeoutErr) {
+        try {
+            $pdo->exec('SET SESSION max_statement_time = 5');
+        } catch (\Throwable $timeoutErr2) {}
     }
-    
-    echo json_encode([
-        'success' => true,
-        'rows' => $rows,
-        'affected_rows' => $stmt->rowCount(),
-        'insert_id' => $pdo->lastInsertId()
-    ]);
-} catch (\PDOException $e) {
+
+    if ($is_batch) {
+        $pdo->beginTransaction();
+        $batch_results = [];
+        $max_rows = 1000;
+        foreach ($queries_to_run as $q) {
+            $stmt = $pdo->prepare($q['sql']);
+            $stmt->execute($q['params']);
+            $rows = [];
+            if (strpos($q['upper'], 'SELECT') === 0 || strpos($q['upper'], 'SHOW') === 0) {
+                $count = 0;
+                while ($count < $max_rows && ($row = $stmt->fetch())) {
+                    $rows[] = $row;
+                    $count++;
+                }
+            }
+            $batch_results[] = [
+                'rows' => $rows,
+                'affected_rows' => $stmt->rowCount(),
+                'insert_id' => $pdo->lastInsertId()
+            ];
+        }
+        $pdo->commit();
+        echo json_encode([
+            'success' => true,
+            'results' => $batch_results
+        ]);
+    } else {
+        $q = $queries_to_run[0];
+        $stmt = $pdo->prepare($q['sql']);
+        $stmt->execute($q['params']);
+
+        // VULN-11: Límite defensivo de filas por consulta para prevenir DoS por agotamiento de memoria (OOM)
+        $max_rows = 1000;
+        $rows = [];
+        if (strpos($q['upper'], 'SELECT') === 0 || strpos($q['upper'], 'SHOW') === 0) {
+            $count = 0;
+            while ($count < $max_rows && ($row = $stmt->fetch())) {
+                $rows[] = $row;
+                $count++;
+            }
+        }
+
+        echo json_encode([
+            'success' => true,
+            'rows' => $rows,
+            'affected_rows' => $stmt->rowCount(),
+            'insert_id' => $pdo->lastInsertId()
+        ]);
+    }
+} catch (\Throwable $e) {
+    if ($pdo instanceof PDO && $pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     error_log("DB_PROXY_ERROR: " . $e->getMessage());
     http_response_code(500);
     echo json_encode([
@@ -265,4 +475,5 @@ try {
         'error' => 'Error interno de base de datos'
     ]);
 }
+
 

@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { subscribeUser } from '@/app/actions';
 import { sendSafeGAEvent, hasAnalyticsConsent } from '@/lib/analytics';
+import RgpdFirstLayerNotice from '@/components/RgpdFirstLayerNotice';
 
 
 const TECH_OPTIONS = [
@@ -87,7 +88,10 @@ export default function SubscribeForm({
     setStatus('loading');
     formData.append('pathname', pathname);
     formData.append('tech_keywords', selectedTech.join(','));
-    formData.append('location_pref', remoteOnly ? 'remoto' : '');
+    const resolvedLocationPref = remoteOnly
+      ? 'remoto'
+      : (defaultLocation || (location && location !== 'España' ? location : ''));
+    formData.append('location_pref', resolvedLocationPref);
     formData.append('frequency', frequency);
     formData.append('operator', operator);
     formData.append('referred_by', referredBy);
@@ -260,50 +264,12 @@ export default function SubscribeForm({
             </div>
           )}
 
-          {/* Casillas de consentimiento no premarcadas con finalidades desglosadas (RGPD Art. 6.1.a, 7.1 y 7.2) */}
-          <div className="space-y-2 pt-1 text-left">
-            <label className="flex items-start gap-2.5 text-xs text-gray-300 cursor-pointer">
-              <input
-                type="checkbox"
-                name="privacy_accepted"
-                required
-                defaultChecked={false}
-                className="mt-0.5 h-4 w-4 rounded border-gray-600 bg-gray-800 text-indigo-600 focus:ring-indigo-500 shrink-0 cursor-pointer"
-              />
-              <span className="leading-tight">
-                He leído y acepto la{' '}
-                <Link href="/privacy" target="_blank" className="text-indigo-400 underline hover:text-indigo-300">
-                  Política de Privacidad
-                </Link>{' '}
-                y consiento recibir alertas de empleo IT personalizadas. *
-              </span>
-            </label>
-
-            {/* Finalidad secundaria opcional separada (RGPD Art. 7.2 - Prohibición estricta de consentimiento agrupado/bundled) */}
-            <label className="flex items-start gap-2.5 text-xs text-gray-400 cursor-pointer">
-              <input
-                type="checkbox"
-                name="marketing_accepted"
-                defaultChecked={false}
-                className="mt-0.5 h-4 w-4 rounded border-gray-600 bg-gray-800 text-indigo-600 focus:ring-indigo-500 shrink-0 cursor-pointer"
-              />
-              <span className="leading-tight">
-                (Opcional) Consiento recibir novedades, ofertas formativas y comunicaciones comerciales relevantes del sector IT.
-              </span>
-            </label>
-
-            {/* Primera Capa Informativa AEPD */}
-            <div className="p-2.5 rounded-lg bg-gray-800/80 border border-gray-700/80 text-[10px] text-gray-300 leading-relaxed space-y-1">
-              <p className="font-semibold text-gray-200">Información básica sobre protección de datos:</p>
-              <ul className="list-disc pl-3.5 space-y-0.5 text-gray-400">
-                <li><strong>Responsable:</strong> Portal Trabajo IT.</li>
-                <li><strong>Finalidad:</strong> Envío de alertas de empleo tech y, si lo autorizas, comunicaciones formativas o comerciales.</li>
-                <li><strong>Legitimación:</strong> Tu consentimiento expreso e inequívoco para cada finalidad (Art. 6.1.a RGPD).</li>
-                <li><strong>Destinatarios:</strong> No se ceden datos a terceros, salvo obligación legal o encargados técnicos de infraestructura.</li>
-                <li><strong>Derechos:</strong> Acceso, rectificación, supresión y baja instantánea en 1 clic (+ info en <Link href="/privacy" className="text-indigo-400 underline">Política de Privacidad</Link>).</li>
-              </ul>
-            </div>
-          </div>
+          {/* Casillas de consentimiento no premarcadas + Primera Capa Informativa AEPD (LEG-017) */}
+          <RgpdFirstLayerNotice
+            purpose="Envío de alertas de empleo tech y, si lo autorizas expresamente, comunicaciones formativas o comerciales."
+            includeMarketingCheckbox={true}
+            dark={true}
+          />
 
           <button
             type="submit"

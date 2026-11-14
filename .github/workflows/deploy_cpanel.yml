@@ -28,9 +28,16 @@ jobs:
           rm -rf deploy_dist/backend/migration_data
           rm -rf deploy_dist/backend/tests
           rm -rf deploy_dist/backend/__pycache__
-          rm -f deploy_dist/backend/.env
+          rm -f deploy_dist/backend/.env*
           rm -f deploy_dist/backend/*_log.txt
-          rm -f deploy_dist/backend/*.sql
+          rm -f deploy_dist/backend/*.sql*
+          rm -f deploy_dist/*.sql* deploy_dist/*.docx deploy_dist/*.png deploy_dist/*.md
+
+          # Salvaguarda de despliegue: abortar si se coló algún secreto .env o archivo de migración PII
+          if find deploy_dist -maxdepth 3 \( -name ".env" -o -name ".env.*" ! -name "*.example" -o -name "ecosier2_PortalEmpleo.sql" \) | grep -q .; then
+            echo "❌ Error crítico: Se detectaron archivos sensibles en deploy_dist."
+            exit 1
+          fi
 
           # Crear .htaccess para denegar acceso HTTP directo al directorio backend
           printf "Options -Indexes\n<IfModule mod_authz_core.c>\n    Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n    Order Allow,Deny\n    Deny from all\n</IfModule>\n" > deploy_dist/backend/.htaccess

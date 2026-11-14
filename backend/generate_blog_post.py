@@ -89,7 +89,7 @@ La flexibilidad sigue siendo la característica más buscada por los programador
 Las empresas internacionales y las startups tecnológicas siguen siendo las que más apuestan por la modalidad remota pura, permitiendo contratar talento fuera de los focos tradicionales de Madrid y Barcelona.
 
 ## 3. Retribución Salarial y Promedios de Mercado
-Analizando los salarios declarados en las vacantes, el **salario medio bruto anual estimado en España se sitúa en {avg_salary.toLocaleString('es-ES')}€**.
+Analizando los salarios declarados en las vacantes, el **salario medio bruto anual estimado en España se sitúa en {f"{avg_salary:,}".replace(",", ".")}€**.
 
 Este promedio varía significativamente según el nivel de experiencia:
 1. **Junior (0-2 años):** Rangos iniciales recomendados entre 22.000€ y 28.000€.
@@ -100,6 +100,8 @@ Para afinar el cálculo salarial según tu perfil exacto, te recomendamos usar d
 
 ## Conclusión
 El mercado laboral IT en España mantiene una salud excelente en {current_year}. Si estás planificando un cambio de rumbo profesional, especializarte en tecnologías en la nube y mejorar tus competencias en arquitecturas de backend y frontend modernos es la vía más rápida para acceder a las posiciones mejor remuneradas del sector.
+
+> *Nota de transparencia (Art. 50 Reglamento UE 2024/1689 - AI Act): Informe generado automáticamente a partir de datos agregados reales del portal y supervisado editorialmente.*
 """
 
         # 3. Insertar o actualizar el post en la base de datos

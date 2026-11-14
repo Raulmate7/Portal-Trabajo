@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 const UserStreak = dynamic(() => import('./UserStreak'), {
   ssr: false,
@@ -11,8 +11,14 @@ const UserStreak = dynamic(() => import('./UserStreak'), {
 
 export default function Header() {
   const searchParams = useSearchParams();
+  const pathname = usePathname() || '/';
   const lang = searchParams?.get('lang') === 'en' ? 'en' : 'es';
   const isEnglish = lang === 'en';
+  const cleanEsParams = (searchParams?.toString() || '').replace(/(^|&)lang=en(?=&|$)/g, '').replace(/^&|&$/g, '');
+  const esHref = cleanEsParams ? `${pathname}?${cleanEsParams}` : pathname;
+  const enParams = new URLSearchParams(searchParams?.toString() || '');
+  enParams.set('lang', 'en');
+  const enHref = `${pathname}?${enParams.toString()}`;
 
   const [isOpen, setIsOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark' | null>(null);
@@ -96,7 +102,7 @@ export default function Header() {
 
             {/* Cambiador de Idioma */}
             <Link
-              href={isEnglish ? `/${searchParams?.toString().replace(/lang=en&?|&lang=en/g, '')}` : `?lang=en`}
+              href={isEnglish ? esHref : enHref}
               className="text-xs font-bold px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 transition-colors border border-gray-200/50 dark:border-slate-700/50"
               title={isEnglish ? 'Switch to Spanish' : 'Cambiar a Inglés'}
             >
@@ -211,7 +217,7 @@ export default function Header() {
             {/* Idioma Móvil */}
             <span className="text-xs font-semibold text-gray-500">{isEnglish ? 'Language' : 'Idioma'}:</span>
             <Link
-              href={isEnglish ? `/${searchParams?.toString().replace(/lang=en&?|&lang=en/g, '')}` : `?lang=en`}
+              href={isEnglish ? esHref : enHref}
               onClick={() => setIsOpen(false)}
               className="text-xs font-bold px-3 py-1.5 rounded bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300"
             >

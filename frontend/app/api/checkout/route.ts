@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   }
 
   const ip = getClientIp(request);
-  const rateLimit = checkoutLimiter.limit(ip);
+  const rateLimit = await checkoutLimiter.limitAsync(ip);
   if (!rateLimit.success) {
     return new NextResponse('Too Many Requests', { status: 429 });
   }
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
     // 3. Determinar precio y datos del producto según el plan elegido (VULN-14: Fuente única de verdad)
     const unitAmount = planConfig.unitAmountCents;
     const planName = `${planConfig.name} - Portal Trabajo IT`;
-    const planDesc = `${planConfig.description} (Oferta: "${title.trim()}").`;
+    const planDesc = `${planConfig.description} (Oferta: "${title.trim()}" · +21% IVA aplicable).`;
 
     // 4. Crear la sesión de checkout en Stripe usando BASE_URL seguro
     let session;
@@ -127,6 +127,9 @@ export async function POST(request: Request) {
         payment_method_types: ['card'],
         billing_address_collection: 'required',
         tax_id_collection: { enabled: true },
+        invoice_creation: { enabled: true },
+        consent_collection: { terms_of_service: 'required' },
+        ...(process.env.STRIPE_AUTOMATIC_TAX === 'true' ? { automatic_tax: { enabled: true } } : {}),
         line_items: [
           {
             price_data: {

@@ -11,14 +11,21 @@ export async function POST(request: Request) {
   }
 
   const ip = getClientIp(request);
-  const rateLimit = checkoutLimiter.limit(ip);
+  const rateLimit = await checkoutLimiter.limitAsync(ip);
   if (!rateLimit.success) {
     return new NextResponse('Too Many Requests', { status: 429 });
   }
 
   try {
     const body = await request.json().catch(() => ({}));
-    const { email, type = 'full' } = body;
+    const { email, type = 'full', waiver_accepted } = body;
+
+    if (waiver_accepted === false) {
+      return NextResponse.json(
+        { error: 'Debes aceptar la renuncia al derecho de desistimiento de 14 días para la entrega digital inmediata (Art. 103.m TRLGDCU).' },
+        { status: 400 }
+      );
+    }
 
     const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     const cleanEmail = (email || '').toString().trim().toLowerCase();
@@ -29,14 +36,14 @@ export async function POST(request: Request) {
 
     const selectedType = type === 'enterprise' ? 'enterprise' : 'full';
     
-    let unitAmount = 990; // 9.99€ (Reporte Completo)
+    let unitAmount = 999; // 9,99€ IVA incluido (Reporte Completo)
     let productName = 'Informe de Mercado IT Completo - Portal Trabajo IT';
-    let productDesc = 'Estadísticas detalladas de salarios reales, ciudades y stacks tecnológicos en España (PDF completo).';
+    let productDesc = 'Estadísticas detalladas de salarios reales, ciudades y stacks tecnológicos en España (PDF completo, IVA incluido).';
 
     if (selectedType === 'enterprise') {
-      unitAmount = 4900; // 49€ (Reporte de Empresa)
+      unitAmount = 4900; // 49€ + IVA (Reporte de Empresa)
       productName = 'Informe de Mercado IT Custom (Empresas) - Portal Trabajo IT';
-      productDesc = 'Datos históricos completos, segmentación tecnológica específica de tu competencia e informes de contratación en España.';
+      productDesc = 'Datos históricos completos, segmentación tecnológica específica de tu competencia e informes de contratación en España (+21% IVA aplicable).';
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -44,6 +51,9 @@ export async function POST(request: Request) {
       customer_email: cleanEmail,
       billing_address_collection: 'required',
       tax_id_collection: { enabled: true },
+      invoice_creation: { enabled: true },
+      consent_collection: { terms_of_service: 'required' },
+      ...(process.env.STRIPE_AUTOMATIC_TAX === 'true' ? { automatic_tax: { enabled: true } } : {}),
       line_items: [
         {
           price_data: {

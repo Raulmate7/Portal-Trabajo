@@ -302,11 +302,71 @@ SET @col_exists = (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_S
 SET @sql = IF(@col_exists = 0, 'ALTER TABLE subscribers ADD COLUMN referrals_notified_count INT DEFAULT 0', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
+-- 15. TABLA: companies (Entidad maestra de empresas normalizada, FUNC-049)
+CREATE TABLE IF NOT EXISTS companies (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    canonical_name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) UNIQUE NOT NULL,
+    domain VARCHAR(255) NULL,
+    logo_url VARCHAR(500) NULL,
+    verified BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_companies_domain (domain)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 16. TABLA: email_tracking_daily (Resumen diario para retención > 180 días, FUNC-058)
+CREATE TABLE IF NOT EXISTS email_tracking_daily (
+    campaign VARCHAR(100) NOT NULL,
+    summary_date DATE NOT NULL,
+    opens_count INT DEFAULT 0,
+    clicks_count INT DEFAULT 0,
+    PRIMARY KEY (campaign, summary_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 17. TABLA: subscriber_skills (Preferencias técnicas normalizadas, FUNC-053)
+CREATE TABLE IF NOT EXISTS subscriber_skills (
+    subscriber_email VARCHAR(255) NOT NULL,
+    skill VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (subscriber_email, skill),
+    INDEX idx_subscriber_skills_skill (skill)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ==============================================================================
--- ÍNDICES DE RENDIMIENTO Y BÚSQUEDA
+-- ÍNDICES DE RENDIMIENTO Y BÚSQUEDA (IDEMPOTENTES VÍA INFORMATION_SCHEMA, FUNC-036/037)
 -- ==============================================================================
-CREATE INDEX IF NOT EXISTS idx_jobs_category ON jobs (category);
-CREATE INDEX IF NOT EXISTS idx_jobs_is_featured ON jobs (is_featured);
-CREATE INDEX IF NOT EXISTS idx_jobs_is_active ON jobs (is_active);
-CREATE INDEX IF NOT EXISTS idx_jobs_created_at ON jobs (created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_jobs_salary_range ON jobs (salary_min, salary_max);
+SET @idx = (SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'jobs' AND INDEX_NAME = 'idx_jobs_category');
+SET @sql = IF(@idx = 0, 'CREATE INDEX idx_jobs_category ON jobs (category)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @idx = (SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'jobs' AND INDEX_NAME = 'idx_jobs_is_featured');
+SET @sql = IF(@idx = 0, 'CREATE INDEX idx_jobs_is_featured ON jobs (is_featured)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @idx = (SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'jobs' AND INDEX_NAME = 'idx_jobs_is_active');
+SET @sql = IF(@idx = 0, 'CREATE INDEX idx_jobs_is_active ON jobs (is_active)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @idx = (SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'jobs' AND INDEX_NAME = 'idx_jobs_created_at');
+SET @sql = IF(@idx = 0, 'CREATE INDEX idx_jobs_created_at ON jobs (created_at DESC)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @idx = (SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'jobs' AND INDEX_NAME = 'idx_jobs_salary_range');
+SET @sql = IF(@idx = 0, 'CREATE INDEX idx_jobs_salary_range ON jobs (salary_min, salary_max)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @idx = (SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'jobs' AND INDEX_NAME = 'idx_jobs_active_created');
+SET @sql = IF(@idx = 0, 'CREATE INDEX idx_jobs_active_created ON jobs (is_active, created_at DESC)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @idx = (SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'jobs' AND INDEX_NAME = 'idx_jobs_active_cat_created');
+SET @sql = IF(@idx = 0, 'CREATE INDEX idx_jobs_active_cat_created ON jobs (is_active, category, created_at DESC)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @idx = (SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'jobs' AND INDEX_NAME = 'idx_jobs_active_feat_created');
+SET @sql = IF(@idx = 0, 'CREATE INDEX idx_jobs_active_feat_created ON jobs (is_active, is_featured, created_at DESC)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @idx = (SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'jobs' AND INDEX_NAME = 'ft_jobs_search');
+SET @sql = IF(@idx = 0, 'CREATE FULLTEXT INDEX ft_jobs_search ON jobs (title, company, description_snippet)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

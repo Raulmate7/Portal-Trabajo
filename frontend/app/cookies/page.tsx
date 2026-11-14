@@ -119,8 +119,29 @@ export default function CookiesPage() {
                     <td className="p-2.5 font-mono text-[11px] font-semibold text-gray-800">__os_* / OneSignal</td>
                     <td className="p-2.5">OneSignal Inc.</td>
                     <td className="p-2.5"><span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">Funcional</span></td>
-                    <td className="p-2.5">Token para alertas push. Descargado e inicializado exclusivamente si el usuario interactúa con el botón de notificaciones o cuenta con permiso previo en su navegador.</td>
-                    <td className="p-2.5">Persistente</td>
+                    <td className="p-2.5">Token push en IndexedDB/localStorage. Bloqueado estrictamente hasta consentimiento expreso en cookies y permiso del navegador.</td>
+                    <td className="p-2.5">Hasta revocación</td>
+                  </tr>
+                  <tr className="hover:bg-gray-50/60">
+                    <td className="p-2.5 font-mono text-[11px] font-semibold text-gray-800">referrer_email</td>
+                    <td className="p-2.5">Propia</td>
+                    <td className="p-2.5"><span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">Funcional</span></td>
+                    <td className="p-2.5">Cookie httpOnly firmada para atribuir el programa de referidos cuando accedes desde un enlace de invitación (`/ref/[code]`).</td>
+                    <td className="p-2.5">30 días</td>
+                  </tr>
+                  <tr className="hover:bg-gray-50/60">
+                    <td className="p-2.5 font-mono text-[11px] font-semibold text-gray-800">admin_session</td>
+                    <td className="p-2.5">Propia</td>
+                    <td className="p-2.5"><span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">Técnica</span></td>
+                    <td className="p-2.5">Cookie httpOnly de autenticación exclusiva para administradores en `/admin`.</td>
+                    <td className="p-2.5">24 horas</td>
+                  </tr>
+                  <tr className="hover:bg-gray-50/60">
+                    <td className="p-2.5 font-mono text-[11px] font-semibold text-gray-800">user_streak / streak_sig</td>
+                    <td className="p-2.5">Propia</td>
+                    <td className="p-2.5"><span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">Funcional</span></td>
+                    <td className="p-2.5">Almacenamiento local y cookie httpOnly firmada para registrar la racha diaria de visitas (purgable al rechazar cookies opcionales).</td>
+                    <td className="p-2.5">1 año</td>
                   </tr>
                 </tbody>
               </table>

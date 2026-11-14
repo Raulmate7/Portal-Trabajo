@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 function UnsubscribeContent() {
   const searchParams = useSearchParams();
-  const email = searchParams.get('email') || '';
+  const rawEmail = searchParams.get('email') || '';
   const token = searchParams.get('token') || '';
+  // SEC-056: Solo aceptar email pre-rellenado cuando viene acompañado de token firmado
+  const email = token ? rawEmail : '';
   const successParam = searchParams.get('success') === 'true';
 
   const [confirmed, setConfirmed] = useState(successParam);
@@ -16,6 +18,33 @@ function UnsubscribeContent() {
   const [manualEmail, setManualEmail] = useState('');
   const [manualLoading, setManualLoading] = useState(false);
   const [manualMessage, setManualMessage] = useState('');
+  const autoTriggeredRef = useRef(false);
+
+  // LEG-013: Baja efectiva en un solo paso cuando el enlace contiene email + token HMAC válido (Art. 7.3 RGPD)
+  useEffect(() => {
+    if (!email || !token || confirmed || autoTriggeredRef.current) return;
+    autoTriggeredRef.current = true;
+    setLoading(true);
+    fetch('/api/unsubscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, token }),
+    })
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          setConfirmed(true);
+        } else {
+          setError(data.error || 'No se pudo verificar el enlace de cancelación.');
+        }
+      })
+      .catch(() => {
+        setError('Error de conexión al procesar la baja.');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [email, token, confirmed]);
 
   const handleRequestLink = async (e: React.FormEvent) => {
     e.preventDefault();

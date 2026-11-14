@@ -1,0 +1,34 @@
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: portal_empleo
+      MYSQL_ROOT_PASSWORD: local_dev_root_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/database_optimization.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: mysql://root:local_dev_root_password@mysql:3306/portal_empleo
+      REDIS_URL: redis://redis:6379
+      NEXT_PUBLIC_BASE_URL: http://localhost:3000
+    depends_on:
+      - mysql
+      - redis
+
+volumes:
+  mysql_data:

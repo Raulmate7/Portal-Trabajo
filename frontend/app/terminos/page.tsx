@@ -2,6 +2,7 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 import { Metadata } from "next";
 import Link from "next/link";
 import { BASE_URL } from "@/lib/constants";
+import { LEGAL_CONFIG } from "@/lib/legalConfig";
 
 export const metadata: Metadata = {
   title: "Términos y Condiciones Generales de Contratación | Portal Trabajo IT",
@@ -17,9 +18,7 @@ export default function TerminosPage() {
     { label: "Términos y Condiciones" }
   ];
 
-  const legalOwner = process.env.NEXT_PUBLIC_LEGAL_OWNER || 'Raúl Mateo (Portal Trabajo IT)';
-  const legalNif = process.env.NEXT_PUBLIC_LEGAL_NIF || 'Disponible previa solicitud acreditada en contacto@portalempleoit.com';
-  const legalAddress = process.env.NEXT_PUBLIC_LEGAL_ADDRESS || 'Madrid, España (Atención al usuario y notificaciones: contacto@portalempleoit.com)';
+  const { owner: legalOwner, nif: legalNif, address: legalAddress, email: legalEmail, registry: legalRegistry, domain } = LEGAL_CONFIG;
 
   return (
     <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
@@ -42,13 +41,14 @@ export default function TerminosPage() {
           <section className="space-y-3">
             <h2 className="text-lg font-bold text-gray-900">1. Objeto y Datos del Prestador</h2>
             <p>
-              Las presentes Condiciones Generales regulan el acceso, uso y contratación de los servicios prestados a través del sitio web <strong>portalempleoit.com</strong> por su titular:
+              Las presentes Condiciones Generales regulan el acceso, uso y contratación de los servicios prestados a través del sitio web <strong>{domain}</strong> por su titular:
             </p>
             <ul className="list-disc pl-5 space-y-1 text-xs sm:text-sm">
               <li><strong>Titular:</strong> {legalOwner}</li>
-              <li><strong>Identificación Fiscal:</strong> {legalNif}</li>
-              <li><strong>Domicilio y Contacto:</strong> {legalAddress}</li>
-              <li><strong>Correo Electrónico:</strong> contacto@portalempleoit.com</li>
+              <li><strong>NIF / CIF:</strong> {legalNif}</li>
+              <li><strong>Domicilio:</strong> {legalAddress}</li>
+              <li><strong>Datos registrales:</strong> {legalRegistry}</li>
+              <li><strong>Correo Electrónico:</strong> {legalEmail}</li>
             </ul>
           </section>
 
@@ -88,10 +88,7 @@ export default function TerminosPage() {
               </Link>.
             </p>
             <p>
-              Conforme al Art. 14.1 del Reglamento (UE) 524/2013, la Comisión Europea facilita una plataforma de resolución de litigios en línea para consumidores accesible en:{" "}
-              <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer" className="text-indigo-650 hover:underline">
-                https://ec.europa.eu/consumers/odr
-              </a>.
+              <strong>Resolución extrajudicial de litigios de consumo (Ley 7/2017 y Directiva 2013/11/UE):</strong> Tras la clausura de la antigua plataforma europea ODR dispuesta por el Reglamento (UE) 2024/3228, puedes dirigir cualquier reclamación directa a nuestro servicio de atención en <strong>{legalEmail}</strong> (con respuesta en un plazo máximo de 15 días), así como acudir a las Juntas Arbitrales de Consumo competentes en España o a las entidades acreditadas de resolución alternativa de litigios en materia de consumo conforme a la Ley 7/2017.
             </p>
           </section>
         </div>

@@ -183,7 +183,7 @@ export default function PreciosPage() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-amber-400 font-bold">✓</span>
-                Inclusión en la <strong>Newsletter semanal (8.700+ devs)</strong>
+                Inclusión en la <strong>Newsletter semanal para devs</strong>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-amber-400 font-bold">✓</span>

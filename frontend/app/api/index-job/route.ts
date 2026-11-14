@@ -3,12 +3,18 @@ import { NextRequest } from 'next/server';
 import crypto from 'crypto';
 import { indexJobLimiter, getClientIp } from '@/lib/rate-limit';
 import { isSafePublicUrl } from '@/lib/urlSafety';
+import { z } from 'zod';
+
+const indexJobSchema = z.object({
+  url: z.string().trim().min(1).max(1000),
+  type: z.enum(['URL_UPDATED', 'URL_DELETED']).default('URL_UPDATED'),
+});
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   const clientIp = getClientIp(req);
-  const rateLimit = indexJobLimiter.limit(clientIp);
+  const rateLimit = await indexJobLimiter.limitAsync(clientIp);
   if (!rateLimit.success) {
     return new Response(JSON.stringify({ error: 'Too many requests' }), { 
       status: 429, 
@@ -33,10 +39,17 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json();
-    const { url, type } = body;
+    const rawBody = await req.json();
+    const parsedBody = indexJobSchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      return new Response(JSON.stringify({ success: false, message: "Parámetros inválidos (se requiere 'url' y 'type' en ['URL_UPDATED', 'URL_DELETED'])" }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    const { url, type } = parsedBody.data;
     
-    if (!url || typeof url !== 'string' || !isSafePublicUrl(url)) {
+    if (!isSafePublicUrl(url)) {
       return new Response(JSON.stringify({ success: false, message: "Falta el parámetro 'url' válido o apunta a un destino no permitido" }), { 
         status: 400,
         headers: { 'Content-Type': 'application/json' }
@@ -67,7 +80,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const result = await requestGoogleIndexing(url, type || 'URL_UPDATED');
+    const result = await requestGoogleIndexing(url, type);
     
     return new Response(JSON.stringify(result), {
       status: result.success ? 200 : 500,

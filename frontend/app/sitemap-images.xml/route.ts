@@ -44,11 +44,11 @@ export async function GET() {
     `);
     const companies = compRes.rows;
 
-    // 3. Construir nodos de ofertas
+    // 3. Construir nodos con imágenes estáticas verificadas (evitando endpoints dinámicos /opengraph-image, SEO-023)
     const urlNodes = jobs.map((job: any) => {
       const jobSlug = getJobSlug(job);
       const jobUrl = `${BASE_URL}/job/${jobSlug}`;
-      const imageUrl = `${BASE_URL}/job/${jobSlug}/opengraph-image`;
+      const imageUrl = `${BASE_URL}/og-image.png`;
       const titleText = escapeXml(`${job.title} en ${job.company}`);
 
       return `

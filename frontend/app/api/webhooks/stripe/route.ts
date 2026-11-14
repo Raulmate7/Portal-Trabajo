@@ -3,6 +3,7 @@ import type Stripe from 'stripe';
 import stripe from '@/lib/stripe';
 import pool from '@/lib/db';
 import { generateReportToken } from '@/lib/reportToken';
+import { logSecurityEvent } from '@/lib/securityLogger';
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -43,46 +44,35 @@ export async function POST(request: Request) {
   try {
     event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
   } catch (err: any) {
+    await logSecurityEvent('SECURITY_CRITICAL', 'stripe_webhook_invalid_signature', { message: err?.message });
     console.error(`❌ Error de verificación de Webhook: ${err.message}`);
     return NextResponse.json({ error: `Error de Webhook: ${err.message}` }, { status: 400 });
   }
 
-  // VULN-02: Idempotencia estricta a nivel de base de datos para prevenir repetición (Replay) y concurrencia distribuida
+  // SEC-034: Idempotencia atómica estricta mediante PRIMARY KEY en stripe_processed_events (sin DDL en runtime)
   const eventClient = await pool.connect();
   try {
-    await eventClient.query(
+    const insertRes = await eventClient.query(
       "INSERT INTO stripe_processed_events (event_id, event_type, created_at) VALUES ($1, $2, NOW())",
       [event.id, event.type]
     );
+    if (insertRes.rowCount !== 1) {
+      console.error(`Error inesperado al registrar idempotencia para evento ${event.id}: rowCount=${insertRes.rowCount}`);
+      return NextResponse.json({ error: 'Error de base de datos registrando idempotencia' }, { status: 500 });
+    }
   } catch (dupErr: any) {
     const errMsg = (dupErr?.message || '').toLowerCase();
-    if (errMsg.includes('duplicate') || errMsg.includes('1062') || errMsg.includes('unique')) {
+    if (
+      errMsg.includes('duplicate') ||
+      errMsg.includes('1062') ||
+      errMsg.includes('er_dup_entry') ||
+      errMsg.includes('unique')
+    ) {
       console.log(`ℹ️ Evento Stripe ${event.id} ya procesado previamente. Retornando 200 OK.`);
       return NextResponse.json({ received: true, deduplicated: true });
     }
-    // Si la tabla no existiera por migración pendiente, inicializarla defensivamente
-    if (errMsg.includes("table") && errMsg.includes("doesn't exist")) {
-      try {
-        await eventClient.query(`
-          CREATE TABLE IF NOT EXISTS stripe_processed_events (
-            event_id VARCHAR(255) PRIMARY KEY,
-            event_type VARCHAR(100) NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-        `);
-        await eventClient.query(
-          "INSERT INTO stripe_processed_events (event_id, event_type, created_at) VALUES ($1, $2, NOW())",
-          [event.id, event.type]
-        );
-      } catch (tableErr: any) {
-        if ((tableErr?.message || '').toLowerCase().includes('duplicate') || (tableErr?.message || '').toLowerCase().includes('1062')) {
-          return NextResponse.json({ received: true, deduplicated: true });
-        }
-        console.error('Error inicializando tabla stripe_processed_events:', tableErr);
-      }
-    } else {
-      console.error('Error registrando idempotencia de evento Stripe:', dupErr);
-    }
+    console.error('Error registrando idempotencia de evento Stripe:', dupErr);
+    return NextResponse.json({ error: 'Error de base de datos registrando idempotencia' }, { status: 500 });
   } finally {
     eventClient.release();
   }
@@ -179,11 +169,16 @@ export async function POST(request: Request) {
                 "UPDATE subscribers SET is_premium = TRUE, stripe_customer_id = COALESCE($2, stripe_customer_id), stripe_subscription_id = COALESCE($3, stripe_subscription_id) WHERE email = $1",
                 [email, customerId, subscriptionId]
               );
-            } catch {
-              await client.query(
-                "UPDATE subscribers SET is_premium = TRUE WHERE email = $1",
-                [email]
-              );
+            } catch (updErr: any) {
+              const msg = (updErr?.message || '').toLowerCase();
+              if (msg.includes('unknown column') || msg.includes('er_bad_field_error')) {
+                await client.query(
+                  "UPDATE subscribers SET is_premium = TRUE WHERE email = $1",
+                  [email]
+                );
+              } else {
+                throw updErr;
+              }
             }
           } else {
             try {
@@ -192,12 +187,17 @@ export async function POST(request: Request) {
                  VALUES ($1, TRUE, 'daily', NOW(), 'todas', $2, $3)`,
                 [email, customerId, subscriptionId]
               );
-            } catch {
-              await client.query(
-                `INSERT INTO subscribers (email, is_premium, frequency, created_at, tech_keywords)
-                 VALUES ($1, TRUE, 'daily', NOW(), 'todas')`,
-                [email]
-              );
+            } catch (insErr: any) {
+              const msg = (insErr?.message || '').toLowerCase();
+              if (msg.includes('unknown column') || msg.includes('er_bad_field_error')) {
+                await client.query(
+                  `INSERT INTO subscribers (email, is_premium, frequency, created_at, tech_keywords)
+                   VALUES ($1, TRUE, 'daily', NOW(), 'todas')`,
+                  [email]
+                );
+              } else {
+                throw insErr;
+              }
             }
             console.log(`✅ Nuevo suscriptor creado directamente con rango premium: ${maskEmail(email)}`);
           }
@@ -402,10 +402,10 @@ export async function POST(request: Request) {
               const payerDomain = payerEmail.split('@')[1] || '';
               const publicDomains = new Set(['gmail.com', 'googlemail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'proton.me', 'protonmail.com']);
 
-              // VULN-24: Mitigar evasión de auto-comisión usando distintos proveedores de correo públicos
+              // SEC-035: Igualdad exacta de identidad local tras normalización (sin coincidencia por subcadena)
               const recruiterLocal = (recruiterEmail.split('@')[0] || '').toLowerCase().replace(/[^a-z0-9]/g, '');
               const payerLocal = (payerEmail.split('@')[0] || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-              const isSameLocalIdentity = Boolean(recruiterLocal && payerLocal && (recruiterLocal === payerLocal || recruiterLocal.includes(payerLocal) || payerLocal.includes(recruiterLocal)));
+              const isSameLocalIdentity = Boolean(recruiterLocal && payerLocal && recruiterLocal === payerLocal);
 
               const isSelfReferral = 
                 (payerEmail && recruiterCanonical === payerCanonical) ||
@@ -478,13 +478,16 @@ export async function POST(request: Request) {
     }
   }
 
-  // 3. Vulnerabilidad 4 / VULN-26: Revocación garantizada de Candidato Premium por Cancelación o Impago
-  else if (event.type === 'customer.subscription.deleted' || event.type === 'invoice.payment_failed') {
-    let customerEmail = '';
-
+  // 3. SEC-033: Ciclo de vida de suscripción, renovaciones (invoice.payment_succeeded) y revocación por cancelación/impago
+  else if (
+    event.type === 'customer.subscription.deleted' ||
+    event.type === 'invoice.payment_failed' ||
+    event.type === 'invoice.payment_succeeded'
+  ) {
     if (event.type === 'customer.subscription.deleted') {
       const subscription = event.data.object as Stripe.Subscription;
       const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id;
+      let customerEmail = '';
       if (customerId) {
         try {
           const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
@@ -496,44 +499,152 @@ export async function POST(request: Request) {
         }
       }
 
-      // VULN-26: Cotejar también el email registrado en metadata de la suscripción para evitar discrepancias
       const metadataEmail = (subscription.metadata?.email || '').toLowerCase().trim();
       const targetEmails = Array.from(new Set([customerEmail, metadataEmail].filter(Boolean)));
 
-      if (targetEmails.length > 0) {
+      if (targetEmails.length > 0 || customerId) {
         console.log(`⚠️ Desactivando rango Candidato Premium por cancelación de suscripción: ${targetEmails.map(maskEmail).join(', ')}`);
         const client = await pool.connect();
         try {
-          for (const target of targetEmails) {
-            await client.query(
-              "UPDATE subscribers SET is_premium = FALSE WHERE email = $1",
-              [target]
-            );
+          if (customerId) {
+            try {
+              await client.query("UPDATE subscribers SET is_premium = FALSE WHERE stripe_customer_id = $1", [customerId]);
+            } catch {}
           }
-          console.log(`✅ Suscriptor(es) revocado(s) exitosamente a cuenta estándar.`);
+          for (const target of targetEmails) {
+            await client.query("UPDATE subscribers SET is_premium = FALSE WHERE email = $1", [target]);
+          }
         } catch (err) {
           console.error('Error revocando suscripción premium en base de datos:', err);
+          return NextResponse.json({ error: 'Error interno en la BD' }, { status: 500 });
         } finally {
           client.release();
         }
       }
       return NextResponse.json({ received: true });
-    } else if (event.type === 'invoice.payment_failed') {
-      const invoice = event.data.object as Stripe.Invoice;
-      customerEmail = (invoice.customer_email || '').toLowerCase().trim();
     }
 
-    if (customerEmail) {
-      console.log(`⚠️ Desactivando rango Candidato Premium por impago de factura: ${maskEmail(customerEmail)}`);
+    const invoice = event.data.object as Stripe.Invoice;
+    const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id;
+    const customerEmail = (invoice.customer_email || '').toLowerCase().trim();
+
+    if (event.type === 'invoice.payment_succeeded') {
+      if (customerId || customerEmail) {
+        const client = await pool.connect();
+        try {
+          if (customerId) {
+            try {
+              await client.query("UPDATE subscribers SET is_premium = TRUE WHERE stripe_customer_id = $1", [customerId]);
+            } catch {}
+          }
+          if (customerEmail) {
+            await client.query("UPDATE subscribers SET is_premium = TRUE WHERE email = $1", [customerEmail]);
+          }
+          console.log(`✅ Suscripción premium confirmada/renovada tras invoice.payment_succeeded (${maskEmail(customerEmail)}).`);
+        } catch (err) {
+          console.error('Error renovando suscripción premium en invoice.payment_succeeded:', err);
+          return NextResponse.json({ error: 'Error interno en la BD' }, { status: 500 });
+        } finally {
+          client.release();
+        }
+      }
+      return NextResponse.json({ received: true });
+    }
+
+    // invoice.payment_failed: respetar periodo de gracia durante Smart Retries si aún quedan reintentos
+    const attemptCount = invoice.attempt_count || 0;
+    const hasPendingRetry = invoice.next_payment_attempt !== null && attemptCount < 3;
+    if (hasPendingRetry) {
+      console.warn(`⏳ Fallo transitorio en factura (intento ${attemptCount}) para ${maskEmail(customerEmail)}. Manteniendo estado past_due en periodo de gracia.`);
+      return NextResponse.json({ received: true, status: 'past_due_grace' });
+    }
+
+    if (customerId || customerEmail) {
+      console.log(`⚠️ Desactivando rango Candidato Premium por impago definitivo de factura: ${maskEmail(customerEmail)}`);
       const client = await pool.connect();
       try {
-        await client.query(
-          "UPDATE subscribers SET is_premium = FALSE WHERE email = $1",
-          [customerEmail]
-        );
-        console.log(`✅ Suscriptor ${maskEmail(customerEmail)} revocado exitosamente a cuenta estándar por impago.`);
+        if (customerId) {
+          try {
+            await client.query("UPDATE subscribers SET is_premium = FALSE WHERE stripe_customer_id = $1", [customerId]);
+          } catch {}
+        }
+        if (customerEmail) {
+          await client.query("UPDATE subscribers SET is_premium = FALSE WHERE email = $1", [customerEmail]);
+        }
       } catch (err) {
         console.error('Error revocando suscripción premium en base de datos por impago:', err);
+        return NextResponse.json({ error: 'Error interno en la BD' }, { status: 500 });
+      } finally {
+        client.release();
+      }
+    }
+  }
+
+  // 4. SEC-033: Manejo de reembolsos (charge.refunded) y disputas/contracargos (charge.dispute.created)
+  else if (event.type === 'charge.refunded' || event.type === 'charge.dispute.created') {
+    let targetCharge: Stripe.Charge | null = null;
+    let shouldRevoke = event.type === 'charge.dispute.created';
+
+    if (event.type === 'charge.refunded') {
+      targetCharge = event.data.object as Stripe.Charge;
+      shouldRevoke = Boolean(targetCharge.refunded || (targetCharge.amount > 0 && targetCharge.amount_refunded >= targetCharge.amount));
+    } else {
+      const dispute = event.data.object as Stripe.Dispute;
+      const chargeId = typeof dispute.charge === 'string' ? dispute.charge : dispute.charge?.id;
+      if (chargeId) {
+        try {
+          targetCharge = await stripe.charges.retrieve(chargeId);
+        } catch (chargeErr) {
+          console.error('Error recuperando charge asociado a disputa:', chargeErr);
+        }
+      }
+    }
+
+    if (shouldRevoke && targetCharge) {
+      const customerId = typeof targetCharge.customer === 'string' ? targetCharge.customer : targetCharge.customer?.id;
+      const paymentIntentId = typeof targetCharge.payment_intent === 'string' ? targetCharge.payment_intent : targetCharge.payment_intent?.id;
+      const statusLabel = event.type === 'charge.dispute.created' ? 'disputa' : 'reembolsado';
+
+      let session: Stripe.Checkout.Session | null = null;
+      if (paymentIntentId) {
+        try {
+          const sessions = await stripe.checkout.sessions.list({ payment_intent: paymentIntentId, limit: 1 });
+          session = sessions.data[0] || null;
+        } catch (sessErr) {
+          console.error('Error recuperando sesión Checkout para reversión financiera:', sessErr);
+        }
+      }
+
+      const targetEmail = (
+        session?.customer_details?.email ||
+        session?.metadata?.email ||
+        targetCharge.billing_details?.email ||
+        targetCharge.receipt_email ||
+        ''
+      ).toLowerCase().trim();
+
+      const client = await pool.connect();
+      try {
+        if (session?.metadata?.type === 'sponsored_job' && session.metadata?.jobId) {
+          await client.query("UPDATE jobs SET is_active = FALSE, is_featured = FALSE WHERE id = $1", [session.metadata.jobId]);
+        } else if (session?.metadata?.type === 'newsletter_sponsor' && session.metadata?.sponsorId) {
+          await client.query("UPDATE newsletter_sponsors SET status = $2 WHERE id = $1", [session.metadata.sponsorId, statusLabel]);
+        } else if (session?.metadata?.type === 'market_report' && session.id) {
+          await client.query("UPDATE report_downloads SET download_count = COALESCE(max_downloads, 5) WHERE session_id = $1", [session.id]);
+        }
+
+        if (customerId) {
+          try {
+            await client.query("UPDATE subscribers SET is_premium = FALSE WHERE stripe_customer_id = $1", [customerId]);
+          } catch {}
+        }
+        if (targetEmail) {
+          await client.query("UPDATE subscribers SET is_premium = FALSE WHERE email = $1", [targetEmail]);
+        }
+        console.warn(`🚨 Privilegios revocados por ${event.type} (cliente: ${maskEmail(targetEmail)}, sesión: ${session?.id || 'n/a'}).`);
+      } catch (revokeErr) {
+        console.error(`Error revocando privilegios tras ${event.type}:`, revokeErr);
+        return NextResponse.json({ error: 'Error interno en la BD' }, { status: 500 });
       } finally {
         client.release();
       }

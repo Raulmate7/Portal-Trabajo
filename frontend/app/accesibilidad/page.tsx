@@ -18,25 +18,25 @@ export default function AccesibilidadPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-gray-50 dark:bg-slate-950 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         <Breadcrumbs items={breadcrumbItems} />
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-10 space-y-6 text-gray-700 text-sm leading-relaxed mt-4">
-          <header className="border-b border-gray-100 pb-5">
-            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-2">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-6 sm:p-10 space-y-6 text-gray-700 dark:text-slate-300 text-sm leading-relaxed mt-4">
+          <header className="border-b border-gray-100 dark:border-slate-800 pb-5">
+            <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-2">
               ♿ Declaración de Accesibilidad Web
             </h1>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 dark:text-slate-400">
               En cumplimiento de la Ley 11/2023, de 8 de mayo, la Directiva (UE) 2019/882 (Acta Europea de Accesibilidad) y las Pautas de Accesibilidad para el Contenido Web (WCAG 2.1 Nivel AA).
             </p>
-            <p className="text-xs text-indigo-650 font-semibold mt-1">
+            <p className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold mt-1">
               Última revisión y actualización técnica: Noviembre de 2026.
             </p>
           </header>
 
           <section className="space-y-3">
-            <h2 className="text-lg font-bold text-gray-900">1. Compromiso con la Accesibilidad Universal</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">1. Compromiso con la Accesibilidad Universal</h2>
             <p>
               Portal Trabajo IT tiene el firme compromiso de garantizar que todos los desarrolladores, ingenieros y profesionales del sector tecnológico puedan acceder a nuestras ofertas de empleo, guías salariales y recursos informativos en igualdad de condiciones, sin que la edad, discapacidades visuales, auditivas, motrices o cognitivas supongan una barrera de acceso.
             </p>
@@ -46,9 +46,9 @@ export default function AccesibilidadPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-lg font-bold text-gray-900">2. Estado de Cumplimiento Técnico</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">2. Estado de Cumplimiento Técnico</h2>
             <p>
-              Este sitio web es <strong>plenamente conforme con las pautas WCAG 2.1 nivel AA</strong> gracias a las siguientes medidas activas incorporadas en el código fuente:
+              Este sitio web es <strong>parcialmente conforme con las pautas WCAG 2.1 nivel AA</strong> y la norma <strong>UNE-EN 301 549</strong> debido a las áreas en proceso de mejora continua detalladas en el apartado siguiente, contando con las siguientes medidas activas:
             </p>
             <ul className="list-disc pl-5 space-y-2 text-xs sm:text-sm">
               <li>
@@ -70,11 +70,14 @@ export default function AccesibilidadPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-lg font-bold text-gray-900">3. Contenido No Accesible y Enlaces a Terceros</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">3. Contenido No Accesible y Limitaciones Conocidas</h2>
             <p>
-              Aunque el 100% de los componentes gestionados por Portal Trabajo IT son auditados periódicamente, pueden presentarse limitaciones ajenas en los siguientes supuestos:
+              Seguimos auditando componentes interactivos, contrastes en modo oscuro y anuncios dinámicos (`aria-live`). Actualmente existen las siguientes excepciones o limitaciones conocidas:
             </p>
             <ul className="list-disc pl-5 space-y-1.5 text-xs sm:text-sm">
+              <li>
+                <strong>Componentes de terceros y publicidad (AdSense / afiliación):</strong> Algunos bloques incrustados externos pueden introducir variaciones de contraste o desplazamiento visual en proceso de estabilización.
+              </li>
               <li>
                 <strong>Páginas web de destino de terceros:</strong> Al pulsar en &quot;Aplicar en la web original&quot;, el usuario es redirigido a las bolsas de trabajo, Applicant Tracking Systems (ATS) o portales de empleo de las empresas contratantes. Portal Trabajo IT no ostenta control técnico sobre la accesibilidad de dichas plataformas externas.
               </li>

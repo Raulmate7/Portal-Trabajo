@@ -1,5 +1,5 @@
-import requests
 from bs4 import BeautifulSoup
+from logic.ssrf import safe_http_get
 
 def get_himalayas_jobs():
     print("🏔️  Conectando con Himalayas Remote Jobs API...")
@@ -8,7 +8,7 @@ def get_himalayas_jobs():
     headers = {'User-Agent': 'PortalTrabajoITBot/1.0 (+https://portalempleoit.com/bot; bot@portalempleoit.com)'}
 
     try:
-        response = requests.get(url, headers=headers, timeout=10)
+        response = safe_http_get(url, headers=headers, timeout=(5, 15))
         response.raise_for_status()
 
         data = response.json()

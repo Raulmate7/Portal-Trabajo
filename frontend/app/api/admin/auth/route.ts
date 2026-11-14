@@ -1,16 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { createAdminSessionToken, revokeAdminSession } from '@/lib/adminAuth';
+import {
+  createAdminSessionTokenAsync,
+  recordAdminAuditLog,
+  revokeAdminSessionAsync
+} from '@/lib/adminAuth';
 import { adminAuthLimiter, getClientIp } from '@/lib/rate-limit';
+import { logSecurityEvent } from '@/lib/securityLogger';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   // 1. Rate Limiting estricto anti-fuerza bruta (Vector 11)
   const clientIp = getClientIp(request);
+  const userAgent = request.headers.get('user-agent');
   const rateLimitResult = await adminAuthLimiter.limitAsync(clientIp);
 
   if (!rateLimitResult.success) {
+    await recordAdminAuditLog({
+      eventType: 'admin_login_rate_limited',
+      clientIp,
+      userAgent,
+      success: false,
+      details: 'Bloqueo temporal por exceso de intentos'
+    });
+    await logSecurityEvent('SECURITY_CRITICAL', 'admin_auth_rate_limited', { clientIp });
     const retryAfterSec = Math.max(1, Math.ceil((rateLimitResult.reset - Date.now()) / 1000));
     return NextResponse.json(
       {
@@ -58,15 +72,30 @@ export async function POST(request: NextRequest) {
   const isValid = crypto.timingSafeEqual(inputHash, targetHash);
 
   if (!isValid) {
+    await recordAdminAuditLog({
+      eventType: 'admin_login_failed',
+      clientIp,
+      userAgent,
+      success: false,
+      details: 'Contraseña incorrecta'
+    });
+    await logSecurityEvent('SECURITY_WARN', 'admin_auth_invalid_password', { clientIp });
     // Retardo defensivo de 250ms para mitigar ataques de temporización y fuerza bruta distribuida
     await new Promise((resolve) => setTimeout(resolve, 250));
     return NextResponse.json({ success: false, error: 'Contraseña incorrecta.' }, { status: 401 });
   }
 
-  // Éxito: restablecer intentos para la IP legítima
-  adminAuthLimiter.reset(clientIp);
+  // Éxito: restablecer intentos en memoria y Redis distribuido (SEC-020)
+  await adminAuthLimiter.resetAsync(clientIp);
 
-  const sessionToken = createAdminSessionToken();
+  const sessionToken = await createAdminSessionTokenAsync();
+  await recordAdminAuditLog({
+    eventType: 'admin_login_success',
+    clientIp,
+    userAgent,
+    success: true,
+    details: 'Inicio de sesión administrativo válido'
+  });
 
   const response = NextResponse.json({ success: true, message: 'Autenticación exitosa.' });
   response.cookies.set('admin_session', sessionToken, {
@@ -81,11 +110,19 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  // Revocación activa de la sesión en el servidor (Vector 14)
+  // Revocación activa de la sesión en servidor y BD (SEC-021)
+  const clientIp = getClientIp(request);
   const sessionToken = request.cookies.get('admin_session')?.value;
   if (sessionToken) {
-    revokeAdminSession(sessionToken);
+    await revokeAdminSessionAsync(sessionToken);
   }
+  await recordAdminAuditLog({
+    eventType: 'admin_logout',
+    clientIp,
+    userAgent: request.headers.get('user-agent'),
+    success: true,
+    details: 'Cierre de sesión administrativo'
+  });
 
   const response = NextResponse.json({ success: true, message: 'Sesión cerrada.' });
   response.cookies.delete('admin_session');

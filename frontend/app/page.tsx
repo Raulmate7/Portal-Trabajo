@@ -605,9 +605,9 @@ export default async function Home({ searchParams }: Props) {
                   </span>
                 </div>
                 <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-indigo-50 dark:border-slate-800 shadow-sm">
-                  <span className="text-2xl font-black text-indigo-900 dark:text-indigo-400 block">+8.700</span>
+                  <span className="text-2xl font-black text-indigo-900 dark:text-indigo-400 block">100% IT</span>
                   <span className="text-[10px] text-gray-550 dark:text-slate-400 font-bold uppercase tracking-wide">
-                    {isEnglish ? 'Subscribers' : 'Suscriptores'}
+                    {isEnglish ? 'Verified Tech' : 'Empleo Tech'}
                   </span>
                 </div>
               </div>

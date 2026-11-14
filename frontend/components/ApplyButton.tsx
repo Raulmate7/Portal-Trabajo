@@ -94,15 +94,12 @@ export default function ApplyButton({ url, company, title, lang, jobId }: ApplyB
       sendSafeGAEvent({ event: 'newsletter_signup', value: 'apply_modal', company, job_title: title });
       sendSafeGAEvent({ event: 'generate_lead', value: 'apply_modal', company, job_title: title });
       
-      setTimeout(() => {
-        if (jobId) {
-          const queryParam = isEnglish ? '?lang=en' : '';
-          window.open(`/redirect/${jobId}${queryParam}`, '_blank', 'noopener,noreferrer');
-        } else {
-          window.open(url, '_blank', 'noopener,noreferrer');
-        }
-        handleCloseModal();
-      }, 1500);
+      const targetHref = jobId ? `/redirect/${jobId}${isEnglish ? '?lang=en' : ''}` : url;
+      const opened = window.open(targetHref, '_blank', 'noopener,noreferrer');
+      if (!opened) {
+        window.location.href = targetHref;
+      }
+      handleCloseModal();
     } else {
       setStatus('error');
       setMessage(result.message);

@@ -31,7 +31,7 @@ export async function OPTIONS() {
 
 export async function GET(req: NextRequest) {
   const ip = getClientIp(req as any);
-  const rateLimit = vacantesWidgetLimiter.limit(ip);
+  const rateLimit = await vacantesWidgetLimiter.limitAsync(ip);
   if (!rateLimit.success) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
@@ -90,14 +90,31 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error("Error fetching widget vacancy counts:", error);
-    const fallbackData: WidgetVacancyData = cachedWidgetData?.data || {
-      python: 140,
-      react: 110,
-      nodejs: 85,
-      java: 60,
-      devops: 75
-    };
-    return NextResponse.json(fallbackData, { status: 200 });
+    if (cachedWidgetData?.data) {
+      return NextResponse.json(
+        { ...cachedWidgetData.data, stale: true },
+        {
+          status: 200,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Cache-Control': 'no-store',
+            'X-Cache': 'STALE',
+          },
+        }
+      );
+    }
+    return NextResponse.json(
+      { error: 'Estadísticas temporalmente no disponibles' },
+      {
+        status: 503,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Cache-Control': 'no-store',
+        },
+      }
+    );
   } finally {
     client.release();
   }

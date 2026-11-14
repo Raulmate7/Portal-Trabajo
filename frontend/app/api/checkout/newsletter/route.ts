@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   }
 
   const ip = getClientIp(request);
-  const rateLimit = checkoutLimiter.limit(ip);
+  const rateLimit = await checkoutLimiter.limitAsync(ip);
   if (!rateLimit.success) {
     return new NextResponse('Too Many Requests', { status: 429 });
   }
@@ -65,9 +65,9 @@ export async function POST(request: Request) {
     }
 
     // 2. Determinar precio y datos del producto
-    const unitAmount = 4900; // 49€ por patrocinio de newsletter
+    const unitAmount = 4900; // 49€ (+21% IVA aplicable) por patrocinio de newsletter
     const planName = 'Patrocinio de Newsletter - Portal Trabajo IT';
-    const planDesc = `Inclusión destacada de tu empresa/producto/oferta en el boletín semanal enviado a más de 8.700 ingenieros.`;
+    const planDesc = `Inclusión destacada de tu empresa/producto/oferta en la próxima edición semanal del boletín para profesionales IT (+21% IVA aplicable).`;
 
     // 3. Crear sesión de Stripe Checkout usando BASE_URL seguro y vinculación garantizada
     let session;
@@ -77,6 +77,9 @@ export async function POST(request: Request) {
         customer_email: cleanEmail, // VULN-17: Vincular obligatoriamente el email de la empresa en la sesión
         billing_address_collection: 'required',
         tax_id_collection: { enabled: true },
+        invoice_creation: { enabled: true },
+        consent_collection: { terms_of_service: 'required' },
+        ...(process.env.STRIPE_AUTOMATIC_TAX === 'true' ? { automatic_tax: { enabled: true } } : {}),
         line_items: [
           {
             price_data: {

@@ -1,4 +1,5 @@
-import requests
+from logic.ssrf import safe_http_get
+from logic.tdm import is_scraping_allowed, truncate_snippet
 
 def get_workingnomads_jobs():
     print("🐫 Cruzando el desierto con WorkingNomads (Europa/España)...")
@@ -9,7 +10,7 @@ def get_workingnomads_jobs():
     }
 
     try:
-        response = requests.get(url, headers=headers, timeout=20)
+        response = safe_http_get(url, headers=headers, timeout=(5, 20))
         response.raise_for_status()
 
         data = response.json()
@@ -38,7 +39,7 @@ def get_workingnomads_jobs():
                     continue
 
                 description_raw = item.get('description', '') or ''
-                description_snippet = description_raw[:200].strip() + "..."
+                description_snippet = truncate_snippet(description_raw, 200)
 
                 location_display = "Europa / España"
                 if any(w in loc_lower for w in ['spain', 'españa', 'madrid', 'barcelona']):

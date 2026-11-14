@@ -474,8 +474,34 @@ export default async function JobPage({ params, searchParams }: Props) {
   const detectedTec = detectTechnology(job.title, job.description_snippet || '');
   const tecLabel = detectedTec ? (DISPLAY_NAMES[detectedTec] || detectedTec) : null;
 
-  const similarJobs = await getSimilarJobs(numericId, job.category, job.title, detectedTec, 3);
-  const reactions = await getJobReactions(job.id);
+  const fetchCompanyRating = async () => {
+    if (!job.company || job.company === 'Desconocida') return null;
+    const client = await pool.connect();
+    try {
+      const res = await client.query(
+        "SELECT AVG(rating) as avg_rating, COUNT(id) as total_reviews FROM company_reviews WHERE company_name = $1",
+        [job.company]
+      );
+      if (res.rows[0] && res.rows[0].total_reviews > 0) {
+        return {
+          ratingValue: parseFloat(res.rows[0].avg_rating).toFixed(1),
+          reviewCount: parseInt(res.rows[0].total_reviews, 10),
+        };
+      }
+    } catch (e) {
+      console.error('Error fetching company rating:', e);
+    } finally {
+      client.release();
+    }
+    return null;
+  };
+
+  // FUNC-038: Paralelizar consultas independientes en lugar de ejecutarlas secuencialmente
+  const [similarJobs, reactions, companyRating] = await Promise.all([
+    getSimilarJobs(numericId, job.category, job.title, detectedTec, 3),
+    getJobReactions(job.id),
+    fetchCompanyRating(),
+  ]);
 
   const hasTranslation = !!job.title_es && !isEnglish;
   const displayTitle = isEnglish ? job.title : (job.title_es || job.title);
@@ -616,23 +642,13 @@ export default async function JobPage({ params, searchParams }: Props) {
     jobLocationObj.address.addressRegion = addressRegion;
   }
 
-  let companyRating = null;
-  if (job.company && job.company !== 'Desconocida') {
-    const client = await pool.connect();
-    try {
-      const res = await client.query("SELECT AVG(rating) as avg_rating, COUNT(id) as total_reviews FROM company_reviews WHERE company_name = $1", [job.company]);
-      if (res.rows[0] && res.rows[0].total_reviews > 0) {
-        companyRating = {
-          ratingValue: parseFloat(res.rows[0].avg_rating).toFixed(1),
-          reviewCount: parseInt(res.rows[0].total_reviews, 10)
-        };
-      }
-    } catch (e) {
-      console.error('Error fetching company rating:', e);
-    } finally {
-      client.release();
-    }
-  }
+  // companyRating ya obtenido en paralelo arriba (FUNC-038)
+
+  const isDirectNativeJob = Boolean(
+    job.company_email ||
+    job.stripe_session_id ||
+    (job.url_source && String(job.url_source).includes('portalempleoit.com'))
+  );
 
   const jsonLd: any = {
     '@context': 'https://schema.org',
@@ -644,6 +660,7 @@ export default async function JobPage({ params, searchParams }: Props) {
     hiringOrganization: { 
       '@type': 'Organization', 
       name: hiringOrgName,
+      logo: `${BASE_URL}/logo.png`,
       ...(companyRating ? {
         aggregateRating: {
           '@type': 'AggregateRating',
@@ -659,7 +676,7 @@ export default async function JobPage({ params, searchParams }: Props) {
     },
     jobLocation: jobLocationObj,
     employmentType: employmentTypes,
-    directApply: true,
+    directApply: isDirectNativeJob,
     industry: "Information Technology",
     speakable: {
       '@type': 'SpeakableSpecification',
@@ -685,18 +702,16 @@ export default async function JobPage({ params, searchParams }: Props) {
     jsonLd.baseSalary = baseSalaryObj;
   }
 
-  // Beneficios para trabajo remoto
+  // Beneficios para trabajo remoto (SEO-003: siempre incluir applicantLocationRequirements en TELECOMMUTE)
   if (isRemote) {
     jsonLd.jobBenefits = isEnglish
       ? 'Remote work (telecommute), flexible schedule'
       : 'Teletrabajo (trabajo remoto), horario flexible';
     jsonLd.jobLocationType = 'TELECOMMUTE';
-    if (!isWorldwide) {
-      jsonLd.applicantLocationRequirements = {
-        '@type': 'Country',
-        name: countryCode
-      };
-    }
+    jsonLd.applicantLocationRequirements = {
+      '@type': 'Country',
+      name: countryCode || 'ES'
+    };
   }
 
   // Requisitos formativos inferidos del título

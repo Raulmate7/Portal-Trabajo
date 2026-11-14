@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   const clientIp = getClientIp(request);
-  const rateLimit = jobsApiLimiter.limit(clientIp);
+  const rateLimit = await jobsApiLimiter.limitAsync(clientIp);
 
   if (!rateLimit.success) {
     return NextResponse.json(
@@ -40,7 +40,14 @@ export async function GET(request: NextRequest) {
   const pageStr = searchParams.get('page');
   let page = pageStr ? parseInt(pageStr, 10) : 1;
   if (isNaN(page) || page < 1) page = 1;
-  if (page > 500) page = 500; // Cota superior defensiva contra consultas de offset destructivas
+  if (page > 50) page = 50; // SEC-029: Cota máxima defensiva contra OFFSET profundo
+
+  const rawCursorDate = searchParams.get('before_created_at');
+  const beforeCreatedAt = rawCursorDate && /^\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2}/.test(rawCursorDate)
+    ? rawCursorDate.slice(0, 32)
+    : undefined;
+  const rawCursorId = searchParams.get('before_id');
+  const beforeId = rawCursorId ? rawCursorId.slice(0, 64).trim() : undefined;
 
   try {
     const jobs = await getJobs({
@@ -49,7 +56,9 @@ export async function GET(request: NextRequest) {
       minSalary,
       modality,
       dateRange,
-      experience
+      experience,
+      beforeCreatedAt,
+      beforeId
     }, page);
     
     return NextResponse.json(jobs);

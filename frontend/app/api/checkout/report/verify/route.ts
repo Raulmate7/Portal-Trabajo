@@ -39,29 +39,87 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Validación oficial con PayPal PDT (Payment Data Transfer) si el token de identidad está configurado
+    // SEC-031: Validación estricta Fail-Closed con PayPal PDT (Payment Data Transfer)
     const identityToken = process.env.PAYPAL_IDENTITY_TOKEN;
-    if (identityToken) {
-      try {
-        const paypalHost = process.env.PAYPAL_ENV === 'sandbox' ? 'https://www.sandbox.paypal.com' : 'https://www.paypal.com';
-        const pdtRes = await fetch(`${paypalHost}/cgi-bin/webscr`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: `cmd=_notify-synch&tx=${encodeURIComponent(paypalTx)}&at=${encodeURIComponent(identityToken)}`,
-        });
-        const pdtText = await pdtRes.text();
-        if (!pdtText.startsWith('SUCCESS')) {
-          return NextResponse.json(
-            { valid: false, error: 'La pasarela de PayPal no ha confirmado la validez de la transacción facilitada.' },
-            { status: 402 }
-          );
-        }
-      } catch (pdtErr) {
-        console.error('Error contactando con API PDT de PayPal:', pdtErr);
-      }
+    if (!identityToken) {
+      return NextResponse.json(
+        { valid: false, error: 'La pasarela PayPal PDT no está configurada en el servidor.' },
+        { status: 503 }
+      );
     }
 
     const safePlan = paypalPlan === 'enterprise' ? 'enterprise' : 'full';
+    const expectedGross = safePlan === 'enterprise' ? 49 : 9.99;
+
+    try {
+      const paypalHost = process.env.PAYPAL_ENV === 'sandbox' ? 'https://www.sandbox.paypal.com' : 'https://www.paypal.com';
+      const pdtRes = await fetch(`${paypalHost}/cgi-bin/webscr`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `cmd=_notify-synch&tx=${encodeURIComponent(paypalTx)}&at=${encodeURIComponent(identityToken)}`,
+        signal: AbortSignal.timeout(8000),
+      });
+
+      if (!pdtRes.ok) {
+        return NextResponse.json(
+          { valid: false, error: 'PayPal devolvió una respuesta no válida durante la verificación.' },
+          { status: 502 }
+        );
+      }
+
+      const pdtText = await pdtRes.text();
+      const lines = pdtText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      if (lines[0] !== 'SUCCESS') {
+        return NextResponse.json(
+          { valid: false, error: 'La pasarela de PayPal no ha confirmado la validez de la transacción facilitada.' },
+          { status: 402 }
+        );
+      }
+
+      const pdtFields = new Map<string, string>();
+      for (const line of lines.slice(1)) {
+        const eqIdx = line.indexOf('=');
+        if (eqIdx > 0) {
+          const key = line.slice(0, eqIdx).trim();
+          const val = decodeURIComponent(line.slice(eqIdx + 1).replace(/\+/g, ' ')).trim();
+          pdtFields.set(key, val);
+        }
+      }
+
+      const paymentStatus = (pdtFields.get('payment_status') || '').toLowerCase();
+      const currency = (pdtFields.get('mc_currency') || '').toUpperCase();
+      const gross = Number.parseFloat(pdtFields.get('mc_gross') || '0');
+      const receiverEmail = (pdtFields.get('receiver_email') || '').toLowerCase();
+      const expectedReceiver = (process.env.PAYPAL_BUSINESS_EMAIL || process.env.PAYPAL_RECEIVER_EMAIL || '').toLowerCase().trim();
+
+      if (paymentStatus && paymentStatus !== 'completed') {
+        return NextResponse.json(
+          { valid: false, error: 'El pago en PayPal todavía no figura como completado.' },
+          { status: 402 }
+        );
+      }
+
+      if (currency !== 'EUR' || !Number.isFinite(gross) || gross < expectedGross) {
+        return NextResponse.json(
+          { valid: false, error: 'El importe o la divisa confirmados por PayPal no coinciden con el plan seleccionado.' },
+          { status: 403 }
+        );
+      }
+
+      if (expectedReceiver && receiverEmail !== expectedReceiver) {
+        return NextResponse.json(
+          { valid: false, error: 'El destinatario del pago en PayPal no coincide con la cuenta autorizada.' },
+          { status: 403 }
+        );
+      }
+    } catch (pdtErr) {
+      console.error('Error contactando con API PDT de PayPal:', pdtErr);
+      return NextResponse.json(
+        { valid: false, error: 'No se pudo verificar el pago con PayPal en este momento. Inténtalo de nuevo.' },
+        { status: 503 }
+      );
+    }
+
     const token = generateReportToken(paypalEmail, safePlan, `pp_${paypalTx}`);
     return NextResponse.json({
       valid: true,

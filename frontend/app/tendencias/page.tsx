@@ -198,7 +198,7 @@ async function getTrendsData() {
     // 6. Weekly fresh report (last 7 days)
     const weeklyJobsRes = await client.query(`
       SELECT COUNT(*) as count FROM jobs 
-      WHERE is_active = TRUE AND created_at > NOW() - INTERVAL '7 days'
+      WHERE is_active = TRUE AND created_at > NOW() - INTERVAL 7 DAY
     `);
     const weeklyCount = parseInt(weeklyJobsRes.rows[0]?.count || '0', 10);
 
@@ -210,7 +210,7 @@ async function getTrendsData() {
         SUM(CASE WHEN title LIKE '%typescript%' OR description_snippet LIKE '%typescript%' THEN 1 ELSE 0 END) as typescript,
         SUM(CASE WHEN title LIKE '%node%' OR description_snippet LIKE '%node%' THEN 1 ELSE 0 END) as node
       FROM jobs 
-      WHERE is_active = TRUE AND created_at > NOW() - INTERVAL '7 days'
+      WHERE is_active = TRUE AND created_at > NOW() - INTERVAL 7 DAY
     `);
     const wTechRaw = weeklyTechRes.rows[0] || {};
     const weeklyTech = [
@@ -227,7 +227,7 @@ async function getTrendsData() {
         SUM(CASE WHEN location LIKE '%barcelona%' THEN 1 ELSE 0 END) as barcelona,
         SUM(CASE WHEN location LIKE '%valencia%' THEN 1 ELSE 0 END) as valencia
       FROM jobs 
-      WHERE is_active = TRUE AND created_at > NOW() - INTERVAL '7 days'
+      WHERE is_active = TRUE AND created_at > NOW() - INTERVAL 7 DAY
     `);
     const wCitiesRaw = weeklyCitiesRes.rows[0] || {};
     const weeklyCities = [
@@ -265,53 +265,17 @@ async function getTrendsData() {
   } catch (error) {
     console.error("Error in getTrendsData:", error);
     return {
-      totalJobs: 12500,
-      remotePct: 35,
-      hybridPct: 45,
-      onsitePct: 20,
-      citiesData: [
-        { name: 'Madrid', count: 4200, slug: 'madrid' },
-        { name: 'Barcelona', count: 3500, slug: 'barcelona' },
-        { name: 'Valencia', count: 1200, slug: 'valencia' },
-        { name: 'Málaga', count: 950, slug: 'malaga' },
-        { name: 'Sevilla', count: 600, slug: 'sevilla' },
-        { name: 'Bilbao', count: 450, slug: 'bilbao' },
-        { name: 'Zaragoza', count: 300, slug: 'zaragoza' }
-      ],
-      techData: [
-        { name: 'React', count: 1800, slug: 'react' },
-        { name: 'Java', count: 1650, slug: 'java' },
-        { name: 'TypeScript', count: 1400, slug: 'typescript' },
-        { name: 'Python', count: 1200, slug: 'python' },
-        { name: 'Node.js', count: 950, slug: 'node' },
-        { name: 'Angular', count: 800, slug: 'angular' },
-        { name: 'C# / .NET', count: 750, slug: 'csharp' },
-        { name: 'AWS', count: 700, slug: 'aws' },
-        { name: 'Docker', count: 600, slug: 'docker' },
-        { name: 'PHP', count: 550, slug: 'php' }
-      ],
-      avgSalaries: [
-        { name: 'Go', avg: 58000 },
-        { name: 'Kubernetes', avg: 56000 },
-        { name: 'Python', avg: 48000 },
-        { name: 'Java', avg: 45000 },
-        { name: 'TypeScript', avg: 44000 },
-        { name: 'Node.js', avg: 42000 },
-        { name: 'React', avg: 40000 },
-        { name: 'Angular', avg: 38000 },
-        { name: 'PHP', avg: 35000 }
-      ],
+      totalJobs: 0,
+      remotePct: 0,
+      hybridPct: 0,
+      onsitePct: 0,
+      citiesData: [],
+      techData: [],
+      avgSalaries: [],
       weeklyJobs: {
-        count: 1850,
-        tech: [
-          { name: 'React', count: 450 },
-          { name: 'Java', count: 380 },
-          { name: 'TypeScript', count: 310 }
-        ],
-        cities: [
-          { name: 'Madrid', count: 640 },
-          { name: 'Barcelona', count: 550 }
-        ]
+        count: 0,
+        tech: [],
+        cities: []
       }
     };
   } finally {

@@ -115,10 +115,12 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     : `Vacantes de empleo activas para desarrolladores de ${techName} ${locationText}. Compara salarios medios, requisitos y empresas contratantes en ${cityName}.`;
 
   const canonical = `${BASE_URL}/trabajo-${ciudad}/${tech}`;
+  const jobsCount = await getCityTechJobs(cityName, techName, ciudad === 'remoto', 1).then(rows => rows.length).catch(() => 0);
 
   return {
     title,
     description,
+    ...(jobsCount === 0 ? { robots: { index: false, follow: true } } : {}),
     alternates: {
       canonical,
       languages: {

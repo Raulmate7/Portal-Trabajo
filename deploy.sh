@@ -39,6 +39,13 @@ fi
 # Guardar la lista de procesos de PM2 para que se inicien tras reinicios del servidor
 pm2 save
 
+# SEC-058: Verificación de salud post-despliegue
+sleep 2
+if ! curl -sf http://127.0.0.1:3000/ > /dev/null; then
+    echo "❌ Error: El servidor Next.js no responde tras el despliegue. Revisa 'pm2 logs portal-trabajo'."
+    exit 1
+fi
+
 echo "================================================="
 echo "✅ ¡Despliegue completado con éxito!"
 echo "Tu web ya está corriendo en http://localhost:3000 y gestionada por Nginx."

@@ -10,16 +10,25 @@ print("===============================================")
 python_bin = "venv/bin/python3" if os.path.exists("venv/bin/python3") else "python3"
 print(f"⚙️ Usando ejecutable: {python_bin}")
 
-def run_cmd(args):
+FAILED_STEPS = []
+
+def run_cmd(args, timeout_sec=180):
     """
-    Ejecución segura de procesos mediante subprocess.run con lista de argumentos.
+    Ejecución segura de procesos mediante subprocess.run con timeout explícito y registro de fallos (SEC-063).
     Mitigación Vector 26: Previene Command Injection al no delegar en subshell (/bin/sh).
     """
     try:
-        res = subprocess.run(args, check=False)
+        res = subprocess.run(args, check=False, timeout=timeout_sec)
+        if res.returncode != 0:
+            FAILED_STEPS.append((" ".join(args), res.returncode))
         return res.returncode
+    except subprocess.TimeoutExpired:
+        print(f"⏱️ Timeout ({timeout_sec}s) ejecutando comando: {' '.join(args)}")
+        FAILED_STEPS.append((" ".join(args), 124))
+        return 124
     except Exception as e:
         print(f"❌ Error ejecutando comando {args}: {e}")
+        FAILED_STEPS.append((" ".join(args), 1))
         return 1
 
 # 0. Ejecutar Migraciones de Base de Datos
@@ -109,10 +118,6 @@ if exit_code != 0:
 # 5.1 Indexar en Bing y Seznam mediante IndexNow
 print("\n[5.1/7] 🚀 Enviando URLs a IndexNow (index_now.py)...")
 run_cmd([python_bin, "index_now.py"])
-
-# 5.5 Ping a Google Sitemap
-print("\n[5.5/7] 📡 Avisando a Google del nuevo Sitemap (ping_sitemap.py)...")
-run_cmd([python_bin, "ping_sitemap.py"])
 
 # 5.6 Auditoría de Indexación y Search Console
 print("\n[5.6/7] 🔍 Auditando salud de indexación (monitor_search_console.py)...")
@@ -215,4 +220,8 @@ if exit_code != 0:
     print("⚠️ Advertencia: El script de notificaciones de referidos terminó con errores.")
 
 print("\n===============================================")
+if FAILED_STEPS:
+    summary = ", ".join(f"{cmd} (exit {code})" for cmd, code in FAILED_STEPS)
+    print(f"⚠️ PROCESO FINALIZADO CON {len(FAILED_STEPS)} PASO(S) FALLIDO(S): {summary}")
+    sys.exit(1)
 print("✅ PROCESO COMPLETADO. El sistema descansa.")

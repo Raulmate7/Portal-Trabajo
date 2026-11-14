@@ -3,6 +3,7 @@ import { verifyReportToken } from '@/lib/reportToken';
 import { calculateSalaryStats, TECH_DETAILS, DISPLAY_CITIES } from '@/lib/salarios';
 import pool from '@/lib/db';
 import { checkoutLimiter, getClientIp } from '@/lib/rate-limit';
+import { buildSimplePdfBuffer } from '@/lib/pdfGenerator';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +28,7 @@ async function getOrComputeSalaryStats() {
 export async function GET(request: NextRequest) {
   // VULN-29: Rate limiting por IP para mitigar saturación de descargas y abuso de ancho de banda
   const ip = getClientIp(request);
-  const rateLimit = checkoutLimiter.limit(`download_${ip}`);
+  const rateLimit = await checkoutLimiter.limitAsync(`download_${ip}`);
   if (!rateLimit.success) {
     return new NextResponse('Demasiadas solicitudes de descarga. Por favor, espera unos momentos.', { status: 429 });
   }
@@ -50,53 +51,46 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // VULN-10: Mitigación de Replay y descarga infinita no autorizada
-  // Se restringe y audita el número de descargas permitidas por transacción (máximo 5 descargas por compra)
+  // SEC-032: Incremento atómico condicional en una sola sentencia para cerrar TOCTOU (máximo 5 descargas por compra)
   const client = await pool.connect();
   try {
-    const checkRes = await client.query(
-      "SELECT download_count, max_downloads FROM report_downloads WHERE session_id = $1 LIMIT 1",
-      [verified.sessionId]
-    );
+    let counted = false;
+    try {
+      const insertRes = await client.query(
+        "INSERT INTO report_downloads (session_id, email, plan, download_count, max_downloads, last_downloaded_at) VALUES ($1, $2, $3, 1, 5, NOW())",
+        [verified.sessionId, verified.email || '', verified.plan || 'full']
+      );
+      counted = insertRes.rowCount === 1;
+    } catch (insertErr: any) {
+      const errMsg = (insertErr?.message || '').toLowerCase();
+      const isDuplicate =
+        errMsg.includes('duplicate') ||
+        errMsg.includes('1062') ||
+        errMsg.includes('er_dup_entry') ||
+        errMsg.includes('unique');
+      if (!isDuplicate) {
+        throw insertErr;
+      }
+    }
 
-    if (checkRes.rows && checkRes.rows.length > 0) {
-      const { download_count, max_downloads } = checkRes.rows[0];
-      if (download_count >= (max_downloads || 5)) {
+    if (!counted) {
+      const updateRes = await client.query(
+        "UPDATE report_downloads SET download_count = download_count + 1, last_downloaded_at = NOW() WHERE session_id = $1 AND download_count < COALESCE(max_downloads, 5)",
+        [verified.sessionId]
+      );
+      if (updateRes.rowCount !== 1) {
         return NextResponse.json(
           { error: 'Has alcanzado el límite máximo de descargas (5 descargas) para esta compra. Contacta con soporte si requieres un duplicado adicional.' },
           { status: 403 }
         );
       }
-      await client.query(
-        "UPDATE report_downloads SET download_count = download_count + 1, last_downloaded_at = NOW() WHERE session_id = $1",
-        [verified.sessionId]
-      );
-    } else {
-      // Registrar primera descarga para esta compra
-      try {
-        await client.query(
-          "INSERT INTO report_downloads (session_id, email, plan, download_count, max_downloads, last_downloaded_at) VALUES ($1, $2, $3, 1, 5, NOW())",
-          [verified.sessionId, verified.email || '', verified.plan || 'full']
-        );
-      } catch (insertErr: any) {
-        if ((insertErr?.message || '').toLowerCase().includes("doesn't exist")) {
-          await client.query(`
-            CREATE TABLE IF NOT EXISTS report_downloads (
-              session_id VARCHAR(255) PRIMARY KEY,
-              email VARCHAR(255) NOT NULL,
-              plan VARCHAR(50) NOT NULL,
-              download_count INT DEFAULT 1,
-              max_downloads INT DEFAULT 5,
-              last_downloaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-          `);
-          await client.query(
-            "INSERT INTO report_downloads (session_id, email, plan, download_count, max_downloads, last_downloaded_at) VALUES ($1, $2, $3, 1, 5, NOW())",
-            [verified.sessionId, verified.email || '', verified.plan || 'full']
-          );
-        }
-      }
     }
+  } catch (dbErr) {
+    console.error('Error controlando cuota de descargas del informe:', dbErr);
+    return NextResponse.json(
+      { error: 'No se pudo verificar la licencia de descarga en base de datos.' },
+      { status: 500 }
+    );
   } finally {
     client.release();
   }
@@ -129,13 +123,44 @@ export async function GET(request: NextRequest) {
       aviso_confidencialidad: 'Este informe es para uso exclusivo del titular registrado y no puede ser redistribuido públicamente sin autorización previa.'
     };
 
-    const filename = `informe_mercado_it_2026_${verified.plan}.json`;
+    const requestedFormat = searchParams.get('format');
+    if (requestedFormat === 'json') {
+      const jsonFilename = `informe_mercado_it_2026_${verified.plan}.json`;
+      return new NextResponse(JSON.stringify(reportData, null, 2), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Content-Disposition': `attachment; filename="${jsonFilename}"`,
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'X-Content-Type-Options': 'nosniff',
+        },
+      });
+    }
 
-    return new NextResponse(JSON.stringify(reportData, null, 2), {
+    const pdfBuffer = buildSimplePdfBuffer(reportData.titulo, [
+      `Titular: ${verified.email || 'Cliente'} | Plan: ${verified.plan} | Ref: ${verified.sessionId}`,
+      `Fecha de emision: ${reportData.licencia.fecha_emision}`,
+      '------------------------------------------------------------------------',
+      'RESUMEN EJECUTIVO DE SALARIOS IT EN ESPANA (EUR ANUAL BRUTO)',
+      `Total ofertas analizadas: ${reportData.resumen_ejecutivo.total_ofertas_analizadas}`,
+      `Mediana salarial general: ${reportData.resumen_ejecutivo.mediana_salarial_general} EUR`,
+      `Salario promedio: ${reportData.resumen_ejecutivo.salario_promedio} EUR`,
+      `Percentil 25 (P25): ${reportData.resumen_ejecutivo.percentil_25} EUR`,
+      `Percentil 75 (P75): ${reportData.resumen_ejecutivo.percentil_75} EUR`,
+      `Rango observado: ${reportData.resumen_ejecutivo.salario_minimo_registrado} - ${reportData.resumen_ejecutivo.salario_maximo_registrado} EUR`,
+      '------------------------------------------------------------------------',
+      `Tecnologias incluidas: ${Object.keys(TECH_DETAILS).slice(0, 10).join(', ')}`,
+      `Ciudades analizadas: ${Object.keys(DISPLAY_CITIES).slice(0, 10).join(', ')}`,
+      '------------------------------------------------------------------------',
+      reportData.aviso_confidencialidad,
+    ]);
+    const pdfFilename = `informe_mercado_it_2026_${verified.plan}.pdf`;
+
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,
       headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${pdfFilename}"`,
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
         'X-Content-Type-Options': 'nosniff',
       },

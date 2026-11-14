@@ -2,14 +2,75 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 interface CookiePreferences {
   essential: boolean;
   analytics: boolean;
   advertising: boolean;
+  updatedAt?: number;
 }
 
+const CONSENT_MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000; // 12 meses (<= 24 meses Guía AEPD, LEG-027)
+
+const BANNER_COPY = {
+  es: {
+    title: 'Tu privacidad es nuestra prioridad',
+    desc: 'Utilizamos cookies técnicas necesarias para el funcionamiento del portal, así como cookies analíticas y publicitarias propias y de terceros para entender el uso de la web y mostrar ofertas y anuncios relevantes. Puedes aceptar todas las cookies, rechazar las opcionales o configurar tus preferencias.',
+    moreDetails: 'Más detalles en nuestra',
+    cookiesLabel: 'Política de Cookies',
+    and: 'y',
+    privacyLabel: 'Política de Privacidad',
+    reject: 'Rechazar no esenciales',
+    configure: 'Configurar',
+    accept: 'Aceptar todas',
+  },
+  en: {
+    title: 'Your privacy is our priority',
+    desc: 'We use strictly necessary technical cookies for the site to operate, as well as optional analytics and advertising cookies to measure usage and show relevant listings. You can accept all cookies, reject non-essential ones, or customize your preferences.',
+    moreDetails: 'More details in our',
+    cookiesLabel: 'Cookie Policy',
+    and: 'and',
+    privacyLabel: 'Privacy Policy',
+    reject: 'Reject non-essential',
+    configure: 'Settings',
+    accept: 'Accept all',
+  },
+  ca: {
+    title: 'La teva privacitat és la nostra prioritat',
+    desc: 'Utilitzem cookies tècniques necessàries per al funcionament del portal, així com cookies analítiques i publicitàries opcionals per entendre l’ús del web i mostrar ofertes rellevants. Pots acceptar-les totes, rebutjar les opcionals o configurar les teves preferències.',
+    moreDetails: 'Més detalls a la nostra',
+    cookiesLabel: 'Política de Cookies',
+    and: 'i',
+    privacyLabel: 'Política de Privacitat',
+    reject: 'Rebutjar no essencials',
+    configure: 'Configurar',
+    accept: 'Acceptar totes',
+  },
+  eu: {
+    title: 'Zure pribatutasuna da gure lehentasuna',
+    desc: 'Atariak funtzionatzeko ezinbesteko cookie teknikoak erabiltzen ditugu, baita aukerako cookie analitikoak eta publizitatekoak ere, webgunearen erabilera ulertzeko eta eskaintza egokiak erakusteko. Guztiak onartu, aukerakoak baztertu edo zure hobespenak konfigura ditzakezu.',
+    moreDetails: 'Xehetasun gehiago gure',
+    cookiesLabel: 'Cookie Politikan',
+    and: 'eta',
+    privacyLabel: 'Pribatutasun Politikan',
+    reject: 'Ez-funtsezkoak baztertu',
+    configure: 'Konfiguratu',
+    accept: 'Guztiak onartu',
+  },
+} as const;
+
 export default function CookieBanner() {
+  const pathname = usePathname() || '/';
+  const locale = pathname.startsWith('/en/') || pathname === '/en'
+    ? 'en'
+    : pathname.startsWith('/ca/') || pathname === '/ca'
+    ? 'ca'
+    : pathname.startsWith('/eu/') || pathname === '/eu'
+    ? 'eu'
+    : 'es';
+  const copy = BANNER_COPY[locale];
+
   const [show, setShow] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [preferences, setPreferences] = useState<CookiePreferences>({
@@ -44,10 +105,25 @@ export default function CookieBanner() {
     try {
       localStorage.removeItem('affiliate_cta_variant');
       localStorage.removeItem('newsletter_cta_variant');
+      localStorage.removeItem('user_streak');
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.toLowerCase().includes('onesignal') || key.startsWith('os_'))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
     } catch {}
 
     try {
-      const cookiesToPurge = ['_ga', '_gid', '_gat', '__gads', '__gpi', '_gcl_au', '_fbp'];
+      if ('indexedDB' in window && typeof window.indexedDB.deleteDatabase === 'function') {
+        window.indexedDB.deleteDatabase('ONE_SIGNAL_SDK_DB');
+      }
+    } catch {}
+
+    try {
+      const cookiesToPurge = ['_ga', '_gid', '_gat', '__gads', '__gpi', '_gcl_au', '_fbp', '__os_', 'onesignal'];
       const currentCookies = document.cookie.split(';');
       const hostname = window.location.hostname;
       const domainParts = hostname.split('.');
@@ -55,7 +131,8 @@ export default function CookieBanner() {
 
       for (const cookieStr of currentCookies) {
         const name = cookieStr.split('=')[0].trim();
-        const shouldPurge = cookiesToPurge.some(prefix => name === prefix || name.startsWith(prefix));
+        const lower = name.toLowerCase();
+        const shouldPurge = cookiesToPurge.some(prefix => lower === prefix || lower.startsWith(prefix));
         if (shouldPurge) {
           document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`;
           document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${hostname};`;
@@ -66,41 +143,49 @@ export default function CookieBanner() {
   };
 
   useEffect(() => {
-    // 1. Comprobar consentimiento previo almacenado
+    // 1. Comprobar consentimiento previo almacenado y caducidad máxima (<= 24 meses, LEG-027)
     const savedConsent = localStorage.getItem('cookies_consent');
     const legacyAccepted = localStorage.getItem('cookies_accepted');
 
     if (savedConsent) {
       try {
         const parsed = JSON.parse(savedConsent);
-        const prefs: CookiePreferences = {
-          essential: true,
-          analytics: !!parsed.analytics,
-          advertising: !!parsed.advertising,
-        };
-        setPreferences(prefs);
-        updateGtagConsent(prefs.analytics, prefs.advertising);
-        notifyConsentUpdate(prefs);
+        const updatedAt = typeof parsed.updatedAt === 'number' ? parsed.updatedAt : 0;
+        if (updatedAt > 0 && Date.now() - updatedAt > CONSENT_MAX_AGE_MS) {
+          localStorage.removeItem('cookies_consent');
+          localStorage.removeItem('cookies_accepted');
+          updateGtagConsent(false, false);
+          setShow(true);
+        } else {
+          const prefs: CookiePreferences = {
+            essential: true,
+            analytics: !!parsed.analytics,
+            advertising: !!parsed.advertising,
+            updatedAt: updatedAt || Date.now(),
+          };
+          setPreferences(prefs);
+          updateGtagConsent(prefs.analytics, prefs.advertising);
+          notifyConsentUpdate(prefs);
+        }
       } catch {
-        // Formato string simple ('all' o 'essential')
         const isAll = savedConsent === 'all';
         const prefs: CookiePreferences = {
           essential: true,
           analytics: isAll,
           advertising: isAll,
+          updatedAt: Date.now(),
         };
         setPreferences(prefs);
         updateGtagConsent(isAll, isAll);
         notifyConsentUpdate(prefs);
       }
     } else if (legacyAccepted === 'true') {
-      // Compatibilidad con versiones anteriores
-      const prefs: CookiePreferences = { essential: true, analytics: true, advertising: true };
+      const prefs: CookiePreferences = { essential: true, analytics: true, advertising: true, updatedAt: Date.now() };
+      localStorage.setItem('cookies_consent', JSON.stringify(prefs));
       setPreferences(prefs);
       updateGtagConsent(true, true);
       notifyConsentUpdate(prefs);
     } else {
-      // Sin decisión previa: mostrar banner con GA y AdSense denegados por defecto
       const defaultPrefs: CookiePreferences = { essential: true, analytics: false, advertising: false };
       updateGtagConsent(false, false);
       notifyConsentUpdate(defaultPrefs);
@@ -120,7 +205,7 @@ export default function CookieBanner() {
   }, []);
 
   const handleAcceptAll = () => {
-    const allConsents: CookiePreferences = { essential: true, analytics: true, advertising: true };
+    const allConsents: CookiePreferences = { essential: true, analytics: true, advertising: true, updatedAt: Date.now() };
     localStorage.setItem('cookies_consent', JSON.stringify(allConsents));
     localStorage.setItem('cookies_accepted', 'true');
     setPreferences(allConsents);
@@ -131,7 +216,7 @@ export default function CookieBanner() {
   };
 
   const handleRejectAll = () => {
-    const onlyEssential: CookiePreferences = { essential: true, analytics: false, advertising: false };
+    const onlyEssential: CookiePreferences = { essential: true, analytics: false, advertising: false, updatedAt: Date.now() };
     localStorage.setItem('cookies_consent', JSON.stringify(onlyEssential));
     localStorage.setItem('cookies_accepted', 'false');
     purgeNonEssentialStorage();
@@ -147,6 +232,7 @@ export default function CookieBanner() {
       essential: true,
       analytics: preferences.analytics,
       advertising: preferences.advertising,
+      updatedAt: Date.now(),
     };
     localStorage.setItem('cookies_consent', JSON.stringify(customConsents));
     localStorage.setItem('cookies_accepted', preferences.analytics || preferences.advertising ? 'true' : 'false');
@@ -174,16 +260,16 @@ export default function CookieBanner() {
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div className="text-left max-w-3xl">
               <h3 id="cookie-banner-title" className="text-base font-bold text-white flex items-center gap-2 mb-1.5">
-                <span>🍪</span> Tu privacidad es nuestra prioridad
+                <span>🍪</span> {copy.title}
               </h3>
               <p id="cookie-banner-desc" className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                Utilizamos cookies técnicas necesarias para el funcionamiento del portal, así como cookies analíticas y publicitarias propias y de terceros para entender el uso de la web y mostrar ofertas y anuncios relevantes. Puedes aceptar todas las cookies, rechazar las opcionales o configurar tus preferencias. Más detalles en nuestra{' '}
+                {copy.desc} {copy.moreDetails}{' '}
                 <Link href="/cookies" className="underline text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
-                  Política de Cookies
+                  {copy.cookiesLabel}
                 </Link>{' '}
-                y{' '}
+                {copy.and}{' '}
                 <Link href="/privacy" className="underline text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
-                  Política de Privacidad
+                  {copy.privacyLabel}
                 </Link>.
               </p>
             </div>
@@ -194,21 +280,21 @@ export default function CookieBanner() {
                 onClick={handleRejectAll}
                 className="flex-1 sm:flex-none px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 rounded-lg text-xs sm:text-sm font-bold shadow-sm transition-all text-center focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer"
               >
-                Rechazar no esenciales
+                {copy.reject}
               </button>
               <button
                 type="button"
                 onClick={() => setShowConfig(true)}
                 className="flex-1 sm:flex-none px-4 py-2.5 bg-transparent hover:bg-slate-800 text-slate-300 border border-slate-700 rounded-lg text-xs sm:text-sm font-medium transition-all text-center focus:outline-none focus:ring-2 focus:ring-slate-500 cursor-pointer"
               >
-                Configurar
+                {copy.configure}
               </button>
               <button
                 type="button"
                 onClick={handleAcceptAll}
                 className="flex-1 sm:flex-none px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500 rounded-lg text-xs sm:text-sm font-bold shadow-md transition-all text-center focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"
               >
-                Aceptar todas
+                {copy.accept}
               </button>
             </div>
           </div>

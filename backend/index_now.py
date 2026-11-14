@@ -1,9 +1,7 @@
 import os
-import requests
 import psycopg2
 from logic.slug import get_job_slug
-
-INDEXNOW_KEY = "8f4b9c1d2e3f4a5b6c7d8e9f0a1b2c3d"
+from logic.indexnow import submit_urls_to_indexnow
 
 def submit_index_now():
     print("===============================================")
@@ -42,22 +40,7 @@ def submit_index_now():
         urls = [f"{frontend_url}/job/{get_job_slug(j[0], j[1], j[3], j[2])}" for j in jobs]
         urls.append(f"{frontend_url}/sitemap-news.xml")
 
-        payload = {
-            "host": host,
-            "key": INDEXNOW_KEY,
-            "keyLocation": f"{frontend_url}/{INDEXNOW_KEY}.txt",
-            "urlList": urls
-        }
-
-        endpoint = "https://api.indexnow.org/indexnow"
-        print(f"📡 Enviando {len(urls)} URLs a IndexNow ({endpoint})...")
-        
-        res = requests.post(endpoint, json=payload, headers={"Content-Type": "application/json; charset=utf-8"}, timeout=15)
-        
-        if res.status_code in (200, 202):
-            print(f"✅ IndexNow envío exitoso (HTTP {res.status_code}) para {len(urls)} URLs.")
-        else:
-            print(f"⚠️ IndexNow respuesta HTTP {res.status_code}: {res.text}")
+        submit_urls_to_indexnow(urls, frontend_url, timeout=15)
 
         cur.close()
         conn.close()

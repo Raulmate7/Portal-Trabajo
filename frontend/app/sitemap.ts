@@ -9,10 +9,8 @@ import { getJobSlug, slugify } from '@/lib/slug';
 
 export const revalidate = 7200; // Cache por 2 horas
 
-// Fecha límite de lanzamiento del portal — se usa como lastModified de páginas estáticas
-// para no reportar "hoy" a Googlebot (evita re-crawls innecesarios de crawl budget).
-// Modificado a new Date() dinámico para forzar el rastreo constante.
-const SITE_LAST_STRUCTURAL_UPDATE = new Date();
+// Fecha fija de última actualización estructural para no reportar "hoy" en cada rastreo (SEO-017).
+const SITE_LAST_STRUCTURAL_UPDATE = new Date('2026-11-14T00:00:00Z');
 
 const BASE_PAGES = [
   '/trabajos/informatica-tecnologia',

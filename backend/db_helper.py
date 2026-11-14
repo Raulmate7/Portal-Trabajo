@@ -29,14 +29,16 @@ def get_db_connection():
     if not user or not database:
         raise ValueError("❌ Error: Faltan credenciales de base de datos en las variables de entorno.")
 
-    # VULN-15: Habilitar TLS para conexiones remotas a MySQL o si está configurado en el entorno
+    # SEC-014: TLS verificado estricto para conexiones remotas a MySQL (sin ssl.CERT_NONE)
     ssl_config = None
     if host not in ('localhost', '127.0.0.1') or os.getenv("MYSQL_SSL") == "true":
         import ssl
-        ssl_ctx = ssl.create_default_context()
         if os.getenv("DB_SSL_REJECT_UNAUTHORIZED") == "false":
-            ssl_ctx.check_hostname = False
-            ssl_ctx.verify_mode = ssl.CERT_NONE
+            raise ValueError("❌ Error de seguridad (SEC-014): DB_SSL_REJECT_UNAUTHORIZED=false está prohibido para conexiones TLS a MySQL.")
+        ca_file = os.getenv("MYSQL_SSL_CA")
+        ssl_ctx = ssl.create_default_context(cafile=ca_file if ca_file else None)
+        ssl_ctx.check_hostname = True
+        ssl_ctx.verify_mode = ssl.CERT_REQUIRED
         ssl_config = ssl_ctx
 
     return pymysql.connect(

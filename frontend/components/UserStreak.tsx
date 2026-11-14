@@ -53,43 +53,38 @@ export default function UserStreak({ lang = 'es' }: { lang?: string }) {
 
   useEffect(() => {
     setMounted(true);
-    try {
-      const storageKey = 'portal_streak_data';
-      const raw = localStorage.getItem(storageKey);
-
-      const now = new Date();
-      const offset = now.getTimezoneOffset();
-      const localNow = new Date(now.getTime() - (offset * 60 * 1000));
-      const todayStr = localNow.toISOString().split('T')[0];
-
-      let data: StreakData = raw ? JSON.parse(raw) : { lastVisitDate: '', count: 0 };
-
-      if (!data.lastVisitDate) {
-        data = { lastVisitDate: todayStr, count: 1 };
-      } else {
-        const lastDate = new Date(data.lastVisitDate);
-        const todayDate = new Date(todayStr);
-        const diffDays = Math.floor((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
-
-        if (diffDays === 1) {
-          data = { ...data, lastVisitDate: todayStr, count: data.count + 1 };
-          // Si se llegó a un hito exacto, mostrar el modal automáticamente
-          if ([3, 7, 30].includes(data.count)) {
+    // SEC-055: Sincronizar racha autoritativa con servidor (/api/streak con cookie firmada HMAC)
+    // manteniendo localStorage únicamente como caché visual no autoritativa
+    fetch('/api/streak', { method: 'POST' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((serverData) => {
+        if (serverData && typeof serverData.count === 'number') {
+          setStreak(serverData.count);
+          if (serverData.milestoneReached) {
             setTimeout(() => setShowModal(true), 800);
           }
-        } else if (diffDays > 1) {
-          data = { ...data, lastVisitDate: todayStr, count: 1 };
-        } else {
-          data.lastVisitDate = todayStr;
+          try {
+            const storageKey = 'portal_streak_data';
+            const raw = localStorage.getItem(storageKey);
+            const existing: StreakData = raw ? JSON.parse(raw) : { lastVisitDate: '', count: 0 };
+            localStorage.setItem(
+              storageKey,
+              JSON.stringify({ ...existing, lastVisitDate: serverData.lastVisitDate, count: serverData.count })
+            );
+            if (existing.emailCaptured) setEmailSaved(true);
+          } catch {}
         }
-      }
-
-      localStorage.setItem(storageKey, JSON.stringify(data));
-      setStreak(data.count);
-      if (data.emailCaptured) setEmailSaved(true);
-    } catch (error) {
-      console.error('Error tracking user streak:', error);
-    }
+      })
+      .catch(() => {
+        try {
+          const raw = localStorage.getItem('portal_streak_data');
+          if (raw) {
+            const parsed: StreakData = JSON.parse(raw);
+            if (typeof parsed.count === 'number') setStreak(parsed.count);
+            if (parsed.emailCaptured) setEmailSaved(true);
+          }
+        } catch {}
+      });
   }, []);
 
   const handleSaveEmail = async () => {

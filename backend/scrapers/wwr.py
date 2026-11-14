@@ -1,6 +1,7 @@
-import requests
-import xml.etree.ElementTree as ET
+import defusedxml.ElementTree as ET
 from bs4 import BeautifulSoup
+from logic.ssrf import safe_http_get
+from logic.tdm import is_scraping_allowed, truncate_snippet
 
 def get_wwr_jobs():
     print("🌍 Conectando con WeWorkRemotely (RSS)...")
@@ -10,7 +11,7 @@ def get_wwr_jobs():
     headers = {'User-Agent': 'PortalTrabajoITBot/1.0 (+https://portalempleoit.com/bot; bot@portalempleoit.com)'}
 
     try:
-        response = requests.get(url, headers=headers, timeout=10)
+        response = safe_http_get(url, headers=headers, timeout=(5, 15))
         response.raise_for_status()
 
         root = ET.fromstring(response.content)
@@ -32,9 +33,7 @@ def get_wwr_jobs():
                 url_source = item.find('link').text or ''
 
                 description_html = item.find('description').text or ""
-                # Limpieza rápida de HTML para el snippet
-                clean_text = BeautifulSoup(description_html, 'html.parser').get_text()
-                description_snippet = clean_text[:200].strip() + "..."
+                description_snippet = truncate_snippet(description_html, 200)
 
                 if not job_title or not url_source:
                     continue

@@ -1,9 +1,7 @@
 name: 🤖 Scraper Automático (Cada 6h)
 
 on:
-  schedule:
-    # '0 */6 * * *' significa: En el minuto 0, cada 6 horas.
-    - cron: '0 */6 * * *'
+  # Cron desactivado: ejecutado ahora directamente en ecosierraserver (/var/www/proyecto_empleo/scripts/run_scrapers.sh)
   workflow_dispatch:
 
 permissions:

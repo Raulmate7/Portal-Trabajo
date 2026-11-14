@@ -10,6 +10,8 @@ from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from logic.slug import get_job_slug
+from logic.privacy import mask_email
+from logic.legal import build_unsubscribe_headers
 
 load_dotenv()
 
@@ -39,22 +41,29 @@ def run_reactivation():
         print(f"❌ Error conectando a BD: {e}")
         return
 
-    # 1. ELIMINAR/LIMPIAR SUSCRIPTORES INACTIVOS (Sin aperturas > 45 días)
+    # 1. LEG-014: Baja lógica de suscriptores inactivos (> 45 días sin aperturas),
+    # preservando registro de supresión/consentimiento y excluyendo cuentas de pago (is_premium).
     try:
         limit_date_45 = datetime.now() - timedelta(days=45)
         cur.execute("""
-            DELETE FROM subscribers 
-            WHERE created_at < %s 
+            UPDATE subscribers
+            SET is_active = FALSE,
+                marketing_accepted = FALSE,
+                status = 'inactive_sunset'
+            WHERE created_at < %s
               AND last_sent_at < %s
+              AND COALESCE(is_premium, FALSE) = FALSE
+              AND COALESCE(is_active, TRUE) = TRUE
+              AND (last_activity_at IS NULL OR last_activity_at < %s)
               AND email NOT IN (
                   SELECT DISTINCT email FROM email_tracking WHERE opened_at > %s
               )
-        """, (limit_date_45, limit_date_45, limit_date_45))
-        deleted_count = cur.rowcount
+        """, (limit_date_45, limit_date_45, limit_date_45, limit_date_45))
+        sunset_count = cur.rowcount
         conn.commit()
-        print(f"🧹 Se han eliminado {deleted_count} suscriptores inactivos (sin actividad > 45 días).")
+        print(f"🧹 Se han marcado {sunset_count} suscriptores inactivos como inactive_sunset (sin actividad > 45 días).")
     except Exception as e:
-        print(f"⚠️ Error limpiando inactivos: {e}")
+        print(f"⚠️ Error marcando inactivos: {e}")
         conn.rollback()
 
     # 2. SELECCIONAR SUSCRIPTORES PARA REACTIVACIÓN (last_sent_at > 30 días y sin aperturas en 30 días)
@@ -159,7 +168,7 @@ def run_reactivation():
                     <div style="padding: 24px; line-height: 1.6;">
                         <p style="font-size: 15px; color: #374151;">Hola,</p>
                         <p style="font-size: 14px; color: #374151;">
-                            Hace un tiempo que no visitas **Portal Trabajo IT**. Queremos asegurarnos de que sigues recibiendo valor. Si tu perfil ha cambiado o ya has encontrado empleo, puedes darte de baja en el link del pie.
+                            Hace un tiempo que no visitas <strong>Portal Trabajo IT</strong>. Queremos asegurarnos de que sigues recibiendo valor. Si tu perfil ha cambiado o ya has encontrado empleo, puedes darte de baja en el link del pie.
                         </p>
                         <p style="font-size: 14px; color: #374151;">
                             Si sigues en búsqueda activa, te interesará saber que han entrado nuevas vacantes interesantes para tu perfil (<strong>{tech_label}</strong>):
@@ -198,7 +207,7 @@ def run_reactivation():
             msg['From'] = f"Portal Trabajo IT <{EMAIL_USER}>"
             msg['To'] = email
             msg['Subject'] = "👋 ¿Sigues buscando trabajo IT? Nuevas ofertas disponibles"
-            msg['List-Unsubscribe'] = f"<{unsubscribe_link}>"
+            msg['List-Unsubscribe'] = f"<mailto:contacto@portalempleoit.com?subject=unsubscribe>, <{unsubscribe_link}>"
             msg['List-Unsubscribe-Post'] = "List-Unsubscribe=One-Click"
             msg.attach(MIMEText(email_body, 'html'))
             
@@ -213,10 +222,10 @@ def run_reactivation():
             conn.commit()
             
             sent_count += 1
-            print(f"  ✅ Reactivación enviada a: {email}")
+            print(f"  ✅ Reactivación enviada a: {mask_email(email)}")
             
         except Exception as e:
-            print(f"  ❌ Error enviando a {email}: {e}")
+            print(f"  ❌ Error enviando a {mask_email(email)}: {e}")
             conn.rollback()
 
     server.quit()

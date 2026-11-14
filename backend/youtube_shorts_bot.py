@@ -129,7 +129,8 @@ def generate_shorts_card(title, company, location, salary=None, output_path="sho
     btn_x2, btn_y2 = 880, 1600
     draw.rounded_rectangle([btn_x1, btn_y1, btn_x2, btn_y2], radius=15, fill=(79, 70, 229))
     
-    btn_text = "Postularse en portalempleoit.es"
+    site_domain = os.getenv("SITE_DOMAIN", "portalempleoit.com").strip()
+    btn_text = f"Postularse en {site_domain}"
     bbox_btn = font_footer.getbbox(btn_text)
     btn_w = bbox_btn[2] - bbox_btn[0]
     btn_h = bbox_btn[3] - bbox_btn[1]
@@ -217,20 +218,7 @@ def upload_video_to_youtube(access_token, video_path, title, description):
     }
     
     try:
-        # Preparar cuerpo multipart/related
-        files = {
-            'metadata': (None, requests.utils.to_key_val_list(metadata), 'application/json; charset=UTF-8'),
-            'media': (os.path.basename(video_path), open(video_path, 'rb'), 'video/mp4')
-        }
-        
-        # Enviar petición POST usando requests multipart
-        # (requests construye el boundary multipart automáticamente si usamos files)
-        # Nota: La API de Google requiere que los campos se envíen en un orden particular si no se usa multipart/related estricto, 
-        # pero para simplificar, usaremos un flujo simplificado o multipart directo.
-        
-        # Flujo de multipart resumible o directo:
-        # En la API de Google, para multipart simple:
-        # Construimos el boundary multipart de forma manual para asegurar el tipo multipart/related exacto.
+        # Construir el boundary multipart/related manualmente para YouTube Data API v3
         import uuid
         boundary = f"boundary_{uuid.uuid4()}"
         

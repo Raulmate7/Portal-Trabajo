@@ -1,5 +1,6 @@
 import pool from '@/lib/db';
 import { BASE_URL } from '@/lib/constants';
+import { getJobSlug } from '@/lib/slug';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,7 +48,7 @@ export async function GET() {
 
       return `
   <job id="${escapeXmlAttr(job.id)}">
-    <link><![CDATA[${cleanCdata(`${BASE_URL}/job/${job.id}`)}]]></link>
+    <link><![CDATA[${cleanCdata(`${BASE_URL}/job/${getJobSlug(job)}`)}]]></link>
     <name><![CDATA[${cleanCdata(job.title)}]]></name>
     <region><![CDATA[${cleanCdata(job.location || 'Remoto')}]]></region>
     <company><![CDATA[${cleanCdata(job.company || 'Desconocida')}]]></company>

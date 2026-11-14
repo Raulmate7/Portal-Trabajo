@@ -42,38 +42,48 @@ export default function AISearchBar() {
 
     startTransition(() => {
       const qLower = q.toLowerCase();
-      let tech = '';
-      let city = '';
+
+      // FUNC-009: Tabla declarativa ordenada por especificidad con límites de palabra (\b)
+      const TECH_PATTERNS: Array<{ slug: string; regex: RegExp }> = [
+        { slug: 'typescript', regex: /\btypescript\b/i },
+        { slug: 'javascript', regex: /\bjavascript\b/i },
+        { slug: 'kubernetes', regex: /\bkubernetes\b|\bk8s\b/i },
+        { slug: 'python', regex: /\bpython\b/i },
+        { slug: 'devops', regex: /\bdevops\b|\bsre\b/i },
+        { slug: 'angular', regex: /\bangular\b/i },
+        { slug: 'react', regex: /\breact(?:\.?js)?\b/i },
+        { slug: 'node', regex: /\bnode(?:\.?js)?\b/i },
+        { slug: 'java', regex: /\bjava\b/i },
+        { slug: 'aws', regex: /\baws\b/i },
+        { slug: 'docker', regex: /\bdocker\b/i },
+        { slug: 'vue', regex: /\bvue(?:\.?js)?\b/i },
+        { slug: 'golang', regex: /\bgolang\b|\bgo\b/i },
+      ];
+
+      const CITY_PATTERNS: Array<{ slug: string; regex: RegExp }> = [
+        { slug: 'madrid', regex: /\bmadrid\b/i },
+        { slug: 'barcelona', regex: /\bbarcelona\b/i },
+        { slug: 'valencia', regex: /\bvalencia\b/i },
+        { slug: 'sevilla', regex: /\bsevilla\b/i },
+        { slug: 'bilbao', regex: /\bbilbao\b/i },
+        { slug: 'malaga', regex: /\bm[aá]laga\b/i },
+        { slug: 'remoto', regex: /\bremoto\b|\bteletrabajo\b|\bremote\b/i },
+      ];
+
+      const tech = TECH_PATTERNS.find((t) => t.regex.test(qLower))?.slug || '';
+      const city = CITY_PATTERNS.find((c) => c.regex.test(qLower))?.slug || '';
+
       let salary = '';
+      if (/\b(50k|50\.000)\b/i.test(qLower)) salary = 'salario-mas-de-50k';
+      else if (/\b(40k|40\.000)\b/i.test(qLower)) salary = 'salario-mas-de-40k';
+      else if (/\b(30k|30\.000)\b/i.test(qLower)) salary = 'salario-mas-de-30k';
 
-      // Detector de tecnología
-      if (qLower.includes('react')) tech = 'react';
-      else if (qLower.includes('python')) tech = 'python';
-      else if (qLower.includes('java')) tech = 'java';
-      else if (qLower.includes('node')) tech = 'node';
-      else if (qLower.includes('devops')) tech = 'devops';
-      else if (qLower.includes('typescript')) tech = 'typescript';
-
-      // Detector de ciudad
-      if (qLower.includes('madrid')) city = 'madrid';
-      else if (qLower.includes('barcelona')) city = 'barcelona';
-      else if (qLower.includes('valencia')) city = 'valencia';
-      else if (qLower.includes('remoto') || qLower.includes('teletrabajo')) city = 'remoto';
-
-      // Detector de salario
-      if (qLower.includes('30k') || qLower.includes('30.000')) salary = 'salario-mas-de-30k';
-      else if (qLower.includes('40k') || qLower.includes('40.000')) salary = 'salario-mas-de-40k';
-      else if (qLower.includes('50k') || qLower.includes('50.000')) salary = 'salario-mas-de-50k';
-
-      // Construcción del slug SEO programático
-      let targetPath = '/trabajos/informatica-tecnologia';
-
+      let targetPath = `/?q=${encodeURIComponent(q)}`;
       if (tech) {
         const parts = [tech];
         if (salary) parts.push(salary);
         if (city) {
-          if (city === 'remoto') parts.push('remoto');
-          else parts.push(`en-${city}`);
+          parts.push(city === 'remoto' ? 'remoto' : `en-${city}`);
         }
         targetPath = `/trabajos/${parts.join('-')}`;
       } else if (city) {

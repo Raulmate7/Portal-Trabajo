@@ -1,5 +1,6 @@
-import requests
 from bs4 import BeautifulSoup
+from logic.ssrf import safe_http_get
+from logic.tdm import is_scraping_allowed
 
 def get_jobfluent_jobs():
     print("💃 Bailando con JobFluent (Startups España)...")
@@ -7,8 +8,15 @@ def get_jobfluent_jobs():
 
     headers = {'User-Agent': 'PortalTrabajoITBot/1.0 (+https://portalempleoit.com/bot; bot@portalempleoit.com)'}
 
+    if not is_scraping_allowed(url):
+        print("⛔ JobFluent bloqueado por robots.txt. Omitiendo.")
+        return []
+
     try:
-        response = requests.get(url, headers=headers, timeout=10)
+        response = safe_http_get(url, headers=headers, timeout=(5, 15))
+        if not is_scraping_allowed(url, response.headers):
+            print("⛔ JobFluent indica TDM-Reservation / X-Robots-Tag restrictivo. Omitiendo.")
+            return []
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, 'html.parser')

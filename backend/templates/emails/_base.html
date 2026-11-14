@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ subject }}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f8fafc;padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;">
+          <tr>
+            <td style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:24px 28px;color:#ffffff;">
+              <h1 style="margin:0;font-size:20px;font-weight:700;">{{ brand_name | default('Portal Trabajo IT') }}</h1>
+              {% if preheader %}
+              <p style="margin:6px 0 0;font-size:13px;color:#e0e7ff;">{{ preheader }}</p>
+              {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px;font-size:15px;line-height:1.6;color:#334155;">
+              {% block content %}{{ body_html | safe }}{% endblock %}
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color:#f1f5f9;padding:18px 28px;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;">
+              <p style="margin:0 0 6px;">Recibes este correo de <strong>{{ brand_name | default('Portal Trabajo IT') }}</strong> ({{ contact_email | default('contacto@portalempleoit.com') }}).</p>
+              {% if unsubscribe_url %}
+              <p style="margin:0;"><a href="{{ unsubscribe_url }}" style="color:#4f46e5;text-decoration:underline;">Darse de baja en un clic</a> · <a href="{{ privacy_url | default('https://portalempleoit.com/privacy') }}" style="color:#64748b;">Política de Privacidad</a></p>
+              {% endif %}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

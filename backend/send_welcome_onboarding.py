@@ -10,6 +10,7 @@ from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from logic.slug import get_job_slug
+from logic.privacy import mask_email
 
 load_dotenv()
 
@@ -276,7 +277,7 @@ def run_onboarding():
         try:
             # EMAIL 1: Inmediato (stage = 0)
             if current_stage == 0:
-                print(f"💌 Enviando Email 1 (Bienvenida) a: {email}...")
+                print(f"💌 Enviando Email 1 (Bienvenida) a: {mask_email(email)}...")
                 jobs = get_onboarding_jobs(cur, tech_keywords)
                 html_body = build_welcome_email(email, tech_keywords, jobs)
                 unsubscribe_link = generate_unsubscribe_link(email)
@@ -285,7 +286,7 @@ def run_onboarding():
                 msg['From'] = f"Portal Trabajo IT <{EMAIL_USER}>"
                 msg['To'] = email
                 msg['Subject'] = "¡Te damos la bienvenida a Portal Trabajo IT! 🚀"
-                msg['List-Unsubscribe'] = f"<{unsubscribe_link}>"
+                msg['List-Unsubscribe'] = f"<mailto:contacto@portalempleoit.com?subject=unsubscribe>, <{unsubscribe_link}>"
                 msg['List-Unsubscribe-Post'] = "List-Unsubscribe=One-Click"
                 msg.attach(MIMEText(html_body, 'html'))
                 
@@ -299,14 +300,14 @@ def run_onboarding():
                 """, (datetime.now(), email))
                 conn.commit()
                 welcome_sent += 1
-                print(f"  ✅ Completado Email 1 para {email}")
+                print(f"  ✅ Completado Email 1 para {mask_email(email)}")
 
             # EMAIL 2: A los 4 días (stage = 1)
             elif current_stage == 1:
                 # Comprobar si han pasado al menos 4 días (96 horas)
                 time_diff = datetime.now() - last_sent if last_sent else timedelta(days=5)
                 if time_diff >= timedelta(days=4):
-                    print(f"💌 Enviando Email 2 (Recursos y Salarios) a: {email}...")
+                    print(f"💌 Enviando Email 2 (Recursos y Salarios) a: {mask_email(email)}...")
                     html_body = build_resources_email(email, tech_keywords)
                     unsubscribe_link = generate_unsubscribe_link(email)
                     
@@ -328,12 +329,12 @@ def run_onboarding():
                     """, (datetime.now(), email))
                     conn.commit()
                     resources_sent += 1
-                    print(f"  ✅ Completado Email 2 (Fin Onboarding) para {email}")
+                    print(f"  ✅ Completado Email 2 (Fin Onboarding) para {mask_email(email)}")
                 else:
-                    print(f"  ⏭️ {email} en etapa 1, pero aún no han pasado 4 días (pasaron {time_diff.days} días).")
+                    print(f"  ⏭️ {mask_email(email)} en etapa 1, pero aún no han pasado 4 días (pasaron {time_diff.days} días).")
 
         except Exception as e:
-            print(f"❌ Error procesando onboarding de {email}: {e}")
+            print(f"❌ Error procesando onboarding de {mask_email(email)}: {e}")
 
     server.quit()
     cur.close()

@@ -97,6 +97,14 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async rewrites() {
+    return [
+      {
+        source: '/:key([a-fA-F0-9]{16,64}).txt',
+        destination: '/api/indexnow-key?key=:key',
+      },
+    ];
+  },
 };
 
 export default nextConfig;

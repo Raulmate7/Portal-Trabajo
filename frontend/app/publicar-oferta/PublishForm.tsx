@@ -267,7 +267,7 @@ export default function PublishForm() {
         >
           <div>
             <span className="block text-sm font-bold">⭐ Destacado Pro</span>
-            <span className="block text-xs text-gray-400 mt-0.5">Destaque 30d + Inclusión en la Newsletter semanal (+8.700 devs)</span>
+            <span className="block text-xs text-gray-400 mt-0.5">Destaque 30d + Inclusión en la Newsletter semanal</span>
           </div>
           <span className="text-lg font-black text-amber-400 shrink-0">19€</span>
         </button>

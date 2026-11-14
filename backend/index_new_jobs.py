@@ -3,6 +3,7 @@ import requests
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from db_helper import get_db_connection
+from logic.slug import get_job_slug
 
 load_dotenv()
 
@@ -31,7 +32,7 @@ def index_new_jobs():
 
     try:
         cur.execute("""
-            SELECT id, title
+            SELECT id, title, location, company
             FROM jobs
             WHERE is_active = TRUE
               AND (
@@ -63,8 +64,8 @@ def index_new_jobs():
     url_list = []
 
     for job in jobs:
-        job_id, title = job
-        job_url = f"{frontend_url}/job/{job_id}"
+        job_id, title, location, company = job
+        job_url = f"{frontend_url}/job/{get_job_slug(job_id, title, location, company)}"
         url_list.append(job_url)
         payload = {
             "url": job_url,
@@ -97,28 +98,11 @@ def index_new_jobs():
     conn.close()
     print(f"\n🎉 Google Indexing completado: {success_count} indexados, {error_count} fallidos.")
 
-    # 4. Enviar a IndexNow (Bing/Yandex) en lote
+    # 4. Enviar a IndexNow (Bing/Yandex) en lote usando INDEXNOW_KEY de entorno (SEC-047)
     if url_list:
         print(f"\n🚀 Enviando {len(url_list)} URLs a IndexNow (Bing/Yandex)...")
-        from urllib.parse import urlparse
-        host = urlparse(frontend_url).netloc
-        key = "85ae2b8a7c644d6a9a7a974b789128f6"
-        
-        indexnow_payload = {
-            "host": host,
-            "key": key,
-            "keyLocation": f"{frontend_url}/{key}.txt",
-            "urlList": url_list
-        }
-        
-        try:
-            indexnow_resp = requests.post("https://api.indexnow.org/IndexNow", json=indexnow_payload, headers={"Content-Type": "application/json; charset=utf-8"}, timeout=10)
-            if indexnow_resp.status_code == 200:
-                print("✅ URLs enviadas con éxito a IndexNow!")
-            else:
-                print(f"⚠️ IndexNow falló: {indexnow_resp.status_code} - {indexnow_resp.text}")
-        except Exception as e:
-            print(f"❌ Error de red enviando a IndexNow: {e}")
+        from logic.indexnow import submit_urls_to_indexnow
+        submit_urls_to_indexnow(url_list, frontend_url, timeout=10)
 
 if __name__ == "__main__":
     index_new_jobs()

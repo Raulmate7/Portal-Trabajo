@@ -72,16 +72,17 @@ export default function CompanyLogo({ company, size = 12 }: CompanyLogoProps) {
   const charCodeSum = cleanCompany.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
   const gradientClass = GRADIENTS[charCodeSum % GRADIENTS.length];
 
-  // Intentar inferir el dominio
+  // Intentar inferir el dominio (SEC-041: servido vía proxy propio cacheado sin exponer IP/Referer del usuario a terceros)
   let logoUrl = null;
   const nameLower = cleanCompany.toLowerCase();
-  
-  if (nameLower.includes('.') && !nameLower.includes(' ')) {
-    logoUrl = `https://logo.clearbit.com/${nameLower}`;
+  const DOMAIN_PATTERN = /^(?!-)[a-z0-9-]{1,63}(?<!-)(\.(?!-)[a-z0-9-]{1,63}(?<!-))*\.[a-z]{2,24}$/;
+
+  if (nameLower.includes('.') && !nameLower.includes(' ') && DOMAIN_PATTERN.test(nameLower)) {
+    logoUrl = `/api/company-logo?domain=${encodeURIComponent(nameLower)}`;
   } else {
     const matchedKey = Object.keys(COMMON_DOMAINS).find((key) => nameLower.includes(key));
     if (matchedKey) {
-      logoUrl = `https://logo.clearbit.com/${COMMON_DOMAINS[matchedKey]}`;
+      logoUrl = `/api/company-logo?domain=${encodeURIComponent(COMMON_DOMAINS[matchedKey])}`;
     }
     // No realizar conjeturas ciegas de dominio .com para evitar colisión de marcas registradas ajenas
   }

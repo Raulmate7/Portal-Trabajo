@@ -6,9 +6,12 @@ import { cookies, headers } from 'next/headers';
 import crypto from 'crypto';
 import { encryptReferralCode } from '@/lib/referral';
 import { isSafePublicUrl } from '@/lib/urlSafety';
+import { RateLimiter } from '@/lib/rate-limit';
+import { verifyTurnstileToken } from '@/lib/turnstile';
+import { z } from 'zod';
 
-// --- Rate Limiter y Utilidades Seguras ---
-const rateLimitMap = new Map<string, number>();
+// --- Rate Limiter Unificado (Redis local/Upstash + fallback LRU, SEC-027) ---
+const actionLimitersByWindow = new Map<number, RateLimiter>();
 
 async function getActionClientIp(): Promise<string> {
   try {
@@ -28,54 +31,50 @@ async function getActionClientIp(): Promise<string> {
   return '127.0.0.1';
 }
 
-function checkRateLimit(key: string, limitMs: number = 60000): boolean {
-  const now = Date.now();
-  const lastRequest = rateLimitMap.get(key);
-  if (lastRequest && now - lastRequest < limitMs) {
-    return false;
+async function checkRateLimit(key: string, limitMs: number = 60000): Promise<boolean> {
+  let limiter = actionLimitersByWindow.get(limitMs);
+  if (!limiter) {
+    limiter = new RateLimiter(limitMs, 1, `action_${limitMs}`);
+    actionLimitersByWindow.set(limitMs, limiter);
   }
-  // Vector 21: Prevención de DoS de Rate Limiting.
-  // Jamás usar .clear() global (que borraba el historial de todos los atacantes).
-  // Se purgan primero entradas vencidas y luego se expulsa por LRU ordenado.
-  if (rateLimitMap.size >= 10000) {
-    for (const [k, timestamp] of rateLimitMap.entries()) {
-      if (now - timestamp > 300000) { // más de 5 minutos
-        rateLimitMap.delete(k);
-      }
-      if (rateLimitMap.size < 8000) break;
-    }
-    // Si aún excede el límite (rotación masiva de claves), expulsar las más antiguas por orden FIFO/LRU
-    if (rateLimitMap.size >= 10000) {
-      let evicted = 0;
-      for (const k of rateLimitMap.keys()) {
-        rateLimitMap.delete(k);
-        evicted++;
-        if (evicted >= 2000) break;
-      }
+  const res = await limiter.limitKeyAsync(key);
+  return res.success;
+}
+
+function getAllowedCsrfHosts(): Set<string> {
+  const allowedHosts = new Set(['portalempleoit.com', 'www.portalempleoit.com', 'localhost', '127.0.0.1']);
+  for (const envUrl of [
+    process.env.NEXT_PUBLIC_SITE_URL,
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.NEXT_PUBLIC_BASE_URL,
+  ]) {
+    if (envUrl) {
+      try {
+        allowedHosts.add(new URL(envUrl).hostname);
+      } catch {}
     }
   }
-  rateLimitMap.set(key, now);
-  return true;
+  return allowedHosts;
 }
 
 /**
- * Valida la cabecera Origin / Host para prevenir ataques CSRF en Server Actions mutantes (Vector 22).
+ * Valida estrictamente Origin/Referer/Sec-Fetch-Site contra hosts canónicos (SEC-016 & SEC-017).
  */
 async function verifyCsrfOrigin(): Promise<boolean> {
   try {
     const h = await headers();
+    const allowedHosts = getAllowedCsrfHosts();
     const origin = h.get('origin');
-    if (!origin) {
-      const referer = h.get('referer');
-      if (!referer) return true; // Invocación interna desde el servidor / SSR
-      const refHost = new URL(referer).host;
-      const host = h.get('host') || h.get('x-forwarded-host');
-      return !host || refHost === host;
+    if (origin) {
+      const originHostname = new URL(origin).hostname;
+      return allowedHosts.has(originHostname);
     }
-    const originHost = new URL(origin).host;
-    const host = h.get('host') || h.get('x-forwarded-host');
-    if (!host) return true;
-    return originHost === host;
+    const referer = h.get('referer');
+    if (referer) {
+      const refHostname = new URL(referer).hostname;
+      return allowedHosts.has(refHostname);
+    }
+    return h.get('sec-fetch-site') === 'same-origin';
   } catch {
     return false;
   }
@@ -94,8 +93,9 @@ function escapeTelegramHtml(str: string | null | undefined): string {
     .replace(/"/g, '&quot;');
 }
 
-// Registro en memoria para invalidar tokens de acceso mágico (revocación y prevención de repetición)
+const MAGIC_LINK_TTL_MS = 30 * 60 * 1000; // 30 minutos (SEC-022)
 const revokedMagicTokens = new Map<string, number>();
+let magicTokenTableReady = false;
 
 function cleanupRevokedMagicTokens() {
   const now = Date.now();
@@ -114,77 +114,134 @@ function cleanupRevokedMagicTokens() {
   }
 }
 
-export async function revokeSecureToken(token: string): Promise<void> {
-  if (!token || typeof token !== 'string') return;
-  const ttl = Date.now() + 2 * 60 * 60 * 1000;
-  revokedMagicTokens.set(token, ttl);
-  if (token.includes('.')) {
-    const parts = token.split('.');
-    if (parts.length === 3) {
-      revokedMagicTokens.set(parts[1], ttl); // JTI/Nonce
-    }
-  }
-  if (revokedMagicTokens.size > 2000) {
-    cleanupRevokedMagicTokens();
+async function ensureMagicTokenTable(): Promise<void> {
+  if (magicTokenTableReady) return;
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS revoked_magic_tokens (
+        jti VARCHAR(64) PRIMARY KEY,
+        expires_at BIGINT NOT NULL,
+        INDEX idx_revoked_magic_exp (expires_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    magicTokenTableReady = true;
+  } catch {
+    // Fallback silencioso si no hay BD disponible en tiempo de build
   }
 }
 
+function extractMagicJti(token: string): string {
+  const parts = token.split('.');
+  if (parts.length === 3 && parts[1]) {
+    return parts[1].slice(0, 64);
+  }
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+export async function revokeSecureToken(token: string): Promise<void> {
+  if (!token || typeof token !== 'string') return;
+  const expiresAt = Date.now() + MAGIC_LINK_TTL_MS;
+  const jti = extractMagicJti(token);
+
+  revokedMagicTokens.set(token, expiresAt);
+  revokedMagicTokens.set(jti, expiresAt);
+  if (revokedMagicTokens.size > 2000) {
+    cleanupRevokedMagicTokens();
+  }
+
+  // Persistencia distribuida en Redis si está configurado
+  const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (redisUrl && redisToken) {
+    try {
+      await fetch(`${redisUrl}/set/magic_revoked:${encodeURIComponent(jti)}/1/EX/${Math.ceil(MAGIC_LINK_TTL_MS / 1000)}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${redisToken}` },
+        cache: 'no-store'
+      });
+    } catch {}
+  }
+
+  // Persistencia en base de datos MySQL (SEC-019)
+  await ensureMagicTokenTable();
+  try {
+    await pool.query(
+      'INSERT IGNORE INTO revoked_magic_tokens (jti, expires_at) VALUES ($1, $2)',
+      [jti, expiresAt]
+    );
+  } catch {}
+}
+
 function generateSecureToken(email: string): string {
-  // Usar clave secreta dedicada para enlaces mágicos de acceso
   const secret = process.env.MAGIC_LINK_SECRET || process.env.CRON_SECRET;
   if (!secret) throw new Error("MAGIC_LINK_SECRET o CRON_SECRET no configurado");
   const timestamp = Date.now();
-  // Nonce criptográfico aleatorio único por cada token generado (Vector 13)
   const nonce = crypto.randomBytes(16).toString('hex');
   const hash = crypto.createHmac('sha256', secret).update(`${email.trim().toLowerCase()}:${timestamp}:${nonce}`).digest('hex');
   return `${timestamp}.${nonce}.${hash}`;
 }
 
-function verifySecureToken(email: string, token: string): boolean {
+async function verifySecureToken(email: string, token: string): Promise<boolean> {
   const secret = process.env.MAGIC_LINK_SECRET || process.env.CRON_SECRET;
   if (!secret || !token || !token.includes('.')) return false;
-  
+
   if (revokedMagicTokens.has(token)) {
     return false;
   }
 
   const parts = token.split('.');
+  // SEC-022: Exigir exclusivamente formato unificado de 3 partes con JTI de 128 bits
+  if (parts.length !== 3) return false;
+
   const cleanEmail = email.trim().toLowerCase();
+  const [timestampStr, nonce, hash] = parts;
+  const timestamp = parseInt(timestampStr, 10);
+  if (isNaN(timestamp) || !nonce || nonce.length < 16) return false;
 
-  // Tokens reforzados con nonce aleatorio de 3 partes: {timestamp}.{nonce}.{hash}
-  if (parts.length === 3) {
-    const [timestampStr, nonce, hash] = parts;
-    const timestamp = parseInt(timestampStr, 10);
-    if (isNaN(timestamp)) return false;
+  const now = Date.now();
+  if (now - timestamp > MAGIC_LINK_TTL_MS || now < timestamp) return false;
 
-    // Ventana estricta de validez de 2 horas (estándar OWASP para magic links)
-    const MAX_AGE = 2 * 60 * 60 * 1000;
-    const now = Date.now();
-    if (now - timestamp > MAX_AGE || now < timestamp) return false;
+  const jti = extractMagicJti(token);
+  if (revokedMagicTokens.has(jti)) return false;
 
-    if (revokedMagicTokens.has(nonce)) return false;
-
-    const expectedHash = crypto.createHmac('sha256', secret).update(`${cleanEmail}:${timestampStr}:${nonce}`).digest('hex');
-    if (!hash || hash.length !== expectedHash.length) return false;
-    return crypto.timingSafeEqual(Buffer.from(hash, 'utf-8'), Buffer.from(expectedHash, 'utf-8'));
+  const expectedHash = crypto.createHmac('sha256', secret).update(`${cleanEmail}:${timestampStr}:${nonce}`).digest('hex');
+  if (!hash || hash.length !== expectedHash.length) return false;
+  if (!crypto.timingSafeEqual(Buffer.from(hash, 'utf-8'), Buffer.from(expectedHash, 'utf-8'))) {
+    return false;
   }
 
-  // Compatibilidad con tokens clásicos de 2 partes: {timestamp}.{hash}
-  if (parts.length === 2) {
-    const [timestampStr, hash] = parts;
-    const timestamp = parseInt(timestampStr, 10);
-    if (isNaN(timestamp)) return false;
-
-    const MAX_AGE = 24 * 60 * 60 * 1000;
-    const now = Date.now();
-    if (now - timestamp > MAX_AGE || now < timestamp) return false;
-
-    const expectedHash = crypto.createHmac('sha256', secret).update(cleanEmail + timestampStr).digest('hex');
-    if (!hash || hash.length !== expectedHash.length) return false;
-    return crypto.timingSafeEqual(Buffer.from(hash, 'utf-8'), Buffer.from(expectedHash, 'utf-8'));
+  // Comprobar revocación persistente en Redis / MySQL (SEC-019)
+  const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (redisUrl && redisToken) {
+    try {
+      const r = await fetch(`${redisUrl}/get/magic_revoked:${encodeURIComponent(jti)}`, {
+        headers: { Authorization: `Bearer ${redisToken}` },
+        cache: 'no-store'
+      });
+      if (r.ok) {
+        const d = await r.json();
+        if (d?.result) {
+          revokedMagicTokens.set(jti, now + MAGIC_LINK_TTL_MS);
+          return false;
+        }
+      }
+    } catch {}
   }
 
-  return false;
+  await ensureMagicTokenTable();
+  try {
+    const dbRes = await pool.query(
+      'SELECT 1 FROM revoked_magic_tokens WHERE jti = $1 LIMIT 1',
+      [jti]
+    );
+    if (dbRes.rows && dbRes.rows.length > 0) {
+      revokedMagicTokens.set(jti, now + MAGIC_LINK_TTL_MS);
+      return false;
+    }
+  } catch {}
+
+  return true;
 }
 
 async function sendMagicLinkEmail(toEmail: string, loginUrl: string, type: 'recruiter' | 'candidate') {
@@ -207,7 +264,7 @@ async function sendMagicLinkEmail(toEmail: string, loginUrl: string, type: 'recr
         </a>
       </div>
       <p style="color: #6b7280; font-size: 12px; border-top: 1px solid #f3f4f6; padding-top: 16px;">
-        Este enlace es personal e intransferible y expira en 24 horas.<br/>
+        Este enlace es personal, de un solo uso y expira en 30 minutos.<br/>
         Si no has solicitado este acceso, puedes ignorar este correo de forma segura.
       </p>
     </div>
@@ -271,7 +328,9 @@ export async function subscribeUser(formData: FormData) {
   const cookieStore = await cookies();
   const cookieReferrer = cookieStore.get('referrer_email')?.value || null;
   const rawReferredBy = (formData.get('referred_by') as string || '').trim().toLowerCase();
-  const referredBy = rawReferredBy || cookieReferrer;
+  const candidateReferrer = (rawReferredBy || cookieReferrer || '').trim().toLowerCase();
+  // SEC-056: Prevenir auto-referido (referrer_email !== email)
+  const referredBy = candidateReferrer && candidateReferrer !== email ? candidateReferrer : null;
 
   const operator = (formData.get('operator') as string || 'OR').toUpperCase();
 
@@ -282,10 +341,17 @@ export async function subscribeUser(formData: FormData) {
 
   // Vector 24: Mitigación de spam masivo y agotamiento de recursos por IP y por email
   const clientIp = await getActionClientIp();
-  if (!checkRateLimit(`ip_sub_${clientIp}`, 10000)) {
+  const turnstileOk = await verifyTurnstileToken(
+    (formData.get('turnstileToken') || formData.get('cf-turnstile-response')) as string | null,
+    clientIp
+  );
+  if (!turnstileOk) {
+    return { message: 'Verificación anti-bot inválida o ausente.', success: false };
+  }
+  if (!(await checkRateLimit(`ip_sub_${clientIp}`, 10000))) {
     return { message: 'Demasiadas solicitudes desde tu red. Espera unos segundos antes de volver a intentarlo.', success: false };
   }
-  if (!checkRateLimit(`sub_${email}`, 30000)) {
+  if (!(await checkRateLimit(`sub_${email}`, 30000))) {
     return { message: 'Estás haciendo demasiadas peticiones. Espera un momento.', success: false };
   }
 
@@ -362,16 +428,25 @@ export async function submitPremiumLead(formData: FormData) {
     return { message: 'Debes aceptar la Política de Privacidad para unirte al programa.', success: false };
   }
 
+  const leadIp = await getActionClientIp();
+  const leadTurnstileOk = await verifyTurnstileToken(
+    (formData.get('turnstileToken') || formData.get('cf-turnstile-response')) as string | null,
+    leadIp
+  );
+  if (!leadTurnstileOk) {
+    return { message: 'Verificación anti-bot inválida o ausente.', success: false };
+  }
+
   if (!name || !email || !stack || !experience) {
     return { message: 'Por favor, rellena todos los campos obligatorios.', success: false };
   }
 
   const cleanEmail = email.trim().toLowerCase();
   const clientIp = await getActionClientIp();
-  if (!checkRateLimit(`ip_lead_${clientIp}`, 15000)) {
+  if (!(await checkRateLimit(`ip_lead_${clientIp}`, 15000))) {
     return { message: 'Demasiadas solicitudes desde tu red. Espera unos segundos.', success: false };
   }
-  if (!checkRateLimit(`lead_${cleanEmail}`, 60000)) {
+  if (!(await checkRateLimit(`lead_${cleanEmail}`, 60000))) {
     return { message: 'Estás enviando demasiadas solicitudes. Espera un minuto.', success: false };
   }
 
@@ -455,6 +530,22 @@ export async function submitPremiumLead(formData: FormData) {
   }
 }
 
+const sponsoredJobSchema = z.object({
+  company_name: z.string().trim().min(2, 'El nombre de la empresa debe tener al menos 2 caracteres.').max(120, 'El nombre de la empresa excede el máximo de 120 caracteres.'),
+  company_email: z.string().trim().toLowerCase().email('El email de empresa no tiene un formato válido.').max(150, 'El email excede el máximo de 150 caracteres.'),
+  company_phone: z.string().trim().max(30, 'El teléfono excede el máximo de 30 caracteres.').nullable(),
+  job_title: z.string().trim().min(3, 'El título del puesto debe tener al menos 3 caracteres.').max(150, 'El título del puesto excede el máximo de 150 caracteres.'),
+  job_location: z.string().trim().min(2, 'La ubicación debe tener al menos 2 caracteres.').max(120, 'La ubicación excede el máximo de 120 caracteres.'),
+  job_salary: z.string().trim().max(80, 'El salario excede el máximo de 80 caracteres.').nullable(),
+  salary_min: z.coerce.number().int().min(0).max(1000000).optional().nullable(),
+  salary_max: z.coerce.number().int().min(0).max(1000000).optional().nullable(),
+  job_description: z.string().trim().min(20, 'La descripción de la oferta debe tener al menos 20 caracteres.').max(15000, 'La descripción excede el máximo de 15.000 caracteres.'),
+  job_url: z.string().trim().max(500, 'La URL de la oferta excede el máximo de 500 caracteres.'),
+  plan: z.enum(['basico', 'destacado_basico', 'destacado_pro', 'destacado_enterprise'], {
+    message: 'El plan seleccionado no es válido.',
+  }),
+});
+
 export async function submitSponsoredJob(formData: FormData) {
   if (!await verifyCsrfOrigin()) {
     return { message: 'Petición rechazada por política de seguridad de origen (CSRF).', success: false };
@@ -466,36 +557,56 @@ export async function submitSponsoredJob(formData: FormData) {
     return { message: 'Tu oferta ha sido enviada para moderación.', success: true, redirectUrl: '/publicar-oferta?success=true&free=true' };
   }
 
-  const company_name = formData.get('company_name') as string;
-  const company_email = formData.get('company_email') as string;
-  const company_phone = (formData.get('company_phone') as string) || null;
-  const job_title = formData.get('job_title') as string;
-  const job_location = formData.get('job_location') as string;
-  const job_salary = (formData.get('job_salary') as string) || null;
-  const job_description = formData.get('job_description') as string;
-  const job_url = formData.get('job_url') as string;
-  const plan = formData.get('plan') as string;
   const privacyAccepted = formData.get('privacy_accepted') === 'on' || formData.get('privacy_accepted') === 'true';
 
   if (!privacyAccepted) {
     return { message: 'Debes aceptar la Política de Privacidad para publicar una oferta.', success: false };
   }
 
-  if (!company_name || !company_email || !job_title || !job_location || !job_description || !job_url) {
-    return { message: 'Por favor, rellena todos los campos obligatorios.', success: false };
+  const rawPhone = (formData.get('company_phone') as string | null)?.trim() || null;
+  const rawSalary = (formData.get('job_salary') as string | null)?.trim() || null;
+
+  const parsed = sponsoredJobSchema.safeParse({
+    company_name: String(formData.get('company_name') ?? ''),
+    company_email: String(formData.get('company_email') ?? ''),
+    company_phone: rawPhone,
+    job_title: String(formData.get('job_title') ?? ''),
+    job_location: String(formData.get('job_location') ?? ''),
+    job_salary: rawSalary,
+    salary_min: formData.get('salary_min') ? Number(formData.get('salary_min')) : null,
+    salary_max: formData.get('salary_max') ? Number(formData.get('salary_max')) : null,
+    job_description: String(formData.get('job_description') ?? ''),
+    job_url: String(formData.get('job_url') ?? ''),
+    plan: String(formData.get('plan') ?? ''),
+  });
+
+  if (!parsed.success) {
+    const firstIssue = parsed.error.issues[0]?.message || 'Por favor, revisa los campos del formulario.';
+    return { message: firstIssue, success: false };
   }
 
-  const cleanJobUrl = job_url.trim();
+  const {
+    company_name,
+    company_email,
+    company_phone,
+    job_title,
+    job_location,
+    job_salary,
+    job_description,
+    job_url: cleanJobUrl,
+    plan,
+  } = parsed.data;
+
   if (!isSafePublicUrl(cleanJobUrl)) {
     return { message: 'La URL de la oferta no es válida o apunta a una dirección interna o no permitida.', success: false };
   }
 
   const clientIp = await getActionClientIp();
-  if (!checkRateLimit(`ip_job_${clientIp}`, 15000)) {
+  if (!(await checkRateLimit(`ip_job_${clientIp}`, 15000))) {
     return { message: 'Demasiadas publicaciones desde tu conexión. Por favor, espera unos segundos.', success: false };
   }
 
-  if (!checkRateLimit(`job_${company_email}`, 60000)) {
+  if (!(await checkRateLimit(`job_${company_email}`, 60000))) {
     return { message: 'Por favor, espera un minuto entre publicaciones.', success: false };
   }
 
@@ -617,8 +728,9 @@ export async function reactToJob(jobId: string, reactionType: 'like' | 'dislike'
     return { success: false, error: 'Identificador de oferta inválido.' };
   }
 
-  // Rate limiting anti-spam
-  if (!checkRateLimit(`reaction_${jobId}_${reactionType}`, 2000)) {
+  // Rate limiting anti-spam por IP + oferta (SEC-026)
+  const clientIp = await getActionClientIp();
+  if (!(await checkRateLimit(`reaction_${clientIp}_${jobId}_${reactionType}`, 2000))) {
     return { success: false, error: 'Demasiadas solicitudes. Espera un momento.' };
   }
 
@@ -670,12 +782,12 @@ export async function getReferralStats(email: string, token?: string) {
   const cleanEmail = email.trim().toLowerCase();
 
   // Vector 13: Rate limiting estricto para evitar ataques de fuerza bruta y sondeo
-  if (!checkRateLimit(`ref_stats_${cleanEmail}`, 10000)) {
+  if (!(await checkRateLimit(`ref_stats_${cleanEmail}`, 10000))) {
     return { count: 0, success: false, authenticated: false };
   }
 
   // Si no se proporciona token válido, no exponemos las métricas reales para prevenir enumeración
-  const isAuthenticated = token ? verifySecureToken(cleanEmail, token) : false;
+  const isAuthenticated = token ? await verifySecureToken(cleanEmail, token) : false;
   if (!isAuthenticated) {
     return { count: 0, success: true, authenticated: false };
   }
@@ -716,6 +828,15 @@ export async function submitCompanyReview(formData: FormData) {
     return { message: 'Por favor, proporciona una puntuación válida (1-5) y un comentario de entre 5 y 2000 caracteres.', success: false };
   }
 
+  const reviewIp = await getActionClientIp();
+  const reviewTurnstileOk = await verifyTurnstileToken(
+    (formData.get('turnstileToken') || formData.get('cf-turnstile-response')) as string | null,
+    reviewIp
+  );
+  if (!reviewTurnstileOk) {
+    return { message: 'Verificación anti-bot inválida o ausente.', success: false };
+  }
+
   if (!guidelinesAccepted) {
     return { message: 'Debes confirmar que tu opinión respeta las normas de la comunidad y no contiene datos personales ni difamaciones.', success: false };
   }
@@ -736,7 +857,8 @@ export async function submitCompanyReview(formData: FormData) {
     };
   }
 
-  if (!checkRateLimit(`review_${companySlug}`, 30000)) {
+  const clientIp = await getActionClientIp();
+  if (!(await checkRateLimit(`review_${clientIp}_${companySlug}`, 30000))) {
     return { message: 'Demasiadas reseñas en poco tiempo. Espera un momento.', success: false };
   }
 
@@ -786,28 +908,12 @@ export async function reportCompanyReview(formData: FormData) {
     return { message: 'La explicación motivada debe contener entre 15 y 2000 caracteres describiendo por qué consideras que el contenido es ilícito.', success: false };
   }
 
-  if (!checkRateLimit(`report_review_${reporterEmail}`, 30000)) {
+  if (!(await checkRateLimit(`report_review_${reporterEmail}`, 30000))) {
     return { message: 'Por favor, espera un momento antes de enviar otra notificación.', success: false };
   }
 
   const client = await pool.connect();
   try {
-    try {
-      await client.query(`
-        CREATE TABLE IF NOT EXISTS review_reports (
-          id INT AUTO_INCREMENT PRIMARY KEY,
-          review_id INT NOT NULL,
-          company_slug VARCHAR(100) NOT NULL,
-          reason VARCHAR(100) NOT NULL,
-          explanation TEXT NOT NULL,
-          reporter_email VARCHAR(150) NOT NULL,
-          status VARCHAR(30) DEFAULT 'pendiente_moderacion',
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          KEY idx_review_id (review_id)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-      `);
-    } catch {}
-
     await client.query(
       `INSERT INTO review_reports (review_id, company_slug, reason, explanation, reporter_email, status, created_at)
        VALUES ($1, $2, $3, $4, $5, 'pendiente_moderacion', NOW())`,
@@ -870,10 +976,10 @@ export async function generateRecruiterLoginLink(email: string) {
 
   // Vector 24: Rate limiting estricto anti-bombardeo de correos y agotamiento de cuota Resend (IP + Email)
   const clientIp = await getActionClientIp();
-  if (!checkRateLimit(`ip_recr_magic_${clientIp}`, 15000)) {
+  if (!(await checkRateLimit(`ip_recr_magic_${clientIp}`, 15000))) {
     return { success: false, message: 'Demasiadas solicitudes de acceso desde tu red. Espera unos segundos antes de volver a intentarlo.' };
   }
-  if (!checkRateLimit(`recr_magic_${cleanEmail}`, 60000)) {
+  if (!(await checkRateLimit(`recr_magic_${cleanEmail}`, 60000))) {
     return { success: false, message: 'Demasiadas solicitudes de acceso. Espera un minuto antes de volver a intentarlo.' };
   }
 
@@ -926,7 +1032,7 @@ export async function getRecruiterJobs(email: string, token: string) {
 
   const cleanEmail = email.trim().toLowerCase();
   
-  if (!verifySecureToken(cleanEmail, token)) {
+  if (!(await verifySecureToken(cleanEmail, token))) {
     return { success: false, error: 'Acceso no autorizado. El token no es válido o ha expirado.' };
   }
 
@@ -950,15 +1056,30 @@ export async function getRecruiterJobs(email: string, token: string) {
     // Mitigación IDOR: Se vincula por url_source con sponsored_jobs registrados bajo cleanEmail,
     // impidiendo que cualquier usuario reclame ofertas de terceros introduciendo un company_name arbitrario.
     let jobsList: any[] = [];
-    const jobsQuery = `
-      SELECT DISTINCT j.id, j.title, j.company, j.created_at, j.is_active, 0 AS impressions_count, 0 AS clicks_count 
-      FROM jobs j
-      INNER JOIN sponsored_jobs s ON j.url_source = s.job_url
-      WHERE s.company_email = $1
-      ORDER BY j.created_at DESC
-    `;
-    const jRes = await client.query(jobsQuery, [cleanEmail]);
-    jobsList = jRes.rows || [];
+    try {
+      const jobsQuery = `
+        SELECT DISTINCT j.id, j.title, j.company, j.created_at, j.is_active,
+          COALESCE(j.views_count, 0) AS impressions_count,
+          COALESCE(j.clicks_count, 0) AS clicks_count
+        FROM jobs j
+        INNER JOIN sponsored_jobs s ON j.url_source = s.job_url
+        WHERE s.company_email = $1
+        ORDER BY j.created_at DESC
+      `;
+      const jRes = await client.query(jobsQuery, [cleanEmail]);
+      jobsList = jRes.rows || [];
+    } catch {
+      const fallbackQuery = `
+        SELECT DISTINCT j.id, j.title, j.company, j.created_at, j.is_active,
+          0 AS impressions_count, 0 AS clicks_count
+        FROM jobs j
+        INNER JOIN sponsored_jobs s ON j.url_source = s.job_url
+        WHERE s.company_email = $1
+        ORDER BY j.created_at DESC
+      `;
+      const jRes = await client.query(fallbackQuery, [cleanEmail]);
+      jobsList = jRes.rows || [];
+    }
 
     return { 
       success: true, 
@@ -983,20 +1104,23 @@ export async function registerRecruiterAffiliate(email: string, token?: string) 
     return { success: false, error: 'Petición rechazada por política de seguridad de origen (CSRF).' };
   }
 
-  if (!email || !email.includes('@')) {
+  const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  const cleanEmail = (email || '').trim().toLowerCase();
+  if (!cleanEmail || !EMAIL_REGEX.test(cleanEmail) || cleanEmail.length > 254) {
     return { success: false, error: 'Por favor, proporciona un correo válido.' };
   }
 
-  const cleanEmail = email.trim().toLowerCase();
-
-  // Rate Limiting anti-scraping
-  if (!checkRateLimit(`affiliate_reg_${cleanEmail}`, 10000)) {
-    return { success: false, error: 'Demasiadas solicitudes. Espera unos segundos antes de intentarlo de nuevo.' };
+  // SEC-023: Rate Limiting estricto por IP y por correo destino antes de emitir enlaces o consultar afiliados
+  const clientIp = await getActionClientIp();
+  if (!(await checkRateLimit(`ip_affiliate_reg_${clientIp}`, 15000))) {
+    return { success: false, error: 'Demasiadas solicitudes desde tu red. Espera unos segundos antes de intentarlo de nuevo.' };
+  }
+  if (!(await checkRateLimit(`affiliate_reg_${cleanEmail}`, 30000))) {
+    return { success: false, error: 'Demasiadas solicitudes para este correo. Espera unos segundos antes de intentarlo de nuevo.' };
   }
 
-  // Vector 14 & 15: Exigir verificación de identidad vía enlace mágico seguro
-  // antes de crear o exponer códigos de afiliado y métricas de comisiones
-  const isAuthenticated = token ? verifySecureToken(cleanEmail, token) : false;
+  // SEC-023: Verificación estricta de propiedad del correo vía magic link de un solo uso
+  const isAuthenticated = token ? await verifySecureToken(cleanEmail, token) : false;
 
   if (!isAuthenticated) {
     try {
@@ -1014,6 +1138,12 @@ export async function registerRecruiterAffiliate(email: string, token?: string) 
       requiresAuth: true,
     };
   }
+
+  // Consumir el enlace mágico de un solo uso tras verificar propiedad del correo
+  if (token) {
+    await revokeSecureToken(token);
+  }
+  const sessionToken = generateSecureToken(cleanEmail);
 
   const client = await pool.connect();
 
@@ -1038,6 +1168,7 @@ export async function registerRecruiterAffiliate(email: string, token?: string) 
         code,
         referrals,
         authenticated: true,
+        sessionToken,
       };
     }
 
@@ -1055,6 +1186,7 @@ export async function registerRecruiterAffiliate(email: string, token?: string) 
       code: newCode,
       referrals: [],
       authenticated: true,
+      sessionToken,
     };
 
   } catch (error) {
@@ -1069,7 +1201,7 @@ export async function validateCandidateToken(email: string, token: string) {
   if (!email || !token) return { success: false };
   const cleanEmail = email.trim().toLowerCase();
   
-  if (!verifySecureToken(cleanEmail, token)) {
+  if (!(await verifySecureToken(cleanEmail, token))) {
     return { success: false, message: 'Token inválido o caducado.' };
   }
   
@@ -1182,10 +1314,10 @@ export async function generateCandidateLoginLink(email: string) {
 
   // Vector 24: Rate limiting estricto anti-bombardeo y agotamiento de recursos Resend (IP + Email)
   const clientIp = await getActionClientIp();
-  if (!checkRateLimit(`ip_cand_magic_${clientIp}`, 15000)) {
+  if (!(await checkRateLimit(`ip_cand_magic_${clientIp}`, 15000))) {
     return { success: false, message: 'Demasiadas solicitudes de acceso desde tu red. Espera unos segundos antes de volver a intentarlo.' };
   }
-  if (!checkRateLimit(`cand_magic_${cleanEmail}`, 60000)) {
+  if (!(await checkRateLimit(`cand_magic_${cleanEmail}`, 60000))) {
     return { success: false, message: 'Demasiadas solicitudes de acceso. Espera un minuto antes de volver a intentarlo.' };
   }
 

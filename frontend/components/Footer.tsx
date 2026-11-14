@@ -6,12 +6,13 @@ import CookiePreferencesButton from '@/components/CookiePreferencesButton';
 // ─── Funciones cacheadas con TTL de 1 hora ────────────────────────────────────
 // Evitan ejecutar SQL en cada request de usuario para datos que cambian poco.
 const getCachedJobsCount = unstable_cache(
-  async () => {
+  async (): Promise<number | null> => {
     try {
       const res = await pool.query("SELECT COUNT(*) as count FROM jobs WHERE is_active = TRUE");
-      return parseInt(res.rows[0]?.count || '12450', 10);
+      const parsed = parseInt(String(res.rows[0]?.count ?? ''), 10);
+      return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
     } catch {
-      return 12450;
+      return null;
     }
   },
   ['footer-jobs-count'],
@@ -172,11 +173,11 @@ export default async function Footer() {
             <div className="space-y-2 mb-4 text-xs text-gray-400 font-medium">
               <div className="flex items-center gap-2">
                 <span className="text-emerald-500">✓</span> 
-                <span>{activeJobsCount.toLocaleString('es-ES')} ofertas activas hoy</span>
+                <span>{activeJobsCount !== null ? `${activeJobsCount.toLocaleString('es-ES')} ofertas activas hoy` : 'Ofertas tecnológicas activas hoy'}</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-indigo-400">✓</span> 
-                <span>+8.700 ingenieros en el boletín</span>
+                <span>Comunidad activa de profesionales IT</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-blue-400">✓</span> 

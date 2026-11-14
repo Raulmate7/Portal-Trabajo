@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import { BASE_URL, safeJsonLdString } from "@/lib/constants";
 import Header from "@/components/Header";
 import { Suspense } from "react";
+import { headers } from "next/headers";
 import ClientOnlyWidgets from "@/components/ClientOnlyWidgets";
 
 
@@ -100,14 +101,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
-  const onesignalAppId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
-  const gaMeasurementId = process.env.NEXT_PUBLIC_GA_ID || "G-E2W8P1V7E3";
+  const reqHeaders = await headers();
+  const nonce = reqHeaders.get("x-nonce") || undefined;
+  const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID || "";
+  const onesignalAppId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || "";
+  const gaMeasurementId = process.env.NEXT_PUBLIC_GA_ID || "";
 
   return (
     <html lang="es">
@@ -120,6 +123,7 @@ export default function RootLayout({
 
         {/* WebSite Schema para Google Sitelinks Search Box */}
         <script
+          nonce={nonce}
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: safeJsonLdString({
@@ -140,6 +144,7 @@ export default function RootLayout({
         />
         {/* Google Consent Mode v2 por defecto denegado (AEPD / RGPD / ePrivacy) */}
         <script
+          nonce={nonce}
           id="google-consent-mode-init"
           dangerouslySetInnerHTML={{
             __html: `
@@ -177,6 +182,7 @@ export default function RootLayout({
         />
         {/* Inicializador de Tema Oscuro para evitar flash de color */}
         <script
+          nonce={nonce}
           id="theme-initializer"
           dangerouslySetInnerHTML={{
             __html: `
@@ -192,13 +198,14 @@ export default function RootLayout({
           }}
         />
         <script
+          nonce={nonce}
           id="third-party-lazy-load"
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
-                var adsenseId = ${adsenseClientId ? `"${adsenseClientId}"` : 'null'};
-                var onesignalId = ${onesignalAppId ? `"${onesignalAppId}"` : 'null'};
-                var gaId = ${gaMeasurementId ? `"${gaMeasurementId}"` : 'null'};
+                var adsenseId = ${JSON.stringify(adsenseClientId || null)};
+                var onesignalId = ${JSON.stringify(onesignalAppId || null)};
+                var gaId = ${JSON.stringify(gaMeasurementId || null)};
                 var adsenseLoaded = false;
                 var onesignalLoaded = false;
                 var gaLoaded = false;
@@ -213,18 +220,24 @@ export default function RootLayout({
                     var saved = localStorage.getItem('cookies_consent');
                     if (saved) {
                       var parsed = JSON.parse(saved);
+                      var maxAgeMs = 365 * 24 * 60 * 60 * 1000;
+                      if (parsed.updatedAt && (Date.now() - parsed.updatedAt > maxAgeMs)) {
+                        return { analytics: false, advertising: false, notifications: false };
+                      }
                       return {
                         analytics: !!parsed.analytics,
-                        advertising: !!parsed.advertising
+                        advertising: !!parsed.advertising,
+                        notifications: !!parsed.notifications
                       };
                     }
                     var legacy = localStorage.getItem('cookies_accepted') === 'true';
                     return {
                       analytics: legacy,
-                      advertising: legacy
+                      advertising: legacy,
+                      notifications: legacy
                     };
                   } catch(e) {
-                    return { analytics: false, advertising: false };
+                    return { analytics: false, advertising: false, notifications: false };
                   }
                 }
 
@@ -305,8 +318,8 @@ export default function RootLayout({
                   setTimeout(loadAdSense, 2000);
                 }
 
-                // Carga de OneSignal: solo si el usuario ya ha concedido permiso de notificaciones en el navegador
-                if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                // Carga de OneSignal: solo si existe consentimiento explícito en cookies_consent Y permiso en el navegador (LEG-023)
+                if ((consent.notifications || consent.analytics) && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
                   setTimeout(loadOneSignal, 2000);
                 }
 
@@ -318,6 +331,9 @@ export default function RootLayout({
                     }
                     if (event.detail.advertising) {
                       loadAdSense();
+                    }
+                    if ((event.detail.notifications || event.detail.analytics) && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                      loadOneSignal();
                     }
                   }
                 });
@@ -337,6 +353,7 @@ export default function RootLayout({
         <ClientOnlyWidgets />
         {/* Service Worker PWA */}
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {

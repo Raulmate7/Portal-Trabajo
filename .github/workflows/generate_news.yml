@@ -1,9 +1,7 @@
 name: 📰 Generador de Noticias IT (Cada 2h)
 
 on:
-  schedule:
-    # Ejecución cada 2 horas para alimentar Google News & Discover
-    - cron: '0 */2 * * *'
+  # Cron desactivado: ejecutado ahora en ecosierraserver cuando GEMINI_API_KEY esté configurada
   workflow_dispatch:
 
 permissions:

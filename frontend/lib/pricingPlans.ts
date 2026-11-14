@@ -28,7 +28,7 @@ export const JOB_PRICING_PLANS: Record<string, JobPlanConfig> = {
     priceEur: 19,
     unitAmountCents: 1900,
     durationDays: 30,
-    description: 'Fijada arriba 30 días + Inclusión destacada en Newsletter semanal (8.700+ programadores).',
+    description: 'Fijada arriba 30 días + Inclusión destacada en la Newsletter semanal para programadores.',
     badge: '⭐ Destacada Pro (30 días)',
   },
   destacado_enterprise: {

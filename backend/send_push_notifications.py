@@ -73,20 +73,27 @@ def send_push_notification():
 
     print(f"🚀 Detectadas {total_jobs} nuevas ofertas. Preparando notificaciones segmentadas...")
 
-    # Obtener categorías más frecuentes en las últimas 7 horas
-    try:
-        cur.execute("""
-            SELECT category, COUNT(*) as cnt
-            FROM jobs
-            WHERE is_active = TRUE AND created_at > %s AND category IS NOT NULL
-            GROUP BY category
-            ORDER BY cnt DESC
-            LIMIT 10
-        """, (time_window,))
-        category_counts = {row[0].lower(): row[1] for row in cur.fetchall()}
-    except Exception as e:
-        print(f"⚠️ No se pudo obtener categorías: {e}")
-        category_counts = {}
+    # Obtener conteo real de ofertas por segmento buscando en title, description_snippet y category
+    segment_counts = []
+    for segment in TECH_SEGMENTS:
+        try:
+            like_clauses = []
+            params = [time_window]
+            for kw in segment["keywords"]:
+                pat = f"%{kw.lower()}%"
+                like_clauses.append("(LOWER(title) LIKE %s OR LOWER(COALESCE(description_snippet, '')) LIKE %s OR LOWER(COALESCE(category, '')) LIKE %s)")
+                params.extend([pat, pat, pat])
+            cur.execute(f"""
+                SELECT COUNT(*)
+                FROM jobs
+                WHERE is_active = TRUE AND created_at > %s
+                  AND ({' OR '.join(like_clauses)})
+            """, tuple(params))
+            count = int(cur.fetchone()[0] or 0)
+        except Exception as e:
+            print(f"⚠️ No se pudo contar segmento {segment['label']}: {e}")
+            count = 0
+        segment_counts.append((count, segment))
 
     cur.close()
     conn.close()
@@ -94,8 +101,7 @@ def send_push_notification():
     notifications_to_send = []
 
     # 1. Notificaciones segmentadas por tech (si hay suficientes)
-    for segment in TECH_SEGMENTS:
-        count = sum(category_counts.get(kw, 0) for kw in segment["keywords"])
+    for count, segment in segment_counts:
         if count >= 5:
             notifications_to_send.append({
                 "heading": f"{segment['emoji']} Nuevas ofertas de {segment['label']}",

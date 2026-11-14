@@ -631,7 +631,10 @@ export default function AdBanner({
             className={`flex items-center justify-between w-full h-[60px] px-4 rounded-lg bg-gradient-to-r ${ad.colors} border shadow-sm text-xs font-semibold`}
             onClick={() => sendGAEvent({ event: 'click_affiliate', value: ad.id })}
           >
-            <span className="truncate mr-2 font-bold text-gray-900">{ad.emoji} {ad.title}</span>
+            <span className="truncate mr-2 font-bold text-gray-900">
+              <span className="text-[10px] uppercase tracking-wider text-gray-500 mr-1.5">[Patrocinado]</span>
+              {ad.emoji} {ad.title}
+            </span>
             <span className={`shrink-0 px-3 py-1 rounded text-[11px] font-bold ${ad.ctaColors}`}>{ad.cta}</span>
           </a>
         );
@@ -641,6 +644,9 @@ export default function AdBanner({
           <div className="flex items-center gap-3">
             <span className="text-3xl">{ad.emoji}</span>
             <div>
+              <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-0.5">
+                Patrocinado · Enlace de afiliación
+              </span>
               <h4 className="font-bold text-gray-900 text-sm">{ad.title}</h4>
               <p className="text-gray-600 text-xs">{ad.desc}</p>
             </div>
@@ -661,7 +667,7 @@ export default function AdBanner({
     if (variant === 'multiplex') {
       return (
         <div className="w-full mt-8 p-6 bg-white border border-gray-100 rounded-xl shadow-sm">
-          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-4 block text-center">Formación Recomendada</span>
+          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-4 block text-center">Patrocinado · Enlaces de afiliación</span>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {ADS.map((adItem) => (
               <div key={adItem.id} className={`p-5 rounded-xl bg-gradient-to-br ${adItem.colors} border shadow-sm flex flex-col justify-between h-full`}>

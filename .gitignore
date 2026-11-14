@@ -26,9 +26,16 @@ frontend/tsconfig.tsbuildinfo
 !frontend/tsconfig.json
 !frontend/public/manifest.json
 
-# SQL (permitir scripts de migración del backend)
+# SQL y dumps sensibles (permitir solo scripts de migración del backend)
 *.sql
+*.sql.gz
+*.age
+*.gpg
+*.sha256
+ecosier2_PortalEmpleo.sql
 !backend/*.sql
+backups/
+*.docx
 
 # Logs & temp
 *_log.txt

@@ -70,7 +70,7 @@ export default function PublicidadPage() {
           <h1 className="text-4xl md:text-5xl font-black mb-6 leading-tight">
             Anúnciate ante una comunidad de<br />
             <span className="bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent">
-              +8.700 Desarrolladores Activos
+              Comunidad de Desarrolladores Activos
             </span>
           </h1>
           <p className="text-base md:text-lg text-gray-405 max-w-2xl mx-auto leading-relaxed">
@@ -85,9 +85,9 @@ export default function PublicidadPage() {
         <h2 className="text-xl md:text-2xl font-bold mb-8 text-center text-gray-250">Nuestra Audiencia en Cifras</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           {[
-            { metric: '+35.000', label: 'Páginas Vistas/Mes', desc: 'Tráfico orgánico de alta intención SEO' },
-            { metric: '8.700+', label: 'Suscriptores Tech', desc: 'Newsletter de desarrolladores segmentados' },
-            { metric: '42%', label: 'Tasa de Apertura', desc: 'Engagement de newsletter muy superior a la media' },
+            { metric: 'SEO Tech', label: 'Tráfico Orgánico', desc: 'Búsquedas activas de empleo tecnológico en España' },
+            { metric: 'Semanal', label: 'Suscriptores Tech', desc: 'Newsletter de desarrolladores segmentados' },
+            { metric: 'Directo', label: 'Bandeja de Entrada', desc: 'Impacto directo en perfiles técnicos activos' },
             { metric: '100% IT', label: 'Público Especializado', desc: 'Solo desarrolladores, ingenieros de sistemas y datos' },
           ].map((stat, idx) => (
             <div key={idx} className="bg-gray-900/40 border border-gray-850 rounded-2xl p-6 hover:border-gray-800 transition-all">
@@ -137,7 +137,7 @@ export default function PublicidadPage() {
               </div>
               <h3 className="text-lg font-bold text-white mb-2">Newsletter Patrocinada</h3>
               <p className="text-gray-400 text-xs leading-relaxed mb-6">
-                Promociona bootcamps, cursos, eventos, herramientas SaaS o servicios de tu marca directamente en la bandeja de entrada de 8.700+ profesionales de la tecnología.
+                Promociona bootcamps, cursos, eventos, herramientas SaaS o servicios de tu marca directamente en la bandeja de entrada de nuestra comunidad semanal de profesionales de la tecnología.
               </p>
               <ul className="text-xs text-gray-500 space-y-2 mb-6 list-disc list-inside">
                 <li>Bloque de texto editorial exclusivo + Botón CTA</li>

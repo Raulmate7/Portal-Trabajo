@@ -10,8 +10,6 @@ from linkedin_bot import run_linkedin_bot, upload_image_to_linkedin
 from mastodon_bot import run_mastodon_bot, post_to_mastodon
 import twitter_bot
 
-from ping_sitemap import ping_google_sitemap
-
 class TestSocialBots(unittest.TestCase):
 
     # 1. TEST LINKEDIN BOT
@@ -118,21 +116,6 @@ class TestSocialBots(unittest.TestCase):
         from twitter_bot import run_twitter_bot
         run_twitter_bot()
         mock_print.assert_any_call("⚠️  Faltan credenciales de Twitter en las variables de entorno. Omitiendo publicación.")
-
-    # 4. TEST SITEMAP PING
-    @patch('ping_sitemap.urllib.request.urlopen')
-    @patch('ping_sitemap.urllib.request.Request')
-    @patch.dict('os.environ', {'FRONTEND_URL': 'https://test.com'})
-    def test_ping_google_sitemap(self, mock_request_class, mock_urlopen):
-        mock_response = MagicMock()
-        mock_response.getcode.return_value = 200
-        mock_urlopen.return_value = mock_response
-
-        with patch('ping_sitemap.print') as mock_print:
-            ping_google_sitemap()
-            mock_print.assert_any_call("✅ Google Search Console notificado con éxito.")
-
-        mock_urlopen.assert_called_once()
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useTransition } from "react";
 
 const TECH_OPTIONS = ["React", "Node.js", "Python", "Java", "DevOps", "TypeScript", "JavaScript", "Flutter", "Angular", "Vue", "AWS", "Docker", "Kubernetes", "PHP", "C#", "SQL", "Android", "iOS"];
 const LOC_OPTIONS = ["Remoto", "Híbrido", "Madrid", "Barcelona", "Valencia", "Sevilla", "Málaga", "Zaragoza", "Bilbao"];
@@ -9,6 +9,7 @@ const LOC_OPTIONS = ["Remoto", "Híbrido", "Madrid", "Barcelona", "Valencia", "S
 export default function SearchFilters() {
   const searchParams = useSearchParams();
   const { replace } = useRouter();
+  const [isPending, startTransition] = useTransition();
   
   const [query, setQuery] = useState(searchParams?.get("q") || "");
   const [location, setLocation] = useState(searchParams?.get("location") || "");
@@ -57,7 +58,9 @@ export default function SearchFilters() {
       const lang = searchParams?.get("lang");
       if (lang === "en") params.set("lang", "en");
 
-      replace(`/?${params.toString()}`);
+      startTransition(() => {
+        replace(`/?${params.toString()}`);
+      });
     }, 400);
 
     return () => clearTimeout(timer);
@@ -74,7 +77,9 @@ export default function SearchFilters() {
     const params = new URLSearchParams();
     const lang = searchParams?.get("lang");
     if (lang === "en") params.set("lang", "en");
-    replace(`/?${params.toString()}`);
+    startTransition(() => {
+      replace(`/?${params.toString()}`);
+    });
   };
 
   const hasActiveFilters = !!query || !!location || !!modality || !!experience || !!minSalary || !!dateRange;

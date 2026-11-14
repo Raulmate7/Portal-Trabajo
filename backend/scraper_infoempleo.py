@@ -4,23 +4,28 @@ import psycopg2
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from logic.classifier import classify_job
-from logic.salary_parser import parse_salary
+from logic.salary_parser import parse_salary, extract_salary_from_text
+from logic.scraper_http import ScraperHttpClient
+from logic.tdm import is_scraping_allowed, truncate_snippet
 
 
 load_dotenv()
 
-# NOTA: Este archivo se llama scraper_infoempleo.py por razones históricas,
-# pero actualmente scrapea el feed RSS de Stratos (stratos-ad.com).
-# Si se quiere añadir Infoempleo real, crear un archivo separado.
-URL_RSS = "https://www.stratos-ad.com/monitor/rss"
+STRATOS_JOBS_URL = "https://www.stratos-ad.com/trabajo"
 
 def scrape_stratos():
     print("🇪🇸 Iniciando robot Stratos HTML Scraper (scraper_infoempleo.py)...")
     
-    url = "https://www.stratos-ad.com/trabajo"
-    headers = {'User-Agent': 'PortalTrabajoITBot/1.0 (+https://portalempleoit.com/bot; bot@portalempleoit.com)'}
+    url = STRATOS_JOBS_URL
+    if not is_scraping_allowed(url):
+        print("⛔ Stratos bloqueado por robots.txt o reserva TDM. Omitiendo.")
+        return
+    http_client = ScraperHttpClient("Stratos")
     try:
-        response = requests.get(url, headers=headers, timeout=15)
+        response = http_client.get(url)
+        if not is_scraping_allowed(url, response.headers):
+            print("⛔ Stratos indica TDM-Reservation / X-Robots-Tag restrictivo. Omitiendo.")
+            return
         if response.status_code != 200:
             print(f"❌ Error Stratos: Status {response.status_code}")
             return
@@ -62,6 +67,9 @@ def scrape_stratos():
             continue
 
     print(f"🔍 Stratos: Encontradas {len(nuevas_ofertas)} ofertas.")
+    if not nuevas_ofertas:
+        print("⚠️ ALERTA FUNC-041: Stratos devolvió 0 ofertas; posible cambio en estructura HTML <tr>.")
+        return
     guardar_en_bd(nuevas_ofertas)
 
 def guardar_en_bd(ofertas):

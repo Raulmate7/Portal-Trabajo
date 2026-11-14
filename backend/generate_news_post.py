@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import bleach
 import requests
 from datetime import datetime
 try:
@@ -54,10 +55,14 @@ def generate_news_article():
     
     if api_key:
         try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+            url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
             prompt_text = f"""
-Escribe una noticia periodística rigurosa, profesional y atractiva en español para un portal de empleo de tecnología sobre: "{topic['title']}".
+Escribe una síntesis analítica original y rigurosa en español para un portal de empleo de tecnología sobre: "{topic['title']}".
 {topic['prompt']}
+
+REGLAS LEGALES Y EDITORIALES OBLIGATORIAS:
+- Redacta contenido 100% original basado en hechos puros y datos agregados de empleo tecnológico (prohibido copiar, reproducir o parafrasear extensamente artículos de prensa de terceros, Art. 15 Directiva 2019/790).
+- Cita explícitamente la fuente primaria o institucional cuando proceda.
 
 Formato de respuesta JSON obligatorio:
 {{
@@ -70,18 +75,30 @@ Formato de respuesta JSON obligatorio:
                 "contents": [{"parts": [{"text": prompt_text}]}],
                 "generationConfig": {"responseMimeType": "application/json"}
             }
-            res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=60)
+            res = requests.post(
+                url,
+                json=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "x-goog-api-key": api_key,
+                },
+                timeout=60,
+            )
             if res.status_code == 200:
                 data = json.loads(res.json()['candidates'][0]['content']['parts'][0]['text'])
-                title = str(data.get('title', topic['title'])).strip()[:200]
-                excerpt = str(data.get('excerpt', topic['excerpt'])).strip()[:350]
-                raw_content = data.get('content', '')
-                content_lower = str(raw_content).lower()
-                if any(x in content_lower for x in ["<script", "javascript:", "data:text/html", "onload=", "onerror=", "<iframe", "<object"]):
-                    print("⚠️ Alerta de seguridad: el contenido LLM contenía etiquetas o protocolos no permitidos. Usando plantilla segura.")
-                    content = f"## {topic['title']}\n\n{topic['excerpt']}\n\nConsulte las ofertas activas en nuestro portal."
-                else:
-                    content = raw_content
+                title = bleach.clean(str(data.get('title', topic['title'])).strip()[:200], tags=[], strip=True)
+                excerpt = bleach.clean(str(data.get('excerpt', topic['excerpt'])).strip()[:350], tags=[], strip=True)
+                raw_content = str(data.get('content', ''))
+                # SEC-039: Sanitización estricta por lista blanca con bleach (sin lista negra eludible)
+                content = bleach.clean(
+                    raw_content,
+                    tags=['p', 'br', 'strong', 'b', 'em', 'i', 'ul', 'ol', 'li', 'h2', 'h3', 'h4', 'blockquote', 'code', 'pre', 'a'],
+                    attributes={'a': ['href', 'title', 'rel']},
+                    protocols=['http', 'https', 'mailto'],
+                    strip=True,
+                )
+                ai_notice = "\n\n> *Nota de transparencia (Art. 50 Reglamento UE 2024/1689 - AI Act): Este análisis ha sido asistido mediante Inteligencia Artificial a partir de datos agregados del mercado IT y revisado por el equipo editorial.*\n"
+                content = f"{ai_notice}\n{content}"
             else:
                 title = topic['title']
                 excerpt = topic['excerpt']

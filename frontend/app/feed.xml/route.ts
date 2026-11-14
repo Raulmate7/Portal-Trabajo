@@ -1,5 +1,6 @@
 import pool from '@/lib/db';
 import { BASE_URL } from '@/lib/constants';
+import { getJobSlug } from '@/lib/slug';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,11 +83,12 @@ export async function GET(request: Request) {
       const itemDate = new Date(job.created_at);
       const pubDate = !isNaN(itemDate.getTime()) ? itemDate.toUTCString() : new Date().toUTCString();
 
+      const jobUrl = `${BASE_URL}/job/${getJobSlug(job)}`;
       return `
     <item>
       <title><![CDATA[${cleanCdata(safeTitle)}]]></title>
-      <link>${escapeXml(`${BASE_URL}/job/${job.id}`)}</link>
-      <guid isPermaLink="true">${escapeXml(`${BASE_URL}/job/${job.id}`)}</guid>
+      <link>${escapeXml(jobUrl)}</link>
+      <guid isPermaLink="true">${escapeXml(jobUrl)}</guid>
       <description><![CDATA[${cleanCdata(fullDescription)}]]></description>
       <pubDate>${pubDate}</pubDate>
       <category><![CDATA[${cleanCdata(job.location || 'Remoto')}]]></category>

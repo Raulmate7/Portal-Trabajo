@@ -1,10 +1,7 @@
 name: Envio Semanal (Lunes)
 
 on:
-  schedule:
-    # 08:00 UTC = 09:00 Hora España (Invierno)
-    # El '1' del final significa Lunes
-    - cron: '0 8 * * 1'
+  # Cron desactivado: ejecutado ahora directamente en ecosierraserver (/var/www/proyecto_empleo/scripts/send_weekly_email.sh)
   workflow_dispatch: # Permite probarlo manualmente
 
 permissions:

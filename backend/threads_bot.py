@@ -43,8 +43,30 @@ def publish_thread(access_token, text, image_url=None):
         if not container_id:
             print("⚠️ No se recibió creation_id del contenedor.")
             return None
-            
-        # Paso 2: Publicar el hilos
+
+        # Paso 1.5: Sondeo de estado FINISHED requerido por Meta Threads API (FUNC-023)
+        status_url = f"{base_url}/{container_id}"
+        container_ready = False
+        for attempt in range(5):
+            time.sleep(3)
+            st_res = requests.get(
+                status_url,
+                params={"fields": "status,error_message"},
+                headers={"Authorization": f"Bearer {access_token}"},
+                timeout=10,
+            )
+            if st_res.status_code == 200:
+                status_val = st_res.json().get("status", "").upper()
+                if status_val == "FINISHED":
+                    container_ready = True
+                    break
+                if status_val in ("ERROR", "EXPIRED"):
+                    print(f"⚠️ Contenedor Threads en estado {status_val}: {st_res.text}")
+                    return None
+        if not container_ready:
+            print("⚠️ Contenedor Threads no alcanzó estado FINISHED tras polling; intentando publicar...")
+
+        # Paso 2: Publicar el hilo
         print(f"🚀 Publicando contenedor {container_id} en Threads...")
         publish_url = f"{base_url}/me/threads_publish"
         publish_payload = {

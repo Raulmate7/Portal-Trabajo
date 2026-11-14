@@ -15,58 +15,52 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def get_executor():
-    """Determina si ejecutar directamente contra MySQL o mediante el proxy HTTP."""
-    if os.getenv("DB_PROXY_URL") and os.getenv("DB_PROXY_TOKEN"):
-        proxy_url = os.getenv("DB_PROXY_URL")
-        proxy_token = os.getenv("DB_PROXY_TOKEN")
-        print(f"📡 Conectando a través de DB Proxy: {proxy_url}")
-        
-        def run_proxy(sql, params=None):
-            headers = {
-                "Content-Type": "application/json",
-                "X-Proxy-Token": proxy_token,
-                "User-Agent": "ProductionSchemaMigration/1.0"
-            }
-            body = {"sql": sql, "params": params or []}
-            req = urllib.request.Request(
-                proxy_url,
-                data=json.dumps(body).encode('utf-8'),
-                headers=headers,
-                method='POST'
-            )
-            with urllib.request.urlopen(req, timeout=15) as res:
-                data = json.loads(res.read().decode('utf-8'))
-                if not data.get("success"):
-                    raise Exception(data.get("error", "Error desconocido del proxy"))
-                return data.get("rows", [])
-        return run_proxy
-    else:
-        try:
-            from db_helper import get_db_connection
-            conn = get_db_connection()
-            print("🔌 Conectando directamente a MySQL con credenciales de entorno...")
-            
-            def run_direct(sql, params=None):
-                with conn.cursor() as cursor:
-                    parsed_sql = sql
-                    if params:
-                        import re
-                        parsed_sql = re.sub(r'\$\d+', '%s', sql)
-                        cursor.execute(parsed_sql, params)
-                    else:
-                        cursor.execute(parsed_sql)
-                    try:
-                        return cursor.fetchall()
-                    except:
-                        return []
-            return run_direct
-        except Exception as e:
-            print(f"⚠️ No se pudo conectar directamente a MySQL ({e}).")
-            print("Configure MYSQL_USER/MYSQL_DATABASE o DB_PROXY_URL/DB_PROXY_TOKEN en .env")
-            sys.exit(1)
+    """Conecta directamente a MySQL; falla rápido si se intenta migrar DDL a través de db_proxy.php (SEC-013)."""
+    if os.getenv("DB_PROXY_URL") and not os.getenv("MYSQL_HOST") and not os.getenv("DATABASE_URL"):
+        print("❌ Error crítico (SEC-013): Las migraciones DDL (ALTER/CREATE INDEX) no pueden ejecutarse mediante db_proxy.php (bloqueado con 403).")
+        print("   Ejecute este script con conexión directa a MySQL (MYSQL_HOST/MYSQL_USER/MYSQL_PASSWORD o DATABASE_URL).")
+        sys.exit(1)
+
+    if os.getenv("DB_PROXY_URL") and os.getenv("ALLOW_PROXY_MIGRATION") != "true":
+        print("❌ Error crítico (SEC-013): Se detectó DB_PROXY_URL en el entorno. Las migraciones DDL requieren conexión directa a MySQL.")
+        sys.exit(1)
+
+    try:
+        from db_helper import get_db_connection
+        conn = get_db_connection()
+        print("🔌 Conectando directamente a MySQL con credenciales de entorno...")
+
+        def run_direct(sql, params=None):
+            with conn.cursor() as cursor:
+                parsed_sql = sql
+                if params:
+                    import re
+                    parsed_sql = re.sub(r'\$\d+', '%s', sql)
+                    cursor.execute(parsed_sql, params)
+                else:
+                    cursor.execute(parsed_sql)
+                try:
+                    return cursor.fetchall()
+                except Exception:
+                    return []
+
+        return run_direct, conn
+    except Exception as e:
+        print(f"⚠️ No se pudo conectar directamente a MySQL ({e}).")
+        print("Configure MYSQL_USER/MYSQL_DATABASE o DATABASE_URL directa en .env")
+        sys.exit(1)
 
 def run_migration():
-    execute = get_executor()
+    execute, conn = get_executor()
+    try:
+        _run_migration_steps(execute)
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+def _run_migration_steps(execute):
 
     print("\n📦 [1/10] Verificando tabla 'sectors'...")
     execute("""
@@ -197,6 +191,12 @@ def run_migration():
         ('consent_ip_hash', 'VARCHAR(64) NULL'),
         ('consent_policy_version', 'VARCHAR(50) DEFAULT "v2026.11"'),
         ('marketing_accepted', 'BOOLEAN DEFAULT FALSE'),
+        ('consent_alerts_at', 'TIMESTAMP NULL'),
+        ('consent_marketing_at', 'TIMESTAMP NULL'),
+        ('confirmed_at', 'TIMESTAMP NULL'),
+        ('unsubscribed_at', 'TIMESTAMP NULL'),
+        ('status', 'VARCHAR(50) DEFAULT "active"'),
+        ('is_premium', 'BOOLEAN DEFAULT FALSE'),
     ]
     for col, col_def in sub_columns:
         try:
@@ -358,7 +358,32 @@ def run_migration():
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     """)
 
-    print("\n📦 [14/15] Verificando tabla 'saved_jobs_reminders'...")
+    print("\n📦 [14/17] Verificando tabla 'email_suppression_list'...")
+    execute("""
+        CREATE TABLE IF NOT EXISTS email_suppression_list (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            email_hash VARCHAR(64) UNIQUE NOT NULL,
+            reason VARCHAR(100) DEFAULT 'unsubscribe',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_suppression_hash (email_hash)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    """)
+
+    print("\n📦 [15/17] Verificando tabla 'consent_audit_log'...")
+    execute("""
+        CREATE TABLE IF NOT EXISTS consent_audit_log (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            email_hash VARCHAR(64) NOT NULL,
+            action VARCHAR(50) NOT NULL,
+            policy_version VARCHAR(50) NULL,
+            marketing_accepted BOOLEAN DEFAULT FALSE,
+            ip_hash VARCHAR(64) NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_consent_audit_hash (email_hash)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    """)
+
+    print("\n📦 [16/17] Verificando tabla 'saved_jobs_reminders'...")
     execute("""
         CREATE TABLE IF NOT EXISTS saved_jobs_reminders (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -380,19 +405,121 @@ def run_migration():
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     """)
 
-    print("\n⚡ Optimizando índices de rendimiento...")
+    print("\n📦 [16/16] Verificando tabla 'review_reports' (SEC-028)...")
+    execute("""
+        CREATE TABLE IF NOT EXISTS review_reports (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            review_id INT NOT NULL,
+            company_slug VARCHAR(100) NOT NULL,
+            reason VARCHAR(100) NOT NULL,
+            explanation TEXT NOT NULL,
+            reporter_email VARCHAR(150) NOT NULL,
+            status VARCHAR(30) DEFAULT 'pendiente_moderacion',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            KEY idx_review_id (review_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    """)
+
+    print("\n📦 [17/19] Verificando tabla maestra 'companies' (FUNC-049)...")
+    execute("""
+        CREATE TABLE IF NOT EXISTS companies (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            canonical_name VARCHAR(255) NOT NULL,
+            slug VARCHAR(255) UNIQUE NOT NULL,
+            domain VARCHAR(255) NULL,
+            logo_url VARCHAR(500) NULL,
+            verified BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_companies_domain (domain)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    """)
+
+    print("\n📦 [18/19] Verificando tabla 'email_tracking_daily' (FUNC-058)...")
+    execute("""
+        CREATE TABLE IF NOT EXISTS email_tracking_daily (
+            campaign VARCHAR(100) NOT NULL,
+            summary_date DATE NOT NULL,
+            opens_count INT DEFAULT 0,
+            clicks_count INT DEFAULT 0,
+            PRIMARY KEY (campaign, summary_date)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    """)
+
+    print("\n📦 [19/19] Verificando tabla 'subscriber_skills' (FUNC-053)...")
+    execute("""
+        CREATE TABLE IF NOT EXISTS subscriber_skills (
+            subscriber_email VARCHAR(255) NOT NULL,
+            skill VARCHAR(100) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (subscriber_email, skill),
+            INDEX idx_subscriber_skills_skill (skill)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    """)
+
+    def ensure_column(table_name: str, column_name: str, col_def: str):
+        rows = execute(
+            "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = %s",
+            (table_name, column_name),
+        )
+        if not rows or int(rows[0][0]) == 0:
+            execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {col_def}")
+            print(f"  + Columna '{table_name}.{column_name}' añadida.")
+
+    print("\n📦 [20/21] Verificando tabla 'email_deliveries' (checkpoints SMTP, FUNC-046)...")
+    execute("""
+        CREATE TABLE IF NOT EXISTS email_deliveries (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            campaign_key VARCHAR(120) NOT NULL,
+            subscriber_email VARCHAR(255) NOT NULL,
+            status VARCHAR(30) DEFAULT 'sent',
+            sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_delivery_campaign_email (campaign_key, subscriber_email),
+            INDEX idx_delivery_campaign (campaign_key)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    """)
+
+    print("\n📦 [21/21] Verificando tabla 'subscriber_job_notifications' (dedup alertas, FUNC-055)...")
+    execute("""
+        CREATE TABLE IF NOT EXISTS subscriber_job_notifications (
+            subscriber_email VARCHAR(255) NOT NULL,
+            job_id VARCHAR(255) NOT NULL,
+            channel VARCHAR(40) DEFAULT 'email',
+            sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (subscriber_email, job_id, channel)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    """)
+
+    ensure_column("jobs", "dedup_hash", "VARCHAR(64) NULL")
+    ensure_column("jobs", "company_id", "INT NULL")
+    ensure_column("jobs", "work_mode", "ENUM('remote', 'hybrid', 'onsite') NULL")
+    ensure_column("company_reviews", "company_id", "INT NULL")
+
+    print("\n⚡ Optimizando índices de rendimiento (idempotente vía INFORMATION_SCHEMA, FUNC-036/037)...")
     indexes = [
-        ("idx_jobs_category", "CREATE INDEX idx_jobs_category ON jobs (category)"),
-        ("idx_jobs_is_featured", "CREATE INDEX idx_jobs_is_featured ON jobs (is_featured)"),
-        ("idx_jobs_is_active", "CREATE INDEX idx_jobs_is_active ON jobs (is_active)"),
-        ("idx_jobs_created_at", "CREATE INDEX idx_jobs_created_at ON jobs (created_at DESC)"),
+        ("jobs", "idx_jobs_category", "CREATE INDEX idx_jobs_category ON jobs (category)"),
+        ("jobs", "idx_jobs_is_featured", "CREATE INDEX idx_jobs_is_featured ON jobs (is_featured)"),
+        ("jobs", "idx_jobs_is_active", "CREATE INDEX idx_jobs_is_active ON jobs (is_active)"),
+        ("jobs", "idx_jobs_created_at", "CREATE INDEX idx_jobs_created_at ON jobs (created_at DESC)"),
+        ("jobs", "idx_jobs_active_created", "CREATE INDEX idx_jobs_active_created ON jobs (is_active, created_at DESC)"),
+        ("jobs", "idx_jobs_active_cat_created", "CREATE INDEX idx_jobs_active_cat_created ON jobs (is_active, category, created_at DESC)"),
+        ("jobs", "idx_jobs_active_feat_created", "CREATE INDEX idx_jobs_active_feat_created ON jobs (is_active, is_featured, created_at DESC)"),
+        ("jobs", "idx_jobs_active_work_mode", "CREATE INDEX idx_jobs_active_work_mode ON jobs (is_active, work_mode, created_at DESC)"),
+        ("jobs", "idx_jobs_company_id", "CREATE INDEX idx_jobs_company_id ON jobs (company_id)"),
+        ("jobs", "ft_jobs_search", "CREATE FULLTEXT INDEX ft_jobs_search ON jobs (title, company, description_snippet)"),
     ]
-    for idx_name, idx_sql in indexes:
+    for table_name, idx_name, idx_sql in indexes:
         try:
-            execute(idx_sql)
-            print(f"  + Índice '{idx_name}' asegurado.")
-        except Exception:
-            pass  # El índice ya existe
+            exists = execute(
+                "SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND INDEX_NAME = %s",
+                (table_name, idx_name),
+            )
+            if not exists or int(exists[0][0]) == 0:
+                execute(idx_sql)
+                print(f"  + Índice '{idx_name}' creado.")
+            else:
+                print(f"  = Índice '{idx_name}' ya existe.")
+        except Exception as e:
+            print(f"  ⚠️ No se pudo crear índice '{idx_name}': {e}")
 
     print("\n✅ Todas las tablas, columnas e índices están sincronizados y preparados para producción.")
 

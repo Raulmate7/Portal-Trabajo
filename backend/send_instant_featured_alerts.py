@@ -10,6 +10,8 @@ from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from dotenv import load_dotenv
 from logic.slug import get_job_slug
+from logic.privacy import mask_email
+from logic.tracking import build_track_click_url, build_track_open_url
 
 load_dotenv()
 
@@ -37,7 +39,9 @@ def build_alert_email(email, job):
     safe_location = html_escape.escape(str(location or ''))
     category = category or 'Otros'
     original_job_link = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=featured_alert&utm_medium=email&utm_campaign=instant_alert_{job_id}&utm_term={urllib.parse.quote(category)}&utm_content={job_id}"
-    job_link = f"{BASE_URL}/api/track-click?email={email}&campaign=instant_alert_{job_id}&redirect={urllib.parse.quote(original_job_link)}"
+    campaign_id = f"instant_alert_{job_id}"
+    job_link = build_track_click_url(BASE_URL, email, campaign_id, original_job_link)
+    open_pixel_url = build_track_open_url(BASE_URL, email, campaign_id)
     
     safe_salary = html_escape.escape(str(salary)) if salary and salary not in ("Consultar", "") else ""
     salary_html = f"<p style='margin: 0 0 10px; color: #b45309; font-size: 14px;'>💰 <b>Salario:</b> {safe_salary}</p>" if safe_salary else ""
@@ -90,7 +94,7 @@ def build_alert_email(email, job):
                 </p>
             </div>
         </div>
-        <img src="{BASE_URL}/api/track-open?email={email}&campaign=instant_alert_{job_id}" width="1" height="1" style="display:none;" />
+        <img src="{open_pixel_url}" width="1" height="1" style="display:none;" />
     </body>
     </html>
     """
@@ -198,7 +202,7 @@ def send_instant_featured_alerts():
                 msg['From'] = f"Portal Trabajo IT <{EMAIL_USER}>"
                 msg['To'] = email
                 msg['Subject'] = f"🚨 ALERTA URGENTE: Oferta destacada de {title} en {company}"
-                msg['List-Unsubscribe'] = f"<{unsubscribe_link}>"
+                msg['List-Unsubscribe'] = f"<mailto:contacto@portalempleoit.com?subject=unsubscribe>, <{unsubscribe_link}>"
                 msg['List-Unsubscribe-Post'] = "List-Unsubscribe=One-Click"
                 msg.attach(MIMEText(html_body, 'html'))
                 
@@ -206,7 +210,7 @@ def send_instant_featured_alerts():
                 alerts_sent_total += 1
                 
             except Exception as e:
-                print(f"  ⚠️ Error enviando alerta a {email} para la oferta {job_id}: {e}")
+                print(f"  ⚠️ Error enviando alerta a {mask_email(email)} para la oferta {job_id}: {e}")
 
         # Actualizar timestamp en la oferta destacada
         cur.execute("UPDATE jobs SET last_instant_alert_sent_at = %s WHERE id = %s", (datetime.now(), job_id))

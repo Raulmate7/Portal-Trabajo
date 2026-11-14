@@ -1,11 +1,18 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { decryptReferralCode } from '@/lib/referral';
+import { actionsRateLimiter, getClientIp } from '@/lib/rate-limit';
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ code: string }> }
 ) {
   try {
+    const clientIp = getClientIp(request);
+    const rl = await actionsRateLimiter.limitAsync(`ref_${clientIp}`);
+    if (!rl.success) {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+
     const resolvedParams = await params;
     const { code } = resolvedParams;
 
@@ -17,7 +24,7 @@ export async function GET(
     const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (referrerEmail && referrerEmail.length <= 254 && EMAIL_REGEX.test(referrerEmail)) {
       response.cookies.set('referrer_email', referrerEmail, {
-        maxAge: 30 * 24 * 60 * 60, // 30 días
+        maxAge: 7 * 24 * 60 * 60, // 7 días (SEC-056)
         path: '/',
         httpOnly: true, // Protegida contra robo o exfiltración por XSS (Vector 10)
         sameSite: 'lax',

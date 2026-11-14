@@ -15,6 +15,21 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-indigo-550: #5850ec;
+  --color-indigo-650: #493de0;
+  --color-indigo-750: #3d33b8;
+  --color-violet-650: #7530e2;
+  --color-gray-150: #eceef2;
+  --color-gray-250: #dcdff5;
+  --color-gray-405: #98a0ae;
+  --color-gray-450: #838b99;
+  --color-gray-650: #424b59;
+  --color-gray-750: #293241;
+  --color-gray-850: #18202c;
+  --color-slate-350: #aebbc9;
+  --color-slate-650: #3e4c5e;
+  --color-slate-850: #172031;
+  --transition-duration-205: 205ms;
 }
 
 body {

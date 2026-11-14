@@ -17,18 +17,28 @@ export default function GlobalError({
     console.error('[GlobalError]', error);
   }, [error]);
 
+  const msg = (error?.message || '').toLowerCase();
+  const isProxyOrDbDown =
+    msg.includes('proxy') ||
+    msg.includes('econnrefused') ||
+    msg.includes('etimedout') ||
+    msg.includes('fetch failed') ||
+    msg.includes('503');
+
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-slate-950 flex items-center justify-center px-4 py-16">
       <div className="max-w-lg w-full text-center space-y-8">
 
         {/* Icono de error */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm p-10 space-y-5">
-          <span className="text-6xl block">⚠️</span>
+          <span className="text-6xl block">{isProxyOrDbDown ? '🔌' : '⚠️'}</span>
           <h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
-            Algo ha ido mal
+            {isProxyOrDbDown ? 'Servicio temporalmente en mantenimiento' : 'Algo ha ido mal'}
           </h1>
           <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed max-w-sm mx-auto">
-            Ha ocurrido un error inesperado. Puede ser temporal — prueba a recargar la página o vuelve al buscador.
+            {isProxyOrDbDown
+              ? 'La conexión con la base de datos o el proxy de datos está temporalmente saturada. Por favor, reintenta en unos segundos.'
+              : 'Ha ocurrido un error inesperado. Puede ser temporal — prueba a recargar la página o vuelve al buscador.'}
           </p>
 
           {/* Código de error para debugging */}

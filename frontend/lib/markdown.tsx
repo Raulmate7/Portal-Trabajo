@@ -1,4 +1,5 @@
 import React from 'react';
+import DOMPurify from 'isomorphic-dompurify';
 
 function escapeHtml(text: string): string {
   return text
@@ -10,19 +11,19 @@ function escapeHtml(text: string): string {
 }
 
 /**
- * Sanitiza HTML generado para neutralizar vectores de ataque XSS (Vector 27).
- * Elimina scripts, atributos de eventos on*, protocolos javascript:/data: y elementos peligrosos.
+ * Sanitiza HTML generado usando DOMPurify (WHATWG HTML5) para neutralizar XSS y mXSS (SEC-039).
  */
 export function sanitizeMarkdownHtml(html: string): string {
   if (!html) return '';
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<script\b[^>]*>/gi, '')
-    .replace(/<\/script>/gi, '')
-    .replace(/\bon\w+\s*=\s*(?:'[^']*'|"[^"]*"|[^\s>]+)/gi, '')
-    .replace(/(?:href|src|action|formaction|xlink:href)\s*=\s*(['"])\s*(?:javascript|data|vbscript):/gi, '$1#blocked-protocol:')
-    .replace(/<(?:iframe|object|embed|style|form|base|meta|svg|math|portal)\b[^>]*>/gi, '')
-    .replace(/<\/(?:iframe|object|embed|style|form|base|meta|svg|math|portal)>/gi, '');
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      'p', 'br', 'strong', 'b', 'em', 'i', 'code', 'pre',
+      'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'blockquote', 'a', 'span',
+    ],
+    ALLOWED_ATTR: ['href', 'class', 'rel', 'target'],
+    ALLOW_DATA_ATTR: false,
+    ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel):|[/#])/i,
+  });
 }
 
 export function parseInline(text: string): string {

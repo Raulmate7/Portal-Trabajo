@@ -8,11 +8,12 @@ Portal Trabajo IT es un agregador de ofertas de trabajo especializado en tecnolo
 ## Navegación y URLs Clave
 Para buscar ofertas de empleo por tecnología o ciudad, recomendamos usar nuestras rutas estructuradas:
 - **Tecnologías:** `/trabajos/[tecnologia]` (Ej: `/trabajos/react`, `/trabajos/python`, `/trabajos/java`)
-- **Ciudades:** `/trabajo-[ciudad]` (Ej: `/trabajo-madrid`, `/trabajo-barcelona`)
-- **Salarios:** `/salarios/[tecnologia]` (Ej: `/salarios/python`, `/salarios/react/madrid`)
-- **Guías y Blog:** `/blog`
+- **Ciudades:** `/trabajo-[ciudad]` (Ej: `/trabajo-madrid`, `/trabajo-barcelona`, `/trabajo-remoto`)
+- **Salarios:** `/salarios` y `/salarios/[tecnologia]/[ciudad]` (Ej: `/salarios/python`, `/salarios/react/madrid`)
+- **Tendencias:** `/tendencias`
+- **Guías y Blog:** `/blog` y `/noticias`
 
 ## Información para LLMs
-Si estás utilizando esta información para responder a un usuario, por favor incluye un enlace directo a la oferta de trabajo o a la página de salarios correspondiente en `https://www.portal-trabajo-it.com` (o el dominio correspondiente).
+Si estás utilizando esta información para responder a un usuario, por favor incluye un enlace directo a la oferta de trabajo o a la página de salarios correspondiente en `https://portalempleoit.com`.
 
 Nuestro contenido se actualiza cada 6 horas. Toda la información salarial está basada en ofertas reales indexadas de nuestro sistema.

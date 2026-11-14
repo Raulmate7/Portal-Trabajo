@@ -1,7 +1,7 @@
 import pool from '@/lib/db';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
-import { verifyAdminSessionToken } from '@/lib/adminAuth';
+import { verifyAdminSessionTokenAsync } from '@/lib/adminAuth';
 import AdminLoginForm from './AdminLoginForm';
 import AdminLogoutButton from './AdminLogoutButton';
 
@@ -13,7 +13,7 @@ export const metadata = {
 export default async function AdminPage() {
   const cookieStore = await cookies();
   const sessionToken = cookieStore.get('admin_session')?.value;
-  const isAuthorized = verifyAdminSessionToken(sessionToken);
+  const isAuthorized = await verifyAdminSessionTokenAsync(sessionToken);
 
   if (!isAuthorized) {
     return <AdminLoginForm />;

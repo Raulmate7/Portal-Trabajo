@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   }
 
   const ip = getClientIp(request);
-  const rateLimit = checkoutLimiter.limit(ip);
+  const rateLimit = await checkoutLimiter.limitAsync(ip);
   if (!rateLimit.success) {
     return new NextResponse('Too Many Requests', { status: 429 });
   }
@@ -55,13 +55,15 @@ export async function POST(request: Request) {
       customer_email: cleanEmail,
       billing_address_collection: 'required',
       tax_id_collection: { enabled: true },
+      consent_collection: { terms_of_service: 'required' },
+      ...(process.env.STRIPE_AUTOMATIC_TAX === 'true' ? { automatic_tax: { enabled: true } } : {}),
       line_items: [
         {
           price_data: {
             currency: 'eur',
             product_data: {
               name: 'Acceso Candidato Premium - Portal Trabajo IT',
-              description: 'Alertas de empleo instantáneas, visualización prioritaria de ofertas 24h antes, y acceso completo a salarios históricos.',
+              description: 'Alertas de empleo instantáneas, visualización prioritaria de ofertas 24h antes, y acceso completo a salarios históricos (4,99 €/mes IVA incluido).',
             },
             unit_amount: 499, // 4.99€ al mes
             recurring: {

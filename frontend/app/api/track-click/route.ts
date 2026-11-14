@@ -2,6 +2,7 @@ import pool from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import { trackClickLimiter, getClientIp } from '@/lib/rate-limit';
 import { isSafePublicUrl } from '@/lib/urlSafety';
+import { verifyOpaqueTrackingToken, verifyTrackingSignature } from '@/lib/trackingAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -98,31 +99,53 @@ function getSanitizedRedirect(redirectParam: string, requestUrl: string): string
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const rawEmail = searchParams.get('email') || '';
-  const rawCampaign = searchParams.get('campaign') || '';
-  const redirect = searchParams.get('url') || searchParams.get('redirect') || '';
+  const opaqueToken = (searchParams.get('t') || '').trim();
 
-  // Validar redirecciones contra open redirect
+  let rawEmail = '';
+  let rawCampaign = '';
+  let redirect = '';
+  let isAuthorized = false;
+
+  if (opaqueToken) {
+    const payload = verifyOpaqueTrackingToken(opaqueToken);
+    if (payload) {
+      rawEmail = payload.email;
+      rawCampaign = payload.campaign;
+      redirect = payload.redirect || '';
+      isAuthorized = true;
+    }
+  } else {
+    rawEmail = searchParams.get('email') || '';
+    rawCampaign = searchParams.get('campaign') || '';
+    redirect = searchParams.get('url') || searchParams.get('redirect') || '';
+    const sig = (searchParams.get('sig') || '').trim();
+    const exp = (searchParams.get('exp') || '').trim();
+    isAuthorized = verifyTrackingSignature(rawEmail.trim().toLowerCase(), rawCampaign.trim(), sig, redirect, exp);
+  }
+
+  // Validar redirecciones contra open redirect (solo si está autorizado o es ruta interna/permitida)
   const targetUrl = getSanitizedRedirect(redirect, request.url);
 
   // 1. Rate Limiting anti-inundación en track-click (Vector 19)
   const clientIp = getClientIp(request);
-  const rateLimit = trackClickLimiter.limit(clientIp);
+  const rateLimit = await trackClickLimiter.limitAsync(clientIp);
 
   // Si se excede la tasa, redirigir al usuario al destino sin saturar la base de datos
   if (!rateLimit.success) {
-    return NextResponse.redirect(new URL(targetUrl, request.url));
+    const res = NextResponse.redirect(new URL(targetUrl, request.url));
+    res.headers.set('Referrer-Policy', 'no-referrer');
+    return res;
   }
 
   const cleanEmail = rawEmail.trim().toLowerCase();
   const cleanCampaign = rawCampaign.trim();
 
-  // 2. Validación estricta de parámetros para prevenir inyección de basura masiva
+  // 2. Validación estricta de parámetros + firma HMAC obligatoria (SEC-042)
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail) && cleanEmail.length <= 100;
   const isCampaignValid = /^[a-zA-Z0-9\-_:]{1,60}$/.test(cleanCampaign);
   const isTargetUrlSafe = targetUrl.length <= 500;
 
-  if (isEmailValid && isCampaignValid && isTargetUrlSafe) {
+  if (isAuthorized && isEmailValid && isCampaignValid && isTargetUrlSafe) {
     // 3. Deduplicación temporal (evita que un clic repetido o bot inserte múltiples filas en < 10 segundos)
     const dedupKey = `${cleanEmail}:${cleanCampaign}:${targetUrl.slice(0, 80)}`;
     const now = Date.now();
@@ -141,10 +164,8 @@ export async function GET(request: NextRequest) {
           'INSERT INTO email_tracking (email, campaign, clicked_url) VALUES ($1, $2, $3)',
           [cleanEmail, `${cleanCampaign}:click`, targetUrl]
         );
-        // Sanitizar caracteres de control para prevenir log injection
-        const safeLogEmail = cleanEmail.replace(/[\r\n\x00-\x1f]/g, '');
         const safeLogCamp = cleanCampaign.replace(/[\r\n\x00-\x1f]/g, '');
-        console.log(`📈 Email click tracked: ${safeLogEmail} in campaign ${safeLogCamp}`);
+        console.log(`📈 Email click tracked in campaign ${safeLogCamp}`);
       } catch (error) {
         console.error('Error logging email track-click:', error);
       } finally {

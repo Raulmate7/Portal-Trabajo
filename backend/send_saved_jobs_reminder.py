@@ -17,6 +17,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+from logic.privacy import mask_email
 
 load_dotenv()
 
@@ -146,7 +147,7 @@ def get_pending_subscribers(conn):
         cur.execute("""
             SELECT s.email
             FROM subscribers s
-            WHERE s.source = 'saved_jobs_reminder'
+            WHERE (s.source = 'saved_jobs_reminder' OR s.tech_keywords LIKE 'origen:saved_jobs_reminder%')
               AND s.email NOT LIKE '%@deleted.local'
               AND (s.is_active IS NULL OR s.is_active = TRUE)
               AND s.created_at BETWEEN %s AND %s
@@ -170,7 +171,7 @@ def send_reminder_email(smtp, to_email: str):
     msg['Subject'] = "⭐ Tienes ofertas de empleo guardadas — ¡Revísalas antes de que caduquen!"
     msg['From'] = f"Portal Trabajo IT <{FROM_EMAIL}>"
     msg['To'] = to_email
-    msg['List-Unsubscribe'] = f"<{unsubscribe_link}>"
+    msg['List-Unsubscribe'] = f"<mailto:contacto@portalempleoit.com?subject=unsubscribe>, <{unsubscribe_link}>"
     msg['List-Unsubscribe-Post'] = "List-Unsubscribe=One-Click"
 
     html_content = HTML_TEMPLATE.replace('{base_url}', BASE_URL).replace('{email}', to_email).replace('{unsubscribe_link}', unsubscribe_link)
@@ -232,10 +233,10 @@ def send_saved_jobs_reminders():
                     send_reminder_email(smtp, email)
                     mark_sent(conn, email)
                     sent += 1
-                    print(f"  ✅ Enviado a {email}")
+                    print(f"  ✅ Enviado a {mask_email(email)}")
                 except Exception as e:
                     errors += 1
-                    print(f"  ❌ Error enviando a {email}: {e}")
+                    print(f"  ❌ Error enviando a {mask_email(email)}: {e}")
     except Exception as e:
         print(f"❌ Error de conexión SMTP: {e}")
 

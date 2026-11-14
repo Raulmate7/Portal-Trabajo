@@ -205,18 +205,38 @@ export default function LoadMoreJobs({ lang = 'es', initiallyHasMore }: LoadMore
         </div>
       )}
 
-      {/* Botón de Cargar Más (solo visible cuando no está cargando y hay más) */}
-      {hasMore && !loading && (
-        <div className="flex justify-center pt-4">
-          <button
-            onClick={loadMore}
-            disabled={loading}
-            className="px-6 py-3 bg-white dark:bg-slate-900 hover:bg-gray-50 dark:hover:bg-slate-850 border border-gray-300 dark:border-slate-800 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-200 transition-colors shadow-sm disabled:opacity-60 cursor-pointer flex items-center gap-2"
-          >
-            <span>{isEnglish ? 'Load more offers' : 'Cargar más ofertas'}</span>
-          </button>
-        </div>
-      )}
+      {/* Botón de Cargar Más + enlace de paginación rastreable (SEO-049) */}
+      {hasMore && !loading && (() => {
+        const nextParams = new URLSearchParams();
+        if (q) nextParams.set('q', q);
+        if (location) nextParams.set('location', location);
+        if (minSalary) nextParams.set('min_salary', minSalary);
+        if (modality) nextParams.set('modality', modality);
+        if (dateRange) nextParams.set('date_range', dateRange);
+        if (experience) nextParams.set('experience', experience);
+        nextParams.set('page', page.toString());
+        const basePath = lang === 'en' ? '/en' : '/';
+        const nextPageHref = `${basePath}?${nextParams.toString()}`;
+
+        return (
+          <div className="flex flex-col items-center gap-2 pt-4">
+            <button
+              onClick={loadMore}
+              disabled={loading}
+              className="px-6 py-3 bg-white dark:bg-slate-900 hover:bg-gray-50 dark:hover:bg-slate-850 border border-gray-300 dark:border-slate-800 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-200 transition-colors shadow-sm disabled:opacity-60 cursor-pointer flex items-center gap-2"
+            >
+              <span>{isEnglish ? 'Load more offers' : 'Cargar más ofertas'}</span>
+            </button>
+            <Link
+              href={nextPageHref}
+              rel="next"
+              className="text-xs text-gray-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 underline-offset-2 hover:underline"
+            >
+              {isEnglish ? `Page ${page}` : `Página ${page}`}
+            </Link>
+          </div>
+        );
+      })()}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import os
 import smtplib
+import time
 import psycopg2
 import base64
 import html
@@ -11,6 +12,9 @@ from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from logic.slug import get_job_slug
+from logic.privacy import mask_email
+from logic.legal import get_legal_footer_identity
+from logic.tracking import build_track_click_url, build_track_open_url, replace_placeholder_tracking_links
 
 load_dotenv()
 
@@ -21,14 +25,6 @@ def generate_unsubscribe_link(email: str) -> str:
         raise ValueError("❌ Error crítico: Ni UNSUBSCRIBE_SECRET ni CRON_SECRET están definidos en el entorno.")
     token = hmac.new(secret.encode(), email.strip().lower().encode(), hashlib.sha256).hexdigest()
     return f"{base_url}/api/unsubscribe?email={urllib.parse.quote(email.strip().lower())}&token={token}"
-
-def mask_email(email_str: str) -> str:
-    """RGPD Art. 5.1.c y Art. 32: Enmascara el email en logs de terminal/cron para evitar fugas de PII."""
-    if not email_str or "@" not in str(email_str):
-        return "***"
-    parts = str(email_str).split("@", 1)
-    user_part, domain = parts[0], parts[1]
-    return f"{user_part[:2]}***@{domain}"
 
 def encrypt_referral_code(email: str) -> str:
     """Cifra el correo para generar un enlace de referido opaco AES-256-GCM y prevenir filtración de PII."""
@@ -286,14 +282,15 @@ def send_newsletter():
     base_url = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
     CV_LINK = f"{base_url}/recursos?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
 
-    # 4. OBTENER SUSCRIPTORES CON SUS PREFERENCIAS (Excluyendo bajas y suscriptores puntuales de un solo aviso)
+    # 4. OBTENER SUSCRIPTORES CON SUS PREFERENCIAS (LEG-010: exigir frequency='weekly', is_active=TRUE y marketing_accepted=TRUE)
     cur.execute("""
         SELECT email, tech_keywords 
         FROM subscribers 
         WHERE email IS NOT NULL 
           AND email NOT LIKE '%@deleted.local'
-          AND (frequency = 'weekly' OR frequency IS NULL OR frequency = '')
-          AND (is_active IS NULL OR is_active = TRUE)
+          AND frequency = 'weekly'
+          AND COALESCE(is_active, TRUE) = TRUE
+          AND COALESCE(marketing_accepted, FALSE) = TRUE
     """)
     subscribers = cur.fetchall()
 
@@ -305,25 +302,30 @@ def send_newsletter():
 
     print(f"👥 Se encontraron {len(subscribers)} suscriptores. Iniciando envíos personalizados...")
 
-    # 5. INICIAR SESIÓN EN SERVIDOR SMTP
-    try:
+    # 5. SEC-062: INICIAR SESIÓN SMTP CON HELPER DE RECONEXIÓN POR MICRO-LOTES Y BACKOFF
+    def open_smtp_session():
         smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
         smtp_port = int(os.getenv("SMTP_PORT", "587"))
         if smtp_port == 465:
-            server = smtplib.SMTP_SSL(smtp_host, smtp_port)
+            srv = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=30)
         else:
-            server = smtplib.SMTP(smtp_host, smtp_port)
-            server.starttls()
-        server.login(os.getenv("EMAIL_USER"), os.getenv("EMAIL_PASSWORD"))
+            srv = smtplib.SMTP(smtp_host, smtp_port, timeout=30)
+            srv.starttls()
+        srv.login(os.getenv("EMAIL_USER"), os.getenv("EMAIL_PASSWORD"))
+        return srv, smtp_host, smtp_port
+
+    try:
+        server, smtp_host, smtp_port = open_smtp_session()
         print(f"✅ Login correcto en servidor SMTP ({smtp_host}:{smtp_port}).")
     except Exception as e:
         print(f"❌ ERROR DE LOGIN SMTP (Revisa tu .env): {e}")
         conn.close()
         return
 
-    # 6. BUCLE DE ENVÍO PERSONALIZADO
+    # 6. BUCLE DE ENVÍO PERSONALIZADO (reconexión cada 50 correos + backoff exponencial)
     success_count = 0
     error_count = 0
+    sent_in_batch = 0
     campaign_name = f"weekly_newsletter_{datetime.now().strftime('%Y-%m-%d')}"
 
     for (email, tech_keywords) in subscribers:
@@ -397,25 +399,31 @@ def send_newsletter():
                         </div>
                     """
 
-            # 6.2. Combinar el HTML patrocinado, el personalizado con el estándar y reemplazar placeholders de tracking
-            final_jobs_html = (featured_html + recommended_html + standard_jobs_html).replace("##EMAIL##", email).replace("##CAMPAIGN##", campaign_name)
-            
-            # Generar enlaces con tracking para los CTAs generales del correo
+            # 6.2. Combinar el HTML patrocinado, el personalizado con el estándar y firmar enlaces de tracking (SEC-042/043)
+            final_jobs_html = replace_placeholder_tracking_links(
+                featured_html + recommended_html + standard_jobs_html,
+                base_url,
+                email,
+                campaign_name,
+            )
+
+            # Generar enlaces opacos firmados HMAC para los CTAs generales del correo
             user_udemy_link = get_custom_udemy_link(tech_keywords)
-            bootcamp_track = f"{base_url}/api/track-click?email={email}&campaign={campaign_name}&redirect={urllib.parse.quote(user_udemy_link)}"
-            cv_track = f"{base_url}/api/track-click?email={email}&campaign={campaign_name}&redirect={urllib.parse.quote(CV_LINK)}"
-            
+            bootcamp_track = build_track_click_url(base_url, email, campaign_name, user_udemy_link)
+            cv_track = build_track_click_url(base_url, email, campaign_name, CV_LINK)
+
             talento_premium_orig = f"{base_url}/talento-premium?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
-            talento_premium_track = f"{base_url}/api/track-click?email={email}&campaign={campaign_name}&redirect={urllib.parse.quote(talento_premium_orig)}"
-            
+            talento_premium_track = build_track_click_url(base_url, email, campaign_name, talento_premium_orig)
+
             blog_orig = f"{base_url}/blog/guia-salarios-programadores-espana-2026?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
-            blog_track = f"{base_url}/api/track-click?email={email}&campaign={campaign_name}&redirect={urllib.parse.quote(blog_orig)}"
-            
+            blog_track = build_track_click_url(base_url, email, campaign_name, blog_orig)
+
             salarios_orig = f"{base_url}/salarios?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
-            salarios_track = f"{base_url}/api/track-click?email={email}&campaign={campaign_name}&redirect={urllib.parse.quote(salarios_orig)}"
-            
+            salarios_track = build_track_click_url(base_url, email, campaign_name, salarios_orig)
+
             visit_web_orig = f"{base_url}?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
-            visit_web_track = f"{base_url}/api/track-click?email={email}&campaign={campaign_name}&redirect={urllib.parse.quote(visit_web_orig)}"
+            visit_web_track = build_track_click_url(base_url, email, campaign_name, visit_web_orig)
+            open_pixel_url = build_track_open_url(base_url, email, campaign_name)
 
             # 6.3. Generar cuerpo HTML con pixel de tracking
             email_body = f"""
@@ -488,7 +496,7 @@ def send_newsletter():
                             </p>
                             <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 10px; color: #9ca3af; line-height: 1.5; text-align: center;">
                                 <p style="margin: 0 0 4px 0;">
-                                    <strong>Portal Trabajo IT</strong> · Responsable: {os.getenv('LEGAL_OWNER', 'Raúl Mateo (Portal Trabajo IT)')} · NIF: {os.getenv('LEGAL_NIF', 'Consulte Aviso Legal')} · {os.getenv('LEGAL_ADDRESS', 'Madrid, España')}<br>
+                                    {get_legal_footer_identity()}<br>
                                     Recibes este correo porque te suscribiste a las alertas de empleo en portalempleoit.com.
                                 </p>
                                 <p style="margin: 0;">
@@ -503,7 +511,7 @@ def send_newsletter():
                         </div>
                     </div>
                     <!-- Pixel de Tracking Invisible -->
-                    <img src="{base_url}/api/track-open?email={urllib.parse.quote(email)}&campaign={campaign_name}" width="1" height="1" style="display:none;" />
+                    <img src="{open_pixel_url}" width="1" height="1" style="display:none;" />
                 </body>
             </html>
             """
@@ -524,15 +532,49 @@ def send_newsletter():
             msg['List-Unsubscribe-Post'] = "List-Unsubscribe=One-Click"
             msg.attach(MIMEText(email_body, 'html'))
             
-            server.send_message(msg)
-            print(f"  ✅ Enviado resumen semanal a: {mask_email(email)}")
-            success_count += 1
+            if sent_in_batch >= 50:
+                try:
+                    server.quit()
+                except Exception:
+                    pass
+                server, _, _ = open_smtp_session()
+                sent_in_batch = 0
+
+            delivered = False
+            for attempt in range(3):
+                try:
+                    server.send_message(msg)
+                    delivered = True
+                    break
+                except smtplib.SMTPRecipientsRefused as bounce_err:
+                    print(f"  🚫 Rebote duro (hard bounce) para {mask_email(email)}: {bounce_err}")
+                    error_count += 1
+                    break
+                except (smtplib.SMTPServerDisconnected, smtplib.SMTPException, OSError) as smtp_err:
+                    if attempt == 2:
+                        raise smtp_err
+                    wait_s = 2 ** attempt
+                    time.sleep(wait_s)
+                    try:
+                        server.quit()
+                    except Exception:
+                        pass
+                    server, _, _ = open_smtp_session()
+                    sent_in_batch = 0
+
+            if delivered:
+                print(f"  ✅ Enviado resumen semanal a: {mask_email(email)}")
+                success_count += 1
+                sent_in_batch += 1
             
         except Exception as e:
             print(f"  ⚠️ Error enviando resumen semanal a {mask_email(email)}: {e}")
             error_count += 1
 
-    server.quit()
+    try:
+        server.quit()
+    except Exception:
+        pass
     cur.close()
     conn.close()
     print(f"🎉 Envío completado: {success_count} enviados, {error_count} fallidos.")

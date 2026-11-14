@@ -1,8 +1,9 @@
-// Enlaces de afiliado de alto valor (High-Ticket)
-const CV_BUILDER_LINK = "https://trk.udemy.com/9VMAEj"; 
+// Enlaces de afiliado configurables por entorno (FUNC-031)
+const UDEMY_BASE_URL = process.env.NEXT_PUBLIC_UDEMY_AFFILIATE_URL || "https://trk.udemy.com/9VMAEj";
+const CV_BUILDER_LINK = process.env.NEXT_PUBLIC_CV_AFFILIATE_URL || UDEMY_BASE_URL;
 
 const getUdemyLink = (techKey: string | null) => {
-  const defaultBase = "https://trk.udemy.com/9VMAEj";
+  const defaultBase = UDEMY_BASE_URL;
   if (!techKey) {
     return `${defaultBase}?ulp=${encodeURIComponent("https://www.udemy.com/courses/search/?q=programacion")}`;
   }
@@ -44,27 +45,8 @@ export default function CourseAffiliate({ title }: { title: string }) {
   const course = matchedKey ? COURSE_MAP[matchedKey] : DEFAULT_COURSE;
   const bootcampLink = getUdemyLink(matchedKey || null);
 
-  const courseJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': ['Course', 'LearningResource'],
-    'name': course.name,
-    'description': course.desc,
-    'learningResourceType': 'Course',
-    'provider': {
-      '@type': 'Organization',
-      'name': 'Udemy / Portal Trabajo IT',
-      'sameAs': bootcampLink
-    },
-    'educationalLevel': 'Intermediate',
-    'inLanguage': 'es'
-  };
-
   return (
     <div className="mt-8 space-y-4">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(courseJsonLd) }}
-      />
       {/* Banner Principal - Bootcamp */}
       <div className="relative overflow-hidden p-6 md:p-8 bg-gradient-to-br from-indigo-900 via-purple-900 to-indigo-950 rounded-2xl border border-indigo-500/30 shadow-2xl">
         {/* Decoración de fondo */}
@@ -74,7 +56,7 @@ export default function CourseAffiliate({ title }: { title: string }) {
         <div className="relative z-10">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 mb-4 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-200 text-xs font-bold uppercase tracking-wider backdrop-blur-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
-            Recomendación Premium
+            Patrocinado · Enlace de afiliación
           </div>
           
           <h3 className="text-white font-black text-2xl md:text-3xl mb-2 tracking-tight">
@@ -94,18 +76,24 @@ export default function CourseAffiliate({ title }: { title: string }) {
           >
             Ver Bootcamp Completo →
           </a>
+          <p className="text-[11px] text-indigo-300/80 mt-3">
+            Publicidad / Enlace afiliado de Udemy: podemos recibir una comisión sin coste adicional para ti.
+          </p>
         </div>
       </div>
 
-      {/* Banner Secundario - CV Builder */}
-      <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+      {/* Banner Secundario - Formación Udemy (Afiliado) */}
+      <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow gap-4">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-xl">
-            📄
+            🎓
           </div>
           <div>
-            <h4 className="text-gray-900 font-bold text-sm">¿Tu CV no pasa los filtros?</h4>
-            <p className="text-gray-500 text-xs">Usa plantillas optimizadas para ATS y destaca.</p>
+            <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded mb-1">
+              Patrocinado · Enlace afiliado
+            </span>
+            <h4 className="text-gray-900 font-bold text-sm">¿Quieres reforzar tu perfil técnico?</h4>
+            <p className="text-gray-500 text-xs">Explora cursos de preparación técnica y entrevistas en Udemy.</p>
           </div>
         </div>
         <a 
@@ -114,7 +102,7 @@ export default function CourseAffiliate({ title }: { title: string }) {
           rel="noopener noreferrer sponsored"
           className="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-indigo-700 text-sm font-semibold rounded-lg transition-colors whitespace-nowrap"
         >
-          Mejorar CV
+          Ver cursos en Udemy
         </a>
       </div>
     </div>

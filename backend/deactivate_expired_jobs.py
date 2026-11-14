@@ -117,28 +117,11 @@ def deactivate_expired_jobs():
             print(f"❌ Error inactivando ofertas en base de datos: {e}")
             conn.rollback()
 
-        # 6. Enviar a IndexNow (Bing/Yandex) para desindexar en lote
+        # 6. Enviar a IndexNow (Bing/Yandex) para desindexar en lote usando INDEXNOW_KEY de entorno (SEC-047)
         if url_list:
             print(f"\n🚀 Enviando {len(url_list)} URLs inactivas a IndexNow para de-indexación...")
-            from urllib.parse import urlparse
-            host = urlparse(frontend_url).netloc
-            key = "85ae2b8a7c644d6a9a7a974b789128f6"
-            
-            indexnow_payload = {
-                "host": host,
-                "key": key,
-                "keyLocation": f"{frontend_url}/{key}.txt",
-                "urlList": url_list
-            }
-            
-            try:
-                indexnow_resp = requests.post("https://api.indexnow.org/IndexNow", json=indexnow_payload, headers={"Content-Type": "application/json; charset=utf-8"}, timeout=10)
-                if indexnow_resp.status_code == 200:
-                    print("✅ URLs enviadas con éxito a IndexNow para de-indexación!")
-                else:
-                    print(f"⚠️ IndexNow de-indexing falló: {indexnow_resp.status_code} - {indexnow_resp.text}")
-            except Exception as e:
-                print(f"❌ Error de red enviando a IndexNow: {e}")
+            from logic.indexnow import submit_urls_to_indexnow
+            submit_urls_to_indexnow(url_list, frontend_url, timeout=10)
 
     # 7. PURGA: Eliminar ofertas inactivas con más de 90 días de antigüedad
     # y ofertas de pago huérfanas/abandonadas en checkout con más de 48 horas (Vulnerabilidad 5).
@@ -159,8 +142,37 @@ def deactivate_expired_jobs():
         if abandoned_count > 0:
             print(f"🗑️ Purga BD: Se eliminaron {abandoned_count} ofertas de pago huérfanas/abandonadas (>48h).")
 
-        # B. Purga general de ofertas inactivas antiguas (>90 días)
-        purge_limit = datetime.now() - timedelta(days=90)
+        # A.5. Detector activo de enlaces muertos (dead-link checker, FUNC-054) sobre muestra rotativa
+        try:
+            cur.execute("""
+                SELECT id, url_source
+                FROM jobs
+                WHERE is_active = 1
+                  AND url_source IS NOT NULL
+                  AND url_source LIKE 'http%'
+                  AND created_at < NOW() - INTERVAL 7 DAY
+                ORDER BY created_at ASC
+                LIMIT 25
+            """)
+            sample_rows = cur.fetchall()
+            dead_ids = []
+            for job_id, src_url in sample_rows:
+                try:
+                    resp = requests.head(src_url, allow_redirects=True, timeout=6, headers={"User-Agent": "PortalTrabajoIT-Bot/1.0"})
+                    if resp.status_code in (404, 410):
+                        dead_ids.append(job_id)
+                except requests.RequestException:
+                    pass
+            if dead_ids:
+                placeholders = ",".join(["%s"] * len(dead_ids))
+                cur.execute(f"UPDATE jobs SET is_active = 0 WHERE id IN ({placeholders})", tuple(dead_ids))
+                conn.commit()
+                print(f"🔗 Dead-link checker: desactivadas {len(dead_ids)} ofertas con 404/410 en origen.")
+        except Exception as dl_err:
+            print(f"⚠️ Dead-link checker omitido: {dl_err}")
+
+        # B. Purga general de ofertas inactivas muy antiguas (>180 días, preservando ventana 410/redirección SEO-011)
+        purge_limit = datetime.now() - timedelta(days=180)
         cur.execute("""
             DELETE FROM jobs
             WHERE is_active = 0 AND created_at < %s

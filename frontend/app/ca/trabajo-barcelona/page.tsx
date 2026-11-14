@@ -39,7 +39,8 @@ export default async function Page({ searchParams }: Props) {
     <CityLandingPage 
       citySlug={CITY_SLUG} 
       cityName={CITY_NAME} 
-      searchParams={resolvedSearchParams} 
+      searchParams={resolvedSearchParams}
+      locale="ca"
     />
   );
 }

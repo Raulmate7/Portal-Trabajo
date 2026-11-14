@@ -145,16 +145,27 @@ def classify_job(title: str, description: str) -> str:
     }
     
     scores = {cat: 0 for cat in categories_rules.keys()}
-    
-    # Calcular puntuaciones
+
+    # Limpiar frases de colaboración transversal en descripción para evitar falsos positivos (FUNC-011)
+    desc_filtered = re.sub(
+        r'(colaborar[áa]s?|trabajar[áa]s?|coordinar[áa]s?|junto\s+al?\s+equipo)\s+(?:de|con)\s+[\w\s,&/-]{3,40}',
+        ' ',
+        desc_lower,
+    )
+
+    # Calcular puntuaciones con peso 3x en título frente a descripción
     for cat, rules in categories_rules.items():
         for pattern, title_weight, desc_weight in rules:
-            # Buscar en título
             if re.search(pattern, title_lower):
-                scores[cat] += title_weight
-            # Buscar en descripción
-            if re.search(pattern, desc_lower):
+                scores[cat] += title_weight * 3
+            if re.search(pattern, desc_filtered):
                 scores[cat] += desc_weight
+
+    # Desambiguación específica para roles modernos (Platform / AI Engineer / QA / Ciberseguridad)
+    if re.search(r'\b(platform engineer|sre|site reliability)\b', title_lower):
+        scores['Cloud & DevOps'] += 30
+    if re.search(r'\b(ai engineer|llm|genai|mlops)\b', title_lower):
+        scores['Data & AI'] += 30
                 
     # Determinar categoría ganadora
     winner = 'Otros'

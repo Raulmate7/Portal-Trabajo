@@ -9,6 +9,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from dotenv import load_dotenv
+from logic.privacy import mask_email
 
 load_dotenv()
 
@@ -206,7 +207,7 @@ def run_referral_notifications():
                 pass
         
         if actual_count > notified_count:
-            print(f"⚡ Referente: {referrer_email} tiene {actual_count} referidos (antes notificado: {notified_count})")
+            print(f"⚡ Referente: {mask_email(referrer_email)} tiene {actual_count} referidos (antes notificado: {notified_count})")
             
             # Enviar email de notificación si el SMTP está disponible
             if smtp_active:
@@ -215,7 +216,7 @@ def run_referral_notifications():
                     msg = MIMEMultipart()
                     msg['From'] = f"Portal Trabajo IT <{EMAIL_USER}>"
                     msg['To'] = referrer_email
-                    msg['List-Unsubscribe'] = f"<{unsubscribe_link}>"
+                    msg['List-Unsubscribe'] = f"<mailto:contacto@portalempleoit.com?subject=unsubscribe>, <{unsubscribe_link}>"
                     msg['List-Unsubscribe-Post'] = "List-Unsubscribe=One-Click"
                     
                     if actual_count >= 3 and notified_count < 3:
@@ -228,7 +229,7 @@ def run_referral_notifications():
                     msg.attach(MIMEText(html_body, 'html'))
                     server.send_message(msg)
                     emails_sent += 1
-                    print(f"  ✉️ Email de referido enviado a {referrer_email}")
+                    print(f"  ✉️ Email de referido enviado a {mask_email(referrer_email)}")
                 except Exception as send_err:
                     print(f"  ❌ Error al enviar email: {send_err}")
             

@@ -44,3 +44,4 @@ zope.interface==8.1.1
 tweepy==4.14.0
 Pillow==12.2.0
 deep-translator==1.11.4
+bleach==6.4.0

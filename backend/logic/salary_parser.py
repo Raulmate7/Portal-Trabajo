@@ -1,59 +1,87 @@
 import re
 
+FX_TO_EUR = {
+    'EUR': 1.0,
+    'USD': 0.92,
+    'GBP': 1.17,
+}
+
+
+def _normalize_numeric_tokens(raw: str) -> list:
+    """Normaliza formatos europeos ('3.200,50', '45,5k', '45k') a enteros."""
+    s = raw.lower().strip()
+    # Convertir separador decimal europeo seguido de 2 dígitos (,50) a punto o descartar céntimos cuando no lleva 'k'
+    s = re.sub(r'(\d+)[.,](\d{1,2})\s*k\b', lambda m: str(int(float(f"{m.group(1)}.{m.group(2)}") * 1000)), s)
+    s = re.sub(r'(\d+)\s*k\b', r'\g<1>000', s)
+    # Quitar céntimos decimales (,50 / .50 al final de un número)
+    s = re.sub(r'(?<=\d)[.,]\d{2}(?!\d)', '', s)
+    # Quitar separadores de miles (. o , entre bloques de 3 dígitos)
+    s = re.sub(r'(?<=\d)[.,](?=\d{3}\b)', '', s)
+    return [int(n) for n in re.findall(r'\d+', s)]
+
+
 def parse_salary(salary_str: str):
     """
     Parsea una cadena de texto de salario y extrae:
     (salary_min, salary_max, salary_currency)
     Si no detecta números o no puede parsearlo, devuelve (None, None, 'EUR')
     """
-    if not salary_str or not salary_str.strip() or salary_str.lower() in ['consultar', 'sin especificar']:
+    if not salary_str or not salary_str.strip() or salary_str.lower().strip() in ['consultar', 'sin especificar']:
         return None, None, 'EUR'
-        
+
     try:
-        # Convertir a minúsculas y quitar puntos y espacios
-        clean_str = salary_str.lower().replace('.', '').replace(' ', '')
-        
+        clean_str = salary_str.lower()
+
         # Detectar moneda
         currency = 'EUR'
         if any(x in clean_str for x in ['$', 'usd', 'dólar', 'dolar', 'dollar']):
             currency = 'USD'
         elif any(x in clean_str for x in ['£', 'gbp', 'libra', 'pound']):
             currency = 'GBP'
-            
-        # Detectar sufijo 'k' (ej. 50k -> 50000)
-        clean_str = re.sub(r'(\d+)k', r'\g<1>000', clean_str)
-        
-        # Extraer todos los números consecutivos
-        numbers = [int(n) for n in re.findall(r'\d+', clean_str)]
-        
+
+        numbers = _normalize_numeric_tokens(clean_str)
         if not numbers:
             return None, None, currency
-            
-        # Determinar si es mensual
-        # Generalmente salarios menores a 6000 que no tengan indicación de año se tratan como mensuales
-        is_monthly = 'mes' in clean_str or 'mensual' in clean_str or (numbers[0] > 0 and numbers[0] < 6000)
-        
-        # Convertir a anual si es mensual
-        multiplier = 12 if is_monthly else 1
-        
+
+        is_hourly = any(x in clean_str for x in ['/h', 'por hora', 'per hour', 'hourly', '/hora'])
+        is_monthly = (not is_hourly) and (
+            any(x in clean_str for x in ['mes', 'mensual', 'month', 'monthly', '/m'])
+            or (numbers[0] > 0 and numbers[0] < 6000)
+        )
+
+        if is_hourly:
+            multiplier = 1760
+        elif is_monthly:
+            multiplier = 12
+        else:
+            multiplier = 1
+
         if len(numbers) >= 2:
             val_min = min(numbers[0], numbers[1]) * multiplier
             val_max = max(numbers[0], numbers[1]) * multiplier
         else:
             val_min = numbers[0] * multiplier
             val_max = val_min
-            
-        # Filtrar valores atípicos imposibles (ej. IDs)
+
         if val_min is not None and (val_min < 5000 or val_min > 500000):
             val_min = None
         if val_max is not None and (val_max < 5000 or val_max > 500000):
             val_max = None
-            
+
         return val_min, val_max, currency
-        
+
     except Exception as e:
         print(f"⚠️ Error parsing salary '{salary_str}': {e}")
         return None, None, 'EUR'
+
+
+def parse_salary_eur(salary_str: str):
+    """Devuelve (salary_min_eur, salary_max_eur, source_currency) normalizados a EUR anuales (FUNC-010)."""
+    val_min, val_max, currency = parse_salary(salary_str)
+    rate = FX_TO_EUR.get(currency, 1.0)
+    min_eur = int(round(val_min * rate)) if val_min is not None else None
+    max_eur = int(round(val_max * rate)) if val_max is not None else None
+    return min_eur, max_eur, currency
 
 def extract_salary_from_text(text: str):
     """

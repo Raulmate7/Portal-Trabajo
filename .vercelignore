@@ -1,0 +1,15 @@
+# Excluir dumps, secretos, datos de migración y documentación interna de despliegues Vercel
+*.sql
+*.sql.gz
+ecosier2_PortalEmpleo.sql
+.env
+.env.*
+backend/.env
+backend/.env.*
+backend/migration_data/
+backups/
+*.docx
+Imagen pegada.png
+ARQUITECTURA_SEGURIDAD_TRUST_BOUNDARIES.md
+DEVELOPMENT_CONTEXT.md
+docs/

@@ -1,6 +1,7 @@
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { Metadata } from "next";
 import { BASE_URL } from "@/lib/constants";
+import { LEGAL_CONFIG } from "@/lib/legalConfig";
 
 export const metadata: Metadata = {
   title: 'Aviso Legal y Condiciones de Uso | Portal Trabajo IT',
@@ -11,9 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default function LegalPage() {
-  const legalOwner = process.env.NEXT_PUBLIC_LEGAL_OWNER || 'Raúl Mateo (Portal Trabajo IT)';
-  const legalNif = process.env.NEXT_PUBLIC_LEGAL_NIF || 'Disponible previa solicitud acreditada en contacto@portalempleoit.com';
-  const legalAddress = process.env.NEXT_PUBLIC_LEGAL_ADDRESS || 'Madrid, España (Atención al usuario y notificaciones: contacto@portalempleoit.com)';
+  const { owner: legalOwner, nif: legalNif, address: legalAddress, email: legalEmail, registry: legalRegistry, domain } = LEGAL_CONFIG;
 
   const breadcrumbItems = [
     { label: 'Inicio', href: '/' },
@@ -38,8 +37,9 @@ export default function LegalPage() {
             <li><strong>Titular / Denominación social:</strong> {legalOwner}</li>
             <li><strong>NIF / CIF:</strong> {legalNif}</li>
             <li><strong>Domicilio social y fiscal:</strong> {legalAddress}</li>
-            <li><strong>Correo electrónico de contacto, soporte y ejercicio de derechos:</strong> contacto@portalempleoit.com</li>
-            <li><strong>Sitio Web Oficial:</strong> portalempleoit.com</li>
+            <li><strong>Correo electrónico de contacto, soporte y ejercicio de derechos:</strong> {legalEmail}</li>
+            <li><strong>Datos registrales:</strong> {legalRegistry}</li>
+            <li><strong>Sitio Web Oficial:</strong> {domain}</li>
             <li><strong>Actividad:</strong> Directorio, metabuscador de ofertas tecnológicas y herramientas de orientación laboral para programadores en España.</li>
           </ul>
         </section>
@@ -92,24 +92,21 @@ export default function LegalPage() {
             Portal Trabajo IT actúa con la máxima diligencia y buena fe como intermediario neutral de la sociedad de la información. De conformidad con los artículos 16 y 17 del Reglamento de Servicios Digitales (DSA, UE 2022/2065) y el artículo 16 de la LSSI-CE, se establece un procedimiento reglado de notificación y retirada para titulares legítimos:
           </p>
           <div className="mt-3 p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-2">
-            <p className="font-semibold text-gray-900">Requisitos de legitimación y tramitación:</p>
+            <p className="font-semibold text-gray-900">Mecanismo ágil de notificación y retirada (Art. 16.2 DSA):</p>
             <ul className="list-disc pl-5 text-xs text-gray-650 space-y-1">
               <li>
-                <strong>Canal y Remitente Oficial:</strong> Envía un correo electrónico a <strong>contacto@portalempleoit.com</strong> desde una <u>dirección con dominio corporativo oficial de la entidad titular</u> o del portal de origen de la oferta (ej. <em>rrhh@empresa.com</em>).
+                <strong>Canal electrónico directo y gratuito:</strong> Envía un correo electrónico a <strong>{legalEmail}</strong> o utiliza el botón <strong>&quot;🚩 Reportar&quot;</strong> disponible junto a cada contenido/reseña, sin exigencia de apoderamiento notarial ni firma electrónica cualificada previa para avisos ordinarios.
               </li>
               <li>
-                <strong>Inadmisión de solicitudes fraudulentas:</strong> Con el fin de evitar sabotajes o desindexaciones no autorizadas por parte de terceros malintencionados, <u>no se tramitarán solicitudes procedentes de cuentas genéricas o gratuitas</u> (como Gmail, Hotmail, Yahoo, etc.) sin aportación previa de apoderamiento notarial o firma electrónica cualificada que acredite fehacientemente la representación legal de la empresa.
+                <strong>Elementos mínimos del aviso (Art. 16.2 DSA):</strong> (1) Explicación suficientemente motivada de las razones por las que se considera que el contenido es ilícito o vulnera derechos; (2) indicación clara de la ubicación electrónica exacta (URL o identificador de la oferta/reseña); (3) nombre y dirección de correo electrónico del notificante (salvo en supuestos de delitos contemplados en el Art. 16.2.c DSA); y (4) declaración de que la información y las alegaciones contenidas en la notificación son exactas y completas de buena fe.
               </li>
               <li>
-                <strong>Datos requeridos:</strong> Nombre y cargo del solicitante, identificador o URL de la oferta en Portal Trabajo IT, y motivo de la solicitud (vacante cubierta, corrección o exclusión voluntaria).
+                <strong>Acuse de recibo y resolución motivada (Art. 16.4 y 16.5 DSA):</strong> Remitiremos acuse de recibo sin demora indebida a la dirección facilitada y comunicaremos la decisión motivada adoptada sobre la retirada, desindexación o mantenimiento del contenido en un plazo máximo de <strong>48 horas laborables</strong>.
               </li>
               <li>
-                <strong>Advertencia de responsabilidad por mala fe:</strong> Las solicitudes manifiestamente infundadas, falsas o que constituyan suplantación de identidad para perjudicar a la plataforma o a los candidatos serán puestas en conocimiento de las autoridades policiales y judiciales competentes, reservándose las acciones indemnizatorias oportunas (Art. 23 DSA).
+                <strong>Uso abusivo:</strong> Las notificaciones manifiestamente infundadas de forma reiterada podrán motivar la suspensión temporal de tramitación conforme al Art. 23 DSA.
               </li>
             </ul>
-            <p className="text-xs text-indigo-700 font-medium pt-1">
-              ⚡ Garantía de servicio: Toda solicitud fehaciente remitida por el titular legítimo que cumpla con los requisitos anteriores será ejecutada en un plazo máximo de <strong>48 horas laborables</strong>.
-            </p>
           </div>
         </section>
 
@@ -160,12 +157,12 @@ export default function LegalPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-gray-950 mb-2">10. Legislación Aplicable, Jurisdicción y Resolución de Litigios en Línea (ODR)</h2>
+          <h2 className="text-lg font-bold text-gray-950 mb-2">10. Legislación Aplicable, Jurisdicción y Resolución Alternativa de Litigios (ADR)</h2>
           <p>
             Para la resolución de todas las controversias o cuestiones relacionadas con el presente sitio web o de las actividades en él desarrolladas, será de aplicación la legislación española, siendo competentes para la resolución de todos los conflictos derivados o relacionados con su uso los Juzgados y Tribunales del domicilio del usuario consumidor, o los Juzgados de Madrid para controversias entre empresas (B2B).
           </p>
           <p className="mt-2">
-            <strong>Resolución de litigios en línea en materia de consumo (Art. 14.1 Reglamento UE 524/2013):</strong> Conforme a la normativa europea de protección a los consumidores, se informa de que la Comisión Europea pone a disposición una plataforma de resolución extrajudicial de litigios en línea accesible en el siguiente enlace oficial: <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer" className="text-indigo-650 hover:underline">https://ec.europa.eu/consumers/odr</a>.
+            <strong>Resolución extrajudicial de litigios de consumo (Ley 7/2017 y Directiva 2013/11/UE):</strong> Tras la clausura de la antigua plataforma europea ODR dispuesta por el Reglamento (UE) 2024/3228, cualquier consumidor puede presentar reclamaciones directamente a través de nuestro canal de atención (<strong>{legalEmail}</strong>) o acudir a las Juntas Arbitrales de Consumo competentes en España y entidades de resolución alternativa acreditadas conforme a la Ley 7/2017.
           </p>
         </section>
       </div>

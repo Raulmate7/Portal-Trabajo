@@ -170,12 +170,12 @@ export default async function SalariosPage({ searchParams }: Props) {
             </h2>
             <div className="text-gray-700 text-sm leading-relaxed space-y-4 font-sans">
               <p>
-                El mercado laboral tecnológico en España ha experimentado un dinamismo sin precedentes. Conocer las bandas salariales de referencia es fundamental tanto si estás buscando tu primera oportunidad laboral como si deseas negociar una mejora en tu contrato actual. Nuestra **Calculadora de Salarios IT** te permite filtrar y explorar retribuciones medias basadas en datos reales.
+                El mercado laboral tecnológico en España ha experimentado un dinamismo sin precedentes. Conocer las bandas salariales de referencia es fundamental tanto si estás buscando tu primera oportunidad laboral como si deseas negociar una mejora en tu contrato actual. Nuestra <strong>Calculadora de Salarios IT</strong> te permite filtrar y explorar retribuciones medias basadas en datos reales.
               </p>
               
               <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wider mt-4">1. Metodología de Obtención de Datos</h3>
               <p>
-                A diferencia de otras encuestas de opinión o datos declarados por usuarios de forma anónima, las estadísticas de nuestro portal se calculan a partir de **ofertas de empleo reales indexadas diariamente** en nuestra plataforma. Extraemos y normalizamos la información salarial indicada por las empresas (convirtiendo retribuciones mensuales a anuales y calculando la media de los rangos salariales), filtrando aquellas muestras anómalas o fuera de mercado para garantizar la fiabilidad estadística.
+                A diferencia de otras encuestas de opinión o datos declarados por usuarios de forma anónima, las estadísticas de nuestro portal se calculan a partir de <strong>ofertas de empleo reales indexadas diariamente</strong> en nuestra plataforma. Extraemos y normalizamos la información salarial indicada por las empresas (convirtiendo retribuciones mensuales a anuales y calculando la media de los rangos salariales), filtrando aquellas muestras anómalas o fuera de mercado para garantizar la fiabilidad estadística.
               </p>
               
               <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wider mt-4">2. ¿Cómo y cuándo utilizar esta calculadora?</h3>

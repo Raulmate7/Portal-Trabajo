@@ -27,17 +27,11 @@ export async function GET() {
     const now = new Date();
     const fortyEightHoursAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
 
-    // Filtrar posts publicados en las últimas 48 horas (requisito estricto de Google News)
-    let newsPosts = posts.filter(post => {
+    // Filtrar posts publicados en las últimas 48 horas (requisito estricto de Google News, SEO-022)
+    const newsPosts = posts.filter(post => {
       const postDate = new Date(post.date);
-      return postDate >= fortyEightHoursAgo;
+      return !isNaN(postDate.getTime()) && postDate >= fortyEightHoursAgo;
     });
-
-    // Fallback: Si no hay posts en las últimas 48 horas, mostrar los 3 más recientes
-    // para evitar que el sitemap esté vacío y asegurar la validación inicial de Search Console.
-    if (newsPosts.length === 0) {
-      newsPosts = posts.slice(0, 3);
-    }
 
     const newsNodes = newsPosts.map((post) => {
       const postUrl = `${BASE_URL}/blog/${encodeURIComponent(post.slug)}`;

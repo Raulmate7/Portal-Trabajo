@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   const clientIp = getClientIp(request);
-  const rateLimit = salariosLimiter.limit(clientIp);
+  const rateLimit = await salariosLimiter.limitAsync(clientIp);
 
   if (!rateLimit.success) {
     return NextResponse.json(

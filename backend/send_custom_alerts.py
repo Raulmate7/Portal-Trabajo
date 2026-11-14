@@ -10,6 +10,8 @@ from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from logic.slug import get_job_slug
+from logic.privacy import mask_email
+from logic.legal import get_legal_footer_identity
 
 load_dotenv()
 
@@ -27,15 +29,6 @@ def generate_unsubscribe_link(email: str) -> str:
     clean_email = email.strip().lower()
     token = hmac.new(secret.encode(), clean_email.encode(), hashlib.sha256).hexdigest()
     return f"{BASE_URL}/api/unsubscribe?email={urllib.parse.quote(clean_email)}&token={token}"
-
-
-def mask_email(email_str: str) -> str:
-    """RGPD Art. 5.1.c y Art. 32: Enmascara el email en logs para evitar fugas de PII."""
-    if not email_str or "@" not in str(email_str):
-        return "***"
-    parts = str(email_str).split("@", 1)
-    user_part, domain = parts[0], parts[1]
-    return f"{user_part[:2]}***@{domain}"
 
 
 def get_jobs_for_subscriber(cur, keywords, operator, location_pref: str, hours: int = 24):
@@ -95,7 +88,7 @@ def build_job_html(jobs, subscriber_email):
     return html
 
 
-def build_email_html(jobs, subscriber_email: str, tech_keywords: str, frequency: str):
+def build_email_html(jobs, subscriber_email: str, tech_keywords: str, frequency: str, include_marketing: bool = False):
     """Construye el cuerpo HTML completo del email de alerta."""
     encoded_email = urllib.parse.quote(subscriber_email)
     BOOTCAMP_LINK = "https://trk.udemy.com/9VMAEj"
@@ -138,19 +131,19 @@ def build_email_html(jobs, subscriber_email: str, tech_keywords: str, frequency:
         </a>
       </div>
 
-      <!-- Banner afiliado -->
+      {f'''<!-- Banner afiliado (solo con marketing_accepted=TRUE, LEG-010) -->
       <div style="padding: 18px; background: linear-gradient(135deg, #fef3c7, #fffbeb); border: 1px solid #fcd34d; border-radius: 10px; text-align: center; margin-top: 16px;">
-        <p style="color: #78350f; font-size: 11px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; margin: 0 0 6px;">💡 Mejora tu Perfil</p>
+        <p style="color: #78350f; font-size: 11px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; margin: 0 0 6px;">💡 Patrocinado · Enlace afiliado</p>
         <h3 style="margin: 0 0 6px; color: #92400e; font-size: 15px;">Cursos IT para ser más competitivo</h3>
         <p style="margin: 0 0 12px; color: #b45309; font-size: 12px;">Aprende React, Python, AWS o Data Science con certificado.</p>
         <a href="{bootcamp_track}" style="background: #f59e0b; color: #1f2937; padding: 8px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 13px;">Ver Cursos →</a>
-      </div>
+      </div>''' if include_marketing else ''}
     </div>
 
     <!-- Footer Legal conforme a LSSI y RGPD -->
     <div style="background: #f9fafb; padding: 18px 16px; text-align: center; border-top: 1px solid #e5e7eb; font-size: 10px; color: #9ca3af; line-height: 1.5;">
       <p style="margin: 0 0 4px 0;">
-        <strong>Portal Trabajo IT</strong> · Responsable: {os.getenv('LEGAL_OWNER', 'Raúl Mateo (Portal Trabajo IT)')} · NIF: {os.getenv('LEGAL_NIF', 'Consulte Aviso Legal')} · {os.getenv('LEGAL_ADDRESS', 'Madrid, España')}<br>
+        {get_legal_footer_identity()}<br>
         Recibes este aviso porque solicitaste alertas de empleo en portalempleoit.com.
       </p>
       <p style="margin: 0;">
@@ -179,19 +172,17 @@ def send_custom_alerts():
         print(f"❌ Error conectando a BD: {e}")
         return
 
-    # 2. Obtener suscriptores con sus preferencias (filtrando por frecuencia y último envío, excluyendo bajas y suscriptores de aviso único)
+    # 2. Obtener suscriptores con sus preferencias (LEG-010: excluir frequency IS NULL y comprobar marketing_accepted)
     cur.execute("""
-        SELECT email, tech_keywords, location_pref, frequency, tech_keywords_json
+        SELECT email, tech_keywords, location_pref, frequency, tech_keywords_json, COALESCE(marketing_accepted, FALSE)
         FROM subscribers
         WHERE email IS NOT NULL
           AND email NOT LIKE '%@deleted.local'
-          AND (is_active IS NULL OR is_active = TRUE)
+          AND COALESCE(is_active, TRUE) = TRUE
           AND (
             (frequency = 'daily' AND (last_sent_at IS NULL OR last_sent_at < NOW() - INTERVAL '23 hours'))
             OR
             (frequency = 'weekly' AND (last_sent_at IS NULL OR last_sent_at < NOW() - INTERVAL '6 days'))
-            OR
-            ((frequency IS NULL OR frequency = '') AND (last_sent_at IS NULL OR last_sent_at < NOW() - INTERVAL '6 days'))
           )
     """)
     subscribers = cur.fetchall()
@@ -235,6 +226,7 @@ def send_custom_alerts():
             location_pref = sub[2] if len(sub) > 2 else None
             frequency = sub[3] if len(sub) > 3 else "weekly"
             tech_keywords_json = sub[4] if len(sub) > 4 else None
+            include_marketing = bool(sub[5]) if len(sub) > 5 else False
             # Calcular ventana de tiempo según frecuencia
             hours = 24 if frequency == "daily" else 168
 
@@ -262,7 +254,7 @@ def send_custom_alerts():
                 continue
 
             # Construir y enviar email
-            html_body = build_email_html(jobs, email, tech_keywords or "", frequency or "weekly")
+            html_body = build_email_html(jobs, email, tech_keywords or "", frequency or "weekly", include_marketing=include_marketing)
             job_count = len(jobs)
             subject = f"⚡ {job_count} nueva{'s' if job_count != 1 else ''} oferta{'s' if job_count != 1 else ''} de empleo IT para ti"
             unsubscribe_link = generate_unsubscribe_link(email)

@@ -54,22 +54,12 @@ if not HAS_REAL_PSYCOPG2:
     class NotSupportedError(DatabaseError): pass
 
 def parse_db_url(db_url):
-    # Regex para extraer credenciales, soportando contraseñas con caracteres especiales
-    match = re.match(r'^(?:postgres|postgresql|mysql)://([^:]+):(.*)@([^:/]+)(?::(\d+))?/(.+)$', db_url)
-    if match:
-        user = match.group(1)
-        password = match.group(2)
-        host = match.group(3)
-        port = int(match.group(4)) if match.group(4) else 3306
-        database = match.group(5)
-        return host, user, password, database, port
-    
-    # Fallback al parser estándar de urllib
+    # SEC-054: Usar urlparse estándar para separar limpiamente database de parámetros ?query
     url = urlparse.urlparse(db_url)
     host = url.hostname or 'localhost'
-    user = url.username
-    password = url.password
-    database = url.path.lstrip('/') if url.path else None
+    user = urlparse.unquote(url.username) if url.username else None
+    password = urlparse.unquote(url.password) if url.password else None
+    database = url.path.lstrip('/').split('?')[0] if url.path else None
     port = url.port or 3306
     return host, user, password, database, port
 
@@ -108,6 +98,18 @@ def connect(dsn=None, **kwargs):
 
     try:
         connect_timeout = kwargs.get('connect_timeout') or kwargs.get('timeout') or 5
+        # SEC-014: Forzar TLS verificado en conexiones a hosts remotos o cuando MYSQL_SSL=true
+        ssl_config = None
+        if host not in ('localhost', '127.0.0.1') or os.getenv("MYSQL_SSL") == "true":
+            import ssl
+            if os.getenv("DB_SSL_REJECT_UNAUTHORIZED") == "false":
+                raise OperationalError("❌ Error de seguridad (SEC-014): DB_SSL_REJECT_UNAUTHORIZED=false está prohibido en conexiones TLS.")
+            ca_file = os.getenv("MYSQL_SSL_CA")
+            ssl_ctx = ssl.create_default_context(cafile=ca_file if ca_file else None)
+            ssl_ctx.check_hostname = True
+            ssl_ctx.verify_mode = ssl.CERT_REQUIRED
+            ssl_config = ssl_ctx
+
         conn = pymysql.connect(
             host=host,
             user=user,
@@ -118,7 +120,8 @@ def connect(dsn=None, **kwargs):
             autocommit=False,  # Mantener control de transacciones con commit/rollback
             connect_timeout=connect_timeout,
             read_timeout=connect_timeout,
-            write_timeout=connect_timeout
+            write_timeout=connect_timeout,
+            ssl=ssl_config
         )
         return ConnectionWrapper(conn)
     except Exception as e:
@@ -183,38 +186,29 @@ class CursorWrapper:
                 mysql_query = re.sub(r'^\s*INSERT\s+INTO\b', 'INSERT IGNORE INTO', mysql_query, flags=re.IGNORECASE)
                 mysql_query = re.sub(r'ON CONFLICT\s*\([^\)]+\)\s*DO\s*NOTHING\b;?', '', mysql_query, flags=re.IGNORECASE)
 
-        # 3. Traducir = ANY(%s) a IN (%s, %s...)
-        if "ANY(%s)" in mysql_query or "= ANY (%s)" in mysql_query:
-            match = re.search(r'(\w+)\s*=\s*ANY\s*\(\s*%s\s*\)', mysql_query, flags=re.IGNORECASE)
-            if match and vars:
+        # 3. SEC-054: Traducir TODAS las apariciones de = ANY(%s) a IN (%s, %s...) sin break prematuro
+        if vars and ("ANY(%s)" in mysql_query or "ANY (%s)" in mysql_query):
+            new_vars = list(vars)
+            any_pattern = re.compile(r'(\w+)\s*=\s*ANY\s*\(\s*%s\s*\)', flags=re.IGNORECASE)
+            while True:
+                match = any_pattern.search(mysql_query)
+                if not match:
+                    break
                 col_name = match.group(1)
-                new_vars = list(vars)
-                for i, v in enumerate(new_vars):
-                    if isinstance(v, (list, tuple)):
-                        if len(v) == 0:
-                            # VULN-16: Colección vacía: IN () produce error de sintaxis en MySQL.
-                            # Se sustituye por una condición falsa segura (1=0)
-                            mysql_query = re.sub(
-                                r'\w+\s*=\s*ANY\s*\(\s*%s\s*\)', 
-                                "1=0", 
-                                mysql_query, 
-                                count=1, 
-                                flags=re.IGNORECASE
-                            )
-                            new_vars_expanded = new_vars[:i] + new_vars[i+1:]
-                            vars = tuple(new_vars_expanded) if new_vars_expanded else None
-                        else:
-                            placeholders = ', '.join(['%s'] * len(v))
-                            mysql_query = re.sub(
-                                r'\w+\s*=\s*ANY\s*\(\s*%s\s*\)', 
-                                f"{col_name} IN ({placeholders})", 
-                                mysql_query, 
-                                count=1, 
-                                flags=re.IGNORECASE
-                            )
-                            new_vars_expanded = new_vars[:i] + list(v) + new_vars[i+1:]
-                            vars = tuple(new_vars_expanded)
-                        break
+                prefix = mysql_query[:match.start()]
+                var_idx = prefix.count('%s')
+                if var_idx >= len(new_vars) or not isinstance(new_vars[var_idx], (list, tuple)):
+                    break
+                seq = list(new_vars[var_idx])
+                if len(seq) == 0:
+                    mysql_query = mysql_query[:match.start()] + "1=0" + mysql_query[match.end():]
+                    new_vars = new_vars[:var_idx] + new_vars[var_idx + 1:]
+                else:
+                    placeholders = ', '.join(['%s'] * len(seq))
+                    replacement = f"{col_name} IN ({placeholders})"
+                    mysql_query = mysql_query[:match.start()] + replacement + mysql_query[match.end():]
+                    new_vars = new_vars[:var_idx] + seq + new_vars[var_idx + 1:]
+            vars = tuple(new_vars) if new_vars else None
 
         # 4. Traducir INTERVAL 'N hours' / 'N days' a formato de MySQL
         mysql_query = re.sub(r"INTERVAL\s+'(\d+)\s+hours?'", r"INTERVAL \1 HOUR", mysql_query, flags=re.IGNORECASE)
@@ -224,9 +218,22 @@ class CursorWrapper:
         # (ej: MySQL requiere usar alias de forma obligatoria en subconsultas FROM)
         try:
             self.cursor.execute(mysql_query, vars)
-        except Exception as e:
-            # VULN-17: Lanzamos error de programación genérico sin filtrar el texto completo de las consultas en logs o excepciones no controladas
-            raise ProgrammingError(f"❌ Error ejecutando consulta en MySQL: {e}")
+        except pymysql.err.IntegrityError as e:
+            raise IntegrityError(f"Error de integridad MySQL: {e}") from e
+        except pymysql.err.OperationalError as e:
+            raise OperationalError(f"Error operacional MySQL: {e}") from e
+        except pymysql.err.DataError as e:
+            raise DataError(f"Error de datos MySQL: {e}") from e
+        except pymysql.err.InterfaceError as e:
+            raise InterfaceError(f"Error de interfaz MySQL: {e}") from e
+        except pymysql.err.InternalError as e:
+            raise InternalError(f"Error interno MySQL: {e}") from e
+        except pymysql.err.NotSupportedError as e:
+            raise NotSupportedError(f"Operación no soportada en MySQL: {e}") from e
+        except pymysql.err.ProgrammingError as e:
+            raise ProgrammingError(f"Error de sintaxis/programación MySQL: {e}") from e
+        except pymysql.err.MySQLError as e:
+            raise DatabaseError(f"Error de base de datos MySQL: {e}") from e
 
     def fetchone(self):
         return self.cursor.fetchone()

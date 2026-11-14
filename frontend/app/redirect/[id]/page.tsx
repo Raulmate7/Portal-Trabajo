@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import pool from '@/lib/db';
 import { BASE_URL } from '@/lib/constants';
-import { isSafePublicUrl } from '@/lib/urlSafety';
+import { isSafePublicUrlWithDns } from '@/lib/urlSafetyServer';
 import RedirectClient from './RedirectClient';
 
 type Props = {
@@ -32,10 +32,12 @@ async function getJobRedirectData(id: string) {
     );
     const job = res.rows[0] || null;
     if (job) {
-      // Incrementar clics de forma asíncrona no bloqueante
-      client.query("UPDATE jobs SET clicks_count = COALESCE(clicks_count, 0) + 1 WHERE id = $1", [id]).catch(e => {
+      // FUNC-034: Esperar actualización de clics antes de liberar conexión en finally
+      try {
+        await client.query("UPDATE jobs SET clicks_count = COALESCE(clicks_count, 0) + 1 WHERE id = $1", [id]);
+      } catch (e) {
         console.error('Error incrementing clicks:', e);
-      });
+      }
     }
     return job;
   } catch (error) {
@@ -53,7 +55,7 @@ export default async function RedirectPage({ params, searchParams }: Props) {
 
   const job = await getJobRedirectData(id);
 
-  if (!job || !job.url_source || !isSafePublicUrl(job.url_source)) {
+  if (!job || !job.url_source || !(await isSafePublicUrlWithDns(job.url_source))) {
     notFound();
   }
 

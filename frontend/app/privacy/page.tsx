@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { BASE_URL } from "@/lib/constants";
+import { LEGAL_CONFIG } from "@/lib/legalConfig";
 import CookiePreferencesButton from "@/components/CookiePreferencesButton";
 
 export const metadata: Metadata = {
@@ -12,9 +13,7 @@ export const metadata: Metadata = {
 };
 
 export default function PrivacyPage() {
-  const legalOwner = process.env.NEXT_PUBLIC_LEGAL_OWNER || 'Raúl Mateo (Portal Trabajo IT)';
-  const legalNif = process.env.NEXT_PUBLIC_LEGAL_NIF || 'Disponible previa solicitud acreditada en contacto@portalempleoit.com';
-  const legalAddress = process.env.NEXT_PUBLIC_LEGAL_ADDRESS || 'Madrid, España (Atención al usuario y notificaciones: contacto@portalempleoit.com)';
+  const { owner: legalOwner, nif: legalNif, address: legalAddress, email: legalEmail } = LEGAL_CONFIG;
 
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-4 md:px-8">
@@ -36,7 +35,7 @@ export default function PrivacyPage() {
               <li><strong>Identidad del Responsable:</strong> {legalOwner}</li>
               <li><strong>NIF / CIF:</strong> {legalNif}</li>
               <li><strong>Domicilio postal:</strong> {legalAddress}</li>
-              <li><strong>Contacto de Privacidad y Ejercicio de Derechos:</strong> contacto@portalempleoit.com</li>
+              <li><strong>Contacto de Privacidad y Ejercicio de Derechos:</strong> {legalEmail}</li>
               <li><strong>Actividad principal:</strong> Agregador y metabuscador de empleo tecnológico en España, calculadora salarial y servicios de difusión para reclutadores.</li>
             </ul>
           </section>
@@ -106,11 +105,31 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-lg font-bold text-gray-900 mb-2">5. Plazos de Conservación de los Datos (Art. 13.2.a RGPD)</h2>
             <ul className="list-disc pl-5 mt-2 space-y-1.5">
-              <li><strong>Suscriptores de alertas y boletín:</strong> Se conservan hasta que el usuario decida darse de baja o revoque su consentimiento mediante el enlace de baja en 1 clic o en <Link href="/darse-de-baja" className="underline text-indigo-600">/darse-de-baja</Link>.</li>
-              <li><strong>Datos de facturación y compras comerciales:</strong> Se conservan durante el plazo legal obligatorio de <strong>4 años</strong> (obligaciones tributarias, Art. 66 Ley General Tributaria) y <strong>6 años</strong> (libros de contabilidad y facturas, Art. 30 Código de Comercio).</li>
-              <li><strong>Telemetría técnica y registros de entrega:</strong> Las métricas técnicas de apertura y clics se purgan periódicamente en un plazo no superior a 12 meses.</li>
-              <li><strong>Reseñas y moderación UGC:</strong> Mientras se mantenga la ficha de la empresa y durante los plazos de prescripción de acciones legales civiles aplicables.</li>
+              <li><strong>Suscriptores de alertas y boletín:</strong> Se conservan hasta que el usuario revoque su consentimiento en 1 clic o en <Link href="/darse-de-baja" className="underline text-indigo-600">/darse-de-baja</Link>. Las solicitudes no confirmadas (Double Opt-In) se purgan a los <strong>30 días</strong>. Tras la baja, se conserva únicamente un hash en lista de supresión bloqueada durante <strong>3 años</strong> (plazo de prescripción LOPDGDD) para evitar reenvíos accidentales.</li>
+              <li><strong>Datos de facturación y compras comerciales:</strong> Se conservan debidamente bloqueados durante el plazo legal obligatorio de <strong>4 años</strong> (obligaciones tributarias, Art. 66 Ley General Tributaria) y <strong>6 años</strong> (libros de contabilidad y facturas, Art. 30 Código de Comercio).</li>
+              <li><strong>Telemetría técnica y registros de entrega:</strong> Las métricas de apertura y clics (`email_tracking`) se anonimizan automáticamente transcurridos <strong>12 meses</strong>.</li>
+              <li><strong>Reseñas y moderación UGC:</strong> Mientras se mantenga la ficha de la empresa; los reportes cerrados (`review_reports`) se purgan a los <strong>12 meses</strong> de su resolución.</li>
             </ul>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">5 bis. Encargados del Tratamiento y Transferencias Internacionales (Capítulo V RGPD)</h2>
+            <p>
+              Para operar el portal con garantías de seguridad y disponibilidad, contamos con proveedores tecnológicos sujetos a Acuerdos de Encargado del Tratamiento (DPA). Cuando alguno procesa datos fuera del Espacio Económico Europeo (EE.UU.), se ampara en la certificación vigente del <strong>EU-US Data Privacy Framework (DPF)</strong> o en <strong>Cláusulas Contractuales Tipo (SCC)</strong> aprobadas por la Comisión Europea:
+            </p>
+            <ul className="list-disc pl-5 mt-2 space-y-1">
+              <li><strong>Vercel Inc.</strong> (Alojamiento frontend/Edge — EE.UU./UE, EU-US DPF y SCCs).</li>
+              <li><strong>Stripe Technology Europe / Stripe Inc.</strong> (Pagos y facturación — Irlanda/EE.UU., EU-US DPF y SCCs).</li>
+              <li><strong>PayPal (Europe) S.à r.l. et Cie, S.C.A.</strong> (Pasarela alternativa de pago — Luxemburgo/EEE).</li>
+              <li><strong>Upstash Inc.</strong> (Rate-limiting distribuido Redis — UE/EE.UU., SCCs).</li>
+              <li><strong>Google Ireland / Google LLC</strong> (Analytics 4 previo consentimiento y API Gemini sin entrenamiento con PII — Irlanda/EE.UU., EU-US DPF).</li>
+              <li><strong>OneSignal Inc.</strong> (Notificaciones push previo consentimiento explícito — EE.UU., SCCs).</li>
+              <li><strong>Cloudflare Inc.</strong> (Protección anti-bot Turnstile y CDN — EE.UU./UE, EU-US DPF).</li>
+              <li><strong>Resend / Proveedor SMTP</strong> (Envío transaccional de alertas y confirmaciones — UE/EE.UU., SCCs).</li>
+            </ul>
+            <p className="mt-2 text-xs text-gray-600">
+              Nota: Los logotipos de empresas se sirven a través de proxy interno cacheado en servidor (`/api/company-logo`) sin exponer la IP ni cabeceras del visitante a servicios externos como Clearbit.
+            </p>
           </section>
 
           <section>

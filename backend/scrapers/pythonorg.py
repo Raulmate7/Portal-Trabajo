@@ -1,6 +1,6 @@
-import requests
-import xml.etree.ElementTree as ET
+import defusedxml.ElementTree as ET
 from bs4 import BeautifulSoup
+from logic.ssrf import safe_http_get
 
 def get_pythonorg_jobs():
     print("🐍 Conectando con Python.org Jobs RSS...")
@@ -9,7 +9,7 @@ def get_pythonorg_jobs():
     headers = {'User-Agent': 'PortalTrabajoITBot/1.0 (+https://portalempleoit.com/bot; bot@portalempleoit.com)'}
 
     try:
-        response = requests.get(url, headers=headers, timeout=10)
+        response = safe_http_get(url, headers=headers, timeout=(5, 15))
         response.raise_for_status()
 
         root = ET.fromstring(response.content)

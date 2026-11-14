@@ -1,35 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import crypto from 'crypto';
+import { getClientIp, subscribeLimiter } from '@/lib/rate-limit';
+import { verifyTurnstileToken } from '@/lib/turnstile';
 
 export const dynamic = 'force-dynamic';
 
-const rateLimitMap = new Map<string, number>();
-
-function checkRateLimit(key: string, limitMs: number = 30000): boolean {
-  const now = Date.now();
-  const lastRequest = rateLimitMap.get(key);
-  if (lastRequest && now - lastRequest < limitMs) {
-    return false;
-  }
-  if (rateLimitMap.size >= 5000) {
-    for (const [k, timestamp] of rateLimitMap.entries()) {
-      if (now - timestamp > 120000) rateLimitMap.delete(k);
-      if (rateLimitMap.size < 4000) break;
-    }
-  }
-  rateLimitMap.set(key, now);
-  return true;
-}
-
 export async function POST(request: NextRequest) {
   try {
-    const clientIp = request.headers.get('cf-connecting-ip') ||
-      request.headers.get('x-real-ip') ||
-      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      '127.0.0.1';
-
-    if (!checkRateLimit(`sub_ip_${clientIp}`, 10000)) {
+    const clientIp = getClientIp(request);
+    const rateLimit = await subscribeLimiter.limitAsync(clientIp);
+    if (!rateLimit.success) {
       return NextResponse.json(
         { success: false, error: 'Demasiadas solicitudes. Espera unos segundos.' },
         { status: 429 }
@@ -50,11 +31,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const emailHash = crypto.createHash('sha256').update(email).digest('hex');
+    const emailLimit = await subscribeLimiter.limitKeyAsync(`email_${emailHash}`);
+    if (!emailLimit.success) {
+      return NextResponse.json(
+        { success: false, error: 'Demasiadas solicitudes para este correo. Espera un minuto.' },
+        { status: 429 }
+      );
+    }
+
     // RGPD Art. 6.1.a y Art. 7: Consentimiento expreso obligatorio
     if (!privacyAccepted) {
       return NextResponse.json(
         { success: false, error: 'Debes aceptar la Política de Privacidad para activar el servicio.' },
         { status: 400 }
+      );
+    }
+
+    // SEC-052: Verificación anti-bot Turnstile cuando TURNSTILE_SECRET_KEY está configurada
+    const turnstileOk = await verifyTurnstileToken(body.turnstileToken || body['cf-turnstile-response'], clientIp);
+    if (!turnstileOk) {
+      return NextResponse.json(
+        { success: false, error: 'Verificación anti-bot inválida o ausente.' },
+        { status: 403 }
       );
     }
 
@@ -74,33 +73,69 @@ export async function POST(request: NextRequest) {
 
       // Guardar con frecuencia puntual para recordatorios de guardado o racha
       const frequency = source.includes('reminder') ? 'once' : 'weekly';
-      const techKeywords = `origen:${source}`;
+      const techKeywords = 'todas';
 
-      // RGPD Art. 7.1: Trazabilidad del consentimiento
+      // RGPD Art. 7.1: Trazabilidad del consentimiento y Double Opt-In opcional
       const consentIpHash = crypto.createHash('sha256').update(clientIp + (process.env.APP_SECRET || 'consent_salt_v1')).digest('hex');
       const consentPolicyVersion = 'v2026.11';
+      const requireDoubleOptIn = process.env.DOUBLE_OPT_IN_REQUIRED === 'true';
+      const secret = process.env.UNSUBSCRIBE_SECRET || process.env.CRON_SECRET || process.env.APP_SECRET || '';
+      const optInToken = requireDoubleOptIn && secret
+        ? crypto.createHmac('sha256', secret).update(`confirm:${email}`).digest('hex')
+        : null;
+      const initialActive = !requireDoubleOptIn;
+      const initialStatus = requireDoubleOptIn ? 'pending_confirmation' : 'active';
 
       try {
         await client.query(
-          `INSERT INTO subscribers (email, tech_keywords, location_pref, frequency, created_at, consent_timestamp, consent_ip_hash, consent_policy_version, marketing_accepted)
-           VALUES ($1, $2, 'Remoto/España', $3, NOW(), NOW(), $4, $5, $6)`,
-          [email, techKeywords, frequency, consentIpHash, consentPolicyVersion, marketingAccepted]
+          `INSERT INTO subscribers (email, tech_keywords, location_pref, frequency, source, is_active, status, created_at, consent_timestamp, consent_ip_hash, consent_policy_version, marketing_accepted, consent_alerts_at, consent_marketing_at)
+           VALUES ($1, $2, 'Remoto/España', $3, $4, $5, $6, NOW(), NOW(), $7, $8, $9, NOW(), ${marketingAccepted ? 'NOW()' : 'NULL'})`,
+          [email, techKeywords, frequency, source, initialActive, initialStatus, consentIpHash, consentPolicyVersion, marketingAccepted]
         );
-      } catch (insertErr) {
-        try {
+      } catch (insertErr: any) {
+        const msg = (insertErr?.message || '').toLowerCase();
+        if (msg.includes('unknown column') || msg.includes('er_bad_field_error')) {
           await client.query(
             `INSERT INTO subscribers (email, tech_keywords, location_pref, frequency, created_at)
              VALUES ($1, $2, 'Remoto/España', $3, NOW())`,
             [email, techKeywords, frequency]
           );
-        } catch (innerErr) {
-          console.warn('Error en inserción directa de suscriptor puntual:', innerErr);
+        } else {
+          throw insertErr;
         }
+      }
+
+      try {
+        await client.query(
+          "INSERT INTO consent_audit_log (email_hash, action, policy_version, marketing_accepted, ip_hash, created_at) VALUES ($1, $2, $3, $4, $5, NOW())",
+          [emailHash, requireDoubleOptIn ? 'subscribe_pending_doi' : 'subscribe_active', consentPolicyVersion, marketingAccepted, consentIpHash]
+        );
+      } catch {}
+
+      if (requireDoubleOptIn && optInToken && process.env.RESEND_API_KEY) {
+        const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://portalempleoit.com').replace(/\/+$/, '');
+        const confirmUrl = `${baseUrl}/api/subscribe/confirm?email=${encodeURIComponent(email)}&token=${optInToken}`;
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: 'Portal Trabajo IT <no-reply@portalempleoit.com>',
+            to: email,
+            subject: 'Confirma tu suscripción a Portal Trabajo IT',
+            html: `<p>Hola, pulsa en el siguiente enlace para confirmar tu correo y activar tus alertas: <a href="${confirmUrl}">Confirmar suscripción</a></p>`,
+          }),
+        }).catch(() => {});
       }
 
       return NextResponse.json({
         success: true,
-        message: 'Recordatorio registrado con éxito.'
+        doubleOptInPending: requireDoubleOptIn,
+        message: requireDoubleOptIn
+          ? 'Te hemos enviado un correo de confirmación para activar tus alertas.'
+          : 'Recordatorio registrado con éxito.',
       });
     } finally {
       client.release();

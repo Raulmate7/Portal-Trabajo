@@ -14,6 +14,7 @@ interface Props {
   citySlug: string;
   cityName: string;
   searchParams: { [key: string]: string | string[] | undefined };
+  locale?: 'es' | 'en' | 'ca' | 'eu';
 }
 
 // 1. Obtener ofertas locales con paginación
@@ -118,11 +119,13 @@ function getCityEditorial(cityName: string, totalCount: number, averageSalary: n
   );
 }
 
-export default async function CityLandingPage({ citySlug, cityName, searchParams }: Props) {
+export default async function CityLandingPage({ citySlug, cityName, searchParams, locale }: Props) {
   const page = typeof searchParams.page === 'string' ? parseInt(searchParams.page, 10) : 1;
   const validPage = isNaN(page) || page < 1 ? 1 : page;
-  const lang = searchParams.lang === 'en' ? 'en' : 'es';
+  const lang = locale || (searchParams.lang === 'en' ? 'en' : 'es');
   const isEnglish = lang === 'en';
+  const isCatalan = lang === 'ca';
+  const isBasque = lang === 'eu';
 
   const [jobs, stats] = await Promise.all([
     getCityJobs(cityName, validPage),
@@ -263,15 +266,25 @@ export default async function CityLandingPage({ citySlug, cityName, searchParams
         
         <div className="relative max-w-5xl mx-auto text-center z-10">
           <span className="inline-flex items-center gap-1.5 text-xs text-indigo-300 font-bold bg-indigo-500/10 border border-indigo-500/20 px-3.5 py-1.5 rounded-full mb-6 uppercase tracking-wider">
-            📍 {isEnglish ? `Jobs in ${cityName}` : `Empleo en ${cityName}`}
+            📍 {isEnglish ? `Jobs in ${cityName}` : isCatalan ? `Feina a ${cityName}` : isBasque ? `Lanak ${cityName}n` : `Empleo en ${cityName}`}
           </span>
           <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-white mb-6 leading-tight">
-            {isEnglish ? `Tech and Programming Jobs in ` : `Trabajo de Informática y Desarrollo en `}
+            {isEnglish
+              ? `Tech and Programming Jobs in `
+              : isCatalan
+              ? `Feina d'Informàtica i Desenvolupament a `
+              : isBasque
+              ? `Informatika eta Garapen Lanak hemen: `
+              : `Trabajo de Informática y Desarrollo en `}
             <span className="bg-gradient-to-r from-indigo-400 via-indigo-300 to-pink-400 bg-clip-text text-transparent">{cityName}</span>
           </h1>
           <p className="text-lg sm:text-xl text-indigo-100 max-w-3xl mx-auto leading-relaxed mb-8">
-            {isEnglish 
+            {isEnglish
               ? `Find your next role in React, Python, Java, DevOps, Cloud, and Data in ${cityName}. We compile active opportunities daily.`
+              : isCatalan
+              ? `Troba ofertes de programació, sistemes, dades i núvol a ${cityName}. Recopilem oportunitats actives diàriament.`
+              : isBasque
+              ? `Aurkitu programazio, sistema, datu eta hodeiko lan-eskaintzak ${cityName}n. Egunero biltzen ditugu aukera aktiboak.`
               : `Encuentra ofertas en programación, sistemas, datos y gestión en ${cityName}. Recopilamos oportunidades activas a diario.`
             }
           </p>
@@ -281,7 +294,7 @@ export default async function CityLandingPage({ citySlug, cityName, searchParams
             <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-5 shadow-sm">
               <p className="text-3xl font-extrabold text-white">{stats.total}</p>
               <p className="text-xs text-indigo-200 mt-1.5 font-medium uppercase tracking-wider">
-                {isEnglish ? 'Active vacancies' : 'Vacantes activas'}
+                {isEnglish ? 'Active vacancies' : isCatalan ? 'Vacants actives' : isBasque ? 'Lanpostu aktiboak' : 'Vacantes activas'}
               </p>
             </div>
             <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-5 shadow-sm">
@@ -289,7 +302,7 @@ export default async function CityLandingPage({ citySlug, cityName, searchParams
                 {stats.avgSalary ? `${stats.avgSalary.toLocaleString('es-ES')}€` : '38.500€'}
               </p>
               <p className="text-xs text-indigo-200 mt-1.5 font-medium uppercase tracking-wider">
-                {isEnglish ? 'Estimated average salary' : 'Salario medio estimado'}
+                {isEnglish ? 'Estimated average salary' : isCatalan ? 'Salari mitjà estimat' : isBasque ? 'Batez besteko soldata' : 'Salario medio estimado'}
               </p>
             </div>
             <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-5 shadow-sm col-span-1 sm:col-span-2 md:col-span-1">
