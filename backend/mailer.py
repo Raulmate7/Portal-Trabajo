@@ -291,6 +291,11 @@ def send_newsletter():
           AND frequency = 'weekly'
           AND COALESCE(is_active, TRUE) = TRUE
           AND COALESCE(marketing_accepted, FALSE) = TRUE
+          AND NOT EXISTS (
+            SELECT 1 FROM users u
+            WHERE u.email = subscribers.email
+              AND u.email_notifications_enabled = FALSE
+          )
     """)
     subscribers = cur.fetchall()
 

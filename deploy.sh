@@ -14,6 +14,14 @@ echo "================================================="
 echo "📥 Descargando últimos cambios desde GitHub..."
 git pull origin main
 
+# 1.5. Sincronizar esquema MySQL automáticamente (idempotente)
+echo "🗄️ Sincronizando esquema de base de datos..."
+if [ -x "backend/venv/bin/python3" ]; then
+    backend/venv/bin/python3 backend/consolidate_production_schema.py || echo "⚠️ Aviso: No se pudo ejecutar consolidate_production_schema.py (verifica credenciales MySQL directas en backend/.env)."
+elif command -v python3 >/dev/null 2>&1; then
+    python3 backend/consolidate_production_schema.py || echo "⚠️ Aviso: No se pudo ejecutar consolidate_production_schema.py."
+fi
+
 # 2. Configurar y compilar el Frontend
 echo "💻 Preparando el Frontend..."
 cd frontend

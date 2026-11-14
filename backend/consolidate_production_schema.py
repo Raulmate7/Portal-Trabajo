@@ -478,7 +478,7 @@ def _run_migration_steps(execute):
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     """)
 
-    print("\n📦 [21/21] Verificando tabla 'subscriber_job_notifications' (dedup alertas, FUNC-055)...")
+    print("\n📦 [21/25] Verificando tabla 'subscriber_job_notifications' (dedup alertas, FUNC-055)...")
     execute("""
         CREATE TABLE IF NOT EXISTS subscriber_job_notifications (
             subscriber_email VARCHAR(255) NOT NULL,
@@ -489,6 +489,67 @@ def _run_migration_steps(execute):
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     """)
 
+    print("\n📦 [22/25] Verificando tabla 'users' (cuentas de usuario y preferencia de email)...")
+    execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            uuid CHAR(36) UNIQUE NOT NULL,
+            email VARCHAR(255) UNIQUE NOT NULL,
+            password_hash VARCHAR(255) NOT NULL,
+            full_name VARCHAR(150) NULL,
+            role ENUM('candidate', 'company', 'recruiter') DEFAULT 'candidate',
+            email_verified BOOLEAN DEFAULT FALSE,
+            email_notifications_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+            email_consent_updated_at TIMESTAMP NULL,
+            privacy_policy_version VARCHAR(50) DEFAULT 'v2026.11',
+            consent_ip_hash VARCHAR(64) NULL,
+            session_version INT NOT NULL DEFAULT 1,
+            last_login_at TIMESTAMP NULL,
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_users_email_notif (email_notifications_enabled, is_active)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    """)
+
+    print("\n📦 [23/25] Verificando tabla 'user_sessions' (sesiones activas revocables)...")
+    execute("""
+        CREATE TABLE IF NOT EXISTS user_sessions (
+            jti VARCHAR(64) PRIMARY KEY,
+            user_id INT NOT NULL,
+            ip_hash VARCHAR(64) NULL,
+            user_agent VARCHAR(255) NULL,
+            expires_at BIGINT NOT NULL,
+            revoked BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_user_sessions_user (user_id),
+            INDEX idx_user_sessions_expires (expires_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    """)
+
+    print("\n📦 [24/25] Verificando tabla 'user_password_resets' (recuperación de contraseña)...")
+    execute("""
+        CREATE TABLE IF NOT EXISTS user_password_resets (
+            token_hash VARCHAR(64) PRIMARY KEY,
+            user_id INT NOT NULL,
+            expires_at BIGINT NOT NULL,
+            used_at TIMESTAMP NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_password_resets_user (user_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    """)
+
+    print("\n📦 [25/25] Verificando tabla 'user_saved_jobs' (ofertas guardadas en la nube)...")
+    execute("""
+        CREATE TABLE IF NOT EXISTS user_saved_jobs (
+            user_id INT NOT NULL,
+            job_id VARCHAR(255) NOT NULL,
+            saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, job_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    """)
+
+    ensure_column("subscribers", "user_id", "INT NULL")
     ensure_column("jobs", "dedup_hash", "VARCHAR(64) NULL")
     ensure_column("jobs", "company_id", "INT NULL")
     ensure_column("jobs", "work_mode", "ENUM('remote', 'hybrid', 'onsite') NULL")
@@ -506,6 +567,7 @@ def _run_migration_steps(execute):
         ("jobs", "idx_jobs_active_work_mode", "CREATE INDEX idx_jobs_active_work_mode ON jobs (is_active, work_mode, created_at DESC)"),
         ("jobs", "idx_jobs_company_id", "CREATE INDEX idx_jobs_company_id ON jobs (company_id)"),
         ("jobs", "ft_jobs_search", "CREATE FULLTEXT INDEX ft_jobs_search ON jobs (title, company, description_snippet)"),
+        ("subscribers", "idx_subscribers_user_id", "CREATE INDEX idx_subscribers_user_id ON subscribers (user_id)"),
     ]
     for table_name, idx_name, idx_sql in indexes:
         try:

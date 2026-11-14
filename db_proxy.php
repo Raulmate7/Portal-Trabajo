@@ -321,7 +321,7 @@ function validate_sql_and_params($sql, $params): string {
 
     if (preg_match('/^DELETE\b/i', $sql_upper)) {
         if (
-            !preg_match('/^DELETE\s+FROM\s+`?(subscribers|jobs|job_reactions|newsletter_sponsors|report_downloads|email_tracking|company_reviews|review_reports)`?\s+WHERE\s+/is', $sql_upper) ||
+            !preg_match('/^DELETE\s+FROM\s+`?(subscribers|jobs|job_reactions|newsletter_sponsors|report_downloads|email_tracking|company_reviews|review_reports|users|user_sessions|user_password_resets|user_saved_jobs)`?\s+WHERE\s+/is', $sql_upper) ||
             preg_match('/\bOR\b/i', $sql_upper) ||
             !preg_match('/\bWHERE\s+.*`?[a-zA-Z_][a-zA-Z0-9_]*`?\s*=\s*\?/is', $sql_upper) ||
             count($params) === 0

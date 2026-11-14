@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { useSearchParams, usePathname } from 'next/navigation';
+import { useSearchParams, usePathname, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 const UserStreak = dynamic(() => import('./UserStreak'), {
   ssr: false,
@@ -12,6 +12,7 @@ const UserStreak = dynamic(() => import('./UserStreak'), {
 export default function Header() {
   const searchParams = useSearchParams();
   const pathname = usePathname() || '/';
+  const router = useRouter();
   const lang = searchParams?.get('lang') === 'en' ? 'en' : 'es';
   const isEnglish = lang === 'en';
   const cleanEsParams = (searchParams?.toString() || '').replace(/(^|&)lang=en(?=&|$)/g, '').replace(/^&|&$/g, '');
@@ -21,13 +22,55 @@ export default function Header() {
   const enHref = `${pathname}?${enParams.toString()}`;
 
   const [isOpen, setIsOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark' | null>(null);
+  const [authUser, setAuthUser] = useState<{
+    email: string;
+    fullName: string | null;
+    emailNotificationsEnabled: boolean;
+  } | null>(null);
+
+  const loadAuthState = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/me', { cache: 'no-store' });
+      const data = await res.json();
+      if (data?.authenticated && data?.user) {
+        setAuthUser({
+          email: data.user.email,
+          fullName: data.user.fullName || null,
+          emailNotificationsEnabled: Boolean(data.user.emailNotificationsEnabled),
+        });
+      } else {
+        setAuthUser(null);
+      }
+    } catch {
+      setAuthUser(null);
+    }
+  }, []);
 
   useEffect(() => {
     // Detectar el tema actual de la etiqueta HTML
     const isDark = document.documentElement.classList.contains('dark');
     setTheme(isDark ? 'dark' : 'light');
-  }, []);
+    loadAuthState();
+
+    const handleAuthChange = () => {
+      loadAuthState();
+    };
+    window.addEventListener('auth_state_changed', handleAuthChange);
+    return () => window.removeEventListener('auth_state_changed', handleAuthChange);
+  }, [loadAuthState]);
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    setAuthUser(null);
+    setUserMenuOpen(false);
+    setIsOpen(false);
+    window.dispatchEvent(new Event('auth_state_changed'));
+    router.refresh();
+  };
 
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
@@ -131,6 +174,78 @@ export default function Header() {
               </button>
             )}
 
+            {/* Cuenta de Usuario (Login / Registro o Menú de Perfil) */}
+            {authUser ? (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-gray-200/70 dark:border-slate-700/70 text-xs font-bold text-gray-800 dark:text-slate-200 transition-colors cursor-pointer"
+                >
+                  <span className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[11px] font-black uppercase">
+                    {(authUser.fullName || authUser.email).charAt(0)}
+                  </span>
+                  <span className="max-w-[90px] truncate hidden xl:inline">
+                    {authUser.fullName ? authUser.fullName.split(' ')[0] : authUser.email.split('@')[0]}
+                  </span>
+                </button>
+                {userMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-xl p-2 z-50 space-y-1">
+                    <div className="px-3 py-2 border-b border-gray-100 dark:border-slate-800">
+                      <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                        {authUser.fullName || authUser.email}
+                      </p>
+                      <p className="text-[11px] text-gray-500 dark:text-slate-400 truncate">
+                        {authUser.emailNotificationsEnabled
+                          ? isEnglish
+                            ? 'Emails: Active'
+                            : 'Correos: Activados'
+                          : isEnglish
+                          ? 'Emails: Off'
+                          : 'Correos: Desactivados'}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/mi-perfil${queryParam}`}
+                      onClick={() => setUserMenuOpen(false)}
+                      className="block px-3 py-2 rounded-xl text-xs font-semibold text-gray-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800"
+                    >
+                      {isEnglish ? 'My Profile & Emails' : 'Mi Perfil y Correos'}
+                    </Link>
+                    <Link
+                      href={`/ofertas-guardadas${queryParam}`}
+                      onClick={() => setUserMenuOpen(false)}
+                      className="block px-3 py-2 rounded-xl text-xs font-semibold text-gray-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800"
+                    >
+                      {isEnglish ? 'Saved Jobs' : 'Ofertas Guardadas'}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 cursor-pointer"
+                    >
+                      {isEnglish ? 'Sign out' : 'Cerrar sesión'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/login${queryParam}`}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  {isEnglish ? 'Sign in' : 'Entrar'}
+                </Link>
+                <Link
+                  href={`/registro${queryParam}`}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors shadow-sm"
+                >
+                  {isEnglish ? 'Register' : 'Crear cuenta'}
+                </Link>
+              </div>
+            )}
+
             {/* CTA Publicar Oferta */}
             <Link
               href={`/publicar-oferta${queryParam}`}
@@ -225,7 +340,42 @@ export default function Header() {
             </Link>
           </div>
 
-          <div className="pt-2">
+          <div className="pt-2 space-y-2">
+            {authUser ? (
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  href={`/mi-perfil${queryParam}`}
+                  onClick={() => setIsOpen(false)}
+                  className="text-center bg-indigo-50 dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 font-bold py-2.5 rounded-xl text-xs border border-indigo-100 dark:border-slate-800"
+                >
+                  {isEnglish ? 'My Profile' : 'Mi Perfil'}
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="text-center bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 font-bold py-2.5 rounded-xl text-xs border border-red-100 dark:border-red-900/40 cursor-pointer"
+                >
+                  {isEnglish ? 'Sign out' : 'Cerrar sesión'}
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  href={`/login${queryParam}`}
+                  onClick={() => setIsOpen(false)}
+                  className="text-center bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-slate-200 font-bold py-2.5 rounded-xl text-xs"
+                >
+                  {isEnglish ? 'Sign in' : 'Iniciar sesión'}
+                </Link>
+                <Link
+                  href={`/registro${queryParam}`}
+                  onClick={() => setIsOpen(false)}
+                  className="text-center bg-indigo-600 text-white font-bold py-2.5 rounded-xl text-xs"
+                >
+                  {isEnglish ? 'Create account' : 'Crear cuenta'}
+                </Link>
+              </div>
+            )}
             <Link
               href={`/publicar-oferta${queryParam}`}
               onClick={() => setIsOpen(false)}

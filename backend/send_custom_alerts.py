@@ -179,6 +179,11 @@ def send_custom_alerts():
         WHERE email IS NOT NULL
           AND email NOT LIKE '%@deleted.local'
           AND COALESCE(is_active, TRUE) = TRUE
+          AND NOT EXISTS (
+            SELECT 1 FROM users u
+            WHERE u.email = subscribers.email
+              AND u.email_notifications_enabled = FALSE
+          )
           AND (
             (frequency = 'daily' AND (last_sent_at IS NULL OR last_sent_at < NOW() - INTERVAL '23 hours'))
             OR

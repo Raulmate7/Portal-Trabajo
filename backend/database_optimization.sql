@@ -332,6 +332,62 @@ CREATE TABLE IF NOT EXISTS subscriber_skills (
     INDEX idx_subscriber_skills_skill (skill)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 18. TABLA: users (Cuentas de usuario, autenticación y preferencia de correos)
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    uuid CHAR(36) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    full_name VARCHAR(150) NULL,
+    role ENUM('candidate', 'company', 'recruiter') DEFAULT 'candidate',
+    email_verified BOOLEAN DEFAULT FALSE,
+    email_notifications_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    email_consent_updated_at TIMESTAMP NULL,
+    privacy_policy_version VARCHAR(50) DEFAULT 'v2026.11',
+    consent_ip_hash VARCHAR(64) NULL,
+    session_version INT NOT NULL DEFAULT 1,
+    last_login_at TIMESTAMP NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_users_email_notif (email_notifications_enabled, is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 19. TABLA: user_sessions (Sesiones activas revocables)
+CREATE TABLE IF NOT EXISTS user_sessions (
+    jti VARCHAR(64) PRIMARY KEY,
+    user_id INT NOT NULL,
+    ip_hash VARCHAR(64) NULL,
+    user_agent VARCHAR(255) NULL,
+    expires_at BIGINT NOT NULL,
+    revoked BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_user_sessions_user (user_id),
+    INDEX idx_user_sessions_expires (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 20. TABLA: user_password_resets (Tokens de recuperación de contraseña)
+CREATE TABLE IF NOT EXISTS user_password_resets (
+    token_hash VARCHAR(64) PRIMARY KEY,
+    user_id INT NOT NULL,
+    expires_at BIGINT NOT NULL,
+    used_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_password_resets_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 21. TABLA: user_saved_jobs (Ofertas guardadas asociadas a la cuenta en la nube)
+CREATE TABLE IF NOT EXISTS user_saved_jobs (
+    user_id INT NOT NULL,
+    job_id VARCHAR(255) NOT NULL,
+    saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, job_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'subscribers' AND COLUMN_NAME = 'user_id');
+SET @sql = IF(@col_exists = 0, 'ALTER TABLE subscribers ADD COLUMN user_id INT NULL', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 -- ==============================================================================
 -- ÍNDICES DE RENDIMIENTO Y BÚSQUEDA (IDEMPOTENTES VÍA INFORMATION_SCHEMA, FUNC-036/037)
 -- ==============================================================================
@@ -369,4 +425,8 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @idx = (SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'jobs' AND INDEX_NAME = 'ft_jobs_search');
 SET @sql = IF(@idx = 0, 'CREATE FULLTEXT INDEX ft_jobs_search ON jobs (title, company, description_snippet)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @idx = (SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'subscribers' AND INDEX_NAME = 'idx_subscribers_user_id');
+SET @sql = IF(@idx = 0, 'CREATE INDEX idx_subscribers_user_id ON subscribers (user_id)', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

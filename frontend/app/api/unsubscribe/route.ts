@@ -225,8 +225,9 @@ export async function POST(request: NextRequest) {
         ).catch(() => {});
       }
 
-      // Desactivar registros vinculados en tablas auxiliares
+      // Desactivar registros vinculados en tablas auxiliares y cuentas de usuario
       const auxQueries = [
+        "UPDATE users SET email_notifications_enabled = FALSE, email_consent_updated_at = NOW() WHERE email = $1",
         "UPDATE alerts SET is_active = FALSE WHERE email = $1",
         "UPDATE saved_jobs_reminders SET is_active = FALSE WHERE email = $1",
         "UPDATE streak_reminders SET is_active = FALSE WHERE email = $1",

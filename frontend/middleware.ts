@@ -89,6 +89,61 @@ async function verifyAdminSessionEdge(token: string | undefined): Promise<boolea
   }
 }
 
+/**
+ * Verificación criptográfica HMAC-SHA256 de user_session en Edge Runtime.
+ * Formato: {userId}.{issuedAt}.{expiresAt}.{sessionVersion}.{jti}.{hmac}
+ */
+async function verifyUserSessionEdge(token: string | undefined): Promise<boolean> {
+  if (!token || !token.includes('.')) return false;
+  const secret =
+    process.env.USER_SESSION_SECRET ||
+    process.env.APP_SECRET ||
+    process.env.UNSUBSCRIBE_SECRET ||
+    process.env.CRON_SECRET;
+  if (!secret || secret.trim().length < 16) return false;
+
+  const parts = token.split('.');
+  if (parts.length !== 6) return false;
+
+  const [userIdStr, issuedAtStr, expiresAtStr, versionStr, jti, sigHex] = parts;
+  const userId = parseInt(userIdStr, 10);
+  const issuedAt = parseInt(issuedAtStr, 10);
+  const expiresAt = parseInt(expiresAtStr, 10);
+  const sessionVersion = parseInt(versionStr, 10);
+
+  const now = Date.now();
+  if (
+    isNaN(userId) ||
+    userId <= 0 ||
+    isNaN(issuedAt) ||
+    isNaN(expiresAt) ||
+    isNaN(sessionVersion) ||
+    !jti ||
+    now > expiresAt ||
+    issuedAt > now + 60000
+  ) {
+    return false;
+  }
+
+  const sigBytes = hexToBytes(sigHex);
+  if (!sigBytes) return false;
+
+  const payload = `user_session:${userId}:${issuedAt}:${expiresAt}:${sessionVersion}:${jti}`;
+  try {
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(secret.trim()),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+    return await crypto.subtle.verify('HMAC', key, sigBytes, encoder.encode(payload));
+  } catch {
+    return false;
+  }
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -183,6 +238,14 @@ export async function middleware(request: NextRequest) {
     response.headers.set('Cross-Origin-Resource-Policy', 'same-site');
 
     return response;
+  }
+
+  // 3.5 Redirigir usuarios ya autenticados fuera de /login y /registro
+  if (pathname === '/login' || pathname === '/registro') {
+    const userCookie = request.cookies.get('user_session')?.value;
+    if (await verifyUserSessionEdge(userCookie)) {
+      return NextResponse.redirect(new URL('/mi-perfil', request.url));
+    }
   }
 
   // 4. Cabeceras de seguridad globales para el resto del portal (Vector 31)

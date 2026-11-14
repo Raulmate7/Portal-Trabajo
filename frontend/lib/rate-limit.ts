@@ -289,6 +289,9 @@ export const indexJobLimiter = new RateLimiter(60000, 30, 'index_job'); // 30 re
 export const subscribeLimiter = new RateLimiter(60000, 6, 'subscribe'); // 6 req / min
 export const unsubscribeLinkLimiter = new RateLimiter(15 * 60 * 1000, 3, 'unsub_link'); // 3 req / 15 min
 export const actionsRateLimiter = new RateLimiter(60000, 10, 'actions'); // 10 req / min
+export const userLoginLimiter = new RateLimiter(15 * 60 * 1000, 5, 'user_login'); // 5 intentos / 15 min
+export const userRegisterLimiter = new RateLimiter(15 * 60 * 1000, 5, 'user_register'); // 5 registros / 15 min
+export const passwordResetLimiter = new RateLimiter(15 * 60 * 1000, 3, 'password_reset'); // 3 solicitudes / 15 min
 
 export function getClientIp(request: Request): string {
   const nextReq = request as any;

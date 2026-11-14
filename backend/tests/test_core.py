@@ -55,6 +55,27 @@ class TestCoreBackendLogic(unittest.TestCase):
         self.assertIn("applicantLocationRequirements", job_page)
         self.assertIn("directApply", job_page)
 
+    def test_user_auth_and_email_optout_artifacts(self):
+        repo_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        required_files = [
+            os.path.join(repo_root, "frontend", "lib", "userAuth.ts"),
+            os.path.join(repo_root, "frontend", "lib", "emailSync.ts"),
+            os.path.join(repo_root, "frontend", "app", "api", "auth", "register", "route.ts"),
+            os.path.join(repo_root, "frontend", "app", "api", "auth", "login", "route.ts"),
+            os.path.join(repo_root, "frontend", "app", "api", "auth", "logout", "route.ts"),
+            os.path.join(repo_root, "frontend", "app", "api", "auth", "me", "route.ts"),
+            os.path.join(repo_root, "frontend", "app", "registro", "page.tsx"),
+            os.path.join(repo_root, "frontend", "app", "login", "page.tsx"),
+            os.path.join(repo_root, "frontend", "app", "recuperar-password", "page.tsx"),
+        ]
+        for path in required_files:
+            self.assertTrue(os.path.exists(path), f"Falta archivo esperado: {path}")
+
+        for mailer_rel in ("mailer.py", "send_custom_alerts.py", "send_instant_featured_alerts.py"):
+            with open(os.path.join(repo_root, "backend", mailer_rel), "r", encoding="utf-8") as f:
+                content = f.read()
+            self.assertIn("email_notifications_enabled = FALSE", content, f"{mailer_rel} debe excluir opt-outs")
+
 
 if __name__ == "__main__":
     unittest.main()

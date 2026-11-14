@@ -140,7 +140,13 @@ def send_instant_featured_alerts():
         WHERE email IS NOT NULL 
           AND email NOT LIKE '%@deleted.local'
           AND (is_active IS NULL OR is_active = TRUE)
+          AND COALESCE(marketing_accepted, FALSE) = TRUE
           AND (frequency IS NULL OR frequency != 'once')
+          AND NOT EXISTS (
+            SELECT 1 FROM users u
+            WHERE u.email = subscribers.email
+              AND u.email_notifications_enabled = FALSE
+          )
     """)
     subscribers = cur.fetchall()
 
