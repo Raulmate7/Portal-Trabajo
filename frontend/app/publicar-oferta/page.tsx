@@ -45,10 +45,10 @@ export default function PublicarOfertaPage() {
           </p>
 
           <a
-            href="#planes"
+            href="#formulario"
             className="inline-block bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold py-4 px-10 rounded-xl hover:from-indigo-400 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 text-lg"
           >
-            Ver planes y precios ↓
+            Publicar oferta gratis ↓
           </a>
         </div>
       </section>
@@ -88,158 +88,23 @@ export default function PublicarOfertaPage() {
         </div>
       </section>
 
-      {/* Planes */}
-      <section id="planes" className="max-w-7xl mx-auto px-4 py-16">
-        <h2 className="text-2xl md:text-3xl font-black text-center mb-4">
-          Nuestros Planes y Tarifas
-        </h2>
-        <p className="text-gray-400 text-center mb-12 max-w-xl mx-auto">
-          Elige el nivel de visibilidad que necesita tu vacante y empieza a recibir candidatos.
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
-          {/* Plan Básico */}
-          <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-6 flex flex-col hover:border-gray-750 transition-all">
-            <div className="mb-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-gray-500 block mb-1">Plan Regular</span>
-              <h3 className="text-lg font-extrabold text-white">Básico</h3>
-              <div className="flex items-end gap-1 mt-2">
-                <span className="text-2xl font-black">Gratis</span>
-              </div>
-            </div>
-            <p className="text-gray-400 text-xs mb-4 leading-relaxed flex-grow">
-              Ideal para startups o pruebas rápidas de volumen.
-            </p>
-            <ul className="space-y-2.5 text-xs text-gray-300 border-t border-gray-800/80 pt-4 mb-6">
-              <li className="flex items-start gap-2">
-                <span className="text-green-400">✓</span>
-                Publicación estándar 30d
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-400">✓</span>
-                Indexación por categoría
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-400">✓</span>
-                Enlace de candidatura
-              </li>
-            </ul>
-            <a
-              href="#formulario"
-              className="block w-full text-center py-2 px-4 rounded-lg border border-gray-750 text-white font-bold hover:bg-gray-800 transition-all text-xs"
-            >
-              Seleccionar Gratis
-            </a>
-          </div>
-
-          {/* Plan Destacado Básico */}
-          <div className="bg-gray-900/60 border border-amber-500/30 rounded-2xl p-6 flex flex-col hover:border-amber-500/50 transition-all">
-            <div className="mb-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-500/70 block mb-1">Destaque Corto</span>
-              <h3 className="text-lg font-extrabold text-white">Destacado Básico</h3>
-              <div className="flex items-end gap-1 mt-2">
-                <span className="text-2xl font-black text-amber-400">9€</span>
-                <span className="text-gray-500 text-xs ml-1 mb-0.5">/ 15 días</span>
-              </div>
-            </div>
-            <p className="text-gray-400 text-xs mb-4 leading-relaxed flex-grow">
-              Visibilidad de impacto inmediato para acelerar la captación a bajo coste.
-            </p>
-            <ul className="space-y-2.5 text-xs text-gray-300 border-t border-gray-800/80 pt-4 mb-6">
-              <li className="flex items-start gap-2">
-                <span className="text-amber-400">✓</span>
-                Fijada arriba por 15 días
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-amber-400">✓</span>
-                Diseño premium dorado
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-amber-400">✓</span>
-                Badge ⭐ Destacada
-              </li>
-            </ul>
-            <a
-              href="#formulario"
-              className="block w-full text-center py-2 px-4 rounded-lg border border-amber-500/50 text-amber-400 font-bold hover:bg-amber-500/10 transition-all text-xs"
-            >
-              Seleccionar 9€
-            </a>
-          </div>
-
-          {/* Plan Destacado Pro */}
-          <div className="relative bg-gradient-to-br from-gray-900 to-gray-950 border-2 border-amber-500 rounded-2xl p-6 flex flex-col shadow-xl shadow-amber-500/5 hover:scale-[1.01] transition-all">
-            <div className="absolute -top-3 left-4">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-white text-[9px] font-bold shadow-md uppercase tracking-wider">
-                Recomendado
-              </span>
-            </div>
-            <div className="mb-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-500 block mb-1">Máxima Conversión</span>
-              <h3 className="text-lg font-extrabold text-white">Destacado Pro</h3>
-              <div className="flex items-end gap-1 mt-2">
-                <span className="text-2xl font-black text-amber-400">19€</span>
-                <span className="text-gray-500 text-xs ml-1 mb-0.5">/ 30 días</span>
-              </div>
-            </div>
-            <p className="text-gray-400 text-xs mb-4 leading-relaxed flex-grow">
-              Consigue la mayor visibilidad. Ideal para la mayoría de perfiles.
-            </p>
-            <ul className="space-y-2.5 text-xs text-gray-300 border-t border-gray-800/80 pt-4 mb-6">
-              <li className="flex items-start gap-2">
-                <span className="text-amber-400">✓</span>
-                Fijada arriba por 30 días
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-amber-400">✓</span>
-                Diseño premium dorado
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-amber-400">✓</span>
-                Alerta push a suscriptores + Newsletter
-              </li>
-            </ul>
-            <a
-              href="#formulario"
-              className="block w-full text-center py-2 px-4 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-500 text-gray-900 font-black hover:from-amber-400 hover:to-yellow-400 transition-all text-xs"
-            >
-              Seleccionar 19€
-            </a>
-          </div>
-
-          {/* Plan Destacado Enterprise */}
-          <div className="bg-gray-900/60 border border-purple-500/40 rounded-2xl p-6 flex flex-col hover:border-purple-500 transition-all">
-            <div className="mb-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-purple-400 block mb-1">Cobertura Total</span>
-              <h3 className="text-lg font-extrabold text-white">Enterprise</h3>
-              <div className="flex items-end gap-1 mt-2">
-                <span className="text-2xl font-black text-purple-400">49€</span>
-                <span className="text-gray-500 text-xs ml-1 mb-0.5">/ 30 días</span>
-              </div>
-            </div>
-            <p className="text-gray-400 text-xs mb-4 leading-relaxed flex-grow">
-              Máxima difusión en Boletín, Telegram y todas nuestras redes.
-            </p>
-            <ul className="space-y-2.5 text-xs text-gray-300 border-t border-gray-800/80 pt-4 mb-6">
-              <li className="flex items-start gap-2">
-                <span className="text-purple-400">✓</span>
-                Fijada arriba por 30 días
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-purple-400">✓</span>
-                Inclusión en Boletín Semanal
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-purple-400">✓</span>
-                Telegram, LinkedIn, Twitter, Mastodon
-              </li>
-            </ul>
-            <a
-              href="#formulario"
-              className="block w-full text-center py-2 px-4 rounded-lg border border-purple-500 text-purple-400 font-bold hover:bg-purple-500/10 transition-all text-xs"
-            >
-              Seleccionar 49€
-            </a>
+      {/* Plan único gratuito de lanzamiento */}
+      <section id="planes" className="max-w-3xl mx-auto px-4 py-12">
+        <div className="bg-gradient-to-br from-indigo-950/60 via-gray-900 to-gray-950 border border-indigo-500/40 rounded-3xl p-8 text-center shadow-xl">
+          <span className="inline-block px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-4">
+            Fase de Lanzamiento · 100% Gratuito
+          </span>
+          <h2 className="text-2xl md:text-3xl font-black mb-3">
+            Publica tu vacante sin coste
+          </h2>
+          <p className="text-gray-300 text-sm md:text-base max-w-xl mx-auto mb-6">
+            Actualmente todas las publicaciones de empleo son <strong>totalmente gratuitas</strong> para priorizar el crecimiento de ofertas de calidad.
+            Cada envío pasa por una breve supervisión manual de nuestro equipo antes de activarse en el buscador.
+          </p>
+          <div className="flex flex-wrap justify-center gap-4 text-xs text-gray-300">
+            <span className="px-3 py-1.5 rounded-lg bg-gray-800/80 border border-gray-700">✓ Listado completo 30 días</span>
+            <span className="px-3 py-1.5 rounded-lg bg-gray-800/80 border border-gray-700">✓ Revisión anti-spam &lt;24h</span>
+            <span className="px-3 py-1.5 rounded-lg bg-gray-800/80 border border-gray-700">✓ Sin tarjeta ni compromisos</span>
           </div>
         </div>
       </section>

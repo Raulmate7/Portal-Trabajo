@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { verifyAdminSessionTokenAsync } from '@/lib/adminAuth';
 import AdminLoginForm from './AdminLoginForm';
 import AdminLogoutButton from './AdminLogoutButton';
+import PendingJobsModeration, { PendingJobItem } from './PendingJobsModeration';
 
 export const metadata = {
   title: 'Panel de Administración | Portal Trabajo IT',
@@ -28,6 +29,7 @@ export default async function AdminPage() {
   let sponsoredJobs: any[] = [];
   let totalEmailOpens = 0;
   let opensByCampaign: any[] = [];
+  let pendingJobs: PendingJobItem[] = [];
 
   const client = await pool.connect();
   try {
@@ -58,6 +60,25 @@ export default async function AdminPage() {
     // 5. Email Opens
     const openRes = await client.query("SELECT COUNT(*) as count FROM email_tracking");
     totalEmailOpens = parseInt(openRes.rows[0]?.count || '0', 10);
+
+    // 6. Pending Jobs for Moderation
+    const pendingRes = await client.query(
+      `SELECT id, title, company, location, salary, url_source, description_snippet, created_at
+       FROM jobs
+       WHERE is_active = FALSE
+       ORDER BY created_at DESC
+       LIMIT 50`
+    );
+    pendingJobs = (pendingRes.rows || []).map((row: any) => ({
+      id: Number(row.id),
+      title: String(row.title || ''),
+      company: String(row.company || ''),
+      location: row.location ? String(row.location) : null,
+      salary: row.salary ? String(row.salary) : null,
+      url_source: row.url_source ? String(row.url_source) : null,
+      description_snippet: row.description_snippet ? String(row.description_snippet) : null,
+      created_at: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+    }));
 
     const campRes = await client.query(
       "SELECT campaign, COUNT(*) as count FROM email_tracking GROUP BY campaign ORDER BY count DESC LIMIT 6"
@@ -146,6 +167,9 @@ export default async function AdminPage() {
           </div>
 
         </div>
+
+        {/* Moderación de ofertas pendientes */}
+        <PendingJobsModeration initialJobs={pendingJobs} />
 
         {/* Tablas de Detalles */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

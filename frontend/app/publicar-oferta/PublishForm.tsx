@@ -30,11 +30,12 @@ export default function PublishForm() {
   const success = searchParams.get("success") === "true";
   const canceled = searchParams.get("canceled") === "true";
   const free = searchParams.get("free") === "true";
+  const pending = searchParams.get("pending") === "true";
   const urlPlan = searchParams.get("plan");
 
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
-  const [selectedPlan, setSelectedPlan] = useState<"basico" | "destacado_basico" | "destacado_pro" | "destacado_enterprise">("destacado_pro");
+  const [selectedPlan, setSelectedPlan] = useState<"basico" | "destacado_basico" | "destacado_pro" | "destacado_enterprise">("basico");
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [waiverAccepted, setWaiverAccepted] = useState(false);
   const [honeypot, setHoneypot] = useState("");
@@ -133,20 +134,20 @@ export default function PublishForm() {
   };
 
   if (success) {
-    if (free) {
+    if (free || pending) {
       return (
-        <div className="p-8 md:p-12 rounded-3xl bg-gradient-to-br from-gray-900 to-gray-950 border border-green-500/50 shadow-2xl text-center shadow-green-500/10">
-          <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">
-            🚀
+        <div className="p-8 md:p-12 rounded-3xl bg-gradient-to-br from-gray-900 to-gray-950 border border-emerald-500/50 shadow-2xl text-center shadow-emerald-500/10">
+          <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">
+            ⏳
           </div>
           <h2 className="text-2xl md:text-3xl font-black mb-4">
-            ¡Oferta publicada con éxito!
+            ¡Oferta recibida y en revisión!
           </h2>
           <p className="text-gray-300 mb-4 max-w-md mx-auto">
-            Tu oferta de empleo ya está activa y visible para miles de desarrolladores en nuestro listado regular del buscador.
+            Tu oferta ha quedado en espera de validación por un administrador para evitar spam y garantizar la calidad del portal.
           </p>
           <p className="text-gray-400 text-sm max-w-md mx-auto mb-8">
-            Si deseas darle el máximo alcance y colocarla arriba, puedes destacarla eligiendo uno de nuestros planes premium.
+            La revisaremos y publicaremos en menos de 24 horas. Te avisaremos por email en cuanto esté visible.
           </p>
           <Link href="/" className="inline-block px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all">
             Ir al Buscador
@@ -211,83 +212,21 @@ export default function PublishForm() {
   return (
     <div className="p-8 md:p-12 rounded-3xl bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800 shadow-2xl">
       <h2 className="text-2xl md:text-3xl font-black text-center mb-2">
-        Publicar tu oferta
+        Publicar tu oferta gratis
       </h2>
-      <p className="text-gray-400 text-center mb-8 text-sm">
-        Rellena los datos de tu oferta y selecciona el plan de visibilidad.
+      <p className="text-gray-400 text-center mb-6 text-sm">
+        Rellena los datos de tu vacante. Un administrador la revisará antes de publicarla.
       </p>
 
-      {/* Plan Selector */}
-      <div className="space-y-3.5 mb-8">
-        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Selecciona tu Plan de Publicación</label>
-        
-        {/* Plan Gratis */}
-        <button
-          type="button"
-          onClick={() => setSelectedPlan("basico")}
-          className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center justify-between gap-4 ${
-            selectedPlan === "basico"
-              ? "border-indigo-500 bg-indigo-500/10 text-white"
-              : "border-gray-800 hover:border-gray-700 text-gray-300"
-          }`}
-        >
-          <div>
-            <span className="block text-sm font-bold">📋 Básico</span>
-            <span className="block text-xs text-gray-400 mt-0.5">Listado regular por 30 días sin destaque ni prioridad</span>
-          </div>
-          <span className="text-lg font-black shrink-0">Gratis</span>
-        </button>
-
-        {/* Plan Destacado Básico */}
-        <button
-          type="button"
-          onClick={() => setSelectedPlan("destacado_basico")}
-          className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center justify-between gap-4 ${
-            selectedPlan === "destacado_basico"
-              ? "border-amber-500 bg-amber-500/10 text-white"
-              : "border-gray-800 hover:border-gray-700 text-gray-300"
-          }`}
-        >
-          <div>
-            <span className="block text-sm font-bold">⚡ Destacado Básico</span>
-            <span className="block text-xs text-gray-400 mt-0.5">Fijada arriba en búsquedas y diseño premium durante 15 días</span>
-          </div>
-          <span className="text-lg font-black text-amber-400 shrink-0">9€</span>
-        </button>
-
-        {/* Plan Destacado Pro */}
-        <button
-          type="button"
-          onClick={() => setSelectedPlan("destacado_pro")}
-          className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center justify-between gap-4 ${
-            selectedPlan === "destacado_pro"
-              ? "border-amber-500 bg-amber-500/10 text-white"
-              : "border-gray-800 hover:border-gray-700 text-gray-300"
-          }`}
-        >
-          <div>
-            <span className="block text-sm font-bold">⭐ Destacado Pro</span>
-            <span className="block text-xs text-gray-400 mt-0.5">Destaque 30d + Inclusión en la Newsletter semanal</span>
-          </div>
-          <span className="text-lg font-black text-amber-400 shrink-0">19€</span>
-        </button>
-
-        {/* Plan Destacado Enterprise */}
-        <button
-          type="button"
-          onClick={() => setSelectedPlan("destacado_enterprise")}
-          className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center justify-between gap-4 ${
-            selectedPlan === "destacado_enterprise"
-              ? "border-purple-500 bg-purple-500/10 text-white"
-              : "border-gray-800 hover:border-gray-700 text-gray-300"
-          }`}
-        >
-          <div>
-            <span className="block text-sm font-bold">🚀 Enterprise</span>
-            <span className="block text-xs text-gray-400 mt-0.5">Destaque 30d + Newsletter exclusiva + Telegram + Redes Sociales</span>
-          </div>
-          <span className="text-lg font-black text-purple-400 shrink-0">49€</span>
-        </button>
+      {/* Banner publicación gratuita con moderación */}
+      <div className="mb-8 p-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 flex items-center justify-between gap-4">
+        <div>
+          <span className="block text-sm font-bold text-white">✨ Publicación Gratuita · Revisión previa (&lt;24h)</span>
+          <span className="block text-xs text-gray-300 mt-0.5">
+            Listado completo durante 30 días tras la validación del administrador.
+          </span>
+        </div>
+        <span className="text-lg font-black text-emerald-400 shrink-0">0€</span>
       </div>
 
       {canceled && (
@@ -549,7 +488,7 @@ export default function PublishForm() {
           {isLoading
             ? "Enviando..."
             : selectedPlan === "basico"
-            ? "Solicitar oferta Básica (Gratis)"
+            ? "Enviar oferta gratuita para revisión"
             : `Pagar y Destacar con PayPal (${getPlanPrice()}) 🅿️`}
         </button>
 
