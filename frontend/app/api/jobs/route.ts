@@ -36,6 +36,9 @@ export async function GET(request: NextRequest) {
 
   const rawExperience = searchParams.get('experience');
   const experience = rawExperience ? rawExperience.slice(0, 50).trim() : undefined;
+
+  const withSalary = searchParams.get('with_salary') === '1';
+  const sort = searchParams.get('sort') === 'salary' ? 'salary' : 'recent';
   
   const pageStr = searchParams.get('page');
   let page = pageStr ? parseInt(pageStr, 10) : 1;
@@ -54,6 +57,8 @@ export async function GET(request: NextRequest) {
       query: q,
       location,
       minSalary,
+      withSalary,
+      sort,
       modality,
       dateRange,
       experience,

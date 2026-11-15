@@ -17,6 +17,8 @@ export default function SearchFilters() {
   const [experience, setExperience] = useState(searchParams?.get("experience") || "");
   const [minSalary, setMinSalary] = useState(searchParams?.get("min_salary") || "");
   const [dateRange, setDateRange] = useState(searchParams?.get("date_range") || "");
+  const [withSalary, setWithSalary] = useState(searchParams?.get("with_salary") === "1");
+  const [sort, setSort] = useState(searchParams?.get("sort") || "recent");
 
   const [showTechSuggestions, setShowTechSuggestions] = useState(false);
   const [showLocSuggestions, setShowLocSuggestions] = useState(false);
@@ -75,6 +77,8 @@ export default function SearchFilters() {
       if (experience) params.set("experience", experience);
       if (minSalary) params.set("min_salary", minSalary);
       if (dateRange) params.set("date_range", dateRange);
+      if (withSalary) params.set("with_salary", "1");
+      if (sort && sort !== "recent") params.set("sort", sort);
 
       const lang = searchParams?.get("lang");
       if (lang === "en") params.set("lang", "en");
@@ -85,7 +89,7 @@ export default function SearchFilters() {
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [query, location, modality, experience, minSalary, dateRange, replace, searchParams]);
+  }, [query, location, modality, experience, minSalary, dateRange, withSalary, sort, replace, searchParams]);
 
   // Limpiar todos los filtros
   const clearFilters = () => {
@@ -95,6 +99,8 @@ export default function SearchFilters() {
     setExperience("");
     setMinSalary("");
     setDateRange("");
+    setWithSalary(false);
+    setSort("recent");
     const params = new URLSearchParams();
     const lang = searchParams?.get("lang");
     if (lang === "en") params.set("lang", "en");
@@ -103,7 +109,7 @@ export default function SearchFilters() {
     });
   };
 
-  const hasActiveFilters = !!query || !!location || !!modality || !!experience || !!minSalary || !!dateRange;
+  const hasActiveFilters = !!query || !!location || !!modality || !!experience || !!minSalary || !!dateRange || withSalary || sort !== "recent";
 
   const filteredTech = TECH_OPTIONS.filter(t => t.toLowerCase().includes(query.toLowerCase()));
   const filteredLoc = LOC_OPTIONS.filter(l => l.toLowerCase().includes(location.toLowerCase()));
@@ -330,6 +336,17 @@ export default function SearchFilters() {
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-emerald)]" aria-hidden="true" />
             Remoto
           </button>
+          <button
+            onClick={() => setWithSalary(!withSalary)}
+            type="button"
+            className={`ui-btn-press inline-flex items-center gap-1 px-2.5 py-1 rounded-md border font-mono text-[11px] font-medium transition-colors duration-150 cursor-pointer ${
+              withSalary
+                ? "bg-[var(--status-emerald-tint)] border-[var(--status-emerald)] text-[var(--status-emerald)]"
+                : "bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)]"
+            }`}
+          >
+            💶 Con sueldo
+          </button>
           {isPending && (
             <span className="text-[11px] font-mono text-[var(--text-muted)] ml-1" aria-live="polite">
               Filtrando…
@@ -339,6 +356,15 @@ export default function SearchFilters() {
 
         {/* Botones de acción */}
         <div className="flex items-center gap-3 self-end sm:self-auto">
+          <select
+            aria-label="Ordenar ofertas"
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            className="px-2 py-1 border border-[var(--border-subtle)] rounded-md bg-[var(--bg-subtle)] text-[var(--text-secondary)] text-xs font-medium outline-none focus:border-[var(--border-accent)] cursor-pointer"
+          >
+            <option value="recent">Más recientes</option>
+            <option value="salary">Mayor salario</option>
+          </select>
           {hasActiveFilters && (
             <button
               type="button"

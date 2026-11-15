@@ -1,7 +1,7 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface Job {
   id?: string | number;
@@ -20,189 +20,127 @@ interface SaveJobButtonProps {
   variant?: 'card' | 'detail';
 }
 
+// Caché compartida en memoria para evitar N peticiones duplicadas cuando hay múltiples JobCards
+let cachedAuthStatePromise: Promise<{ authenticated: boolean; savedIds: Set<string> }> | null = null;
+let cachedSavedIds: Set<string> | null = null;
+let cachedAuthenticated: boolean | null = null;
+
+function resetAuthSavedCache() {
+  cachedAuthStatePromise = null;
+  cachedSavedIds = null;
+  cachedAuthenticated = null;
+}
+
+async function fetchAuthSavedState(): Promise<{ authenticated: boolean; savedIds: Set<string> }> {
+  if (cachedAuthenticated !== null && cachedSavedIds !== null) {
+    return { authenticated: cachedAuthenticated, savedIds: cachedSavedIds };
+  }
+  if (!cachedAuthStatePromise) {
+    cachedAuthStatePromise = (async () => {
+      try {
+        const res = await fetch('/api/auth/saved-jobs', { cache: 'no-store' });
+        if (res.status === 401) {
+          cachedAuthenticated = false;
+          cachedSavedIds = new Set();
+          return { authenticated: false, savedIds: cachedSavedIds };
+        }
+        const data = await res.json();
+        if (data?.success && Array.isArray(data.savedJobs)) {
+          cachedAuthenticated = true;
+          cachedSavedIds = new Set(data.savedJobs.map((j: any) => String(j.job_id)));
+          return { authenticated: true, savedIds: cachedSavedIds };
+        }
+      } catch {}
+      cachedAuthenticated = false;
+      cachedSavedIds = new Set();
+      return { authenticated: false, savedIds: cachedSavedIds };
+    })();
+  }
+  return cachedAuthStatePromise;
+}
+
 export default function SaveJobButton({ job, variant = 'card' }: SaveJobButtonProps) {
+  const router = useRouter();
   const [isSaved, setIsSaved] = useState(false);
-  const [showEmailModal, setShowEmailModal] = useState(false);
-  const [email, setEmail] = useState('');
-  const [privacyAccepted, setPrivacyAccepted] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
-  const [emailError, setEmailError] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showSavedToast, setShowSavedToast] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setMounted(true);
-    if (typeof window !== 'undefined' && job.id) {
-      const savedJobs = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
-      const found = savedJobs.some((j: any) => String(j.id) === String(job.id));
-      setIsSaved(found);
-      // Pre-fill email if previously captured
-      const captured = localStorage.getItem('saved_jobs_email');
-      if (captured) setEmail(captured);
-    }
+    let active = true;
+
+    const sync = async () => {
+      const state = await fetchAuthSavedState();
+      if (!active) return;
+      setIsAuthenticated(state.authenticated);
+      if (job.id) {
+        setIsSaved(state.savedIds.has(String(job.id)));
+      }
+    };
+    sync();
+
+    const handleAuthChange = () => {
+      resetAuthSavedCache();
+      sync();
+    };
+    const handleSavedChange = () => {
+      if (cachedSavedIds && job.id) {
+        setIsSaved(cachedSavedIds.has(String(job.id)));
+      }
+    };
+
+    window.addEventListener('auth_state_changed', handleAuthChange);
+    window.addEventListener('saved_jobs_changed', handleSavedChange);
+    return () => {
+      active = false;
+      window.removeEventListener('auth_state_changed', handleAuthChange);
+      window.removeEventListener('saved_jobs_changed', handleSavedChange);
+    };
   }, [job.id]);
 
-  useEffect(() => {
-    if (showEmailModal && inputRef.current) {
-      setTimeout(() => inputRef.current?.focus(), 100);
-    }
-  }, [showEmailModal]);
-
-  const hasEmailCaptured = () => {
-    if (typeof window === 'undefined') return false;
-    return !!localStorage.getItem('saved_jobs_email');
-  };
-
-  const [showSavedToast, setShowSavedToast] = useState(false);
-
-  const toggleSave = (e: React.MouseEvent) => {
+  const toggleSave = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
     if (!job.id) return;
 
-    const savedJobs = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
-    if (isSaved) {
-      const updated = savedJobs.filter((j: any) => String(j.id) !== String(job.id));
-      localStorage.setItem('saved_jobs', JSON.stringify(updated));
-      setIsSaved(false);
-    } else {
-      savedJobs.push({ ...job, saved_at: new Date().toISOString() });
-      localStorage.setItem('saved_jobs', JSON.stringify(savedJobs));
-      setIsSaved(true);
-      setShowSavedToast(true);
-      setTimeout(() => setShowSavedToast(false), 3000); // Ocultar toast tras 3s
-      
-      // Show email modal if email not yet captured
-      if (!hasEmailCaptured()) {
-        setTimeout(() => setShowEmailModal(true), 300);
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+
+    const idStr = String(job.id);
+    const nextSaved = !isSaved;
+    setIsSaved(nextSaved);
+    if (cachedSavedIds) {
+      if (nextSaved) cachedSavedIds.add(idStr);
+      else cachedSavedIds.delete(idStr);
+    }
+
+    try {
+      if (nextSaved) {
+        await fetch('/api/auth/saved-jobs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jobIds: [idStr] }),
+        });
+        setShowSavedToast(true);
+        setTimeout(() => setShowSavedToast(false), 3000);
+      } else {
+        await fetch(`/api/auth/saved-jobs?jobId=${encodeURIComponent(idStr)}`, {
+          method: 'DELETE',
+        });
+      }
+      window.dispatchEvent(new Event('saved_jobs_changed'));
+    } catch {
+      // Revert optimistic update on network error
+      setIsSaved(!nextSaved);
+      if (cachedSavedIds) {
+        if (!nextSaved) cachedSavedIds.add(idStr);
+        else cachedSavedIds.delete(idStr);
       }
     }
-  };
-
-  const handleEmailSubmit = async () => {
-    const trimmed = email.trim();
-    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      setEmailError('Introduce un email válido.');
-      return;
-    }
-    if (!privacyAccepted) {
-      setEmailError('Debes aceptar la Política de Privacidad para activar el recordatorio.');
-      return;
-    }
-    setEmailError('');
-    try {
-      localStorage.setItem('saved_jobs_email', trimmed);
-      await fetch('/api/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: trimmed, source: 'saved_jobs_reminder', privacy_accepted: true }),
-      });
-      setEmailSent(true);
-    } catch {
-      localStorage.setItem('saved_jobs_email', trimmed);
-      setEmailSent(true);
-    }
-  };
-
-  const renderModal = () => {
-    if (!showEmailModal) return null;
-    return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-        <div className="ui-card rounded-2xl p-6 md:p-7 max-w-sm w-full border border-[var(--border-strong)] shadow-[var(--shadow-card-hover)] relative">
-          <button
-            onClick={() => setShowEmailModal(false)}
-            aria-label="Cerrar ventana de oferta guardada"
-            className="absolute right-4 top-4 w-7 h-7 rounded-md flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] cursor-pointer transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-
-          <div className="w-10 h-10 rounded-lg bg-[var(--status-amber-tint)] border border-[var(--border-featured)] text-[var(--status-amber)] flex items-center justify-center mb-3.5">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M11.049 2.927c.3-.9 1.603-.9 1.902 0l1.519 4.674a1 1 0 00.95.69h4.907c.961 0 1.36 1.252.583 1.812l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.9-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.218-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.777-.56-.378-1.812.583-1.812h4.907a1 1 0 00.95-.69l1.519-4.674z" />
-            </svg>
-          </div>
-          <h3 className="text-lg font-semibold tracking-tight text-[var(--text-primary)] mb-2">
-            ¡Oferta guardada!
-          </h3>
-
-          {!emailSent ? (
-            <>
-              <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed mb-5">
-                Te enviamos un recordatorio en <strong>48 horas</strong> con las ofertas que has guardado por si se acercan a su fecha límite. Sin spam.
-              </p>
-              <div className="space-y-3">
-                <input
-                  ref={inputRef}
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleEmailSubmit()}
-                  placeholder="tu@email.com"
-                  className="w-full border border-gray-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                />
-
-                <label className="flex items-start gap-2 text-xs text-gray-600 dark:text-slate-400 cursor-pointer text-left">
-                  <input
-                    type="checkbox"
-                    checked={privacyAccepted}
-                    onChange={(e) => setPrivacyAccepted(e.target.checked)}
-                    className="mt-0.5 h-3.5 w-3.5 rounded border-gray-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500"
-                  />
-                  <span>
-                    Acepto la{' '}
-                    <Link href="/privacy" target="_blank" className="text-indigo-600 dark:text-indigo-400 underline">
-                      Política de Privacidad
-                    </Link>{' '}
-                    para recibir este recordatorio puntual por email.*
-                  </span>
-                </label>
-
-                {/* Primera capa informativa AEPD (RGPD Art. 13) */}
-                <div className="p-2.5 bg-gray-50 dark:bg-slate-850/80 border border-gray-200 dark:border-slate-700/80 rounded-lg text-[10px] text-gray-500 dark:text-slate-400 text-left space-y-0.5">
-                  <p><strong>Responsable:</strong> Portal Trabajo IT.</p>
-                  <p><strong>Finalidad:</strong> Envío de recordatorio puntual sobre tus ofertas guardadas.</p>
-                  <p><strong>Legitimación:</strong> Tu consentimiento expreso (Art. 6.1.a RGPD).</p>
-                  <p><strong>Destinatarios:</strong> Plataforma de envío (Resend). No se ceden datos a terceros.</p>
-                  <p><strong>Derechos:</strong> Acceso, rectificación, supresión y baja en <a href="mailto:contacto@portalempleoit.com" className="text-indigo-600 dark:text-indigo-400 underline">contacto@portalempleoit.com</a> (+ info en <Link href="/privacy" className="text-indigo-600 dark:text-indigo-400 underline">Política de Privacidad</Link>).</p>
-                </div>
-
-                {emailError && <p className="text-xs text-rose-600">{emailError}</p>}
-                <button
-                  onClick={handleEmailSubmit}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-3 rounded-xl transition-colors text-sm shadow-md"
-                >
-                  Activar Recordatorio ⏰
-                </button>
-                <button
-                  onClick={() => setShowEmailModal(false)}
-                  className="w-full text-xs text-gray-400 hover:text-gray-600 py-1.5 transition-colors"
-                >
-                  No, gracias — solo quiero guardar la oferta
-                </button>
-              </div>
-            </>
-          ) : (
-            <div className="text-center py-4">
-              <span className="text-4xl block mb-3">✅</span>
-              <p className="text-sm font-bold text-gray-900 dark:text-white mb-1">¡Recordatorio activado!</p>
-              <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed">
-                Te avisaremos en 48 horas con las ofertas guardadas que estén próximas a expirar.
-              </p>
-              <button
-                onClick={() => setShowEmailModal(false)}
-                className="mt-5 text-xs text-indigo-600 hover:text-indigo-800 font-bold"
-              >
-                Cerrar
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    );
   };
 
   const renderToast = () => {
@@ -212,7 +150,7 @@ export default function SaveJobButton({ job, variant = 'card' }: SaveJobButtonPr
         <span className="text-xl">✅</span>
         <div className="flex flex-col">
           <span className="font-bold text-sm">Oferta guardada</span>
-          <span className="text-emerald-100 text-xs">Añadida a tus favoritos</span>
+          <span className="text-emerald-100 text-xs">Sincronizada con tu cuenta</span>
         </div>
       </div>
     );
@@ -228,20 +166,14 @@ export default function SaveJobButton({ job, variant = 'card' }: SaveJobButtonPr
               ? 'bg-[var(--status-amber-tint)] text-[var(--status-amber)] border-[var(--border-featured)]'
               : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] hover:border-[var(--border-strong)]'
           }`}
-          title={isSaved ? "Quitar de favoritos" : "Guardar esta oferta"}
+          title={isSaved ? "Quitar de guardadas" : "Guardar esta oferta"}
         >
           <svg className="w-4 h-4" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M11.049 2.927c.3-.9 1.603-.9 1.902 0l1.519 4.674a1 1 0 00.95.69h4.907c.961 0 1.36 1.252.583 1.812l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.9-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.218-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.777-.56-.378-1.812.583-1.812h4.907a1 1 0 00.95-.69l1.519-4.674z" />
           </svg>
           <span>{isSaved ? "Guardada" : "Guardar Oferta"}</span>
         </button>
-        {mounted && typeof document !== 'undefined' && createPortal(
-          <>
-            {renderModal()}
-            {renderToast()}
-          </>,
-          document.body
-        )}
+        {mounted && typeof document !== 'undefined' && createPortal(renderToast(), document.body)}
       </>
     );
   }
@@ -262,13 +194,7 @@ export default function SaveJobButton({ job, variant = 'card' }: SaveJobButtonPr
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M11.049 2.927c.3-.9 1.603-.9 1.902 0l1.519 4.674a1 1 0 00.95.69h4.907c.961 0 1.36 1.252.583 1.812l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.9-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.218-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.777-.56-.378-1.812.583-1.812h4.907a1 1 0 00.95-.69l1.519-4.674z" />
         </svg>
       </button>
-      {mounted && typeof document !== 'undefined' && createPortal(
-        <>
-          {renderModal()}
-          {renderToast()}
-        </>,
-        document.body
-      )}
+      {mounted && typeof document !== 'undefined' && createPortal(renderToast(), document.body)}
     </>
   );
 }

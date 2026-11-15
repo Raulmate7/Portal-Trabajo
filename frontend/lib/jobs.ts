@@ -6,6 +6,8 @@ export interface FilterOptions {
   query?: string;
   location?: string;
   minSalary?: number;
+  withSalary?: boolean;
+  sort?: 'recent' | 'salary';
   modality?: string; // 'remoto' | 'hibrido' | 'presencial'
   dateRange?: string; // '24h' | 'week' | 'month'
   experience?: string; // 'junior' | 'mid' | 'senior'
@@ -56,6 +58,10 @@ export function buildJobFiltersWhere(
     whereSql += ` AND (salary_min >= $${paramIndex} OR (salary_min IS NULL AND salary_max >= $${paramIndex}))`;
     params.push(filters.minSalary);
     paramIndex++;
+  }
+
+  if (filters.withSalary) {
+    whereSql += ` AND ((salary_min IS NOT NULL AND salary_min > 0) OR (salary_max IS NOT NULL AND salary_max > 0) OR (salary IS NOT NULL AND TRIM(salary) != '' AND salary != '0'))`;
   }
 
   if (filters.modality) {
@@ -141,21 +147,26 @@ export async function getJobs(filters: FilterOptions, page: number = 1, limit: n
   const offset = (safePage - 1) * safeLimit;
   const baseSelect = "SELECT id, title, title_es, company, location, salary, salary_min, salary_max, created_at, url_source, description_snippet, category, is_featured FROM jobs WHERE (is_featured = FALSE OR is_featured IS NULL) AND is_active = TRUE";
 
+  const orderBy =
+    filters.sort === 'salary'
+      ? 'COALESCE(salary_max, salary_min, 0) DESC, created_at DESC, id DESC'
+      : 'created_at DESC, id DESC';
+
   const rows = await queryJobsWithFilterFallback(baseSelect, filters, (paramIndex) => {
-    if (filters.beforeCreatedAt) {
+    if (filters.beforeCreatedAt && filters.sort !== 'salary') {
       if (filters.beforeId) {
         return {
-          tailSql: ` AND (created_at < $${paramIndex} OR (created_at = $${paramIndex} AND id < $${paramIndex + 1})) ORDER BY created_at DESC, id DESC LIMIT $${paramIndex + 2}`,
+          tailSql: ` AND (created_at < $${paramIndex} OR (created_at = $${paramIndex} AND id < $${paramIndex + 1})) ORDER BY ${orderBy} LIMIT $${paramIndex + 2}`,
           tailParams: [filters.beforeCreatedAt, filters.beforeId, safeLimit],
         };
       }
       return {
-        tailSql: ` AND created_at < $${paramIndex} ORDER BY created_at DESC, id DESC LIMIT $${paramIndex + 1}`,
+        tailSql: ` AND created_at < $${paramIndex} ORDER BY ${orderBy} LIMIT $${paramIndex + 1}`,
         tailParams: [filters.beforeCreatedAt, safeLimit],
       };
     }
     return {
-      tailSql: ` ORDER BY created_at DESC, id DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+      tailSql: ` ORDER BY ${orderBy} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
       tailParams: [safeLimit, offset],
     };
   });
@@ -165,6 +176,17 @@ export async function getJobs(filters: FilterOptions, page: number = 1, limit: n
     return MOCK_JOBS.filter(j => !j.is_featured);
   }
   return rows;
+}
+
+export async function getFilteredJobsCount(filters: FilterOptions): Promise<number> {
+  const baseSelect =
+    'SELECT COUNT(*) AS count FROM jobs WHERE (is_featured = FALSE OR is_featured IS NULL) AND is_active = TRUE';
+  const rows = await queryJobsWithFilterFallback(baseSelect, filters, () => ({
+    tailSql: '',
+    tailParams: [],
+  }));
+  const count = parseInt(String(rows?.[0]?.count ?? '0'), 10);
+  return isNaN(count) ? 0 : count;
 }
 
 export async function getFeaturedJobs(filters: FilterOptions, limit: number = 3) {

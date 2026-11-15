@@ -10,7 +10,7 @@ import JobCard from "@/components/JobCard";
 import PushSubscribe from "@/components/PushSubscribe";
 import { Suspense } from "react";
 import { headers } from "next/headers";
-import { getJobs, getFeaturedJobs, getJobsCount, getJobOfTheDay, getTrendingTech } from "@/lib/jobs";
+import { getJobs, getFeaturedJobs, getJobsCount, getFilteredJobsCount, getJobOfTheDay, getTrendingTech } from "@/lib/jobs";
 import LoadMoreJobs from "@/components/LoadMoreJobs";
 import { RecentlyViewedList } from "@/components/RecentlyViewed";
 import { JobOfTheDayWidget, TrendingTechWidget, ReferralWidget } from "@/components/Widgets";
@@ -221,6 +221,8 @@ export default async function Home({ searchParams }: Props) {
   const modality = typeof resolvedParams.modality === 'string' ? resolvedParams.modality : undefined;
   const dateRange = typeof resolvedParams.date_range === 'string' ? resolvedParams.date_range : undefined;
   const experience = typeof resolvedParams.experience === 'string' ? resolvedParams.experience : undefined;
+  const withSalary = resolvedParams.with_salary === '1';
+  const sort = resolvedParams.sort === 'salary' ? 'salary' : 'recent';
 
   const page = typeof resolvedParams.page === 'string' ? parseInt(resolvedParams.page, 10) : 1;
   const validPage = isNaN(page) || page < 1 ? 1 : page;
@@ -238,16 +240,19 @@ export default async function Home({ searchParams }: Props) {
     query: q,
     location: loc,
     minSalary,
+    withSalary,
+    sort,
     modality,
     dateRange,
     experience
-  };
+  } as const;
 
   // Carga de datos concurrentes en el servidor
-  const [jobs, featuredJobs, totalJobs, jobOfTheDay, trendingTech, lastPosts] = await Promise.all([
+  const [jobs, featuredJobs, totalJobs, filteredCount, jobOfTheDay, trendingTech, lastPosts] = await Promise.all([
     getJobs(filters, validPage),
     getFeaturedJobs(filters),
     getJobsCount(),
+    getFilteredJobsCount(filters),
     getJobOfTheDay(),
     getTrendingTech(),
     getLatestBlogPosts(3),
@@ -305,8 +310,8 @@ export default async function Home({ searchParams }: Props) {
     {
       question: isEnglish ? 'Is it free to apply or post job offers?' : '¿Es gratuito publicar ofertas o postularse?',
       answer: isEnglish 
-        ? 'Yes, applying is 100% free for developers. For employers, we offer both free listings and premium featured slots.' 
-        : 'Sí, la postulación es 100% gratuita para los desarrolladores. Para las empresas, ofrecemos opciones gratuitas y destacadas premium.'
+        ? 'Yes, applying and posting job offers is 100% free (subject to brief admin review to ensure quality).' 
+        : 'Sí, tanto postularse como publicar ofertas es 100% gratuito (sujeto a una breve revisión previa para garantizar la calidad).'
     }
   ];
 
@@ -436,7 +441,9 @@ export default async function Home({ searchParams }: Props) {
                 <h2 className="text-lg font-semibold tracking-tight text-[var(--text-primary)] font-mono tabular-nums">
                   {jobs.length === 0
                     ? (isEnglish ? "No results" : "Sin resultados")
-                    : (isEnglish ? `${jobs.length} recent offers` : `${jobs.length} ofertas recientes`)}
+                    : (isEnglish
+                        ? `${filteredCount.toLocaleString('es-ES')} matching offers`
+                        : `${filteredCount.toLocaleString('es-ES')} ofertas encontradas`)}
                 </h2>
               </div>
 

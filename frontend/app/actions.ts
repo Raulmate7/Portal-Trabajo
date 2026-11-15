@@ -676,7 +676,8 @@ export async function submitSponsoredJob(formData: FormData) {
         `💼 <b>Puesto:</b> ${escapeTelegramHtml(job_title)}\n` +
         `📍 <b>Ubicación:</b> ${escapeTelegramHtml(job_location)}\n` +
         `💰 <b>Salario:</b> ${escapeTelegramHtml(job_salary || 'No indicado')}\n` +
-        `🔗 <b>URL:</b> ${escapeTelegramHtml(cleanJobUrl)}`;
+        `🔗 <b>URL:</b> ${escapeTelegramHtml(cleanJobUrl)}\n\n` +
+        `🛡️ <a href="https://portalempleoit.com/admin">Moderar en Panel Admin</a>`;
 
       try {
         await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {

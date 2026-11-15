@@ -61,7 +61,7 @@ export default function JobCard({ job, lang, prefetch, variant = 'default' }: Jo
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
   const isRecent = createdDate ? diffDays <= 1 : false;
-  const isExpiringSoon = createdDate ? diffDays >= 25 : false;
+  const isExpiringSoon = createdDate ? diffDays >= 90 : false;
 
   const relativeTime = createdDate
     ? diffHours < 1
@@ -120,9 +120,27 @@ export default function JobCard({ job, lang, prefetch, variant = 'default' }: Jo
 
   const { text: displaySalary, isKnown: hasKnownSalary } = formatSalaryEur(job, { isEnglish });
 
-  const titleLower = job.title.toLowerCase();
-  const techs = ['react', 'node', 'python', 'java', 'typescript', 'devops', 'php', 'sql', 'go', 'rust', 'angular', 'vue'];
-  const detectedTech = techs.find(t => titleLower.includes(t)) || null;
+  const techPatterns: Array<{ label: string; query: string; regex: RegExp }> = [
+    { label: 'React', query: 'react', regex: /\breact(?:\.js|js)?\b/i },
+    { label: 'TypeScript', query: 'typescript', regex: /\btypescript\b/i },
+    { label: 'Node.js', query: 'node', regex: /\bnode(?:\.js|js)?\b/i },
+    { label: 'Python', query: 'python', regex: /\bpython\b/i },
+    { label: 'Java', query: 'java', regex: /\bjava\b/i },
+    { label: 'Next.js', query: 'nextjs', regex: /\bnext(?:\.js|js)\b/i },
+    { label: 'Angular', query: 'angular', regex: /\bangular\b/i },
+    { label: 'Vue', query: 'vue', regex: /\bvue(?:\.js|js)?\b/i },
+    { label: 'DevOps', query: 'devops', regex: /\bdevops\b/i },
+    { label: 'AWS', query: 'aws', regex: /\baws\b/i },
+    { label: 'Docker', query: 'docker', regex: /\bdocker\b/i },
+    { label: 'Kubernetes', query: 'kubernetes', regex: /\bkubernetes|k8s\b/i },
+    { label: 'PHP', query: 'php', regex: /\bphp\b/i },
+    { label: 'SQL', query: 'sql', regex: /\bsql|postgres|mysql\b/i },
+    { label: 'Go', query: 'go', regex: /\bgolang\b/i },
+    { label: 'Rust', query: 'rust', regex: /\brust\b/i },
+  ];
+  const combinedText = `${job.title} ${job.description_snippet || ''}`;
+  const detectedTechs = techPatterns.filter((t) => t.regex.test(combinedText)).slice(0, 3);
+  const detectedTech = detectedTechs[0]?.query || null;
 
   return (
     <article
@@ -203,18 +221,27 @@ export default function JobCard({ job, lang, prefetch, variant = 'default' }: Jo
       )}
 
       {/* Pie de tarjeta */}
-      <div className="mt-auto pt-3.5 flex items-center justify-between gap-3">
-        {detectedTech ? (
-          <Link
-            href={`/salarios/${detectedTech}${queryParam}`}
-            className="relative z-10 text-[11px] font-mono text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors inline-flex items-center gap-1"
-          >
-            {isEnglish ? `${detectedTech.toUpperCase()} salaries` : `Salarios ${detectedTech.toUpperCase()}`}
-            <span aria-hidden="true">→</span>
-          </Link>
-        ) : (
-          <span />
-        )}
+      <div className="mt-auto pt-3.5 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 relative z-10">
+          {detectedTechs.map((t) => (
+            <Link
+              key={t.query}
+              href={`/?q=${encodeURIComponent(t.label)}${isEnglish ? '&lang=en' : ''}`}
+              className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:text-[var(--accent-primary)] border border-[var(--border-subtle)] hover:border-[var(--border-accent)] transition-colors"
+            >
+              {t.label}
+            </Link>
+          ))}
+          {detectedTech && (
+            <Link
+              href={`/salarios/${detectedTech}${queryParam}`}
+              className="text-[11px] font-mono text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors inline-flex items-center gap-1 ml-1"
+            >
+              {isEnglish ? `Salaries` : `Salarios`}
+              <span aria-hidden="true">→</span>
+            </Link>
+          )}
+        </div>
 
         <span
           aria-hidden="true"

@@ -42,13 +42,15 @@ export default function LoadMoreJobs({ lang = 'es', initiallyHasMore }: LoadMore
   const modality = searchParams.get('modality') || '';
   const dateRange = searchParams.get('date_range') || '';
   const experience = searchParams.get('experience') || '';
+  const withSalary = searchParams.get('with_salary') || '';
+  const sort = searchParams.get('sort') || '';
 
   // Resetear estados cuando cambian los filtros principales en la URL
   useEffect(() => {
     setJobs([]);
     setPage(2);
     setHasMore(initiallyHasMore);
-  }, [q, location, minSalary, modality, dateRange, experience, initiallyHasMore]);
+  }, [q, location, minSalary, modality, dateRange, experience, withSalary, sort, initiallyHasMore]);
 
   const loadMore = useCallback(async () => {
     if (loading) return;
@@ -62,6 +64,8 @@ export default function LoadMoreJobs({ lang = 'es', initiallyHasMore }: LoadMore
       if (modality) params.set('modality', modality);
       if (dateRange) params.set('date_range', dateRange);
       if (experience) params.set('experience', experience);
+      if (withSalary) params.set('with_salary', withSalary);
+      if (sort) params.set('sort', sort);
       params.set('page', page.toString());
       if (lang === 'en') params.set('lang', 'en');
 

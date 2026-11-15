@@ -24,7 +24,7 @@ export default async function AdminPage() {
   let totalSubscribers = 0;
   let dailySubscribers = 0;
   let weeklySubscribers = 0;
-  let totalPremiumLeads = 0;
+  let activeJobsCount = 0;
   let totalSponsoredJobs = 0;
   let sponsoredJobs: any[] = [];
   let totalEmailOpens = 0;
@@ -44,9 +44,9 @@ export default async function AdminPage() {
       if (r.frequency === 'weekly') weeklySubscribers = parseInt(r.count, 10);
     }
 
-    // 3. Premium Leads
-    const leadsRes = await client.query("SELECT COUNT(*) as count FROM premium_leads");
-    totalPremiumLeads = parseInt(leadsRes.rows[0]?.count || '0', 10);
+    // 3. Ofertas activas en la web
+    const activeRes = await client.query("SELECT COUNT(*) as count FROM jobs WHERE is_active = TRUE");
+    activeJobsCount = parseInt(activeRes.rows[0]?.count || '0', 10);
 
     // 4. Sponsored Jobs
     const spCountRes = await client.query("SELECT COUNT(*) as count FROM sponsored_jobs");
@@ -130,15 +130,17 @@ export default async function AdminPage() {
             </div>
           </div>
 
-          {/* Card 2: Premium Leads */}
+          {/* Card 2: Ofertas Activas / Pendientes */}
           <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm flex flex-col justify-between space-y-4">
             <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Talento Premium</span>
-              <span className="p-2 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 rounded-lg text-lg">⭐</span>
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Ofertas Activas</span>
+              <span className="p-2 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 rounded-lg text-lg">💼</span>
             </div>
             <div>
-              <p className="text-3xl font-extrabold text-slate-900 dark:text-white">{totalPremiumLeads.toLocaleString('es-ES')}</p>
-              <span className="text-[10px] bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 px-2.5 py-0.5 rounded-full font-bold inline-block mt-2">Leads Activos</span>
+              <p className="text-3xl font-extrabold text-slate-900 dark:text-white">{activeJobsCount.toLocaleString('es-ES')}</p>
+              <span className="text-[10px] bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 px-2.5 py-0.5 rounded-full font-bold inline-block mt-2">
+                {pendingJobs.length} pendientes de revisión
+              </span>
             </div>
           </div>
 
