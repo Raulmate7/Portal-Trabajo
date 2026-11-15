@@ -14,6 +14,7 @@ import { getJobs, getFeaturedJobs, getJobsCount, getFilteredJobsCount, getJobOfT
 import LoadMoreJobs from "@/components/LoadMoreJobs";
 import { RecentlyViewedList } from "@/components/RecentlyViewed";
 import { JobOfTheDayWidget, TrendingTechWidget, ReferralWidget } from "@/components/Widgets";
+import AmazonBooksWidget from "@/components/AmazonBooksWidget";
 import { getLatestBlogPosts } from "@/lib/blog";
 
 export const revalidate = 300; // Cache de 5 minutos para reducir consultas frecuentes a BD
@@ -547,6 +548,9 @@ export default async function Home({ searchParams }: Props) {
 
               {/* Widget: Categorías en Tendencia */}
               <TrendingTechWidget trends={trendingTech} lang={lang} />
+
+              {/* Widget editorial: Lecturas recomendadas (Amazon) */}
+              <AmazonBooksWidget lang={lang} />
 
               {/* Widget: Vistos Recientemente (LocalStorage client-side) */}
               <RecentlyViewedList lang={lang} />

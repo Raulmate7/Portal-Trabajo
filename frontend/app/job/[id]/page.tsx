@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { cache } from 'react';
 import ShareButton from '@/components/ShareButton';
 import CourseAffiliate from '@/components/CourseAffiliate';
+import AmazonBooksWidget from '@/components/AmazonBooksWidget';
 import SubscribeForm from '@/components/SubscribeForm';
 import AdBanner from '@/components/AdBanner';
 import PushSubscribe from '@/components/PushSubscribe';
@@ -1049,6 +1050,9 @@ export default async function JobPage({ params, searchParams }: Props) {
                 </div>
 
                 <CourseAffiliate title={job.title} />
+                <div className="mt-5">
+                  <AmazonBooksWidget contextTitle={job.title} lang={lang} />
+                </div>
 
                 <div className="p-6 rounded-xl border border-[var(--border-accent)] bg-[var(--accent-tint)] text-center mt-8">
                   <p className="text-[var(--text-primary)] mb-1 text-sm font-semibold">

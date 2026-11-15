@@ -48,7 +48,7 @@ export default async function RecursosPage({ searchParams }: Props) {
   const isEnglish = lang === 'en';
   const queryParam = isEnglish ? '?lang=en' : '';
 
-  const amazonTag = process.env.NEXT_PUBLIC_AMAZON_TAG || '';
+  const amazonTag = process.env.NEXT_PUBLIC_AMAZON_TAG || 'portalit0e-21';
   const getAmazonUrl = (url: string) => {
     if (amazonTag) {
       return url.replace('TU_AMAZON_TAG', amazonTag);
@@ -84,6 +84,35 @@ export default async function RecursosPage({ searchParams }: Props) {
           tag: 'Coursera',
           cta: isEnglish ? 'View Certificates' : 'Ver Certificados',
           href: getCourseraUrl('https://coursera.pxf.io/c/TU_AFFILIATE_ID_COURSERA/1164968/14726?subid=recursos_page'),
+          featured: false,
+        }
+      ]
+    },
+    libros: {
+      title: isEnglish ? '📚 Essential Programming Books (Amazon)' : '📚 Libros Esenciales de Programación (Amazon)',
+      items: [
+        {
+          name: 'Clean Code (Código Limpio)',
+          desc: isEnglish ? 'Robert C. Martin’s classic handbook for writing clean, maintainable software.' : 'El manual clásico de Robert C. Martin para escribir software limpio y superar entrevistas técnicas.',
+          tag: 'Amazon',
+          cta: isEnglish ? 'View on Amazon' : 'Ver en Amazon',
+          href: getAmazonUrl('https://www.amazon.es/dp/8441532109?tag=TU_AMAZON_TAG'),
+          featured: true,
+        },
+        {
+          name: 'El Programador Pragmático',
+          desc: isEnglish ? 'Timeless advice on software craftsmanship, architecture and career growth.' : 'Guía fundamental para perfeccionar tu criterio técnico y avanzar hacia roles Senior.',
+          tag: 'Amazon',
+          cta: isEnglish ? 'View on Amazon' : 'Ver en Amazon',
+          href: getAmazonUrl('https://www.amazon.es/dp/8441542694?tag=TU_AMAZON_TAG'),
+          featured: false,
+        },
+        {
+          name: 'Designing Data-Intensive Applications',
+          desc: isEnglish ? 'Martin Kleppmann’s bible on scalable, reliable and distributed systems.' : 'La referencia de Martin Kleppmann sobre bases de datos, escalabilidad y sistemas distribuidos.',
+          tag: 'Amazon',
+          cta: isEnglish ? 'View on Amazon' : 'Ver en Amazon',
+          href: getAmazonUrl('https://www.amazon.es/dp/1449373321?tag=TU_AMAZON_TAG'),
           featured: false,
         }
       ]
