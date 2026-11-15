@@ -275,7 +275,7 @@ export default async function RemoteCountryLandingPage({
           <aside className="lg:col-span-1 space-y-6">
             <SubscribeForm location={`${isEnglish ? countryNameEn : countryName} Remoto`} defaultLocation="remoto" />
             <PushSubscribe />
-            <div className="lg:sticky lg:top-24">
+            <div className="space-y-6">
               <AdBanner variant="sidebar" />
             </div>
           </aside>

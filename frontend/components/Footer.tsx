@@ -162,9 +162,13 @@ export default async function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           {/* Logo & description */}
           <div className="col-span-1 md:col-span-1">
-            <Link href="/" className="flex items-center gap-2.5 mb-4">
-              <span className="w-7 h-7 rounded-lg bg-indigo-500/15 border border-indigo-400/30 text-indigo-400 font-mono text-xs font-bold flex items-center justify-center">
-                &lt;/&gt;
+            <Link href="/" className="group flex items-center gap-2.5 mb-4">
+              <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-xs flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="16" rx="3" />
+                  <path d="M8 10l3 2.5L8 15" />
+                  <path d="M13 15h3" />
+                </svg>
               </span>
               <span className="text-sm font-semibold tracking-tight text-white">Portal Trabajo IT</span>
             </Link>

@@ -9,6 +9,7 @@ import FeaturedJobCard from "@/components/FeaturedJobCard";
 import JobCard from "@/components/JobCard";
 import PushSubscribe from "@/components/PushSubscribe";
 import { Suspense } from "react";
+import { headers } from "next/headers";
 import { getJobs, getFeaturedJobs, getJobsCount, getJobOfTheDay, getTrendingTech } from "@/lib/jobs";
 import LoadMoreJobs from "@/components/LoadMoreJobs";
 import { RecentlyViewedList } from "@/components/RecentlyViewed";
@@ -223,7 +224,14 @@ export default async function Home({ searchParams }: Props) {
 
   const page = typeof resolvedParams.page === 'string' ? parseInt(resolvedParams.page, 10) : 1;
   const validPage = isNaN(page) || page < 1 ? 1 : page;
-  const lang = resolvedParams.lang === 'en' ? 'en' : 'es';
+  let lang: 'es' | 'en' = resolvedParams.lang === 'en' ? 'en' : resolvedParams.lang === 'es' ? 'es' : 'es';
+  if (resolvedParams.lang !== 'en' && resolvedParams.lang !== 'es') {
+    const reqHeaders = await headers();
+    const acceptLang = (reqHeaders.get('accept-language') || '').toLowerCase();
+    if (acceptLang.split(',')[0]?.trim().startsWith('en')) {
+      lang = 'en';
+    }
+  }
   const isEnglish = lang === 'en';
 
   const filters = {
@@ -516,9 +524,9 @@ export default async function Home({ searchParams }: Props) {
             </div>
           </div>
 
-          {/* COLUMNA LATERAL (Widgets de Retención y AdSense Sticky) */}
+          {/* COLUMNA LATERAL (Widgets de Retención) */}
           <div className="lg:col-span-1 space-y-6">
-            <div className="lg:sticky lg:top-20 space-y-5">
+            <div className="space-y-5">
 
               {/* Widget: Boletín de Empleo */}
               <div className="hidden lg:block">

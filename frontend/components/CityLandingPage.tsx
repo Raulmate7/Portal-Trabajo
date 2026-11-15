@@ -464,7 +464,7 @@ export default async function CityLandingPage({ citySlug, cityName, searchParams
           <aside className="lg:col-span-1 space-y-5">
             <SubscribeForm location={cityName} />
             <PushSubscribe />
-            <div className="lg:sticky lg:top-20">
+            <div className="space-y-6">
               <AdBanner variant="sidebar" />
             </div>
           </aside>

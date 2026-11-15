@@ -116,12 +116,14 @@ export default async function RootLayout({
 }>) {
   const reqHeaders = await headers();
   const nonce = reqHeaders.get("x-nonce") || undefined;
+  const acceptLang = (reqHeaders.get("accept-language") || "").toLowerCase();
+  const systemLang: "es" | "en" = acceptLang.split(",")[0]?.trim().startsWith("en") ? "en" : "es";
   const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID || "";
   const onesignalAppId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || "";
   const gaMeasurementId = process.env.NEXT_PUBLIC_GA_ID || "";
 
   return (
-    <html lang="es" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+    <html lang={systemLang} className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <head>
         <meta name="impact-site-verification" content="2348664d-36c1-45a5-8a74-a2dd472c4343" />
         {/* Preconexión y dns-prefetch respetuosos con privacidad (solo fuentes tipográficas estables) */}
@@ -188,18 +190,25 @@ export default async function RootLayout({
             `
           }}
         />
-        {/* Inicializador de Tema Oscuro para evitar flash de color */}
+        {/* Inicializador de Tema Oscuro automático según sistema para evitar flash de color */}
         <script
           nonce={nonce}
           id="theme-initializer"
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
-                var theme = localStorage.getItem('theme');
-                if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                  document.documentElement.classList.add('dark');
-                } else {
-                  document.documentElement.classList.remove('dark');
+                try { localStorage.removeItem('theme'); } catch(e) {}
+                var mq = window.matchMedia('(prefers-color-scheme: dark)');
+                function applyTheme(isDark) {
+                  if (isDark) {
+                    document.documentElement.classList.add('dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                  }
+                }
+                applyTheme(mq.matches);
+                if (mq.addEventListener) {
+                  mq.addEventListener('change', function(e) { applyTheme(e.matches); });
                 }
               })();
             `
@@ -352,7 +361,7 @@ export default async function RootLayout({
       </head>
       <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased min-h-screen flex flex-col bg-[var(--bg-canvas)] text-[var(--text-primary)] selection:bg-indigo-500/20 selection:text-indigo-600 dark:selection:text-indigo-300 transition-colors duration-200`}>
         <Suspense fallback={<div className="h-14 bg-[var(--bg-surface)] border-b border-[var(--border-subtle)]"></div>}>
-          <Header />
+          <Header defaultLang={systemLang} />
         </Suspense>
         <div className="flex-grow">
           {children}
