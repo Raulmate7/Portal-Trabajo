@@ -3,41 +3,44 @@
 import { useState, useEffect } from 'react';
 import { sendSafeGAEvent, hasAnalyticsConsent } from '@/lib/analytics';
 
+const UDEMY_BASE_URL = process.env.NEXT_PUBLIC_UDEMY_AFFILIATE_URL || 'https://trk.udemy.com/9VMAEj';
+const udemyLink = (targetUrl: string) => `${UDEMY_BASE_URL}?ulp=${encodeURIComponent(targetUrl)}`;
+
 const TECH_COURSES: Record<string, { title: string; desc: string; url: string }> = {
   'react': {
     title: 'React - La Guía Completa (Hooks, Next.js, Redux)',
     desc: 'Domina la librería de frontend más popular del mundo de cero a experto con proyectos reales.',
-    url: 'https://click.linksynergy.com/deeplink?id=RAIOLE&mid=39197&murl=https%3A%2F%2Fwww.udemy.com%2Fcourses%2Fsearch%2F%3Fq%3Dreact%2520completo'
+    url: udemyLink('https://www.udemy.com/courses/search/?q=react%20completo')
   },
   'node': {
     title: 'Node: De cero a experto (Backend y APIs REST/GraphQL)',
     desc: 'Aprende a construir backends escalables, seguros y rápidos usando Node.js, Express y bases de datos.',
-    url: 'https://click.linksynergy.com/deeplink?id=RAIOLE&mid=39197&murl=https%3A%2F%2Fwww.udemy.com%2Fcourses%2Fsearch%2F%3Fq%3Dnode%2520de%2520cero%2520a%2520experto'
+    url: udemyLink('https://www.udemy.com/courses/search/?q=node%20de%20cero%20a%20experto')
   },
   'python': {
     title: 'Python Total - Programación Avanzada y Data Science',
     desc: 'Aprende Python desde las bases hasta Inteligencia Artificial, análisis de datos y web scraping.',
-    url: 'https://click.linksynergy.com/deeplink?id=RAIOLE&mid=39197&murl=https%3A%2F%2Fwww.udemy.com%2Fcourses%2Fsearch%2F%3Fq%3Dpython%2520total'
+    url: udemyLink('https://www.udemy.com/courses/search/?q=python%20total')
   },
   'java': {
     title: 'Universidad Java - De Cero a Master (JDK, Spring Boot)',
     desc: 'Conviértete en desarrollador Java e ingresa en el mercado enterprise dominando Spring Boot y microservicios.',
-    url: 'https://click.linksynergy.com/deeplink?id=RAIOLE&mid=39197&murl=https%3A%2F%2Fwww.udemy.com%2Fcourses%2Fsearch%2F%3Fq%3Djava%2520spring%2520boot'
+    url: udemyLink('https://www.udemy.com/courses/search/?q=java%20spring%20boot')
   },
   'typescript': {
     title: 'TypeScript Guía Completa - Tipado Seguro para JavaScript',
     desc: 'Aprende TypeScript a fondo e intégralo en tus proyectos de Angular, React o Node para escribir código profesional.',
-    url: 'https://click.linksynergy.com/deeplink?id=RAIOLE&mid=39197&murl=https%3A%2F%2Fwww.udemy.com%2Fcourses%2Fsearch%2F%3Fq%3Dtypescript%2520completo'
+    url: udemyLink('https://www.udemy.com/courses/search/?q=typescript%20completo')
   },
   'aws': {
     title: 'AWS Certified Solutions Architect - Prep. Examen Oficial',
     desc: 'Certifícate y aprende a diseñar arquitecturas tolerantes a fallos y altamente escalables en AWS.',
-    url: 'https://click.linksynergy.com/deeplink?id=RAIOLE&mid=39197&murl=https%3A%2F%2Fwww.udemy.com%2Fcourses%2Fsearch%2F%3Fq%3Daws%2520architect'
+    url: udemyLink('https://www.udemy.com/courses/search/?q=aws%20architect')
   },
   'docker': {
     title: 'Docker y Kubernetes de cero a experto en DevOps',
     desc: 'Domina los contenedores y su orquestación a nivel profesional en producción.',
-    url: 'https://click.linksynergy.com/deeplink?id=RAIOLE&mid=39197&murl=https%3A%2F%2Fwww.udemy.com%2Fcourses%2Fsearch%2F%3Fq%3Ddocker%2520kubernetes'
+    url: udemyLink('https://www.udemy.com/courses/search/?q=docker%20kubernetes')
   }
 };
 
@@ -49,7 +52,7 @@ export default function AffiliateCourseCard({ technology }: { technology: string
   const course = TECH_COURSES[techLower] || {
     title: `Curso de ${technology} Profesional y Certificaciones`,
     desc: `Actualiza tu stack de programación y certifícate en ${technology} con los mejores instructores calificados.`,
-    url: `https://click.linksynergy.com/deeplink?id=RAIOLE&mid=39197&murl=https%3A%2F%2Fwww.udemy.com%2Fcourses%2Fsearch%2F%3Fq%3D${encodeURIComponent(techLower)}`
+    url: udemyLink(`https://www.udemy.com/courses/search/?q=${encodeURIComponent(techLower)}`)
   };
 
   useEffect(() => {
