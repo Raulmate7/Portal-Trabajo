@@ -29,6 +29,8 @@ interface SavedJob {
   company: string;
   location: string;
   salary?: string | null;
+  isExpired?: boolean;
+  daysRemaining?: number | null;
 }
 
 const TECH_LIST = [
@@ -193,6 +195,8 @@ function MiPerfilContent() {
                 company: r.company || 'Empresa IT',
                 location: r.location || 'Remoto',
                 salary: r.salary || null,
+                isExpired: Boolean(r.isExpired),
+                daysRemaining: typeof r.daysRemaining === 'number' ? r.daysRemaining : null,
               }));
             if (cloudJobs.length > 0) {
               const mergedMap = new Map<string, SavedJob>();
@@ -731,12 +735,23 @@ function MiPerfilContent() {
                           className="flex items-center justify-between gap-4 p-3.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-subtle)]"
                         >
                           <div className="min-w-0">
-                            <Link
-                              href={`/job/${slug}${queryParam}`}
-                              className="font-semibold text-sm text-[var(--text-primary)] hover:text-[var(--accent-primary)] truncate block transition-colors"
-                            >
-                              {j.title}
-                            </Link>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Link
+                                href={`/job/${slug}${queryParam}`}
+                                className="font-semibold text-sm text-[var(--text-primary)] hover:text-[var(--accent-primary)] truncate transition-colors"
+                              >
+                                {j.title}
+                              </Link>
+                              {j.isExpired && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0">
+                                  {isEnglish
+                                    ? `Expired · deletes in ${j.daysRemaining ?? 0}d`
+                                    : j.daysRemaining && j.daysRemaining > 0
+                                    ? `Expirada · se eliminará en ${j.daysRemaining}d`
+                                    : 'Expirada · se eliminará hoy'}
+                                </span>
+                              )}
+                            </div>
                             <p className="text-xs text-[var(--text-secondary)] truncate">
                               {j.company} · {j.location}
                             </p>

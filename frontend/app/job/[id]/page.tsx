@@ -21,6 +21,7 @@ import CompanyLogo from '@/components/CompanyLogo';
 import Image from 'next/image';
 import { RecentlyViewedTracker } from '@/components/RecentlyViewed';
 import StickyDesktopAd from '@/components/StickyDesktopAd';
+import { getCurrentUser } from '@/lib/userAuth';
 
 export const revalidate = 3600; // Cache de 1 hora — las ofertas individuales no cambian con frecuencia; las nuevas se indexan vía Google Indexing API
 
@@ -241,8 +242,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
       ? `Job opportunity at ${job.company}. ${displayDesc?.substring(0, 130) ?? ''}...`
       : `Oportunidad laboral en ${job.company}. ${displayDesc?.substring(0, 130) ?? ''}...`;
 
-    const isOld = (new Date().getTime() - new Date(job.created_at).getTime()) > 30 * 24 * 60 * 60 * 1000;
-    const isExpired = isOld;
+    const isOld = (new Date().getTime() - new Date(job.created_at).getTime()) > 100 * 24 * 60 * 60 * 1000;
+    const isExpired = !job.is_active || isOld;
 
     const correctSlug = getJobSlug(job);
     const canonicalUrl = isEnglish 
@@ -454,12 +455,40 @@ export default async function JobPage({ params, searchParams }: Props) {
 
   const job = await getJob(numericId);
 
-  if (!job || !job.is_active) {
+  if (!job) {
     notFound();
   }
 
-  const isOld = (new Date().getTime() - new Date(job.created_at).getTime()) > 30 * 24 * 60 * 60 * 1000;
-  const isExpired = isOld;
+  if (!job.is_active) {
+    let savedByCurrentUser = false;
+    try {
+      const currentUser = await getCurrentUser();
+      if (currentUser) {
+        const client = await pool.connect();
+        try {
+          const savedRes = await client.query(
+            'SELECT 1 FROM user_saved_jobs WHERE user_id = $1 AND job_id = $2 LIMIT 1',
+            [currentUser.id, String(job.id)]
+          );
+          savedByCurrentUser = (savedRes.rows?.length || 0) > 0;
+        } finally {
+          client.release();
+        }
+      }
+    } catch {
+      savedByCurrentUser = false;
+    }
+
+    if (!savedByCurrentUser) {
+      notFound();
+    }
+  }
+
+  const ageMs = new Date().getTime() - new Date(job.created_at).getTime();
+  const ageDays = ageMs / (1000 * 60 * 60 * 24);
+  const isOld = ageDays >= 100;
+  const isExpired = !job.is_active || isOld;
+  const graceDaysLeft = Math.max(0, Math.ceil(110 - ageDays));
 
   const correctSlug = getJobSlug(job);
   const lang = resolvedSearchParams?.lang === 'en' ? 'en' : 'es';
@@ -857,12 +886,14 @@ export default async function JobPage({ params, searchParams }: Props) {
                 </svg>
                 <div>
                   <h4 className="font-semibold text-sm text-[var(--text-primary)]">
-                    {isEnglish ? 'This job offer has expired or is more than 30 days old' : 'Esta oferta de empleo ha expirado o tiene más de 30 días'}
+                    {isEnglish
+                      ? 'This job offer has expired'
+                      : 'Esta oferta de empleo ha expirado'}
                   </h4>
                   <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
                     {isEnglish
-                      ? 'It is very likely that this position is already filled. We recommend checking the recommended similar offers at the bottom of the page to find active vacancies.'
-                      : 'Es muy probable que este puesto ya esté cubierto. Te recomendamos revisar las ofertas recomendadas de la misma categoría en la parte inferior de la página para encontrar vacantes activas.'}
+                      ? `This vacancy is no longer publicly listed (over 100 days old). Because you saved it, it will remain visible here for ${graceDaysLeft} more day(s) before permanent deletion.`
+                      : `Esta vacante ya no aparece en el buscador público (supera los 100 días). La sigues viendo porque la guardaste; se eliminará definitivamente en ${graceDaysLeft} día(s).`}
                   </p>
                 </div>
               </div>

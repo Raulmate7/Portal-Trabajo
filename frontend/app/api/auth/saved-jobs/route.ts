@@ -19,15 +19,27 @@ export async function GET() {
   const client = await pool.connect();
   try {
     const res = await client.query(
-      `SELECT u.job_id, u.saved_at, j.title, j.title_es, j.company, j.location, j.salary
+      `SELECT u.job_id, u.saved_at, j.title, j.title_es, j.company, j.location, j.salary, j.is_active, j.created_at
        FROM user_saved_jobs u
-       LEFT JOIN jobs j ON j.id = u.job_id
+       LEFT JOIN jobs j ON CAST(j.id AS CHAR) = u.job_id
        WHERE u.user_id = $1
        ORDER BY u.saved_at DESC
        LIMIT 100`,
       [user.id]
     );
-    return NextResponse.json({ success: true, savedJobs: res.rows || [] });
+    const nowMs = Date.now();
+    const savedJobs = (res.rows || []).map((row: any) => {
+      const createdAtMs = row.created_at ? new Date(row.created_at).getTime() : nowMs;
+      const ageDays = Math.max(0, (nowMs - createdAtMs) / (1000 * 60 * 60 * 24));
+      const isExpired = !row.is_active || ageDays >= 100;
+      const daysRemaining = isExpired ? Math.max(0, Math.ceil(110 - ageDays)) : null;
+      return {
+        ...row,
+        isExpired,
+        daysRemaining,
+      };
+    });
+    return NextResponse.json({ success: true, savedJobs });
   } finally {
     client.release();
   }

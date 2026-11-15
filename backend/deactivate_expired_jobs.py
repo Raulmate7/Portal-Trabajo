@@ -44,8 +44,8 @@ def deactivate_expired_jobs():
         print(f"❌ Error al expirar estado destacado en base de datos: {e}")
         conn.rollback()
 
-    # 3. Buscar ofertas que llevan activas más de 30 días (hasta 200 por ejecución para evitar timeouts)
-    expiration_limit = datetime.now() - timedelta(days=30)
+    # 3. Buscar ofertas que llevan activas más de 100 días (hasta 200 por ejecución para evitar timeouts)
+    expiration_limit = datetime.now() - timedelta(days=100)
 
     try:
         cur.execute("""
@@ -172,19 +172,52 @@ def deactivate_expired_jobs():
         except Exception as dl_err:
             print(f"⚠️ Dead-link checker omitido: {dl_err}")
 
-        # B. Purga general de ofertas con más de 3 meses de antigüedad (>90 días)
-        purge_limit = datetime.now() - timedelta(days=90)
-        cur.execute("""
-            DELETE FROM jobs
-            WHERE created_at < %s
-              AND (is_featured = 0 OR is_featured IS NULL)
-        """, (purge_limit,))
-        conn.commit()
-        deleted_rows = cur.rowcount
-        if deleted_rows > 0:
-            print(f"🗑️ Purga BD: Se eliminaron {deleted_rows} ofertas con más de 3 meses (>90 días).")
+        # B. Purga por ciclo de vida (100 días + 10 días de gracia si algún usuario la tiene guardada)
+        purge_100d = datetime.now() - timedelta(days=100)
+        purge_110d = datetime.now() - timedelta(days=110)
+
+        cur.execute("SHOW TABLES LIKE 'user_saved_jobs'")
+        has_saved_table = cur.fetchone() is not None
+
+        if has_saved_table:
+            # 1) Eliminar ofertas >= 100 días que NINGÚN usuario tenga guardadas
+            cur.execute("""
+                DELETE FROM jobs
+                WHERE created_at < %s
+                  AND (is_featured = 0 OR is_featured IS NULL)
+                  AND NOT EXISTS (
+                      SELECT 1 FROM user_saved_jobs usj
+                      WHERE usj.job_id = CAST(jobs.id AS CHAR)
+                  )
+            """, (purge_100d,))
+            deleted_unsaved = cur.rowcount
+
+            # 2) Eliminar ofertas >= 110 días (100 días + 10 días de gracia) aunque estuvieran guardadas
+            cur.execute("""
+                DELETE FROM jobs
+                WHERE created_at < %s
+                  AND (is_featured = 0 OR is_featured IS NULL)
+            """, (purge_110d,))
+            deleted_grace = cur.rowcount
+
+            # 3) Limpiar referencias huérfanas en user_saved_jobs
+            cur.execute("""
+                DELETE usj FROM user_saved_jobs usj
+                LEFT JOIN jobs j ON CAST(j.id AS CHAR) = usj.job_id
+                WHERE j.id IS NULL
+            """)
+            deleted_refs = cur.rowcount
+            conn.commit()
+            print(f"🗑️ Purga BD: {deleted_unsaved} sin guardar (>100d), {deleted_grace} fin de gracia (>110d), {deleted_refs} refs guardadas limpiadas.")
         else:
-            print("🗑️ Purga BD: No se encontraron ofertas con más de 3 meses (>90 días) para eliminar.")
+            cur.execute("""
+                DELETE FROM jobs
+                WHERE created_at < %s
+                  AND (is_featured = 0 OR is_featured IS NULL)
+            """, (purge_100d,))
+            conn.commit()
+            deleted_rows = cur.rowcount
+            print(f"🗑️ Purga BD: Se eliminaron {deleted_rows} ofertas con más de 100 días.")
     except Exception as e:
         print(f"❌ Error purgando ofertas antiguas de la base de datos: {e}")
         conn.rollback()
