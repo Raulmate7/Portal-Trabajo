@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getJobSlug } from '@/lib/slug';
+import { formatSalaryEur } from '@/lib/salary';
 import CompanyLogo from './CompanyLogo';
 
 interface FeaturedJob {
@@ -29,24 +30,7 @@ export default function FeaturedJobCard({ job, lang }: { job: FeaturedJob; lang?
 
   const displayTitle = isEnglish ? job.title : (job.title_es || job.title);
 
-  const hasSalaryStr = job.salary && job.salary !== 'Consultar' && job.salary !== 'Negotiable';
-  let displaySalary = job.salary;
-  if (!hasSalaryStr && job.salary_min && job.salary_max) {
-    const minK = Math.round(job.salary_min / 1000);
-    const maxK = Math.round(job.salary_max / 1000);
-    displaySalary = `${minK}k - ${maxK}k €/año`;
-  } else if (!hasSalaryStr && job.salary_min) {
-    const minK = Math.round(job.salary_min / 1000);
-    displaySalary = isEnglish ? `From ${minK}k €/yr` : `Desde ${minK}k €/año`;
-  } else if (!hasSalaryStr && job.salary_max) {
-    const maxK = Math.round(job.salary_max / 1000);
-    displaySalary = isEnglish ? `Up to ${maxK}k €/yr` : `Hasta ${maxK}k €/año`;
-  }
-  if (!displaySalary) {
-    displaySalary = isEnglish ? 'Negotiable' : 'Consultar';
-  }
-
-  const hasKnownSalary = Boolean(displaySalary && displaySalary !== 'Consultar' && displaySalary !== 'Negotiable');
+  const { text: displaySalary, isKnown: hasKnownSalary } = formatSalaryEur(job, { isEnglish, includePeriod: true });
 
   return (
     <article className="relative group ui-card ui-card-interactive rounded-xl border-[var(--border-featured)] p-4 sm:p-5 overflow-hidden">

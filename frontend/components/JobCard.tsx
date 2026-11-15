@@ -2,6 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { getJobSlug } from '@/lib/slug';
+import { formatSalaryEur } from '@/lib/salary';
 import SaveJobButton from './SaveJobButton';
 import CompareJobButton from './CompareJobButton';
 import CompanyLogo from './CompanyLogo';
@@ -117,20 +118,7 @@ export default function JobCard({ job, lang, prefetch, variant = 'default' }: Jo
     amber: 'bg-[var(--status-amber-tint)] text-[var(--status-amber)] border-[var(--border-featured)]',
   };
 
-  const hasSalaryStr = job.salary && job.salary !== 'Consultar' && job.salary !== 'Negotiable' && job.salary !== 'Ver salario';
-  let displaySalary = job.salary;
-  if (!hasSalaryStr && job.salary_min && job.salary_max) {
-    const minK = Math.round(job.salary_min / 1000);
-    const maxK = Math.round(job.salary_max / 1000);
-    displaySalary = `${minK}k–${maxK}k €`;
-  } else if (!hasSalaryStr && job.salary_min) {
-    const minK = Math.round(job.salary_min / 1000);
-    displaySalary = isEnglish ? `From ${minK}k €` : `Desde ${minK}k €`;
-  } else if (!hasSalaryStr && job.salary_max) {
-    const maxK = Math.round(job.salary_max / 1000);
-    displaySalary = isEnglish ? `Up to ${maxK}k €` : `Hasta ${maxK}k €`;
-  }
-  const hasKnownSalary = Boolean(displaySalary && displaySalary !== 'Consultar' && displaySalary !== 'Negotiable');
+  const { text: displaySalary, isKnown: hasKnownSalary } = formatSalaryEur(job, { isEnglish });
 
   const titleLower = job.title.toLowerCase();
   const techs = ['react', 'node', 'python', 'java', 'typescript', 'devops', 'php', 'sql', 'go', 'rust', 'angular', 'vue'];

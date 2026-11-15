@@ -66,7 +66,6 @@ class PostgresPipeline:
                     salary = COALESCE(NULLIF(VALUES(salary), 'Consultar'), salary),
                     description_snippet = COALESCE(NULLIF(VALUES(description_snippet), 'Oferta de TecnoEmpleo'), description_snippet),
                     category = COALESCE(NULLIF(VALUES(category), 'Otros'), category),
-                    updated_at = NOW(),
                     is_active = TRUE
             """, (
                 item['title'],

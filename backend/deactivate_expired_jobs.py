@@ -44,7 +44,7 @@ def deactivate_expired_jobs():
         print(f"❌ Error al expirar estado destacado en base de datos: {e}")
         conn.rollback()
 
-    # 3. Buscar ofertas que llevan activas más de 30 días
+    # 3. Buscar ofertas que llevan activas más de 30 días (hasta 200 por ejecución para evitar timeouts)
     expiration_limit = datetime.now() - timedelta(days=30)
 
     try:
@@ -52,6 +52,8 @@ def deactivate_expired_jobs():
             SELECT id, title, title_es, company, location
             FROM jobs
             WHERE is_active = 1 AND created_at < %s
+            ORDER BY created_at ASC
+            LIMIT 200
         """, (expiration_limit,))
         expired_jobs = cur.fetchall()
     except Exception as e:
@@ -64,6 +66,21 @@ def deactivate_expired_jobs():
     else:
         print(f"📦 Encontradas {len(expired_jobs)} ofertas expiradas para desactivar y desindexar.")
 
+        # 4. Marcar como inactivas en la base de datos primero (rápido e idempotente)
+        expired_ids = [job[0] for job in expired_jobs]
+        try:
+            placeholders = ', '.join(['%s'] * len(expired_ids))
+            cur.execute(f"""
+                UPDATE jobs
+                SET is_active = 0
+                WHERE id IN ({placeholders})
+            """, tuple(expired_ids))
+            conn.commit()
+            print(f"💾 Base de Datos: {len(expired_ids)} ofertas marcadas como is_active = 0 (inactivas).")
+        except Exception as e:
+            print(f"❌ Error inactivando ofertas en base de datos: {e}")
+            conn.rollback()
+
         headers = {
             "Authorization": f"Bearer {cron_secret}",
             "Content-Type": "application/json"
@@ -73,8 +90,8 @@ def deactivate_expired_jobs():
         error_count = 0
         url_list = []
 
-        # 4. Enviar desindexación a Google
-        for job in expired_jobs:
+        # 5. Enviar desindexación a Google (máximo 40 por ejecución para respetar cuota y evitar timeouts)
+        for job in expired_jobs[:40]:
             job_id = job[0]
             title = job[1]
             title_es = job[2] if len(job) > 2 else None
@@ -90,32 +107,16 @@ def deactivate_expired_jobs():
             }
 
             try:
-                # Enviamos el tipo URL_DELETED para que la API de Google desindexe la oferta
-                response = requests.post(f"{frontend_url}/api/index-job", json=payload, headers=headers, timeout=10)
+                response = requests.post(f"{frontend_url}/api/index-job", json=payload, headers=headers, timeout=6)
                 if response.status_code == 200:
                     success_count += 1
-                    print(f"✅ Google De-indexada con éxito: {title} ({job_url})")
                 else:
                     error_count += 1
-                    print(f"⚠️ Google De-indexing falló para {job_url}: {response.status_code} - {response.text}")
-            except Exception as e:
+            except Exception:
                 error_count += 1
-                print(f"❌ Error de red desindexando {job_url}: {e}")
 
-        # 5. Marcar como inactivas en la base de datos
-        expired_ids = [job[0] for job in expired_jobs]
-        try:
-            placeholders = ', '.join(['%s'] * len(expired_ids))
-            cur.execute(f"""
-                UPDATE jobs
-                SET is_active = 0
-                WHERE id IN ({placeholders})
-            """, tuple(expired_ids))
-            conn.commit()
-            print(f"💾 Base de Datos: {len(expired_ids)} ofertas marcadas como is_active = 0 (inactivas).")
-        except Exception as e:
-            print(f"❌ Error inactivando ofertas en base de datos: {e}")
-            conn.rollback()
+        if success_count or error_count:
+            print(f"📉 Google De-indexing: {success_count} OK, {error_count} fallos.")
 
         # 6. Enviar a IndexNow (Bing/Yandex) para desindexar en lote usando INDEXNOW_KEY de entorno (SEC-047)
         if url_list:
@@ -171,18 +172,19 @@ def deactivate_expired_jobs():
         except Exception as dl_err:
             print(f"⚠️ Dead-link checker omitido: {dl_err}")
 
-        # B. Purga general de ofertas inactivas muy antiguas (>180 días, preservando ventana 410/redirección SEO-011)
-        purge_limit = datetime.now() - timedelta(days=180)
+        # B. Purga general de ofertas con más de 3 meses de antigüedad (>90 días)
+        purge_limit = datetime.now() - timedelta(days=90)
         cur.execute("""
             DELETE FROM jobs
-            WHERE is_active = 0 AND created_at < %s
+            WHERE created_at < %s
+              AND (is_featured = 0 OR is_featured IS NULL)
         """, (purge_limit,))
         conn.commit()
         deleted_rows = cur.rowcount
         if deleted_rows > 0:
-            print(f"🗑️ Purga BD: Se eliminaron {deleted_rows} ofertas inactivas antiguas (>90 días) para liberar espacio.")
+            print(f"🗑️ Purga BD: Se eliminaron {deleted_rows} ofertas con más de 3 meses (>90 días).")
         else:
-            print("🗑️ Purga BD: No se encontraron ofertas inactivas antiguas (>90 días) para eliminar.")
+            print("🗑️ Purga BD: No se encontraron ofertas con más de 3 meses (>90 días) para eliminar.")
     except Exception as e:
         print(f"❌ Error purgando ofertas antiguas de la base de datos: {e}")
         conn.rollback()
