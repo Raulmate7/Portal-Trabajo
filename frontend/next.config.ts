@@ -103,6 +103,10 @@ const nextConfig: NextConfig = {
         source: '/:key([a-fA-F0-9]{16,64}).txt',
         destination: '/api/indexnow-key?key=:key',
       },
+      {
+        source: '/trabajo-:ciudad/:tech',
+        destination: '/trabajo/:ciudad/:tech',
+      },
     ];
   },
 };

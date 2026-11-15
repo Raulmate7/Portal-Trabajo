@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next'
 import pool from '@/lib/db';
-import { BLOG_POSTS } from '@/lib/blog';
+import { getBlogPosts } from '@/lib/blog';
 import { GLOSSARY_TERMS } from '@/lib/glosario';
 import { PROFESSIONS } from '@/lib/convertirse';
 import { CERTIFICATIONS } from '@/lib/certificaciones';
@@ -328,6 +328,8 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
         pageCounts.set(path, (pageCounts.get(path) || 0) + 1);
       };
 
+      const activeCityTechKeys = new Set<string>();
+
       for (const job of jobs) {
         const techs = detectTechForSitemap(job.title || '', job.category || null);
         const city = detectCityForSitemap(job.location);
@@ -339,6 +341,9 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
         const max = job.salary_max ? Math.round(parseFloat(job.salary_max.toString())) : null;
 
         for (const tech of techs) {
+          if (city) {
+            activeCityTechKeys.add(`${city}::${tech}`);
+          }
           // 1. Página principal de la tecnología (ej: /trabajos/react)
           incrementCount(`/trabajos/${tech}`);
           
@@ -532,7 +537,8 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
         };
       });
 
-      const blogUrls = BLOG_POSTS.map((post) => ({
+      const allBlogPosts = await getBlogPosts();
+      const blogUrls = allBlogPosts.map((post) => ({
         url: `${BASE_URL}/blog/${post.slug}`,
         lastModified: new Date(post.date),
         changeFrequency: 'monthly' as const,
@@ -610,7 +616,7 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
       ];
       
       const cityTechUrls = CITIES_SITEMAP.flatMap(city =>
-        TECHS_SITEMAP.map(tech => ({
+        TECHS_SITEMAP.filter(tech => activeCityTechKeys.has(`${city}::${tech}`)).map(tech => ({
           url: `${BASE_URL}/trabajo-${city}/${tech}`,
           lastModified: SITE_LAST_STRUCTURAL_UPDATE,
           changeFrequency: 'weekly' as const,

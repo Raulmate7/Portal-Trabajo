@@ -2868,14 +2868,20 @@ export const BLOG_POSTS: BlogPost[] = STATIC_BLOG_POSTS.map(post => {
 
 export const getBlogPosts = cache(async (): Promise<BlogPost[]> => {
   const currentYear = new Date().getFullYear().toString();
+  const mergedMap = new Map<string, BlogPost>();
+
+  for (const post of BLOG_POSTS) {
+    mergedMap.set(post.slug, post);
+  }
+
   try {
     const res = await pool.query(
       "SELECT slug, title, excerpt, content, date, author, updated_at as updatedAt, is_evergreen as isEvergreen FROM blog_posts ORDER BY date DESC"
     );
     if (res.rows && res.rows.length > 0) {
-      return res.rows.map((post: any) => {
+      for (const post of res.rows) {
         const isEvergreen = post.isEvergreen === 1 || post.isEvergreen === true || post.isEvergreen === '1';
-        return {
+        mergedMap.set(post.slug, {
           slug: post.slug,
           title: isEvergreen ? post.title.replace(/2026/g, currentYear) : post.title,
           excerpt: isEvergreen ? post.excerpt.replace(/2026/g, currentYear) : post.excerpt,
@@ -2884,14 +2890,14 @@ export const getBlogPosts = cache(async (): Promise<BlogPost[]> => {
           author: post.author,
           updatedAt: post.updatedAt || undefined,
           isEvergreen,
-        };
-      });
+        });
+      }
     }
   } catch (error) {
     console.error("Error fetching blog posts from DB, using fallback:", error);
   }
-  
-  return BLOG_POSTS;
+
+  return Array.from(mergedMap.values()).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 });
 
 export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
