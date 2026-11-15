@@ -14,7 +14,7 @@ interface StreakData {
 const MILESTONE_REWARDS: Record<number, { label: string; reward: string; href: string }> = {
   3:  { label: '🎁 3 días',  reward: 'Guía Salarial IT 2026 gratis',       href: '/salarios' },
   7:  { label: '🏆 7 días',  reward: 'Acceso a tendencias de empleo tech', href: '/tendencias' },
-  30: { label: '💎 30 días', reward: 'Badge Premium de candidato experto',  href: '/talento-premium' },
+  30: { label: '💎 30 días', reward: 'Badge Premium de candidato experto',  href: '/mi-perfil' },
 };
 
 function getMilestoneReached(streak: number): { milestone: number; data: typeof MILESTONE_REWARDS[number] } | null {

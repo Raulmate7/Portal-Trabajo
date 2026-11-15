@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import PremiumForm from './PremiumForm';
 
 export const metadata: Metadata = {
@@ -49,6 +50,8 @@ type Props = {
 };
 
 export default async function TalentoPremiumPage({ searchParams }: Props) {
+  // Desactivado temporalmente (sin borrar código para reactivarlo en el futuro)
+  redirect('/');
   const resolvedSearchParams = await searchParams;
   const lang = resolvedSearchParams.lang === 'en' ? 'en' : 'es';
   const isEnglish = lang === 'en';

@@ -1201,7 +1201,7 @@ export default async function JobPage({ params, searchParams }: Props) {
                 <li><Link href={`/salarios${queryParam}`} className="hover:text-[var(--accent-primary)] hover:underline font-medium text-[var(--accent-primary)]">{isEnglish ? 'IT Salary Calculator' : 'Calculadora de Salarios IT'}</Link></li>
                 <li><Link href={`/empresas${queryParam}`} className="hover:text-[var(--accent-primary)] hover:underline">{isEnglish ? 'Company Directory' : 'Directorio de Empresas'}</Link></li>
                 <li><Link href={`/blog${queryParam}`} className="hover:text-[var(--accent-primary)] hover:underline">{isEnglish ? 'Career Advice (Blog)' : 'Consejos de Empleo (Blog)'}</Link></li>
-                <li><Link href={`/talento-premium${queryParam}`} className="hover:text-[var(--accent-primary)] hover:underline">{isEnglish ? 'Register as Candidate' : 'Registrarme como Candidato'}</Link></li>
+                <li><Link href={`/login${queryParam}`} className="hover:text-[var(--accent-primary)] hover:underline">{isEnglish ? 'Register as Candidate' : 'Registrarme como Candidato'}</Link></li>
               </ul>
             </div>
           </div>

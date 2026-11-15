@@ -126,7 +126,7 @@ export default async function Footer() {
     { label: 'Prácticas y Becas IT', href: '/practicas-informatica' },
     { label: 'Directorio de Comparativas', href: '/comparar' },
     { label: 'Directorio de Empresas', href: '/empresas' },
-    { label: 'Talento Premium', href: '/talento-premium' },
+    // { label: 'Talento Premium', href: '/talento-premium' },
     { label: 'Publicar Oferta', href: '/publicar-oferta' },
     { label: 'Tarifas y Precios', href: '/precios' },
     { label: 'Anúnciate / Publicidad', href: '/publicidad' },

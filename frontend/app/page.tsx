@@ -378,12 +378,7 @@ export default async function Home({ searchParams }: Props) {
               </svg>
               {isEnglish ? 'Telegram Channel' : 'Canal Telegram'}
             </a>
-            <Link
-              href={`/talento-premium${queryParam}`}
-              className="ui-btn-press bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/30 text-amber-300 font-medium text-xs sm:text-sm py-2 px-4 rounded-lg transition-colors flex items-center gap-1.5"
-            >
-              {isEnglish ? 'Premium Talent' : 'Talento Premium'}
-            </Link>
+            {/* Talento Premium oculto temporalmente */}
             <Link
               href={`/publicar-oferta${queryParam}`}
               className="ui-btn-press bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white font-medium text-xs sm:text-sm py-2 px-4 rounded-lg transition-colors flex items-center gap-1.5"

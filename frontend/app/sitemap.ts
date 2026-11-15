@@ -22,7 +22,7 @@ const BASE_PAGES = [
   '/empresas',
   '/empresas-remotas',
   '/publicar-oferta',
-  '/talento-premium',
+  // '/talento-premium',
   '/blog',
   '/trabajo-remoto',
   '/trabajo-remoto-usa',

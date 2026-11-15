@@ -51,7 +51,7 @@ const PAGES_LEGAL = [
   { name: 'Calculadora de Salarios IT', href: '/salarios' },
   { name: 'Directorio de Empresas', href: '/empresas' },
   { name: 'Blog de Consejos Profesionales', href: '/blog' },
-  { name: 'Talento Premium', href: '/talento-premium' },
+  // { name: 'Talento Premium', href: '/talento-premium' },
   { name: 'Publicar Oferta de Empleo', href: '/publicar-oferta' },
   { name: 'Aviso Legal', href: '/aviso-legal' },
   { name: 'Política de Privacidad', href: '/politica-de-privacidad' }
