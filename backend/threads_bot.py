@@ -37,6 +37,9 @@ def publish_thread(access_token, text, image_url=None):
         res = requests.post(create_url, json=payload, headers=headers, timeout=15)
         if res.status_code not in (200, 201):
             print(f"⚠️ Error al crear contenedor de Threads (Código {res.status_code}): {res.text}")
+            if res.status_code in (401, 403):
+                from logic.social_sanitize import notify_admin_auth_error
+                notify_admin_auth_error("Threads", res.status_code, res.text)
             return None
             
         container_id = res.json().get("id")
@@ -186,8 +189,8 @@ def run_threads_bot():
     try:
         cur.close()
         conn.close()
-    except:
-        pass
+    except Exception as close_err:
+        print(f"⚠️ Error cerrando conexión BD en threads_bot: {close_err}")
         
     print("===============================================")
 

@@ -149,6 +149,9 @@ def run_referral_notifications():
             SELECT referred_by, COUNT(*) as count 
             FROM subscribers 
             WHERE referred_by IS NOT NULL AND referred_by != ''
+              AND is_active = TRUE
+              AND confirmed_at IS NOT NULL
+              AND email NOT LIKE '%@deleted.local'
             GROUP BY referred_by
         """)
         referrals = cur.fetchall()
@@ -166,13 +169,15 @@ def run_referral_notifications():
     # 3. Iniciar servidor SMTP
     smtp_active = False
     try:
+        import ssl
+        ssl_ctx = ssl.create_default_context()
         smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
         smtp_port = int(os.getenv("SMTP_PORT", "587"))
         if smtp_port == 465:
-            server = smtplib.SMTP_SSL(smtp_host, smtp_port)
+            server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=30, context=ssl_ctx)
         else:
-            server = smtplib.SMTP(smtp_host, smtp_port)
-            server.starttls()
+            server = smtplib.SMTP(smtp_host, smtp_port, timeout=30)
+            server.starttls(context=ssl_ctx)
         server.login(EMAIL_USER, EMAIL_PASSWORD)
         smtp_active = True
         print(f"✅ Login en servidor SMTP ({smtp_host}:{smtp_port}) correcto.")
@@ -190,27 +195,45 @@ def run_referral_notifications():
                 FROM subscribers 
                 WHERE email = %s
                   AND email NOT LIKE '%@deleted.local'
-                  AND (is_active IS NULL OR is_active = TRUE)
+                  AND is_active = TRUE
+                  AND confirmed_at IS NOT NULL
+                  AND NOT EXISTS (
+                    SELECT 1 FROM email_suppression_list esl
+                    WHERE esl.email_hash = SHA2(LOWER(TRIM(subscribers.email)), 256)
+                  )
+                  AND NOT EXISTS (
+                    SELECT 1 FROM users u
+                    WHERE u.email = subscribers.email
+                      AND u.email_notifications_enabled = FALSE
+                  )
             """, (referrer_email,))
             row = cur.fetchone()
             if not row:
-                # Si el referrer no está en la tabla (por ejemplo, email inválido), lo omitimos
+                # Si el referrer no está en la tabla (por ejemplo, email inválido o dado de baja), lo omitimos
                 continue
             notified_count = row[0] if row[0] is not None else 0
         except Exception:
-            # Si la columna no existe en la BD remota, verificar si el usuario existe
+            # Si la columna no existe en la BD remota, verificar si el usuario existe manteniendo los filtros de seguridad
             try:
-                cur.execute("SELECT id FROM subscribers WHERE email = %s", (referrer_email,))
+                cur.execute("""
+                    SELECT id FROM subscribers
+                    WHERE email = %s
+                      AND email NOT LIKE '%@deleted.local'
+                      AND is_active = TRUE
+                      AND confirmed_at IS NOT NULL
+                      AND confirmed_at IS NOT NULL
+                """, (referrer_email,))
                 if not cur.fetchone():
                     continue
             except Exception:
-                pass
+                continue
         
         if actual_count > notified_count:
             print(f"⚡ Referente: {mask_email(referrer_email)} tiene {actual_count} referidos (antes notificado: {notified_count})")
             
-            # Enviar email de notificación si el SMTP está disponible
+            # BUG-020: Solo actualizar referrals_notified_count e is_premium tras envío SMTP exitoso
             if smtp_active:
+                sent_ok = False
                 try:
                     unsubscribe_link = generate_unsubscribe_link(referrer_email)
                     msg = MIMEMultipart()
@@ -229,21 +252,30 @@ def run_referral_notifications():
                     msg.attach(MIMEText(html_body, 'html'))
                     server.send_message(msg)
                     emails_sent += 1
+                    sent_ok = True
                     print(f"  ✉️ Email de referido enviado a {mask_email(referrer_email)}")
                 except Exception as send_err:
                     print(f"  ❌ Error al enviar email: {send_err}")
-            
-            # Actualizar la cuenta de notificaciones en la BD independientemente del envío SMTP para evitar bucles de reintento
-            try:
-                cur.execute("""
-                    UPDATE subscribers 
-                    SET referrals_notified_count = %s 
-                    WHERE email = %s
-                """, (actual_count, referrer_email))
-                conn.commit()
-            except Exception as upd_err:
-                conn.rollback()
-                print(f"  ⚠️ Columna referrals_notified_count no disponible para actualizar en BD: {upd_err}")
+
+                if sent_ok:
+                    try:
+                        if actual_count >= 3:
+                            cur.execute("""
+                                UPDATE subscribers
+                                SET referrals_notified_count = %s,
+                                    is_premium = TRUE
+                                WHERE email = %s
+                            """, (actual_count, referrer_email))
+                        else:
+                            cur.execute("""
+                                UPDATE subscribers
+                                SET referrals_notified_count = %s
+                                WHERE email = %s
+                            """, (actual_count, referrer_email))
+                        conn.commit()
+                    except Exception as upd_err:
+                        conn.rollback()
+                        print(f"  ⚠️ Error actualizando referrals_notified_count/is_premium en BD: {upd_err}")
 
     if smtp_active:
         server.quit()

@@ -24,12 +24,44 @@ function timingSafeHexEqual(a: string, b: string): boolean {
 }
 
 /**
- * SEC-042 & SEC-043: Verifica un token opaco firmado con HMAC-SHA256 (`t=<b64url>.<hexSig>`)
- * que encapsula email, campaign y redirect sin exponer PII en claro en URLs ni logs.
+ * SEC-012, SEC-042 & SEC-043: Verifica un token opaco cifrado AES-256-GCM (`v2.<iv>.<ct>.<tag>`)
+ * o firmado HMAC-SHA256 legacy (`<b64url>.<hexSig>`), sin exponer PII en claro en URLs ni logs.
  */
 export function verifyOpaqueTrackingToken(token: string): TrackingPayload | null {
   const secret = getTrackingSecret();
   if (!secret || !token || !token.includes('.')) return null;
+
+  if (token.startsWith('v2.')) {
+    const parts = token.split('.');
+    if (parts.length !== 4) return null;
+    try {
+      const iv = Buffer.from(parts[1], 'base64url');
+      const ct = Buffer.from(parts[2], 'base64url');
+      const tag = Buffer.from(parts[3], 'base64url');
+      if (iv.length !== 12 || tag.length !== 16) return null;
+
+      const key = crypto.createHash('sha256').update(secret, 'utf8').digest();
+      const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+      decipher.setAAD(Buffer.from('tracking-v2', 'utf8'));
+      decipher.setAuthTag(tag);
+      const plaintext = Buffer.concat([decipher.update(ct), decipher.final()]).toString('utf8');
+      const parsed = JSON.parse(plaintext);
+      if (!parsed || typeof parsed.e !== 'string' || typeof parsed.c !== 'string') {
+        return null;
+      }
+      if (typeof parsed.exp === 'number' && parsed.exp > 0 && Math.floor(Date.now() / 1000) > parsed.exp) {
+        return null;
+      }
+      return {
+        email: parsed.e.trim().toLowerCase(),
+        campaign: parsed.c.trim(),
+        redirect: typeof parsed.r === 'string' ? parsed.r : undefined,
+        exp: typeof parsed.exp === 'number' ? parsed.exp : undefined,
+      };
+    } catch {
+      return null;
+    }
+  }
 
   const dotIdx = token.indexOf('.');
   const b64 = token.slice(0, dotIdx);

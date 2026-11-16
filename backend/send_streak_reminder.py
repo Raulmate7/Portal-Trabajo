@@ -152,7 +152,17 @@ def get_streak_reminder_subscribers(conn):
             FROM subscribers s
             WHERE (s.source = 'streak_reminder' OR s.tech_keywords LIKE 'origen:streak_reminder%')
               AND s.email NOT LIKE '%@deleted.local'
-              AND (s.is_active IS NULL OR s.is_active = TRUE)
+              AND s.is_active = TRUE
+              AND s.confirmed_at IS NOT NULL
+              AND NOT EXISTS (
+                SELECT 1 FROM email_suppression_list esl
+                WHERE esl.email_hash = SHA2(LOWER(TRIM(s.email)), 256)
+              )
+              AND NOT EXISTS (
+                SELECT 1 FROM users u
+                WHERE u.email = s.email
+                  AND u.email_notifications_enabled = FALSE
+              )
               AND s.email NOT IN (
                 SELECT sr.email FROM streak_reminders sr
                 WHERE DATE(sr.sent_at) = CURRENT_DATE() OR sr.date_sent = CURRENT_DATE()
@@ -212,41 +222,46 @@ def send_streak_reminders():
         print(f"❌ Error conectando a BD: {e}")
         return
 
-    setup_table(conn)
-    subscribers = get_streak_reminder_subscribers(conn)
-
-    if not subscribers:
-        print("ℹ️ No hay suscriptores de racha que necesiten recordatorio hoy.")
-        conn.close()
-        print("===============================================")
-        return
-
-    print(f"📧 Enviando recordatorios a {len(subscribers)} suscriptores...")
-
-    sent = 0
-    errors = 0
     try:
-        smtp_ctx = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT) if SMTP_PORT == 465 else smtplib.SMTP(SMTP_HOST, SMTP_PORT)
-        with smtp_ctx as smtp:
-            smtp.ehlo()
-            if SMTP_PORT != 465:
-                smtp.starttls()
-            smtp.login(SMTP_USER, SMTP_PASS)
-            for email in subscribers:
-                try:
-                    send_streak_email(smtp, email)
-                    mark_sent(conn, email)
-                    sent += 1
-                    print(f"  ✅ Enviado a {mask_email(email)}")
-                except Exception as e:
-                    errors += 1
-                    print(f"  ❌ Error enviando a {mask_email(email)}: {e}")
-    except Exception as e:
-        print(f"❌ Error de conexión SMTP: {e}")
+        setup_table(conn)
+        subscribers = get_streak_reminder_subscribers(conn)
 
-    conn.close()
-    print(f"\n✅ Recordatorios enviados: {sent} | Errores: {errors}")
-    print("===============================================")
+        if not subscribers:
+            print("ℹ️ No hay suscriptores de racha que necesiten recordatorio hoy.")
+            return
+
+        print(f"📧 Enviando recordatorios a {len(subscribers)} suscriptores...")
+
+        sent = 0
+        errors = 0
+        try:
+            import ssl
+            ssl_ctx = ssl.create_default_context()
+            smtp_ctx = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=30, context=ssl_ctx) if SMTP_PORT == 465 else smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30)
+            with smtp_ctx as smtp:
+                smtp.ehlo()
+                if SMTP_PORT != 465:
+                    smtp.starttls(context=ssl_ctx)
+                smtp.login(SMTP_USER, SMTP_PASS)
+                for email in subscribers:
+                    try:
+                        send_streak_email(smtp, email)
+                        mark_sent(conn, email)
+                        sent += 1
+                        print(f"  ✅ Enviado a {mask_email(email)}")
+                    except Exception as e:
+                        errors += 1
+                        print(f"  ❌ Error enviando a {mask_email(email)}: {e}")
+        except Exception as e:
+            print(f"❌ Error de conexión SMTP: {e}")
+
+        print(f"\n✅ Recordatorios enviados: {sent} | Errores: {errors}")
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+        print("===============================================")
 
 
 if __name__ == "__main__":

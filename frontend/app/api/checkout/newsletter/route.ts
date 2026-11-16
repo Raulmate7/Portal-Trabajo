@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { checkoutLimiter, getClientIp } from '@/lib/rate-limit';
 import { BASE_URL } from '@/lib/constants';
 import { isValidApiOrigin } from '@/lib/urlSafety';
+import { verifyTurnstileToken } from '@/lib/turnstile';
 
 export async function POST(request: Request) {
   // VULN-30: Validación estricta de origen permitido (CORS/CSRF prevention)
@@ -20,6 +21,12 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json().catch(() => ({}));
+    if (body.turnstileToken || process.env.TURNSTILE_ENFORCE_CHECKOUT === 'true') {
+      const turnstileOk = await verifyTurnstileToken(body.turnstileToken, ip);
+      if (!turnstileOk) {
+        return NextResponse.json({ error: 'Verificación anti-bot fallida. Recarga e inténtalo de nuevo.' }, { status: 400 });
+      }
+    }
     const { company_name, company_email, plan = 'newsletter_sponsorship', privacy_accepted } = body;
 
     if (!company_name || !company_email) {

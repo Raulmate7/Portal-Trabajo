@@ -17,9 +17,9 @@ export default function StickyDesktopAd() {
         const saved = localStorage.getItem('cookies_consent');
         if (saved) {
           const parsed = JSON.parse(saved);
-          return parsed.advertising === true;
+          return parsed?.advertising === true;
         }
-        return localStorage.getItem('cookies_accepted') === 'true';
+        return false;
       } catch {
         return false;
       }

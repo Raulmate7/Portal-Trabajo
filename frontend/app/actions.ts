@@ -6,6 +6,8 @@ import { cookies, headers } from 'next/headers';
 import crypto from 'crypto';
 import { encryptReferralCode } from '@/lib/referral';
 import { isSafePublicUrl } from '@/lib/urlSafety';
+import { isSafePublicUrlWithDns } from '@/lib/urlSafetyServer';
+import { hashClientIp } from '@/lib/ipHash';
 import { RateLimiter } from '@/lib/rate-limit';
 import { verifyTurnstileToken } from '@/lib/turnstile';
 import { z } from 'zod';
@@ -355,12 +357,27 @@ export async function subscribeUser(formData: FormData) {
     return { message: 'Estás haciendo demasiadas peticiones. Espera un momento.', success: false };
   }
 
-  // RGPD Art. 7.1: Trazabilidad probatoria del consentimiento expreso
-  const consentIpHash = crypto.createHash('sha256').update(clientIp + (process.env.APP_SECRET || 'consent_salt_v1')).digest('hex');
+  // RGPD Art. 7.1: Trazabilidad probatoria del consentimiento expreso (SEC-013)
+  const consentIpHash = hashClientIp(clientIp);
   const consentPolicyVersion = 'v2026.11';
 
   const client = await pool.connect();
   try {
+    // LEG-007: Comprobar lista de supresión RGPD antes de procesar el alta
+    const emailHash = crypto.createHash('sha256').update(email).digest('hex');
+    try {
+      const supRes = await client.query(
+        'SELECT 1 FROM email_suppression_list WHERE email_hash = $1 LIMIT 1',
+        [emailHash]
+      );
+      if (supRes.rows && supRes.rows.length > 0) {
+        return {
+          message: '¡Gracias por suscribirte! Si tu correo es válido, recibirás nuestras alertas de empleo en tu bandeja de entrada. 🚀',
+          success: true,
+        };
+      }
+    } catch {}
+
     // 1. Comprobar si el suscriptor ya existe para evitar que terceros sobreescriban sus preferencias sin autenticación
     const checkRes = await client.query(
       "SELECT id FROM subscribers WHERE email = $1 LIMIT 1",
@@ -376,30 +393,45 @@ export async function subscribeUser(formData: FormData) {
       };
     }
 
-    // 2. Si es nuevo, insertar limpiamente con trazabilidad de consentimiento
+    // 2. LEG-002 & LEG-003: Insertar con trazabilidad RGPD obligatoria y soporte Double Opt-In unificado con /api/subscribe
     const jsonVal = JSON.stringify({ keywords: techKeywords.split(',').map((s: string) => s.trim()).filter(Boolean), operator });
-    
+    const requireDoubleOptIn = process.env.DOUBLE_OPT_IN_REQUIRED === 'true';
+    const secret = process.env.UNSUBSCRIBE_SECRET || process.env.CRON_SECRET || process.env.APP_SECRET || '';
+    const optInToken = requireDoubleOptIn && secret
+      ? crypto.createHmac('sha256', secret).update(`confirm:${email}`).digest('hex')
+      : null;
+    const initialActive = !requireDoubleOptIn;
+    const initialStatus = requireDoubleOptIn ? 'pending_confirmation' : 'active';
+
+    await client.query(
+      `INSERT INTO subscribers (email, tech_keywords, location_pref, frequency, referred_by, is_active, status, created_at, tech_keywords_json, consent_timestamp, consent_ip_hash, consent_policy_version, marketing_accepted)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8, NOW(), $9, $10, $11)`,
+      [email, techKeywords, locationPref, frequency, referredBy, initialActive, initialStatus, jsonVal, consentIpHash, consentPolicyVersion, marketingAccepted]
+    );
+
     try {
       await client.query(
-        `INSERT INTO subscribers (email, tech_keywords, location_pref, frequency, referred_by, created_at, tech_keywords_json, consent_timestamp, consent_ip_hash, consent_policy_version, marketing_accepted)
-         VALUES ($1, $2, $3, $4, $5, NOW(), $6, NOW(), $7, $8, $9)`,
-        [email, techKeywords, locationPref, frequency, referredBy, jsonVal, consentIpHash, consentPolicyVersion, marketingAccepted]
+        'INSERT INTO consent_audit_log (email_hash, action, policy_version, marketing_accepted, ip_hash, created_at) VALUES ($1, $2, $3, $4, $5, NOW())',
+        [emailHash, requireDoubleOptIn ? 'subscribe_pending_doi' : 'subscribe_active', consentPolicyVersion, marketingAccepted, consentIpHash]
       );
-    } catch (insertErr: any) {
-      // Fallback si la tabla no tiene aún las columnas de trazabilidad o tech_keywords_json
-      try {
-        await client.query(
-          `INSERT INTO subscribers (email, tech_keywords, location_pref, frequency, referred_by, created_at, tech_keywords_json)
-           VALUES ($1, $2, $3, $4, $5, NOW(), $6)`,
-          [email, techKeywords, locationPref, frequency, referredBy, jsonVal]
-        );
-      } catch (innerErr: any) {
-        await client.query(
-          `INSERT INTO subscribers (email, tech_keywords, location_pref, frequency, referred_by, created_at)
-           VALUES ($1, $2, $3, $4, $5, NOW())`,
-          [email, techKeywords, locationPref, frequency, referredBy]
-        );
-      }
+    } catch {}
+
+    if (requireDoubleOptIn && optInToken && process.env.RESEND_API_KEY) {
+      const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://portalempleoit.com').replace(/\/+$/, '');
+      const confirmUrl = `${baseUrl}/api/subscribe/confirm?email=${encodeURIComponent(email)}&token=${optInToken}`;
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: process.env.RESEND_FROM_EMAIL || 'Portal Trabajo IT <contacto@portalempleoit.com>',
+          to: [email],
+          subject: 'Confirma tu suscripción a las alertas de Portal Trabajo IT',
+          html: `<p>Haz clic en el siguiente enlace para confirmar tu correo y activar tus alertas de empleo:</p><p><a href="${confirmUrl}">Confirmar mi suscripción</a></p>`,
+        }),
+      }).catch(() => {});
     }
 
     revalidatePath(pathname);
@@ -450,8 +482,8 @@ export async function submitPremiumLead(formData: FormData) {
     return { message: 'Estás enviando demasiadas solicitudes. Espera un minuto.', success: false };
   }
 
-  // RGPD Art. 7.1: Trazabilidad probatoria del consentimiento expreso
-  const consentIpHash = crypto.createHash('sha256').update(clientIp + (process.env.APP_SECRET || 'consent_salt_v1')).digest('hex');
+  // RGPD Art. 7.1: Trazabilidad probatoria del consentimiento expreso (SEC-013)
+  const consentIpHash = hashClientIp(clientIp);
   const consentPolicyVersion = 'v2026.11';
 
   const client = await pool.connect();
@@ -536,7 +568,7 @@ const sponsoredJobSchema = z.object({
   company_phone: z.string().trim().max(30, 'El teléfono excede el máximo de 30 caracteres.').nullable(),
   job_title: z.string().trim().min(3, 'El título del puesto debe tener al menos 3 caracteres.').max(150, 'El título del puesto excede el máximo de 150 caracteres.'),
   job_location: z.string().trim().min(2, 'La ubicación debe tener al menos 2 caracteres.').max(120, 'La ubicación excede el máximo de 120 caracteres.'),
-  job_salary: z.string().trim().max(80, 'El salario excede el máximo de 80 caracteres.').nullable(),
+  job_salary: z.string().trim().min(3, 'Debes indicar la banda salarial o retribución inicial (Directiva UE 2023/970).').max(80, 'El salario excede el máximo de 80 caracteres.'),
   salary_min: z.coerce.number().int().min(0).max(1000000).optional().nullable(),
   salary_max: z.coerce.number().int().min(0).max(1000000).optional().nullable(),
   job_description: z.string().trim().min(20, 'La descripción de la oferta debe tener al menos 20 caracteres.').max(15000, 'La descripción excede el máximo de 15.000 caracteres.'),
@@ -597,8 +629,19 @@ export async function submitSponsoredJob(formData: FormData) {
     plan,
   } = parsed.data;
 
-  if (!isSafePublicUrl(cleanJobUrl)) {
+  if (!(await isSafePublicUrlWithDns(cleanJobUrl))) {
     return { message: 'La URL de la oferta no es válida o apunta a una dirección interna o no permitida.', success: false };
+  }
+
+  // LEG-032: Detección preventiva de términos discriminatorios (Ley 15/2022 y Art. 17.1 ET)
+  const combinedOfferText = `${job_title} ${job_description || ''}`;
+  const discriminatoryRegex = /\b(menor\s+de\s+\d{2}\s+a[ñn]os|edad\s+m[aá]xima|entre\s+\d{2}\s+y\s+\d{2}\s+a[ñn]os|reci[eé]n\s+titulado\s+joven|solo\s+(hombres|mujeres|varones|chicas)|imprescindible\s+buena\s+presencia|nacionalidad\s+espa[ñn]ola\s+exclusiva)\b/i;
+  if (discriminatoryRegex.test(combinedOfferText)) {
+    return {
+      message:
+        'La oferta contiene términos potencialmente discriminatorios por edad, género o condición personal (Ley 15/2022 y Art. 17 ET). Por favor, revisa el texto antes de enviarla.',
+      success: false,
+    };
   }
 
   const clientIp = await getActionClientIp();
@@ -907,6 +950,19 @@ export async function reportCompanyReview(formData: FormData) {
 
   if (explanation.length < 15 || explanation.length > 2000) {
     return { message: 'La explicación motivada debe contener entre 15 y 2000 caracteres describiendo por qué consideras que el contenido es ilícito.', success: false };
+  }
+
+  if (!(await verifyCsrfOrigin())) {
+    return { message: 'Petición rechazada por política de seguridad de origen (CSRF).', success: false };
+  }
+
+  const clientIp = await getActionClientIp();
+  const turnstileOk = await verifyTurnstileToken(
+    (formData.get('turnstileToken') || formData.get('cf-turnstile-response')) as string | null,
+    clientIp
+  );
+  if (!turnstileOk) {
+    return { message: 'Verificación anti-bot inválida o ausente.', success: false };
   }
 
   if (!(await checkRateLimit(`report_review_${reporterEmail}`, 30000))) {

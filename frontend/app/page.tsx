@@ -227,9 +227,10 @@ export default async function Home({ searchParams }: Props) {
 
   const page = typeof resolvedParams.page === 'string' ? parseInt(resolvedParams.page, 10) : 1;
   const validPage = isNaN(page) || page < 1 ? 1 : page;
+  const reqHeaders = await headers();
+  const nonce = reqHeaders.get('x-nonce') || undefined;
   let lang: 'es' | 'en' = resolvedParams.lang === 'en' ? 'en' : resolvedParams.lang === 'es' ? 'es' : 'es';
   if (resolvedParams.lang !== 'en' && resolvedParams.lang !== 'es') {
-    const reqHeaders = await headers();
     const acceptLang = (reqHeaders.get('accept-language') || '').toLowerCase();
     if (acceptLang.split(',')[0]?.trim().startsWith('en')) {
       lang = 'en';
@@ -332,14 +333,17 @@ export default async function Home({ searchParams }: Props) {
   return (
     <main className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)]">
       <script
+        nonce={nonce}
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLdString(websiteJsonLd) }}
       />
       <script
+        nonce={nonce}
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLdString(organizationJsonLd) }}
       />
       <script
+        nonce={nonce}
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLdString(faqJsonLd) }}
       />
@@ -565,6 +569,15 @@ export default async function Home({ searchParams }: Props) {
 
         </div>
       </div>
+
+      {/* Paginación HTML progresiva para rastreadores y navegación sin JS (SEO-042) */}
+      {totalJobs > validPage * 20 && (
+        <nav aria-label={isEnglish ? 'Pagination' : 'Paginación'} className="sr-only">
+          <Link href={`/?page=${validPage + 1}${isEnglish ? '&lang=en' : ''}`}>
+            {isEnglish ? `Next page (${validPage + 1})` : `Página siguiente (${validPage + 1})`}
+          </Link>
+        </nav>
+      )}
 
       {/* SECCIÓN EDITORIAL INFERIOR E-E-A-T */}
       <div className="bg-[var(--bg-surface)] border-t border-[var(--border-subtle)] mt-12 py-14">

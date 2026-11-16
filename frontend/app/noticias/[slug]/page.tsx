@@ -29,11 +29,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `${post.title} | Noticias Portal Empleo IT`,
     description: post.excerpt,
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
+    },
     alternates: {
       canonical: `${BASE_URL}/noticias/${resolvedParams.slug}`,
       languages: {
         'es-ES': `${BASE_URL}/noticias/${resolvedParams.slug}`,
-        'en': `${BASE_URL}/noticias/${resolvedParams.slug}?lang=en`,
         'x-default': `${BASE_URL}/noticias/${resolvedParams.slug}`,
       }
     },
@@ -45,7 +54,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       authors: [post.author],
       images: [
         {
-          url: `${BASE_URL}/blog/${resolvedParams.slug}/opengraph-image`,
+          url: `${BASE_URL}/noticias/${resolvedParams.slug}/opengraph-image`,
           width: 1200,
           height: 630,
           alt: post.title,
@@ -56,7 +65,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       card: 'summary_large_image',
       title: post.title,
       description: post.excerpt,
-      images: [`${BASE_URL}/blog/${resolvedParams.slug}/opengraph-image`],
+      images: [`${BASE_URL}/noticias/${resolvedParams.slug}/opengraph-image`],
     },
   };
 }
@@ -85,11 +94,14 @@ function extractFaqsFromContent(content: string): any {
       : content.length;
       
     const answerMarkdown = content.substring(startIndex, endPosition).trim();
-    const cleanAnswer = answerMarkdown
+    const rawClean = answerMarkdown
       .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
-      .replace(/[\*\_`#]/g, '')
+      .replace(/(\*\*|__|~~|`|^#{1,6}\s*)/gm, '')
       .replace(/\n+/g, ' ')
-      .substring(0, 300) + '...';
+      .trim();
+    const cleanAnswer = rawClean.length > 300
+      ? rawClean.slice(0, 300).replace(/\s+\S*$/, '') + '...'
+      : rawClean;
       
     faqs.push({
       '@type': 'Question',
@@ -220,6 +232,9 @@ export default async function NewsDetailPage({ params }: Props) {
                     <span>⏱️</span> {Math.max(1, Math.ceil(post.content.split(/\s+/).length / 220))} min de lectura
                   </span>
                 </div>
+                <p className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-medium text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-md">
+                  🤖 Transparencia IA (Reglamento UE 2024/1689 Art. 50): Contenido elaborado con asistencia de IA bajo supervisión editorial y datos agregados del portal.
+                </p>
               </header>
 
               {headings.length > 0 && (

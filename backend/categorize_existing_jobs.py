@@ -11,7 +11,9 @@ def migrate_categories():
         print("❌ Error: DATABASE_URL no definida en .env")
         return
         
-    print("🔌 Conectando a PostgreSQL...")
+    print("🔌 Conectando a MySQL/BD...")
+    conn = None
+    cur = None
     try:
         conn = psycopg2.connect(db_url)
         cur = conn.cursor()
@@ -55,14 +57,28 @@ def migrate_categories():
         print("📊 Estadísticas de reclasificación:")
         total_migrated = sum(updated_counts.values())
         for cat, count in sorted(updated_counts.items(), key=lambda x: x[1], reverse=True):
-            pct = (count / total_jobs) * 100
+            pct = (count / total_jobs) * 100 if total_jobs else 0
             print(f" - {cat}: {count} ofertas ({pct:.2f}%)")
             
         print(f" - Sin cambios (quedan en 'Otros'): {total_jobs - total_migrated} ofertas")
-        
-        conn.close()
     except Exception as e:
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
         print(f"❌ Error durante la migración: {e}")
+    finally:
+        if cur is not None:
+            try:
+                cur.close()
+            except Exception:
+                pass
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 if __name__ == "__main__":
     migrate_categories()

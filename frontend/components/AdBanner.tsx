@@ -247,9 +247,9 @@ export default function AdBanner({
         const saved = localStorage.getItem('cookies_consent');
         if (saved) {
           const parsed = JSON.parse(saved);
-          return !!parsed.advertising;
+          return parsed?.advertising === true;
         }
-        return localStorage.getItem('cookies_accepted') === 'true';
+        return false;
       } catch {
         return false;
       }

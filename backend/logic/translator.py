@@ -1,13 +1,16 @@
 import concurrent.futures
 import re
+import threading
 import time
 from deep_translator import GoogleTranslator
 
 _CONSECUTIVE_FAILURES = 0
 _CIRCUIT_OPEN_UNTIL = 0.0
+_CB_LOCK = threading.Lock()
 _MAX_FAILURES = 3
 _COOLDOWN_SECONDS = 300
 _TRANSLATE_TIMEOUT_SECONDS = 8.0
+_TRANSLATE_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=2)
 _HTML_OR_BLOCK_MARKERS = ("<html", "<!doctype", "<script", "captcha", "too many requests", "429 error")
 
 
@@ -33,9 +36,9 @@ def translate_text(text: str, target_lang: str = 'es') -> str:
     if not text or not text.strip():
         return text
 
-    now = time.monotonic()
-    if now < _CIRCUIT_OPEN_UNTIL:
-        return text
+    with _CB_LOCK:
+        if time.monotonic() < _CIRCUIT_OPEN_UNTIL:
+            return text
 
     # Proteger marcas y términos técnicos IT para evitar traducciones literales incorrectas (SEO-040)
     protected_words = [
@@ -62,22 +65,28 @@ def translate_text(text: str, target_lang: str = 'es') -> str:
         temp_text = text
 
     try:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(GoogleTranslator(source='auto', target=target_lang).translate, temp_text)
-            translated = future.result(timeout=_TRANSLATE_TIMEOUT_SECONDS)
+        future = _TRANSLATE_EXECUTOR.submit(
+            GoogleTranslator(source='auto', target=target_lang).translate,
+            temp_text,
+        )
+        translated = future.result(timeout=_TRANSLATE_TIMEOUT_SECONDS)
 
         if _is_valid_translation(temp_text, translated):
-            _CONSECUTIVE_FAILURES = 0
+            with _CB_LOCK:
+                _CONSECUTIVE_FAILURES = 0
             for placeholder, original_word in replacements.items():
                 translated = re.sub(re.escape(placeholder), original_word, translated, flags=re.IGNORECASE)
             return translated
 
         raise ValueError("Respuesta de traducción inválida o sospechosa")
     except Exception as e:
-        _CONSECUTIVE_FAILURES += 1
-        if _CONSECUTIVE_FAILURES >= _MAX_FAILURES:
-            _CIRCUIT_OPEN_UNTIL = time.monotonic() + _COOLDOWN_SECONDS
-            print(f"⚠️ Circuit breaker de traducción abierto durante {_COOLDOWN_SECONDS}s tras {_CONSECUTIVE_FAILURES} fallos: {e}")
+        with _CB_LOCK:
+            _CONSECUTIVE_FAILURES += 1
+            failures = _CONSECUTIVE_FAILURES
+            if failures >= _MAX_FAILURES:
+                _CIRCUIT_OPEN_UNTIL = time.monotonic() + _COOLDOWN_SECONDS
+        if failures >= _MAX_FAILURES:
+            print(f"⚠️ Circuit breaker de traducción abierto durante {_COOLDOWN_SECONDS}s tras {failures} fallos: {e}")
         else:
             print(f"⚠️ Error en traducción automática con deep-translator: {e}")
 

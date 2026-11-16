@@ -43,11 +43,13 @@ export default function AISearchBar() {
     startTransition(() => {
       const qLower = q.toLowerCase();
 
-      // FUNC-009: Tabla declarativa ordenada por especificidad con límites de palabra (\b)
+      // BUG-039: Tabla declarativa ampliada ordenada por especificidad con límites de palabra (\b)
       const TECH_PATTERNS: Array<{ slug: string; regex: RegExp }> = [
         { slug: 'typescript', regex: /\btypescript\b/i },
-        { slug: 'javascript', regex: /\bjavascript\b/i },
+        { slug: 'javascript', regex: /\bjavascript\b|\bjs\b/i },
         { slug: 'kubernetes', regex: /\bkubernetes\b|\bk8s\b/i },
+        { slug: 'terraform', regex: /\bterraform\b/i },
+        { slug: 'nextjs', regex: /\bnext(?:\.?js)?\b/i },
         { slug: 'python', regex: /\bpython\b/i },
         { slug: 'devops', regex: /\bdevops\b|\bsre\b/i },
         { slug: 'angular', regex: /\bangular\b/i },
@@ -55,9 +57,18 @@ export default function AISearchBar() {
         { slug: 'node', regex: /\bnode(?:\.?js)?\b/i },
         { slug: 'java', regex: /\bjava\b/i },
         { slug: 'aws', regex: /\baws\b/i },
+        { slug: 'gcp', regex: /\bgcp\b|\bgoogle cloud\b/i },
         { slug: 'docker', regex: /\bdocker\b/i },
         { slug: 'vue', regex: /\bvue(?:\.?js)?\b/i },
         { slug: 'golang', regex: /\bgolang\b|\bgo\b/i },
+        { slug: 'rust', regex: /\brust\b/i },
+        { slug: 'php', regex: /\bphp\b/i },
+        { slug: 'ruby', regex: /\bruby\b/i },
+        { slug: 'kotlin', regex: /\bkotlin\b/i },
+        { slug: 'swift', regex: /\bswift\b/i },
+        { slug: 'graphql', regex: /\bgraphql\b/i },
+        { slug: 'qa', regex: /\bqa\b|\btesting\b/i },
+        { slug: 'sql', regex: /\bsql\b/i },
       ];
 
       const CITY_PATTERNS: Array<{ slug: string; regex: RegExp }> = [
@@ -67,26 +78,43 @@ export default function AISearchBar() {
         { slug: 'sevilla', regex: /\bsevilla\b/i },
         { slug: 'bilbao', regex: /\bbilbao\b/i },
         { slug: 'malaga', regex: /\bm[aá]laga\b/i },
+        { slug: 'zaragoza', regex: /\bzaragoza\b/i },
+        { slug: 'alicante', regex: /\balicante\b/i },
+        { slug: 'murcia', regex: /\bmurcia\b/i },
+        { slug: 'valladolid', regex: /\bvalladolid\b/i },
+        { slug: 'granada', regex: /\bgranada\b/i },
         { slug: 'remoto', regex: /\bremoto\b|\bteletrabajo\b|\bremote\b/i },
       ];
 
-      const tech = TECH_PATTERNS.find((t) => t.regex.test(qLower))?.slug || '';
-      const city = CITY_PATTERNS.find((c) => c.regex.test(qLower))?.slug || '';
+      const techMatch = TECH_PATTERNS.find((t) => t.regex.test(qLower));
+      const cityMatch = CITY_PATTERNS.find((c) => c.regex.test(qLower));
+      const tech = techMatch?.slug || '';
+      const city = cityMatch?.slug || '';
 
       let salary = '';
       if (/\b(50k|50\.000)\b/i.test(qLower)) salary = 'salario-mas-de-50k';
       else if (/\b(40k|40\.000)\b/i.test(qLower)) salary = 'salario-mas-de-40k';
       else if (/\b(30k|30\.000)\b/i.test(qLower)) salary = 'salario-mas-de-30k';
 
+      // Verificar si quedan términos libres no cubiertos por la taxonomía programática -> fallback a búsqueda paramétrica /?q=...
+      let residual = qLower;
+      if (techMatch) residual = residual.replace(techMatch.regex, ' ');
+      if (cityMatch) residual = residual.replace(cityMatch.regex, ' ');
+      residual = residual
+        .replace(/\b(50k|50\.000|40k|40\.000|30k|30\.000)\b/gi, ' ')
+        .replace(/\b(en|de|con|mas|más|salario|trabajo|empleo|ofertas|desarrollador|developer|programador)\b/gi, ' ')
+        .replace(/[^a-z0-9áéíóúüñ]+/gi, ' ')
+        .trim();
+
       let targetPath = `/?q=${encodeURIComponent(q)}`;
-      if (tech) {
+      if (!residual && tech) {
         const parts = [tech];
         if (salary) parts.push(salary);
         if (city) {
           parts.push(city === 'remoto' ? 'remoto' : `en-${city}`);
         }
         targetPath = `/trabajos/${parts.join('-')}`;
-      } else if (city) {
+      } else if (!residual && city) {
         targetPath = city === 'remoto' ? '/trabajo-remoto' : `/trabajo-${city}`;
       }
 

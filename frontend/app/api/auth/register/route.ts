@@ -4,6 +4,7 @@ import { z } from 'zod';
 import pool from '@/lib/db';
 import { getClientIp, userRegisterLimiter } from '@/lib/rate-limit';
 import { verifyTurnstileToken } from '@/lib/turnstile';
+import { hashClientIp } from '@/lib/ipHash';
 import {
   createAndPersistUserSession,
   ensureUserAuthTables,
@@ -83,8 +84,8 @@ export async function POST(request: NextRequest) {
 
       const passwordHash = await hashPassword(data.password);
       const userUuid = crypto.randomUUID();
-      const ipSalt = process.env.APP_SECRET || 'consent_salt_v1';
-      const consentIpHash = crypto.createHash('sha256').update(`${clientIp}:${ipSalt}`).digest('hex');
+      const consentIpHash = hashClientIp(clientIp);
+      const emailHash = crypto.createHash('sha256').update(cleanEmail).digest('hex');
 
       const insertRes = await client.query(
         `INSERT INTO users (
@@ -113,6 +114,13 @@ export async function POST(request: NextRequest) {
         locationPref: data.locationPref,
         frequency: data.frequency,
       });
+
+      try {
+        await client.query(
+          'INSERT INTO consent_audit_log (email_hash, action, policy_version, marketing_accepted, ip_hash, created_at) VALUES ($1, $2, $3, $4, $5, NOW())',
+          [emailHash, 'register_account', 'v2026.11', data.wantsEmails, consentIpHash]
+        );
+      } catch {}
 
       const session = await createAndPersistUserSession({
         userId,

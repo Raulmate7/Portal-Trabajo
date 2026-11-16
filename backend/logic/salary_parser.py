@@ -44,19 +44,42 @@ def parse_salary(salary_str: str):
             return None, None, currency
 
         is_hourly = any(x in clean_str for x in ['/h', 'por hora', 'per hour', 'hourly', '/hora'])
-        is_monthly = (not is_hourly) and (
+        is_daily = (not is_hourly) and any(
+            x in clean_str for x in ['/día', '/dia', '/day', 'daily', 'por día', 'por dia', 'al día', 'al dia']
+        )
+        is_monthly = (not is_hourly) and (not is_daily) and (
             any(x in clean_str for x in ['mes', 'mensual', 'month', 'monthly', '/m'])
             or (numbers[0] > 0 and numbers[0] < 6000)
         )
 
         if is_hourly:
             multiplier = 1760
+        elif is_daily:
+            multiplier = 220
         elif is_monthly:
             multiplier = 12
         else:
             multiplier = 1
 
-        if len(numbers) >= 2:
+        # Si hay rango explícito "X - Y" / "X a Y", priorizarlo antes que capturar bonos secundarios (BUG-064)
+        range_match = re.search(
+            r'(\d[\d.,]*\s*k?)\s*(?:-|–|—|\ba\b|\bto\b)\s*(\d[\d.,]*\s*k?)',
+            clean_str,
+            re.IGNORECASE,
+        )
+        if range_match:
+            range_nums = _normalize_numeric_tokens(f"{range_match.group(1)} {range_match.group(2)}")
+            if len(range_nums) >= 2:
+                val_min = min(range_nums[0], range_nums[1]) * multiplier
+                val_max = max(range_nums[0], range_nums[1]) * multiplier
+            else:
+                val_min = numbers[0] * multiplier
+                val_max = val_min
+        elif '+' in clean_str and len(numbers) >= 2 and numbers[1] < numbers[0] * 0.5:
+            # Ej: "2.400 €/mes + 300 € ticket restaurante": usar el salario base principal
+            val_min = numbers[0] * multiplier
+            val_max = val_min
+        elif len(numbers) >= 2:
             val_min = min(numbers[0], numbers[1]) * multiplier
             val_max = max(numbers[0], numbers[1]) * multiplier
         else:

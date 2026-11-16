@@ -106,6 +106,10 @@ export async function generateRemoteCountryMetadata(
   const metadata: Metadata = {
     title,
     description,
+    robots: {
+      index: !isPaged && stats.total >= 5,
+      follow: true,
+    },
     alternates: {
       canonical: canonicalUrl,
       languages: {

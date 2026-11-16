@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export interface PendingJobItem {
-  id: number;
+  id: string;
   title: string;
   company: string;
   location: string | null;
@@ -16,13 +16,40 @@ export interface PendingJobItem {
 
 export default function PendingJobsModeration({
   initialJobs,
+  initialTotal,
 }: {
   initialJobs: PendingJobItem[];
+  initialTotal?: number;
 }) {
   const router = useRouter();
   const [jobs, setJobs] = useState<PendingJobItem[]>(initialJobs);
-  const [busyId, setBusyId] = useState<number | null>(null);
+  const [total, setTotal] = useState<number>(initialTotal ?? initialJobs.length);
+  const [page, setPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(Math.max(1, Math.ceil((initialTotal ?? initialJobs.length) / 50)));
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [loadingList, setLoadingList] = useState<boolean>(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string>('');
+
+  const fetchPage = async (nextPage: number, q: string) => {
+    setLoadingList(true);
+    setError('');
+    try {
+      const params = new URLSearchParams({ page: String(nextPage), limit: '50' });
+      if (q.trim()) params.set('q', q.trim());
+      const res = await fetch(`/api/admin/jobs?${params.toString()}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error cargando ofertas pendientes');
+      setJobs(data.jobs || []);
+      setTotal(data.total ?? 0);
+      setPage(data.page ?? nextPage);
+      setTotalPages(data.totalPages ?? 1);
+    } catch (err: any) {
+      setError(err.message || 'Error al cargar la lista');
+    } finally {
+      setLoadingList(false);
+    }
+  };
 
   const handleAction = async (job: PendingJobItem, action: 'approve' | 'reject') => {
     setBusyId(job.id);
@@ -53,15 +80,37 @@ export default function PendingJobsModeration({
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-amber-300/70 dark:border-amber-700/50 shadow-sm overflow-hidden">
-      <div className="p-5 border-b border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+      <div className="p-5 border-b border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <span>🛡️</span> Ofertas Pendientes de Validación ({jobs.length})
+            <span>🛡️</span> Ofertas Pendientes de Validación ({total})
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Las ofertas enviadas desde /publicar-oferta permanecen ocultas hasta que las apruebes.
           </p>
         </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            fetchPage(1, searchQuery);
+          }}
+          className="flex items-center gap-2"
+        >
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar título o empresa..."
+            className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+          />
+          <button
+            type="submit"
+            disabled={loadingList}
+            className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold disabled:opacity-50 cursor-pointer"
+          >
+            {loadingList ? '...' : 'Buscar'}
+          </button>
+        </form>
       </div>
 
       {error && (
@@ -145,6 +194,31 @@ export default function PendingJobsModeration({
               </div>
             );
           })}
+        </div>
+      )}
+      {totalPages > 1 && (
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs">
+          <span className="text-slate-500">
+            Página {page} de {totalPages} ({total} resultados)
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={loadingList || page <= 1}
+              onClick={() => fetchPage(page - 1, searchQuery)}
+              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-40 cursor-pointer"
+            >
+              ← Anterior
+            </button>
+            <button
+              type="button"
+              disabled={loadingList || page >= totalPages}
+              onClick={() => fetchPage(page + 1, searchQuery)}
+              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-40 cursor-pointer"
+            >
+              Siguiente →
+            </button>
+          </div>
         </div>
       )}
     </div>

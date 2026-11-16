@@ -87,7 +87,8 @@ export async function POST(req: NextRequest) {
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (error: any) {
-    return new Response(JSON.stringify({ success: false, message: error.message || "Error procesando petición" }), {
+    console.error('❌ Error interno en /api/index-job:', error);
+    return new Response(JSON.stringify({ success: false, message: "Error interno al procesar la solicitud de indexación" }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     });

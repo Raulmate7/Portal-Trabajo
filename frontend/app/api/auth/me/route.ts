@@ -252,9 +252,10 @@ export async function DELETE(request: NextRequest) {
     }
 
     const emailHash = crypto.createHash('sha256').update(user.email).digest('hex');
-    const ipSalt = process.env.APP_SECRET || 'consent_salt_v1';
-    const ipHash = crypto.createHash('sha256').update(`${clientIp}:${ipSalt}`).digest('hex');
+    const { hashClientIp } = await import('@/lib/ipHash');
+    const ipHash = hashClientIp(clientIp);
 
+    await client.query('START TRANSACTION');
     await client.query('DELETE FROM user_sessions WHERE user_id = $1', [user.id]);
     await client.query('DELETE FROM user_password_resets WHERE user_id = $1', [user.id]);
     await client.query('DELETE FROM user_saved_jobs WHERE user_id = $1', [user.id]);
@@ -270,6 +271,7 @@ export async function DELETE(request: NextRequest) {
       [emailHash, ipHash]
     );
     await client.query('DELETE FROM users WHERE id = $1', [user.id]);
+    await client.query('COMMIT');
 
     const response = NextResponse.json({
       success: true,
@@ -284,6 +286,7 @@ export async function DELETE(request: NextRequest) {
     });
     return response;
   } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
     console.error('Error en DELETE /api/auth/me:', error);
     return NextResponse.json(
       { success: false, error: 'Error interno al eliminar la cuenta.' },

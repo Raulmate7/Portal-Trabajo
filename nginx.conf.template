@@ -72,6 +72,11 @@ server {
     ssl_certificate /etc/letsencrypt/live/portalempleoit.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/portalempleoit.com/privkey.pem;
 
+    # SEC-007: Defensa de origen Cloudflare Authenticated Origin Pulls (activar tras subir origin-pull-ca.pem)
+    # ssl_client_certificate /etc/nginx/certs/cloudflare-origin-pull-ca.pem;
+    # ssl_verify_client on;
+    # Nota: sincronizar rangos Cloudflare periódicamente en /etc/nginx/cloudflare_ips.conf y bloquear puertos 80/443 en firewall salvo rangos Cloudflare.
+
     # Deshabilitar emisión de versión de Nginx para evitar fingerprinting de servidor (Vector 32)
     server_tokens off;
 
@@ -126,9 +131,49 @@ server {
         return 404;
     }
 
-    # Rate limiting estricto para autenticación admin (SEC-060)
+    # Rate limiting estricto para autenticación admin y endpoints sensibles (SEC-006, SEC-060)
     location = /api/admin/auth {
         limit_req zone=auth_limit burst=3 nodelay;
+        client_max_body_size 16k;
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_hide_header X-Powered-By;
+        proxy_set_header CF-Connecting-IP $remote_addr;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location ^~ /api/auth/ {
+        limit_req zone=auth_limit burst=5 nodelay;
+        client_max_body_size 32k;
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_hide_header X-Powered-By;
+        proxy_set_header CF-Connecting-IP $remote_addr;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location ^~ /api/checkout/ {
+        limit_req zone=auth_limit burst=5 nodelay;
+        client_max_body_size 64k;
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_hide_header X-Powered-By;
+        proxy_set_header CF-Connecting-IP $remote_addr;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location ~ ^/api/(subscribe|unsubscribe)$ {
+        limit_req zone=auth_limit burst=5 nodelay;
+        client_max_body_size 16k;
         proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
@@ -157,6 +202,17 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # SEC-058: Rate limiting sobre endpoints dinámicos de OpenGraph (Satori)
+    location ~* /opengraph-image {
+        limit_req zone=api_limit burst=10 nodelay;
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_hide_header X-Powered-By;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
     }
 
     # Configuración del proxy inverso para Next.js (Páginas y navegación general)

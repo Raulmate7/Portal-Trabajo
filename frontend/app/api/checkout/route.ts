@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { checkoutLimiter, getClientIp } from '@/lib/rate-limit';
 import { BASE_URL } from '@/lib/constants';
 import { isSafePublicUrl, isValidApiOrigin } from '@/lib/urlSafety';
+import { verifyTurnstileToken } from '@/lib/turnstile';
 import { JOB_PRICING_PLANS, VALID_JOB_PLAN_IDS } from '@/lib/pricingPlans';
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -23,6 +24,12 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json().catch(() => ({}));
+    if (body.turnstileToken || process.env.TURNSTILE_ENFORCE_CHECKOUT === 'true') {
+      const turnstileOk = await verifyTurnstileToken(body.turnstileToken, ip);
+      if (!turnstileOk) {
+        return NextResponse.json({ error: 'Verificación anti-bot fallida. Recarga e inténtalo de nuevo.' }, { status: 400 });
+      }
+    }
     const { title, company, company_email, company_phone, location, salary, description_snippet, url_source, category, plan = 'destacado_pro', affiliate_code } = body;
 
     if (!title || !company || !url_source) {
@@ -148,6 +155,7 @@ export async function POST(request: Request) {
         success_url: `${BASE_URL}/publicar-oferta?success=true&job_id=${jobId}`,
         cancel_url: `${BASE_URL}/publicar-oferta?canceled=true`,
         metadata: {
+          type: 'sponsored_job',
           jobId: String(jobId),
           plan: String(selectedPlan),
           affiliate_code: cleanAffiliateCode,

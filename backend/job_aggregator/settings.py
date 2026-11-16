@@ -19,7 +19,7 @@ NEWSPIDER_MODULE = "job_aggregator.spiders"
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-USER_AGENT = 'job_aggregator (+http://www.yourwebsite.com)' # Reemplazar con tu dominio
+USER_AGENT = 'PortalTrabajoITBot/1.0 (+https://portalempleoit.com/bot; bot@portalempleoit.com)'
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
@@ -71,16 +71,16 @@ ITEM_PIPELINES = {
    "job_aggregator.pipelines.PostgresPipeline": 300,
 }
 
-# Enable and configure the AutoThrottle extension (disabled by default)
+# Enable and configure the AutoThrottle extension
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
-# AUTOTHROTTLE_ENABLED = True
+AUTOTHROTTLE_ENABLED = True
 # The initial download delay
-# AUTOTHROTTLE_START_DELAY = 5
+AUTOTHROTTLE_START_DELAY = 5
 # The maximum download delay to be set in case of high latencies
-# AUTOTHROTTLE_MAX_DELAY = 60
+AUTOTHROTTLE_MAX_DELAY = 60
 # The average number of requests Scrapy should be sending in parallel to
 # each remote server
-# AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
+AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
 # Enable showing throttling stats for every response received:
 # AUTOTHROTTLE_DEBUG = False
 

@@ -32,14 +32,15 @@ def index_new_jobs():
 
     try:
         cur.execute("""
-            SELECT id, title, location, company
+            SELECT id, title, title_es, location, company
             FROM jobs
             WHERE is_active = TRUE
               AND (
                 created_at > %s
                 OR (google_indexed_at IS NULL AND created_at > %s)
               )
-            ORDER BY created_at DESC
+            ORDER BY is_featured DESC, (salary_min IS NOT NULL) DESC, created_at DESC
+            LIMIT 180
         """, (nine_hours_ago, forty_eight_hours_ago))
         jobs = cur.fetchall()
     except Exception as e:
@@ -64,8 +65,8 @@ def index_new_jobs():
     url_list = []
 
     for job in jobs:
-        job_id, title, location, company = job
-        job_url = f"{frontend_url}/job/{get_job_slug(job_id, title, location, company)}"
+        job_id, title, title_es, location, company = job
+        job_url = f"{frontend_url}/job/{get_job_slug(job_id, title, location=location, company=company, title_es=title_es)}"
         url_list.append(job_url)
         payload = {
             "url": job_url,
@@ -88,6 +89,10 @@ def index_new_jobs():
                     conn.commit()
                 except Exception as db_err:
                     print(f"⚠️ Error actualizando google_indexed_at para {job_id}: {db_err}")
+            elif response.status_code == 429:
+                error_count += 1
+                print(f"⛔ Google Indexing API devolvió 429 Quota Exceeded; deteniendo envíos a Google y continuando con IndexNow.")
+                break
             else:
                 error_count += 1
                 print(f"⚠️ Google Indexing falló para {job_url}: {response.status_code} - {response.text}")

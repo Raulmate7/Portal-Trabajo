@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import type Stripe from 'stripe';
 import stripe from '@/lib/stripe';
 import pool from '@/lib/db';
@@ -333,6 +334,11 @@ export async function POST(request: Request) {
               WHERE id = $1
             `;
             await client.query(query, [jobId, plan]);
+            try {
+              revalidateTag('jobs:list');
+              revalidateTag('salaries:stats');
+              revalidatePath('/');
+            } catch {}
             console.log(`✅ Oferta ID ${jobId} activada y destacada exitosamente por ${intervalDays} días con el Plan ${plan}.`);
           }
 
@@ -564,9 +570,7 @@ export async function POST(request: Request) {
       const client = await pool.connect();
       try {
         if (customerId) {
-          try {
-            await client.query("UPDATE subscribers SET is_premium = FALSE WHERE stripe_customer_id = $1", [customerId]);
-          } catch {}
+          await client.query("UPDATE subscribers SET is_premium = FALSE WHERE stripe_customer_id = $1", [customerId]);
         }
         if (customerEmail) {
           await client.query("UPDATE subscribers SET is_premium = FALSE WHERE email = $1", [customerEmail]);
@@ -615,17 +619,17 @@ export async function POST(request: Request) {
         }
       }
 
+      // SEC-029: Usar únicamente el correo verificado en sesión/metadata; nunca billing_details.email si ya hay customerId
       const targetEmail = (
         session?.customer_details?.email ||
         session?.metadata?.email ||
-        targetCharge.billing_details?.email ||
-        targetCharge.receipt_email ||
+        (!customerId ? (targetCharge.billing_details?.email || targetCharge.receipt_email) : '') ||
         ''
       ).toLowerCase().trim();
 
       const client = await pool.connect();
       try {
-        if (session?.metadata?.type === 'sponsored_job' && session.metadata?.jobId) {
+        if ((session?.metadata?.type === 'sponsored_job' || !session?.metadata?.type) && session?.metadata?.jobId) {
           await client.query("UPDATE jobs SET is_active = FALSE, is_featured = FALSE WHERE id = $1", [session.metadata.jobId]);
         } else if (session?.metadata?.type === 'newsletter_sponsor' && session.metadata?.sponsorId) {
           await client.query("UPDATE newsletter_sponsors SET status = $2 WHERE id = $1", [session.metadata.sponsorId, statusLabel]);
@@ -634,11 +638,9 @@ export async function POST(request: Request) {
         }
 
         if (customerId) {
-          try {
-            await client.query("UPDATE subscribers SET is_premium = FALSE WHERE stripe_customer_id = $1", [customerId]);
-          } catch {}
+          await client.query("UPDATE subscribers SET is_premium = FALSE WHERE stripe_customer_id = $1", [customerId]);
         }
-        if (targetEmail) {
+        if (targetEmail && !customerId) {
           await client.query("UPDATE subscribers SET is_premium = FALSE WHERE email = $1", [targetEmail]);
         }
         console.warn(`🚨 Privilegios revocados por ${event.type} (cliente: ${maskEmail(targetEmail)}, sesión: ${session?.id || 'n/a'}).`);

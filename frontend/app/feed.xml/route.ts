@@ -117,7 +117,7 @@ export async function GET(request: Request) {
     return new Response(rss, {
       headers: {
         'Content-Type': 'application/xml; charset=utf-8',
-        'Cache-Control': 'public, max-age=1800, s-maxage=1800',
+        'Cache-Control': 'public, max-age=900, s-maxage=900, stale-while-revalidate=3600',
       },
     });
   } catch (error) {

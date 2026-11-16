@@ -42,7 +42,7 @@ fi
 if [ -f "venv/bin/pip" ]; then
     echo "📥 Instalando pip y paquetes requeridos en venv..." >> "$LOG_FILE"
     venv/bin/pip install --upgrade pip >> "$LOG_FILE" 2>&1
-    venv/bin/pip install pymysql==1.1.1 cryptography==42.0.8 python-dotenv==1.0.1 >> "$LOG_FILE" 2>&1
+    venv/bin/pip install -r requirements.txt >> "$LOG_FILE" 2>&1
     PYTHON_EXEC="venv/bin/python"
 else
     echo "⚠️ venv/virtualenv no disponible. Intentando instalación con --user..." >> "$LOG_FILE"
@@ -58,7 +58,7 @@ else
     fi
     
     echo "Usando comando de pip: $PIP_CMD" >> "$LOG_FILE"
-    $PIP_CMD install --user pymysql==1.1.1 cryptography==42.0.8 python-dotenv==1.0.1 >> "$LOG_FILE" 2>&1
+    $PIP_CMD install --user -r requirements.txt >> "$LOG_FILE" 2>&1
 fi
 
 # 4. Ejecutar el script de migración leyendo desde JSON

@@ -3,7 +3,7 @@ import re
 import unicodedata
 
 COMPANY_SUFFIXES_RE = re.compile(
-    r'\b(s\.?l\.?u?\.?|s\.?a\.?|inc\.?|ltd\.?|llc|gmbh|corp\.?|technologies|technology|tech|spain|iberia)\b',
+    r'\b(s\.?l\.?u?\.?|s\.?a\.?|s\.?r\.?l\.?|s\.?a\.?s\.?|b\.?v\.?|inc\.?|ltd\.?|llc|gmbh|corp\.?|technologies|technology|tech|consultores|grupo|spain|espa[nñ]a|iberia)\b',
     re.IGNORECASE,
 )
 

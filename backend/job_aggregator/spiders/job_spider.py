@@ -17,9 +17,10 @@ class JobSpider(scrapy.Spider):
     }
 
     def start_requests(self):
-        # Vamos a por 5 páginas
+        import os
+        max_pages = max(1, min(20, int(os.getenv("TECNOEMPLEO_MAX_PAGES", "8"))))
         url_base = "https://www.tecnoempleo.com/ofertas-trabajo/informatica-telecomunicaciones"
-        for i in range(1, 6):
+        for i in range(1, max_pages + 1):
             url = f"{url_base}?pagina={i}"
             yield scrapy.Request(url=url, callback=self.parse)
 
@@ -27,7 +28,9 @@ class JobSpider(scrapy.Spider):
         # Buscamos las cajas de las ofertas
         enlaces_ofertas = response.css('h3 a') or response.css('h4 a')
         if not enlaces_ofertas:
-             enlaces_ofertas = response.css('a[href*="/ofertas-trabajo/"]:not([href*="busqueda"])')
+            enlaces_ofertas = response.css('a[href*="/ofertas-trabajo/"]:not([href*="busqueda"])')
+        if not enlaces_ofertas:
+            self.logger.warning(f"⚠️ Alerta DOM (FUNC-020): 0 ofertas detectadas en {response.url} (HTTP {response.status})")
 
         for link in enlaces_ofertas:
             title = link.css('::text').get()

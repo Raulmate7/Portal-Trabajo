@@ -110,6 +110,20 @@ export default async function InterviewTechPage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(faqSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(articleSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(howtoSchema) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: safeJsonLdString({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Inicio', item: BASE_URL },
+              { '@type': 'ListItem', position: 2, name: 'Entrevistas Técnicas', item: `${BASE_URL}/entrevistas` },
+              { '@type': 'ListItem', position: 3, name: item.name, item: `${BASE_URL}/entrevistas/${tech}` },
+            ],
+          }),
+        }}
+      />
 
       {/* Hero */}
       <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-900 text-white py-16 px-4 relative overflow-hidden">

@@ -97,11 +97,13 @@ export async function calculateSalaryStats(tech: string, location: string, exper
   const client = await pool.connect();
   try {
     let sql = `
-      SELECT salary, title
+      SELECT salary, salary_min, salary_max, salary_currency, title
       FROM jobs
-      WHERE salary IS NOT NULL 
-        AND salary != 'Consultar'
-        AND salary != ''
+      WHERE (
+        (salary IS NOT NULL AND salary != 'Consultar' AND salary != '')
+        OR salary_min IS NOT NULL
+        OR salary_max IS NOT NULL
+      )
     `;
     const params: any[] = [];
     let paramIndex = 1;
@@ -120,40 +122,70 @@ export async function calculateSalaryStats(tech: string, location: string, exper
 
     // Filtrar por experiencia si se especifica
     if (cleanExperience === 'junior') {
-      sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1})`;
-      params.push('%junior%', '%jr%');
-      paramIndex += 2;
+      sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1} OR title ILIKE $${paramIndex + 2})`;
+      params.push('%junior%', '%jr%', '%trainee%');
+      paramIndex += 3;
+    } else if (cleanExperience === 'mid') {
+      sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1} OR title ILIKE $${paramIndex + 2} OR title ILIKE $${paramIndex + 3})`;
+      params.push('%mid%', '%semi-senior%', '%semisenior%', '%intermediate%');
+      paramIndex += 4;
     } else if (cleanExperience === 'senior') {
-      sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1})`;
-      params.push('%senior%', '%sr%');
-      paramIndex += 2;
+      sql += ` AND (title ILIKE $${paramIndex} OR title ILIKE $${paramIndex + 1} OR title ILIKE $${paramIndex + 2})`;
+      params.push('%senior%', '%sr%', '%lead%');
+      paramIndex += 3;
     }
 
-    sql += ` LIMIT 500`;
+    sql += ` ORDER BY created_at DESC LIMIT 5000`;
 
     const result = await client.query(sql, params);
     const rows = result.rows;
 
-    // Procesar los salarios extraídos de texto libre
+    const FX_TO_EUR: Record<string, number> = { EUR: 1.0, USD: 0.92, GBP: 1.17 };
+
+    // Procesar salarios priorizando columnas normalizadas y fallback textual robusto (BUG-011)
     const salaries: number[] = [];
 
     for (const row of rows) {
-      const salaryStr = (row.salary || '').toString();
-      const cleanStr = salaryStr.replace(/\./g, '').replace(/,/g, '.').replace(/\s/g, '');
-      const numbers = cleanStr.match(/\d+(\.\d+)?/g);
-      if (!numbers || numbers.length === 0) continue;
-
-      const parsedNums = numbers.map((n: string) => parseFloat(n)).filter((n: number) => !isNaN(n));
+      const sMin = row.salary_min !== null && row.salary_min !== undefined ? Number(row.salary_min) : NaN;
+      const sMax = row.salary_max !== null && row.salary_max !== undefined ? Number(row.salary_max) : NaN;
+      const rowCurr = (row.salary_currency || 'EUR').toString().toUpperCase();
+      const rowRate = FX_TO_EUR[rowCurr] ?? 1.0;
 
       let val = 0;
-      if (parsedNums.length >= 2) {
-        val = (parsedNums[0] + parsedNums[1]) / 2;
-      } else if (parsedNums.length === 1) {
-        val = parsedNums[0];
-      }
+      if (!Number.isNaN(sMin) && sMin > 0 && !Number.isNaN(sMax) && sMax > 0) {
+        val = ((sMin + sMax) / 2) * rowRate;
+      } else if (!Number.isNaN(sMin) && sMin > 0) {
+        val = sMin * rowRate;
+      } else if (!Number.isNaN(sMax) && sMax > 0) {
+        val = sMax * rowRate;
+      } else {
+        const salaryStr = (row.salary || '').toString().toLowerCase();
+        let currency = 'EUR';
+        if (/(\$|usd|dólar|dolar|dollar)/.test(salaryStr)) currency = 'USD';
+        else if (/(£|gbp|libra|pound)/.test(salaryStr)) currency = 'GBP';
 
-      // Convertir mensual a anual si el valor parece mensual (< 5000)
-      if (val > 0 && val < 5000) val = val * 12;
+        let normalized = salaryStr.replace(/(\d+)[.,](\d{1,2})\s*k\b/g, (_: string, a: string, b: string) =>
+          String(Math.round(parseFloat(`${a}.${b}`) * 1000))
+        );
+        normalized = normalized.replace(/(\d+)\s*k\b/g, '$1000');
+        normalized = normalized.replace(/(?<=\d)[.,]\d{2}(?!\d)/g, '');
+        normalized = normalized.replace(/(?<=\d)[.,](?=\d{3}\b)/g, '');
+
+        const numbers = normalized.match(/\d+/g);
+        if (!numbers || numbers.length === 0) continue;
+
+        const parsedNums = numbers.map((n: string) => parseInt(n, 10)).filter((n: number) => !Number.isNaN(n) && n > 0);
+        if (parsedNums.length === 0) continue;
+
+        val = parsedNums.length >= 2 ? (parsedNums[0] + parsedNums[1]) / 2 : parsedNums[0];
+
+        const isHourly = /(\/h\b|por hora|per hour|hourly|\/hora)/.test(salaryStr);
+        const isMonthly = !isHourly && (/(mes|mensual|month|monthly|\/m\b)/.test(salaryStr) || (val > 0 && val < 6000));
+        if (isHourly) val = val * 1760;
+        else if (isMonthly) val = val * 12;
+
+        val = val * (FX_TO_EUR[currency] ?? 1.0);
+      }
 
       // Rango razonable de salarios IT en España (15k – 150k)
       if (val >= 15000 && val <= 150000) {

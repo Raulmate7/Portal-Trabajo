@@ -40,6 +40,7 @@ def refresh_old_articles():
             return
 
         today_str = datetime.now().strftime('%Y-%m-%d')
+        refreshed_slugs = []
         for post in old_posts:
             slug, title, old_date = post
             print(f"✏️ Revalidando fecha del artículo evergreen: '{title}' ({slug}) de {old_date} a {today_str}...")
@@ -49,11 +50,18 @@ def refresh_old_articles():
                 SET date = %s 
                 WHERE slug = %s
             """, (today_str, slug))
+            refreshed_slugs.append(slug)
             
         conn.commit()
         cur.close()
         conn.close()
         print("✅ Revalidación de artículos evergreen completada exitosamente.")
+
+        if refreshed_slugs:
+            frontend_url = os.getenv("FRONTEND_URL", "https://portalempleoit.com").rstrip("/")
+            from logic.indexnow import submit_urls_to_indexnow
+            urls = [f"{frontend_url}/blog/{s}" for s in refreshed_slugs]
+            submit_urls_to_indexnow(urls, frontend_url, timeout=10)
 
     except Exception as e:
         print(f"❌ Error durante la actualización de artículos evergreen: {e}")

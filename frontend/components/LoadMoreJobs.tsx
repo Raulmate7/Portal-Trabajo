@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import AdBanner from './AdBanner';
@@ -35,6 +35,8 @@ export default function LoadMoreJobs({ lang = 'es', initiallyHasMore }: LoadMore
   const [page, setPage] = useState(2);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(initiallyHasMore);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const q = searchParams.get('q') || '';
   const location = searchParams.get('location') || '';
@@ -54,6 +56,9 @@ export default function LoadMoreJobs({ lang = 'es', initiallyHasMore }: LoadMore
 
   const loadMore = useCallback(async () => {
     if (loading) return;
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     setLoading(true);
 
     try {
@@ -69,7 +74,9 @@ export default function LoadMoreJobs({ lang = 'es', initiallyHasMore }: LoadMore
       params.set('page', page.toString());
       if (lang === 'en') params.set('lang', 'en');
 
-      const response = await fetch(`/api/jobs?${params.toString()}`);
+      const response = await fetch(`/api/jobs?${params.toString()}`, {
+        signal: controller.signal,
+      });
       if (!response.ok) throw new Error('Failed to fetch jobs');
       
       const newJobs: Job[] = await response.json();
@@ -79,22 +86,40 @@ export default function LoadMoreJobs({ lang = 'es', initiallyHasMore }: LoadMore
       } else {
         setJobs((prev) => [...prev, ...newJobs]);
         setPage((prev) => prev + 1);
+        if (typeof window !== 'undefined') {
+          const nextUrl = new URL(window.location.href);
+          nextUrl.searchParams.set('page', String(page));
+          window.history.replaceState(null, '', nextUrl.toString());
+        }
         if (newJobs.length < 20) {
           setHasMore(false);
         }
       }
     } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return;
+      }
       console.error('Error loading more jobs:', error);
     } finally {
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
       setLoading(false);
     }
-  }, [loading, q, location, minSalary, modality, dateRange, experience, page, lang]);
+  }, [loading, q, location, minSalary, modality, dateRange, experience, withSalary, sort, page, lang]);
+
+  // Cancelar peticiones en vuelo si cambian filtros o al desmontar
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, [q, location, minSalary, modality, dateRange, experience, withSalary, sort, lang]);
 
   // Scroll infinito automático usando IntersectionObserver
   useEffect(() => {
     if (!hasMore || loading) return;
 
-    const sentinel = document.getElementById('infinite-scroll-sentinel');
+    const sentinel = sentinelRef.current;
     if (!sentinel) return;
 
     const observer = new IntersectionObserver(
@@ -137,7 +162,7 @@ export default function LoadMoreJobs({ lang = 'es', initiallyHasMore }: LoadMore
 
       {/* Centinela invisible para scroll infinito */}
       {hasMore && (
-        <div id="infinite-scroll-sentinel" className="h-1 w-full" />
+        <div ref={sentinelRef} id="infinite-scroll-sentinel" className="h-1 w-full" />
       )}
 
       {/* Skeleton Loading — se muestra mientras se carga la siguiente página */}

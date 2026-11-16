@@ -19,9 +19,14 @@ const jobSchema = z.object({
   company_phone: z.string().optional(),
   job_title: z.string().min(5, "El título debe tener al menos 5 caracteres"),
   job_location: z.string().min(2, "Especifica una ubicación"),
-  job_salary: z.string().optional(),
+  job_salary: z
+    .string()
+    .trim()
+    .min(3, "Indica la banda salarial o retribución inicial (Directiva UE 2023/970)")
+    .max(80, "El salario no puede superar los 80 caracteres")
+    .refine((val) => !/^\s*-\d/.test(val), "El salario no puede ser negativo"),
   job_description: z.string().min(50, "La descripción debe tener al menos 50 caracteres"),
-  job_url: z.string().url("Debe ser una URL válida (ej. https://...)")
+  job_url: z.string().url("Debe ser una URL válida (ej. https://...)").refine((u) => /^https?:\/\//i.test(u), "La URL debe comenzar por https:// o http://")
 });
 type JobFormValues = z.infer<typeof jobSchema>;
 
@@ -373,8 +378,8 @@ export default function PublishForm() {
               </div>
               <div>
                 <label htmlFor="job_salary" className="block text-sm font-medium text-gray-300 mb-1.5 flex items-center justify-between">
-                  <span>Rango salarial bruto anual</span>
-                  <span className="text-[10px] text-indigo-400 font-semibold bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-800/50">Recomendado (Directiva UE 2023/970)</span>
+                  <span>Rango salarial bruto anual *</span>
+                  <span className="text-[10px] text-indigo-400 font-semibold bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-800/50">Obligatorio (Directiva UE 2023/970)</span>
                 </label>
                 <input
                   id="job_salary"
@@ -384,6 +389,7 @@ export default function PublishForm() {
                   placeholder="Ej: 40.000€ - 55.000€"
                   className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all disabled:opacity-50"
                 />
+                {errors.job_salary && <p className="text-red-500 text-xs mt-1.5">{errors.job_salary.message}</p>}
               </div>
             </div>
 

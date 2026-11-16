@@ -4,6 +4,8 @@ import psycopg2
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from logic.classifier import classify_job
+from logic.dedup import compute_dedup_hash
+from logic.job_identity import new_job_id, infer_work_mode
 from logic.salary_parser import parse_salary, extract_salary_from_text
 from logic.scraper_http import ScraperHttpClient
 from logic.tdm import is_scraping_allowed, truncate_snippet
@@ -73,45 +75,77 @@ def scrape_stratos():
     guardar_en_bd(nuevas_ofertas)
 
 def guardar_en_bd(ofertas):
-    if not ofertas: return
+    if not ofertas:
+        return
 
+    conn = None
+    cur = None
     try:
         conn = psycopg2.connect(os.getenv("DATABASE_URL"))
         cur = conn.cursor()
         c = 0
-        
+
+        # BUG-007: una única consulta para conocer las URLs ya guardadas (evita N+1)
+        urls = list({o['url_source'] for o in ofertas})
+        existing = set()
+        for k in range(0, len(urls), 200):
+            chunk = urls[k:k + 200]
+            placeholders = ",".join(["%s"] * len(chunk))
+            cur.execute(f"SELECT url_source FROM jobs WHERE url_source IN ({placeholders})", tuple(chunk))
+            existing.update(row[0] for row in cur.fetchall())
+
         for o in ofertas:
-            # 1. VERIFICAR DUPLICADOS (url_source)
-            cur.execute("SELECT id FROM jobs WHERE url_source = %s", (o['url_source'],))
-            if cur.fetchone(): continue
-            
-            # 2. INSERTAR (Columnas reales)
+            if o['url_source'] in existing:
+                continue
+
             desc = f"[Fuente: Stratos] {o['title']}"
             category = classify_job(o['title'], desc)
-            
             s_min, s_max, s_curr = parse_salary(o['salary'])
-            
+            work_mode = infer_work_mode(o['title'], o['location'], desc)
+            dedup_hash = compute_dedup_hash(o['company'], o['title'], work_mode or '')
+
+            # BUG-007: id (PK sin DEFAULT), dedup_hash y work_mode explícitos
             cur.execute("""
-                INSERT INTO jobs (title, company, location, salary, description_snippet, url_source, category, created_at, salary_min, salary_max, salary_currency, is_active) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), %s, %s, %s, TRUE)
+                INSERT INTO jobs (id, title, company, location, salary, description_snippet, url_source, category, created_at, salary_min, salary_max, salary_currency, dedup_hash, work_mode, is_active)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s, %s, %s, %s, %s, TRUE)
             """, (
-                o['title'], 
-                o['company'], 
-                o['location'], 
-                o['salary'], 
-                desc, 
+                new_job_id(),
+                o['title'],
+                o['company'],
+                o['location'],
+                o['salary'],
+                desc,
                 o['url_source'],
                 category,
                 s_min,
                 s_max,
-                s_curr
+                s_curr,
+                dedup_hash,
+                work_mode,
             ))
+            existing.add(o['url_source'])
             c += 1
         conn.commit()
-        conn.close()
         print(f"✅ Stratos: Guardadas {c} nuevas.")
     except Exception as e:
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
         print(f"❌ Error BD: {e}")
+    finally:
+        # BUG-007: cierre garantizado aunque falle a mitad del bucle
+        if cur is not None:
+            try:
+                cur.close()
+            except Exception:
+                pass
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 if __name__ == "__main__":
     scrape_stratos()

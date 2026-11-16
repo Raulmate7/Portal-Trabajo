@@ -380,47 +380,69 @@ function extractSource(descriptionSnippet: string | null | undefined): string {
 
 function parseSalarySchema(salaryStr: string | null | undefined): any {
   if (!salaryStr) return null;
-  
-  const cleanStr = salaryStr.toLowerCase().replace(/\./g, '').replace(/\s/g, '');
-  
-  const numbers = cleanStr.match(/\d+/g);
+  const trimmed = salaryStr.trim();
+  if (!trimmed || /^(consultar|sin especificar)$/i.test(trimmed)) return null;
+
+  const lower = trimmed.toLowerCase();
+
+  let currency = 'EUR';
+  if (/(\$|usd|dólar|dolar|dollar)/.test(lower)) currency = 'USD';
+  else if (/(£|gbp|libra|pound)/.test(lower)) currency = 'GBP';
+
+  // BUG-012: Normalizar sufijos 'k' (40k, 45.5k, 45,5k), decimales (,50/.50) y separadores de miles (40.000 / 100,000)
+  let normalized = lower.replace(/(\d+)[.,](\d{1,2})\s*k\b/g, (_, a, b) =>
+    String(Math.round(parseFloat(`${a}.${b}`) * 1000))
+  );
+  normalized = normalized.replace(/(\d+)\s*k\b/g, '$1000');
+  normalized = normalized.replace(/(?<=\d)[.,]\d{2}(?!\d)/g, '');
+  normalized = normalized.replace(/(?<=\d)[.,](?=\d{3}\b)/g, '');
+
+  const numbers = normalized.match(/\d+/g);
   if (!numbers || numbers.length === 0) return null;
-  
-  let unitText = "YEAR";
-  if (cleanStr.includes("mes") || cleanStr.includes("mensual") || (parseInt(numbers[0]) > 0 && parseInt(numbers[0]) < 5000)) {
-    unitText = "MONTH";
+
+  const parsedNums = numbers.map((n) => parseInt(n, 10)).filter((n) => !Number.isNaN(n) && n > 0);
+  if (parsedNums.length === 0) return null;
+
+  let unitText = 'YEAR';
+  if (/(\/h\b|por hora|per hour|hourly|\/hora)/.test(lower)) {
+    unitText = 'HOUR';
+  } else if (/(\/d\b|\/día|\/dia|por día|por dia|per day|daily)/.test(lower)) {
+    unitText = 'DAY';
+  } else if (/(mes|mensual|month|monthly|\/m\b)/.test(lower) || parsedNums[0] < 6000) {
+    unitText = 'MONTH';
   }
-  
-  const parsedNums = numbers.map(n => parseInt(n));
-  
+
+  const minBound = unitText === 'HOUR' ? 8 : unitText === 'DAY' ? 50 : 100;
+  const maxBound = unitText === 'HOUR' ? 500 : unitText === 'DAY' ? 5000 : 1000000;
+
   if (parsedNums.length >= 2) {
     const minVal = Math.min(parsedNums[0], parsedNums[1]);
     const maxVal = Math.max(parsedNums[0], parsedNums[1]);
-    
-    if (minVal < 100 || maxVal > 1000000) return null;
-    
+
+    if (minVal < minBound || maxVal > maxBound) return null;
+
     return {
-      "@type": "MonetaryAmount",
-      "currency": "EUR",
-      "value": {
-        "@type": "QuantitativeValue",
-        "minValue": minVal,
-        "maxValue": maxVal,
-        "unitText": unitText
-      }
+      '@type': 'MonetaryAmount',
+      currency,
+      value: {
+        '@type': 'QuantitativeValue',
+        minValue: minVal,
+        maxValue: maxVal,
+        unitText,
+      },
     };
   } else {
     const val = parsedNums[0];
-    if (val < 100 || val > 1000000) return null;
-    
+    if (val < minBound || val > maxBound) return null;
+
     return {
-      "@type": "MonetaryAmount",
-      "currency": "EUR",
-      "value": {
-        "@type": "QuantitativeValue",
-        "value": val,
-        "unitText": unitText
-      }
+      '@type': 'MonetaryAmount',
+      currency,
+      value: {
+        '@type': 'QuantitativeValue',
+        value: val,
+        unitText,
+      },
     };
   }
 }
@@ -495,8 +517,8 @@ export default async function JobPage({ params, searchParams }: Props) {
   const lang = resolvedSearchParams?.lang === 'en' ? 'en' : 'es';
   const isEnglish = lang === 'en';
 
-  // Redirección permanente si la URL no contiene el slug descriptivo correcto
-  if (idParam !== correctSlug) {
+  // Redirección permanente solo para ofertas activas si la URL no contiene el slug descriptivo correcto (BUG-044)
+  if (!isExpired && idParam !== correctSlug) {
     const queryStr = isEnglish ? '?lang=en' : '';
     permanentRedirect(`/job/${correctSlug}${queryStr}`);
   }
@@ -506,11 +528,13 @@ export default async function JobPage({ params, searchParams }: Props) {
 
   const fetchCompanyRating = async () => {
     if (!job.company || job.company === 'Desconocida') return null;
+    const companySlug = slugify(job.company);
+    if (!companySlug) return null;
     const client = await pool.connect();
     try {
       const res = await client.query(
-        "SELECT AVG(rating) as avg_rating, COUNT(id) as total_reviews FROM company_reviews WHERE company_name = $1",
-        [job.company]
+        "SELECT AVG(rating) as avg_rating, COUNT(id) as total_reviews FROM company_reviews WHERE company_slug = $1",
+        [companySlug]
       );
       if (res.rows[0] && res.rows[0].total_reviews > 0) {
         return {
@@ -555,7 +579,7 @@ export default async function JobPage({ params, searchParams }: Props) {
   const relatedBlogPost = await getRelatedBlogPost(job.title, job.description_snippet || '', isRemote);
 
   const datePosted = new Date(job.created_at);
-  const validThroughDate = new Date(datePosted.getTime() + 45 * 24 * 60 * 60 * 1000);
+  const validThroughDate = new Date(datePosted.getTime() + 100 * 24 * 60 * 60 * 1000);
 
   let baseSalaryObj = null;
   if (job.salary_min || job.salary_max) {
@@ -644,20 +668,50 @@ export default async function JobPage({ params, searchParams }: Props) {
     ? job.company 
     : (sourceLabel && sourceLabel !== 'Internet' ? sourceLabel : 'Portal Trabajo IT');
 
-  let addressRegion = 'Madrid';
+  const REGION_BY_CITY: Array<[RegExp, string]> = [
+    [/\bmadrid\b/i, 'Madrid'],
+    [/\bbarcelona\b|\bbcn\b/i, 'Barcelona'],
+    [/\bvalencia\b/i, 'Valencia'],
+    [/\bsevilla\b/i, 'Sevilla'],
+    [/\bbilbao\b|\bvizcaya\b|\bbizkaia\b/i, 'Bizkaia'],
+    [/\bm[aá]laga\b/i, 'Málaga'],
+    [/\bzaragoza\b/i, 'Zaragoza'],
+    [/\balicante\b/i, 'Alicante'],
+    [/\bmurcia\b/i, 'Murcia'],
+    [/\bvalladolid\b/i, 'Valladolid'],
+    [/\bpalma\b|\bmallorca\b|\bbaleares\b/i, 'Illes Balears'],
+    [/\blas palmas\b|\bgran canaria\b/i, 'Las Palmas'],
+    [/\btenerife\b/i, 'Santa Cruz de Tenerife'],
+    [/\bcoru[nñ]a\b/i, 'A Coruña'],
+    [/\bvigo\b|\bpontevedra\b/i, 'Pontevedra'],
+    [/\boviedo\b|\bgij[oó]n\b|\basturias\b/i, 'Asturias'],
+    [/\bsantander\b|\bcantabria\b/i, 'Cantabria'],
+    [/\bpamplona\b|\bnavarra\b/i, 'Navarra'],
+    [/\bdonostia\b|\bsan sebasti[aá]n\b|\bgipuzkoa\b/i, 'Gipuzkoa'],
+    [/\bvitoria\b|\b[aá]lava\b|\baraba\b/i, 'Álava'],
+    [/\bgranada\b/i, 'Granada'],
+    [/\bc[oó]rdoba\b/i, 'Córdoba'],
+    [/\btoledo\b/i, 'Toledo'],
+    [/\bsalamanca\b/i, 'Salamanca'],
+    [/\bbadajoz\b/i, 'Badajoz'],
+    [/\bc[aá]ceres\b/i, 'Cáceres'],
+    [/\bcastell[oó]n\b/i, 'Castellón'],
+    [/\btarragona\b/i, 'Tarragona'],
+    [/\bgirona\b/i, 'Girona'],
+    [/\blleida\b/i, 'Lleida'],
+    [/\balmer[ií]a\b/i, 'Almería'],
+    [/\bc[aá]diz\b/i, 'Cádiz'],
+    [/\bhuelva\b/i, 'Huelva'],
+    [/\bja[eé]n\b/i, 'Jaén'],
+    [/\ble[oó]n\b/i, 'León'],
+    [/\bburgos\b/i, 'Burgos'],
+    [/\blogro[nñ]o\b|\bla rioja\b/i, 'La Rioja'],
+    [/\balbacete\b/i, 'Albacete'],
+    [/\bciudad real\b/i, 'Ciudad Real'],
+  ];
 
-  const cleanLocForAddress = (job.location || '').toLowerCase();
-  if (cleanLocForAddress.includes('barcelona') || cleanLocForAddress.includes('bcn')) {
-    addressRegion = 'Barcelona';
-  } else if (cleanLocForAddress.includes('valencia')) {
-    addressRegion = 'Valencia';
-  } else if (cleanLocForAddress.includes('sevilla')) {
-    addressRegion = 'Sevilla';
-  } else if (cleanLocForAddress.includes('bilbao')) {
-    addressRegion = 'Bizkaia';
-  } else if (cleanLocForAddress.includes('málaga') || cleanLocForAddress.includes('malaga')) {
-    addressRegion = 'Málaga';
-  }
+  const cleanLocForAddress = job.location || '';
+  const addressRegion = REGION_BY_CITY.find(([regex]) => regex.test(cleanLocForAddress))?.[1];
 
   const jobLocationObj: any = {
     '@type': 'Place',
@@ -668,8 +722,10 @@ export default async function JobPage({ params, searchParams }: Props) {
   };
 
   if (!isRemote) {
-    jobLocationObj.address.addressLocality = job.location || 'Madrid';
-    jobLocationObj.address.addressRegion = addressRegion;
+    jobLocationObj.address.addressLocality = job.location || 'España';
+    if (addressRegion) {
+      jobLocationObj.address.addressRegion = addressRegion;
+    }
   }
 
   // companyRating ya obtenido en paralelo arriba (FUNC-038)
@@ -690,7 +746,7 @@ export default async function JobPage({ params, searchParams }: Props) {
     hiringOrganization: { 
       '@type': 'Organization', 
       name: hiringOrgName,
-      logo: `${BASE_URL}/logo.png`,
+      ...(hiringOrgName === 'Portal Trabajo IT' ? { logo: `${BASE_URL}/logo.png` } : {}),
       ...(companyRating ? {
         aggregateRating: {
           '@type': 'AggregateRating',
@@ -947,7 +1003,7 @@ export default async function JobPage({ params, searchParams }: Props) {
                   {hasTranslation && (
                     <p className="text-xs text-[var(--text-muted)] italic mt-6 border-t border-[var(--border-subtle)] pt-3 flex items-center gap-1.5">
                       <span>Oferta traducida automáticamente al español.</span>
-                      <a href={job.url_source} target="_blank" rel="noopener noreferrer" className="text-[var(--accent-primary)] hover:underline font-medium">
+                      <a href={job.url_source} target="_blank" rel={job.is_featured ? 'sponsored noopener noreferrer' : 'noopener noreferrer'} className="text-[var(--accent-primary)] hover:underline font-medium">
                         Ver original
                       </a>
                     </p>

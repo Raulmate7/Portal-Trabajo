@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from logic.slug import get_job_slug
 from logic.privacy import mask_email
 from logic.legal import build_unsubscribe_headers
+from logic.tracking import build_track_click_url, build_track_open_url
 
 load_dotenv()
 
@@ -66,23 +67,31 @@ def run_reactivation():
         print(f"⚠️ Error marcando inactivos: {e}")
         conn.rollback()
 
-    # 2. SELECCIONAR SUSCRIPTORES PARA REACTIVACIÓN (last_sent_at > 30 días y sin aperturas en 30 días)
+    # 2. SELECCIONAR SUSCRIPTORES PARA REACTIVACIÓN (inactivos >= 30 días y sin aperturas en 30 días)
     limit_date_30 = datetime.now() - timedelta(days=30)
-    limit_reactivation_spam = datetime.now() - timedelta(days=15)
-    
+
     cur.execute("""
         SELECT email, tech_keywords FROM subscribers 
-        WHERE last_sent_at < %s
+        WHERE (last_sent_at < %s OR (last_sent_at IS NULL AND created_at < %s))
           AND (onboarding_stage IS NULL OR onboarding_stage >= 2)
           AND email IS NOT NULL
           AND email NOT LIKE '%@deleted.local'
-          AND (is_active IS NULL OR is_active = TRUE)
+          AND is_active = TRUE
+          AND confirmed_at IS NOT NULL
           AND (frequency IS NULL OR frequency != 'once')
+          AND NOT EXISTS (
+            SELECT 1 FROM email_suppression_list esl
+            WHERE esl.email_hash = SHA2(LOWER(TRIM(subscribers.email)), 256)
+          )
+          AND NOT EXISTS (
+            SELECT 1 FROM users u
+            WHERE u.email = subscribers.email
+              AND u.email_notifications_enabled = FALSE
+          )
           AND email NOT IN (
               SELECT DISTINCT email FROM email_tracking WHERE opened_at > %s
           )
-          AND (last_sent_at < %s OR last_sent_at IS NULL)
-    """, (limit_date_30, limit_date_30, limit_reactivation_spam))
+    """, (limit_date_30, limit_date_30, limit_date_30))
     
     pending_reactivation = cur.fetchall()
     
@@ -96,13 +105,15 @@ def run_reactivation():
 
     # 3. Conectar a SMTP
     try:
+        import ssl
+        ssl_ctx = ssl.create_default_context()
         smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
         smtp_port = int(os.getenv("SMTP_PORT", "587"))
         if smtp_port == 465:
-            server = smtplib.SMTP_SSL(smtp_host, smtp_port)
+            server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=30, context=ssl_ctx)
         else:
-            server = smtplib.SMTP(smtp_host, smtp_port)
-            server.starttls()
+            server = smtplib.SMTP(smtp_host, smtp_port, timeout=30)
+            server.starttls(context=ssl_ctx)
         server.login(EMAIL_USER, EMAIL_PASSWORD)
         print(f"✅ Conectado a SMTP ({smtp_host}:{smtp_port}).")
     except Exception as e:
@@ -143,7 +154,7 @@ def run_reactivation():
                     location_esc = html.escape(str(location or ''))
                     sal_text = f" | 💰 {html.escape(str(salary))}" if salary and salary not in ("Consultar", "") else ""
                     original_link = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=reactivation&utm_medium=email&utm_campaign=reactivation_1&utm_term={urllib.parse.quote(category)}&utm_content={job_id}"
-                    job_link = f"{BASE_URL}/api/track-click?email={urllib.parse.quote(email)}&campaign=reactivation_email&redirect={urllib.parse.quote(original_link)}"
+                    job_link = build_track_click_url(BASE_URL, email, "reactivation_email", original_link)
                     jobs_html += f"""
                     <div style="margin-bottom: 12px; padding: 12px; background: #fffbeb; border-left: 4px solid #d97706; border-radius: 4px;">
                         <h4 style="margin: 0 0 4px; color: #78350f; font-size: 14px;">{title_esc}</h4>
@@ -155,7 +166,9 @@ def run_reactivation():
                 jobs_html = f"<p style='color: #6b7280; font-size: 13px; text-align: center;'>Visita nuestra web para ver las últimas ofertas del día.</p>"
 
             explore_link_orig = f"{BASE_URL}?utm_source=reactivation&utm_medium=email&utm_campaign=reactivation_1"
-            explore_link = f"{BASE_URL}/api/track-click?email={urllib.parse.quote(email)}&campaign=reactivation_email&redirect={urllib.parse.quote(explore_link_orig)}"
+            explore_link = build_track_click_url(BASE_URL, email, "reactivation_email", explore_link_orig)
+            open_pixel_url = build_track_open_url(BASE_URL, email, "reactivation_email")
+            open_pixel_html = f'<img src="{open_pixel_url}" width="1" height="1" style="display:none;" alt="" />' if open_pixel_url else ""
             
             email_body = f"""
             <html>
@@ -198,7 +211,7 @@ def run_reactivation():
                         </p>
                     </div>
                 </div>
-                <img src="{BASE_URL}/api/track-open?email={urllib.parse.quote(email)}&campaign=reactivation_email" width="1" height="1" style="display:none;" />
+                {open_pixel_html}
             </body>
             </html>
             """

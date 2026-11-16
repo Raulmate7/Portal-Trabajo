@@ -17,24 +17,28 @@ def generate_blog_post():
         print("❌ Error: No se encontró DATABASE_URL.")
         return
 
+    conn = None
+    cur = None
     try:
         conn = psycopg2.connect(db_url)
         cur = conn.cursor()
 
-        # 1. Obtener estadísticas reales del mercado laboral en la base de datos
-        # Total ofertas activas
-        cur.execute("SELECT COUNT(*) FROM jobs WHERE is_active = TRUE")
-        total_active_jobs = cur.fetchone()[0]
+        # 1. Obtener estadísticas reales del mercado laboral en una única consulta agregada (BUG-026)
+        cur.execute("""
+            SELECT
+                COUNT(*),
+                COALESCE(SUM(CASE WHEN location LIKE '%remoto%' OR location LIKE '%remote%' OR location LIKE '%teletrabajo%' THEN 1 ELSE 0 END), 0)
+            FROM jobs
+            WHERE is_active = TRUE
+        """)
+        counts_row = cur.fetchone()
+        total_active_jobs = counts_row[0] or 0
 
         if total_active_jobs == 0:
             print("⚠️ No hay ofertas activas suficientes en la base de datos para generar un informe.")
-            cur.close()
-            conn.close()
             return
 
-        # Ofertas en remoto
-        cur.execute("SELECT COUNT(*) FROM jobs WHERE is_active = TRUE AND (location LIKE '%remoto%' OR location LIKE '%remote%' OR location LIKE '%teletrabajo%')")
-        remote_jobs = cur.fetchone()[0]
+        remote_jobs = counts_row[1] or 0
         remote_ratio = round((remote_jobs / total_active_jobs) * 100) if total_active_jobs > 0 else 0
 
         # Salario promedio (excluyendo extremos y nulos)
@@ -104,37 +108,39 @@ El mercado laboral IT en España mantiene una salud excelente en {current_year}.
 > *Nota de transparencia (Art. 50 Reglamento UE 2024/1689 - AI Act): Informe generado automáticamente a partir de datos agregados reales del portal y supervisado editorialmente.*
 """
 
-        # 3. Insertar o actualizar el post en la base de datos
-        cur.execute("SELECT id FROM blog_posts WHERE slug = %s", (slug,))
-        row = cur.fetchone()
-        
+        # 3. Insertar o actualizar el post de forma atómica sin condición TOCTOU (BUG-026)
         date_str = now.strftime("%Y-%m-%d")
-        
-        if row:
-            # Actualizar post existente para mantenerlo al día (freshness)
-            print(f"📝 Actualizando informe de blog existente para el slug '{slug}'...")
-            cur.execute("""
-                UPDATE blog_posts 
-                SET title = %s, excerpt = %s, content = %s, updated_at = %s 
-                WHERE slug = %s
-            """, (title, excerpt, content, date_str, slug))
-            print("✅ Post de blog actualizado exitosamente.")
-        else:
-            # Insertar nuevo post
-            print(f"✍️ Insertando nuevo informe de blog para el slug '{slug}'...")
-            cur.execute("""
-                INSERT INTO blog_posts (slug, title, excerpt, content, date, author, is_evergreen)
-                VALUES (%s, %s, %s, %s, %s, 'Bot Portal Empleo', TRUE)
-            """, (slug, title, excerpt, content, date_str))
-            print("✅ Post de blog insertado exitosamente.")
-
+        print(f"✍️ Guardando informe de blog para el slug '{slug}'...")
+        cur.execute("""
+            INSERT INTO blog_posts (slug, title, excerpt, content, date, author, is_evergreen)
+            VALUES (%s, %s, %s, %s, %s, 'Bot Portal Empleo', TRUE)
+            ON DUPLICATE KEY UPDATE
+                title = VALUES(title),
+                excerpt = VALUES(excerpt),
+                content = VALUES(content),
+                updated_at = NOW()
+        """, (slug, title, excerpt, content, date_str))
         conn.commit()
-        cur.close()
-        conn.close()
         print("🎉 Proceso de generación de blog completado con éxito.")
 
     except Exception as e:
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
         print(f"❌ Error al generar post de blog: {e}")
+    finally:
+        if cur is not None:
+            try:
+                cur.close()
+            except Exception:
+                pass
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 if __name__ == "__main__":
     generate_blog_post()

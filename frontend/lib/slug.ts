@@ -5,8 +5,13 @@ export function slugify(text: string): string {
     .replace(/[\u0300-\u036f]/g, "") // Elimina acentos
     .toLowerCase()
     .trim()
+    .replace(/c\+\+/g, 'cpp')
+    .replace(/c#/g, 'csharp')
+    .replace(/f#/g, 'fsharp')
+    .replace(/\.net/g, 'dotnet')
+    .replace(/node\.js/g, 'nodejs')
     .replace(/\s+/g, '-')           // Reemplaza espacios con -
-    .replace(/[^\w\-]+/g, '')       // Elimina caracteres especiales
+    .replace(/[^a-z0-9\-]+/g, '')   // Elimina caracteres especiales (alineado con Python)
     .replace(/\-\-+/g, '-')         // Evita guiones dobles
     .replace(/^-+/, '')             // Quita guión inicial
     .replace(/-+$/, '');            // Quita guión final

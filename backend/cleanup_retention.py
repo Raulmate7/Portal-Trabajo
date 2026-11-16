@@ -42,12 +42,20 @@ def run_retention_cleanup():
             "DELETE FROM email_tracking WHERE opened_at < NOW() - INTERVAL '180 days'",
         ),
         (
-            "Purga de tokens de confirmación / baja expirados > 30 días",
-            "UPDATE subscribers SET double_opt_in_token = NULL WHERE confirmed_at IS NULL AND created_at < NOW() - INTERVAL '30 days' AND double_opt_in_token IS NOT NULL",
+            "Purga de suscripciones no confirmadas > 30 días",
+            "DELETE FROM subscribers WHERE confirmed_at IS NULL AND (is_active = FALSE OR status = 'pending_confirmation') AND created_at < NOW() - INTERVAL '30 days'",
         ),
         (
             "Purga de reportes de reseñas resueltos > 12 meses",
-            "DELETE FROM review_reports WHERE status IN ('resolved', 'dismissed') AND created_at < NOW() - INTERVAL '365 days'",
+            "DELETE FROM review_reports WHERE status IN ('resolved', 'resolved_hidden', 'dismissed') AND created_at < NOW() - INTERVAL '365 days'",
+        ),
+        (
+            "Purga de sesiones expiradas o revocadas > 30 días",
+            "DELETE FROM user_sessions WHERE (revoked = TRUE AND created_at < NOW() - INTERVAL '30 days') OR (expires_at < UNIX_TIMESTAMP() AND expires_at < 10000000000) OR (expires_at < UNIX_TIMESTAMP() * 1000 AND expires_at >= 10000000000)",
+        ),
+        (
+            "Purga de tokens de recuperación de contraseña caducados o usados > 30 días",
+            "DELETE FROM user_password_resets WHERE (used_at IS NOT NULL AND created_at < NOW() - INTERVAL '30 days') OR (expires_at < UNIX_TIMESTAMP() AND expires_at < 10000000000) OR (expires_at < UNIX_TIMESTAMP() * 1000 AND expires_at >= 10000000000)",
         ),
     ]
 

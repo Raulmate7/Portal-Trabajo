@@ -1,6 +1,5 @@
 import { unstable_cache } from 'next/cache';
 import pool from './db';
-import { MOCK_JOBS } from './mockJobs';
 
 export interface FilterOptions {
   query?: string;
@@ -16,11 +15,16 @@ export interface FilterOptions {
 }
 
 function buildBooleanFulltextQuery(raw: string): string {
-  const tokens = raw
-    .trim()
-    .split(/\s+/)
+  const trimmed = raw.trim();
+  // Términos cortos (< 3 chars como Go/AI/QA) o con símbolos especiales (C++, C#, .NET, Node.js)
+  // fallan con InnoDB FULLTEXT (min_token_size=3 / operadores booleanos); usar LIKE exacto (BUG-058).
+  if (/[+#.]/.test(trimmed)) return '';
+  const rawWords = trimmed.split(/\s+/).filter(Boolean);
+  if (rawWords.some((w) => w.length < 3)) return '';
+
+  const tokens = rawWords
     .map((t) => t.replace(/[+\-><()~*"@]+/g, '').trim())
-    .filter((t) => t.length >= 2);
+    .filter((t) => t.length >= 3);
   if (tokens.length === 0) return '';
   return tokens.map((t) => `+${t}*`).join(' ');
 }
@@ -171,11 +175,8 @@ export async function getJobs(filters: FilterOptions, page: number = 1, limit: n
     };
   });
 
-  if (!rows || rows.length === 0) {
-    // Fallback de desarrollo / offline cuando la BD remota está deshabilitada por seguridad
-    return MOCK_JOBS.filter(j => !j.is_featured);
-  }
-  return rows;
+  // BUG-006: nunca devolver ofertas ficticias; 0 resultados reales = lista vacia
+  return rows || [];
 }
 
 export async function getFilteredJobsCount(filters: FilterOptions): Promise<number> {
@@ -198,11 +199,7 @@ export async function getFeaturedJobs(filters: FilterOptions, limit: number = 3)
     tailParams: [safeLimit],
   }));
 
-  if (!rows || rows.length === 0) {
-    // Fallback de desarrollo / offline para ofertas destacadas
-    return MOCK_JOBS.filter(j => j.is_featured).slice(0, safeLimit);
-  }
-  return rows;
+  return rows || [];
 }
 
 const getCachedTotalActiveJobsCount = unstable_cache(
@@ -210,11 +207,11 @@ const getCachedTotalActiveJobsCount = unstable_cache(
     const client = await pool.connect();
     try {
       const result = await client.query("SELECT COUNT(*) AS count FROM jobs WHERE is_active = TRUE");
-      const count = parseInt(result.rows[0]?.count, 10);
-      return count > 0 ? count : 9197;
+      const count = parseInt(String(result.rows[0]?.count ?? '0'), 10);
+      return Number.isNaN(count) ? 0 : count;
     } catch (error) {
       console.error("Error counting jobs:", error);
-      return 9197;
+      return 0;
     } finally {
       client.release();
     }
@@ -232,7 +229,8 @@ export async function getJobsCount(filters?: FilterOptions) {
     filters,
     () => ({ tailSql: '', tailParams: [] })
   );
-  return rows[0]?.count ? parseInt(rows[0].count, 10) : MOCK_JOBS.length;
+  const n = parseInt(String(rows?.[0]?.count ?? '0'), 10);
+  return Number.isNaN(n) ? 0 : n;
 }
 
 export async function getJobOfTheDay() {
@@ -256,10 +254,10 @@ export async function getJobOfTheDay() {
       LIMIT 1
     `);
     if (fallbackRes.rows.length > 0) return fallbackRes.rows[0];
-    return MOCK_JOBS[0] || null;
+    return null;
   } catch (error) {
     console.error("Error fetching job of the day:", error);
-    return MOCK_JOBS[0] || null;
+    return null;
   } finally {
     client.release();
   }

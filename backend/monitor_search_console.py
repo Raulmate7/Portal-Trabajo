@@ -250,11 +250,39 @@ def monitor_gsc_and_indexation():
     print(f"   ❌ Con errores:      {error_count}")
     print(f"   Total verificadas:  {len(SCHEMA_CHECKS)}")
 
+    # ─── Auditoría de paridad BD vs Sitemaps XML (BUG-060) ───────────────────
+    if total_active > 0:
+        sitemap_urls_count = 0
+        for shard in (1, 2):
+            sm_xml = fetch_page_html(f"{BASE_URL}/sitemap/{shard}.xml", timeout=15)
+            if sm_xml:
+                sitemap_urls_count += len(re.findall(r"<loc>[^<]+</loc>", sm_xml))
+        ratio = (sitemap_urls_count / total_active) if total_active else 1.0
+        print(f"\n🗺️  Paridad BD vs Sitemaps de ofertas: {sitemap_urls_count} URLs / {total_active} activas ({ratio * 100:.1f}%)")
+        if sitemap_urls_count == 0 or ratio < 0.75:
+            print("   ⚠️  ALERTA: Desfase significativo entre ofertas activas en BD y sitemap/1-2.xml.")
+            warn_count += 1
+
     if warn_count == 0 and error_count == 0:
         print("\n✅ Diagnóstico: Todos los schemas están presentes. Sitemaps respondiendo 200 OK.")
     else:
         print(f"\n⚠️  Diagnóstico: Se detectaron {warn_count + error_count} páginas con schemas incompletos o inaccesibles.")
         print("   → Revisar las páginas marcadas con ⚠️ o ❌ y regenerar datos estructurados.")
+        tg_token = os.getenv("TELEGRAM_TOKEN")
+        tg_admin = os.getenv("TELEGRAM_ADMIN_ID")
+        if tg_token and tg_admin:
+            try:
+                import requests as _req
+                _req.post(
+                    f"https://api.telegram.org/bot{tg_token}/sendMessage",
+                    json={
+                        "chat_id": tg_admin,
+                        "text": f"⚠️ Alerta SEO Monitor ({BASE_URL}): {warn_count} advertencias, {error_count} errores en schemas/sitemaps.",
+                    },
+                    timeout=10,
+                )
+            except Exception as tg_err:
+                print(f"   ⚠️ No se pudo enviar alerta Telegram SEO: {tg_err}")
 
 
 if __name__ == "__main__":

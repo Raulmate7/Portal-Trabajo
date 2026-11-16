@@ -30,6 +30,7 @@ export default async function AdminPage() {
   let totalEmailOpens = 0;
   let opensByCampaign: any[] = [];
   let pendingJobs: PendingJobItem[] = [];
+  let totalPendingCount = 0;
 
   const client = await pool.connect();
   try {
@@ -62,6 +63,9 @@ export default async function AdminPage() {
     totalEmailOpens = parseInt(openRes.rows[0]?.count || '0', 10);
 
     // 6. Pending Jobs for Moderation
+    const pendingCountRes = await client.query(`SELECT COUNT(*) AS count FROM jobs WHERE is_active = FALSE`);
+    totalPendingCount = parseInt(pendingCountRes.rows[0]?.count || '0', 10);
+
     const pendingRes = await client.query(
       `SELECT id, title, company, location, salary, url_source, description_snippet, created_at
        FROM jobs
@@ -70,7 +74,7 @@ export default async function AdminPage() {
        LIMIT 50`
     );
     pendingJobs = (pendingRes.rows || []).map((row: any) => ({
-      id: Number(row.id),
+      id: String(row.id),
       title: String(row.title || ''),
       company: String(row.company || ''),
       location: row.location ? String(row.location) : null,
@@ -171,7 +175,7 @@ export default async function AdminPage() {
         </div>
 
         {/* Moderación de ofertas pendientes */}
-        <PendingJobsModeration initialJobs={pendingJobs} />
+        <PendingJobsModeration initialJobs={pendingJobs} initialTotal={totalPendingCount} />
 
         {/* Tablas de Detalles */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import Link from 'next/link';
 import { getPostBySlug, getBlogPosts } from '@/lib/blog';
 import { getClusterBySlug } from '@/lib/blog-clusters';
@@ -179,6 +179,9 @@ function detectPostTechnology(slug: string, title: string, content: string): str
 
 export default async function BlogPostPage({ params }: Props) {
   const resolvedParams = await params;
+  if (resolvedParams.slug.startsWith('tendencias-')) {
+    permanentRedirect(`/noticias/${resolvedParams.slug}`);
+  }
   const post = await getPostBySlug(resolvedParams.slug);
 
   if (!post) {

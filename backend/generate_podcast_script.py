@@ -36,7 +36,8 @@ def generate_podcast_episode():
         slug = f"podcast-mercado-it-{date_str}"
         title = f"Podcast El Mercado IT: Episodio [{date_str}] — {total_jobs} Vacantes Analizadas"
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+        model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
         prompt = f"""
 Escribe el guion para un episodio de podcast de 5 minutos titulado 'El Mercado IT'.
 Fecha: {date_str}.
@@ -59,7 +60,7 @@ Formato JSON obligatorio:
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {"responseMimeType": "application/json"}
         }
-        res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=60)
+        res = requests.post(url, json=payload, headers={"Content-Type": "application/json", "x-goog-api-key": api_key}, timeout=60)
         
         if res.status_code == 200:
             data = json.loads(res.json()['candidates'][0]['content']['parts'][0]['text'])

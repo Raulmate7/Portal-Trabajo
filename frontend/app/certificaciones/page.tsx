@@ -47,6 +47,19 @@ export default function CertificacionesIndexPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLdString(collectionJsonLd) }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: safeJsonLdString({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Inicio', item: BASE_URL },
+              { '@type': 'ListItem', position: 2, name: 'Certificaciones IT', item: `${BASE_URL}/certificaciones` },
+            ],
+          }),
+        }}
+      />
 
       {/* Hero Header */}
       <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-purple-950 text-white py-16 px-4 relative overflow-hidden">

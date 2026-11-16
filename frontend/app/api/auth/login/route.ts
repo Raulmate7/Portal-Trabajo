@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      await userLoginLimiter.resetAsync(clientIp);
+      // SEC-026: Resetear solo el contador por cuenta, nunca el límite global por IP
       await userLoginLimiter.resetAsync(emailKey);
 
       await client.query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [user.id]);

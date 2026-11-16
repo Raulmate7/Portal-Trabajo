@@ -3,6 +3,7 @@ import pool from '@/lib/db';
 import crypto from 'crypto';
 import { getClientIp, subscribeLimiter } from '@/lib/rate-limit';
 import { verifyTurnstileToken } from '@/lib/turnstile';
+import { hashClientIp } from '@/lib/ipHash';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,8 +76,8 @@ export async function POST(request: NextRequest) {
       const frequency = source.includes('reminder') ? 'once' : 'weekly';
       const techKeywords = 'todas';
 
-      // RGPD Art. 7.1: Trazabilidad del consentimiento y Double Opt-In opcional
-      const consentIpHash = crypto.createHash('sha256').update(clientIp + (process.env.APP_SECRET || 'consent_salt_v1')).digest('hex');
+            // RGPD Art. 7.1: Trazabilidad del consentimiento y Double Opt-In opcional
+      const consentIpHash = hashClientIp(clientIp);
       const consentPolicyVersion = 'v2026.11';
       const requireDoubleOptIn = process.env.DOUBLE_OPT_IN_REQUIRED === 'true';
       const secret = process.env.UNSUBSCRIBE_SECRET || process.env.CRON_SECRET || process.env.APP_SECRET || '';

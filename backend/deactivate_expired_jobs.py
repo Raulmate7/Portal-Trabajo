@@ -6,19 +6,20 @@ from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from db_helper import get_db_connection
 from logic.slug import get_job_slug
+from logic.ssrf import safe_http_head, safe_http_get
 
 load_dotenv()
 
 def deactivate_expired_jobs():
     print("🧹 Iniciando LIMPIEZA, DESINDEXACIÓN y PURGA de ofertas antiguas...")
 
-    # 1. Verificar variables de entorno
+    # 1. Verificar variables de entorno (BUG-016: sin CRON_SECRET solo se omite la llamada HTTP, no la limpieza BD)
     cron_secret = os.getenv("CRON_SECRET")
     frontend_url = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
+    can_notify_indexing = bool(cron_secret)
 
-    if not cron_secret:
-        print("❌ Error: Falta la variable CRON_SECRET en el entorno.")
-        return
+    if not can_notify_indexing:
+        print("⚠️ Aviso: Falta CRON_SECRET en el entorno; se ejecutará la limpieza en BD omitiendo /api/index-job.")
 
     # 2. Conectar a Base de Datos
     try:
@@ -44,7 +45,7 @@ def deactivate_expired_jobs():
         print(f"❌ Error al expirar estado destacado en base de datos: {e}")
         conn.rollback()
 
-    # 3. Buscar ofertas que llevan activas más de 100 días (hasta 200 por ejecución para evitar timeouts)
+    # 3. Buscar ofertas que llevan activas más de 100 días (BUG-015: límite alineado con Google Indexing API para no dejar huérfanas)
     expiration_limit = datetime.now() - timedelta(days=100)
 
     try:
@@ -53,7 +54,7 @@ def deactivate_expired_jobs():
             FROM jobs
             WHERE is_active = 1 AND created_at < %s
             ORDER BY created_at ASC
-            LIMIT 200
+            LIMIT 40
         """, (expiration_limit,))
         expired_jobs = cur.fetchall()
     except Exception as e:
@@ -100,6 +101,9 @@ def deactivate_expired_jobs():
             job_slug = get_job_slug(job_id, title, location=location, company=company, title_es=title_es)
             job_url = f"{frontend_url}/job/{job_slug}"
             url_list.append(job_url)
+
+            if not can_notify_indexing:
+                continue
             
             payload = {
                 "url": job_url,
@@ -143,6 +147,19 @@ def deactivate_expired_jobs():
         if abandoned_count > 0:
             print(f"🗑️ Purga BD: Se eliminaron {abandoned_count} ofertas de pago huérfanas/abandonadas (>48h).")
 
+        # A.2. SEC-060: Purga de borradores comerciales abandonados (>48h) en sponsored_jobs y newsletter_sponsors
+        for sponsor_tbl in ("sponsored_jobs", "newsletter_sponsors"):
+            try:
+                cur.execute(
+                    f"DELETE FROM {sponsor_tbl} WHERE status = 'pendiente' AND created_at < %s",
+                    (abandoned_limit,),
+                )
+                conn.commit()
+                if cur.rowcount > 0:
+                    print(f"🗑️ Purga BD ({sponsor_tbl}): eliminados {cur.rowcount} borradores 'pendiente' (>48h).")
+            except Exception:
+                conn.rollback()
+
         # A.5. Detector activo de enlaces muertos (dead-link checker, FUNC-054) sobre muestra rotativa
         try:
             cur.execute("""
@@ -152,17 +169,26 @@ def deactivate_expired_jobs():
                   AND url_source IS NOT NULL
                   AND url_source LIKE 'http%'
                   AND created_at < NOW() - INTERVAL 7 DAY
-                ORDER BY created_at ASC
-                LIMIT 25
+                ORDER BY RAND()
+                LIMIT 50
             """)
             sample_rows = cur.fetchall()
             dead_ids = []
             for job_id, src_url in sample_rows:
                 try:
-                    resp = requests.head(src_url, allow_redirects=True, timeout=6, headers={"User-Agent": "PortalTrabajoIT-Bot/1.0"})
-                    if resp.status_code in (404, 410):
+                    resp = safe_http_head(src_url, headers={"User-Agent": "PortalTrabajoIT-Bot/1.0"}, timeout=(4, 6))
+                    if resp.status_code in (403, 405, 501):
+                        get_resp = safe_http_get(
+                            src_url,
+                            headers={"User-Agent": "PortalTrabajoIT-Bot/1.0"},
+                            timeout=(4, 6),
+                            max_bytes=16384,
+                        )
+                        if get_resp.status_code in (404, 410):
+                            dead_ids.append(job_id)
+                    elif resp.status_code in (404, 410):
                         dead_ids.append(job_id)
-                except requests.RequestException:
+                except (requests.RequestException, ValueError):
                     pass
             if dead_ids:
                 placeholders = ",".join(["%s"] * len(dead_ids))

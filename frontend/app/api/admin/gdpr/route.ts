@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import crypto from 'crypto';
 import pool from '@/lib/db';
 import { verifyAdminSessionTokenAsync, recordAdminAuditLog } from '@/lib/adminAuth';
-import { getClientIp } from '@/lib/rate-limit';
+import { adminActionLimiter, getClientIp } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +21,10 @@ async function requireAdmin(request: NextRequest) {
  * GET /api/admin/gdpr?email=... — Exportación ARSOLP (Art. 15 y 20 RGPD, LEG-021)
  */
 export async function GET(request: NextRequest) {
+  const ipLimit = await adminActionLimiter.limitKeyAsync(`admin_gdpr:${getClientIp(request)}`);
+  if (!ipLimit.success) {
+    return NextResponse.json({ success: false, error: 'Demasiadas peticiones' }, { status: 429 });
+  }
   const authError = await requireAdmin(request);
   if (authError) return authError;
 
@@ -41,11 +45,11 @@ export async function GET(request: NextRequest) {
       }
     };
 
-    const [subscribers, alerts, tracking, reviews] = await Promise.all([
+    const [subscribers, tracking, reviewReports, savedReminders] = await Promise.all([
       safeQuery('SELECT id, email, tech_keywords, location_pref, frequency, is_active, marketing_accepted, consent_policy_version, created_at, confirmed_at, unsubscribed_at FROM subscribers WHERE email = $1', [email]),
-      safeQuery('SELECT id, email, is_active, created_at FROM alerts WHERE email = $1', [email]),
-      safeQuery('SELECT id, campaign, opened_at FROM email_tracking WHERE email = $1 ORDER BY opened_at DESC LIMIT 100', [email]),
-      safeQuery('SELECT id, company_name, rating, created_at FROM company_reviews WHERE reviewer_email = $1', [email]),
+      safeQuery('SELECT id, campaign, clicked_url, opened_at FROM email_tracking WHERE email = $1 ORDER BY opened_at DESC LIMIT 100', [email]),
+      safeQuery('SELECT id, review_id, company_slug, reason, status, created_at FROM review_reports WHERE reporter_email = $1', [email]),
+      safeQuery('SELECT id, email, created_at FROM saved_jobs_reminders WHERE email = $1', [email]),
     ]);
 
     await recordAdminAuditLog({
@@ -59,7 +63,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       exportedAt: new Date().toISOString(),
       subject: email,
-      data: { subscribers, alerts, tracking, reviews },
+      data: { subscribers, tracking, reviewReports, savedReminders },
     });
   } finally {
     client.release();
@@ -70,6 +74,10 @@ export async function GET(request: NextRequest) {
  * POST /api/admin/gdpr — Supresión RGPD en 1 clic o moderación de review_reports (LEG-021)
  */
 export async function POST(request: NextRequest) {
+  const ipLimit = await adminActionLimiter.limitKeyAsync(`admin_gdpr:${getClientIp(request)}`);
+  if (!ipLimit.success) {
+    return NextResponse.json({ success: false, error: 'Demasiadas peticiones' }, { status: 429 });
+  }
   const authError = await requireAdmin(request);
   if (authError) return authError;
 
@@ -90,7 +98,16 @@ export async function POST(request: NextRequest) {
         [email]
       ).catch(() => {});
       await client.query('DELETE FROM email_tracking WHERE email = $1', [email]).catch(() => {});
-      await client.query('UPDATE alerts SET is_active = FALSE WHERE email = $1', [email]).catch(() => {});
+      await client.query('DELETE FROM saved_jobs_reminders WHERE email = $1', [email]).catch(() => {});
+      await client.query("UPDATE review_reports SET reporter_email = CONCAT('gdpr_erased_', id, '@deleted.local') WHERE reporter_email = $1", [email]).catch(() => {});
+      const userRes = await client.query('SELECT id FROM users WHERE email = $1 LIMIT 1', [email]).catch(() => ({ rows: [] as any[] }));
+      const userId = userRes.rows?.[0]?.id;
+      if (userId) {
+        await client.query('DELETE FROM user_sessions WHERE user_id = $1', [userId]).catch(() => {});
+        await client.query('DELETE FROM user_password_resets WHERE user_id = $1', [userId]).catch(() => {});
+        await client.query('DELETE FROM user_saved_jobs WHERE user_id = $1', [userId]).catch(() => {});
+        await client.query('DELETE FROM users WHERE id = $1', [userId]).catch(() => {});
+      }
       await client.query("INSERT INTO email_suppression_list (email_hash, reason, created_at) VALUES ($1, 'gdpr_erasure', NOW())", [emailHash]).catch(() => {});
       await client.query("INSERT INTO consent_audit_log (email_hash, action, marketing_accepted, created_at) VALUES ($1, 'gdpr_erasure', FALSE, NOW())", [emailHash]).catch(() => {});
 

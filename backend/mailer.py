@@ -282,15 +282,20 @@ def send_newsletter():
     base_url = os.getenv("FRONTEND_URL", "https://portalempleoit.com")
     CV_LINK = f"{base_url}/recursos?utm_source=newsletter&utm_medium=email&utm_campaign=resumen_semanal"
 
-    # 4. OBTENER SUSCRIPTORES CON SUS PREFERENCIAS (LEG-010: exigir frequency='weekly', is_active=TRUE y marketing_accepted=TRUE)
+    # 4. OBTENER SUSCRIPTORES CON SUS PREFERENCIAS (LEG-010: exigir frequency='weekly', is_active=TRUE, confirmed_at y marketing_accepted=TRUE)
     cur.execute("""
         SELECT email, tech_keywords 
         FROM subscribers 
         WHERE email IS NOT NULL 
           AND email NOT LIKE '%@deleted.local'
           AND frequency = 'weekly'
-          AND COALESCE(is_active, TRUE) = TRUE
+          AND is_active = TRUE
+          AND confirmed_at IS NOT NULL
           AND COALESCE(marketing_accepted, FALSE) = TRUE
+          AND NOT EXISTS (
+            SELECT 1 FROM email_suppression_list esl
+            WHERE esl.email_hash = SHA2(LOWER(TRIM(subscribers.email)), 256)
+          )
           AND NOT EXISTS (
             SELECT 1 FROM users u
             WHERE u.email = subscribers.email
@@ -309,13 +314,15 @@ def send_newsletter():
 
     # 5. SEC-062: INICIAR SESIÓN SMTP CON HELPER DE RECONEXIÓN POR MICRO-LOTES Y BACKOFF
     def open_smtp_session():
+        import ssl
+        ssl_ctx = ssl.create_default_context()
         smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
         smtp_port = int(os.getenv("SMTP_PORT", "587"))
         if smtp_port == 465:
-            srv = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=30)
+            srv = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=30, context=ssl_ctx)
         else:
             srv = smtplib.SMTP(smtp_host, smtp_port, timeout=30)
-            srv.starttls()
+            srv.starttls(context=ssl_ctx)
         srv.login(os.getenv("EMAIL_USER"), os.getenv("EMAIL_PASSWORD"))
         return srv, smtp_host, smtp_port
 
@@ -531,7 +538,8 @@ def send_newsletter():
             msg = MIMEMultipart()
             msg['From'] = f"Portal Trabajo IT <{os.getenv('EMAIL_USER')}>"
             msg['To'] = email
-            msg['Subject'] = subject_line
+            from logic.legal import sanitize_header
+            msg['Subject'] = sanitize_header(subject_line)
             # Cabeceras obligatorias RFC 8058 / Google & Yahoo One-Click Unsubscribe (HTTPS + mailto)
             msg['List-Unsubscribe'] = f"<{unsubscribe_link}>, <mailto:contacto@portalempleoit.com?subject=unsubscribe>"
             msg['List-Unsubscribe-Post'] = "List-Unsubscribe=One-Click"
@@ -553,6 +561,16 @@ def send_newsletter():
                     break
                 except smtplib.SMTPRecipientsRefused as bounce_err:
                     print(f"  🚫 Rebote duro (hard bounce) para {mask_email(email)}: {bounce_err}")
+                    try:
+                        import hashlib as _hl
+                        b_hash = _hl.sha256(email.strip().lower().encode("utf-8")).hexdigest()
+                        cur.execute(
+                            "INSERT IGNORE INTO email_suppression_list (email_hash, reason, created_at) VALUES (%s, 'hard_bounce', NOW())",
+                            (b_hash,),
+                        )
+                        conn.commit()
+                    except Exception:
+                        pass
                     error_count += 1
                     break
                 except (smtplib.SMTPServerDisconnected, smtplib.SMTPException, OSError) as smtp_err:
@@ -568,6 +586,11 @@ def send_newsletter():
                     sent_in_batch = 0
 
             if delivered:
+                try:
+                    cur.execute("UPDATE subscribers SET last_sent_at = NOW() WHERE email = %s", (email,))
+                    conn.commit()
+                except Exception as db_upd_err:
+                    print(f"  ⚠️ No se pudo actualizar last_sent_at para {mask_email(email)}: {db_upd_err}")
                 print(f"  ✅ Enviado resumen semanal a: {mask_email(email)}")
                 success_count += 1
                 sent_in_batch += 1

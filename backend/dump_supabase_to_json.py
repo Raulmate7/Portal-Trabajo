@@ -1,5 +1,8 @@
 import os
 import sys
+if os.getenv("ALLOW_LEGACY_MIGRATION") != "true":
+    print("⛔ Script de migración legacy bloqueado por seguridad (SEC-020). Define ALLOW_LEGACY_MIGRATION=true para ejecutarlo.")
+    sys.exit(1)
 
 # Truco de importación para cargar el verdadero psycopg2 instalado en el sistema
 # y evitar cargar el archivo psycopg2.py local que está en este mismo directorio.

@@ -1,5 +1,8 @@
 import sys
 import os
+if os.getenv("ALLOW_LEGACY_MIGRATION") != "true":
+    print("⛔ Script de migración legacy bloqueado por seguridad (SEC-020). Define ALLOW_LEGACY_MIGRATION=true para ejecutarlo.")
+    sys.exit(1)
 import json
 import pymysql
 from datetime import datetime

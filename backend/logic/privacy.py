@@ -11,3 +11,14 @@ def mask_email(email_str: str) -> str:
         return f"***@{domain}"
     visible = user_part[:2] if len(user_part) > 2 else user_part[:1]
     return f"{visible}***@{domain}"
+
+
+def redact_secrets(text: str) -> str:
+    """Redacta URIs con credenciales, tokens Bearer y claves API en mensajes de error (SEC-059)."""
+    if not text:
+        return ""
+    import re
+    cleaned = re.sub(r"([a-zA-Z0-9+.-]+://[^:\s/@]+:)([^@\s]+)(@)", r"\1***\3", str(text))
+    cleaned = re.sub(r"(Bearer\s+)[A-Za-z0-9._\-]+", r"\1***", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"([?&](?:key|token|secret|password)=)[^&\s]+", r"\1***", cleaned, flags=re.IGNORECASE)
+    return cleaned

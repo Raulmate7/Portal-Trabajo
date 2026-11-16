@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { z } from 'zod';
 import pool from '@/lib/db';
 import { ensureUserAuthTables, hashPassword } from '@/lib/userAuth';
+import { passwordResetLimiter, getClientIp } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +20,15 @@ const resetSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const clientIp = getClientIp(request);
+    const ipLimit = await passwordResetLimiter.limitKeyAsync(`reset:ip:${clientIp}`);
+    if (!ipLimit.success) {
+      return NextResponse.json(
+        { success: false, error: 'Demasiados intentos. Espera unos minutos antes de volver a intentarlo.' },
+        { status: 429 }
+      );
+    }
+
     const rawBody = await request.json().catch(() => ({}));
     const parsed = resetSchema.safeParse(rawBody);
     if (!parsed.success) {

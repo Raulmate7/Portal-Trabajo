@@ -442,13 +442,19 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
 
       // Generar subpáginas de empresas contratantes para las tecnologías activas
       const activeCompaniesSubpages: string[] = [];
+      const BASE_SECTORS = new Set([
+        'react', 'node', 'python', 'java', 'typescript', 'javascript', 'aws', 'docker',
+        'kubernetes', 'devops', 'backend', 'frontend', 'fullstack', 'sql', 'php', 'ruby',
+        'go', 'golang', 'rust', 'ciberseguridad', 'ia', 'data-science', 'vue', 'angular',
+        'nextjs', 'dotnet', 'csharp', 'cpp', 'kotlin', 'swift', 'flutter', 'terraform',
+        'gcp', 'azure', 'qa', 'ux-ui', 'product-manager',
+      ]);
       for (const path of activeProgrammaticPages) {
         if (path.startsWith('/trabajos/')) {
           const parts = path.split('/');
           if (parts.length === 3) {
             const sector = parts[2];
-            const isBaseSector = !sector.includes('-en-') && !sector.endsWith('-remoto') && !sector.includes('-junior') && !sector.includes('-senior') && !sector.includes('-salario') && !sector.includes('-contrato') && !sector.includes('-hibrido');
-            if (isBaseSector) {
+            if (BASE_SECTORS.has(sector)) {
               activeCompaniesSubpages.push(`/trabajos/${sector}/empresas`);
             }
           }
@@ -492,27 +498,37 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
         ...activeProgrammaticPages, 
         ...activeCompaniesSubpages,
         ...activeEmployersPages,
-        ...activeConvertirsePages
+        ...activeConvertirsePages,
+        ...activeCertificationsPages,
       ];
       const sectorUrls = sectorPages.map((path) => {
         const isSectorBasePage = path.startsWith('/trabajos/') && !path.endsWith('/empresas');
-        const alternates = isSectorBasePage
-          ? {
-              languages: {
-                'es-ES': `${BASE_URL}${path}`,
-                'en': `${BASE_URL}${path.replace('/trabajos/', '/en/trabajos/')}`,
-                'x-default': `${BASE_URL}${path}`,
-              }
+        let alternates: { languages: Record<string, string> } | undefined = undefined;
+        if (isSectorBasePage) {
+          alternates = {
+            languages: {
+              'es-ES': `${BASE_URL}${path}`,
+              'en': `${BASE_URL}${path.replace('/trabajos/', '/en/trabajos/')}`,
+              'x-default': `${BASE_URL}${path}`,
             }
-          : (path.startsWith('/trabajos/') || path.startsWith('/talento-premium') || path.startsWith('/trabajo-')
-            ? {
-                languages: {
-                  'es-ES': `${BASE_URL}${path}`,
-                  'en': `${BASE_URL}${path}?lang=en`,
-                  'x-default': `${BASE_URL}${path}`,
-                }
-              }
-            : undefined);
+          };
+        } else if (path === '/trabajo-barcelona' || path === '/ca/trabajo-barcelona') {
+          alternates = {
+            languages: {
+              'es-ES': `${BASE_URL}/trabajo-barcelona`,
+              'ca-ES': `${BASE_URL}/ca/trabajo-barcelona`,
+              'x-default': `${BASE_URL}/trabajo-barcelona`,
+            }
+          };
+        } else if (path === '/trabajo-bilbao' || path === '/eu/trabajo-bilbao') {
+          alternates = {
+            languages: {
+              'es-ES': `${BASE_URL}/trabajo-bilbao`,
+              'eu-ES': `${BASE_URL}/eu/trabajo-bilbao`,
+              'x-default': `${BASE_URL}/trabajo-bilbao`,
+            }
+          };
+        }
 
         // Páginas estáticas base del portal
         if (BASE_PAGES.includes(path)) {
@@ -530,7 +546,7 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
 
         return {
           url: `${BASE_URL}${path}`,
-          lastModified: new Date(),
+          lastModified: SITE_LAST_STRUCTURAL_UPDATE,
           changeFrequency: (isConsolidated ? 'daily' : 'weekly') as 'daily' | 'weekly',
           priority: isConsolidated ? 0.85 : 0.6,
           alternates,
@@ -555,42 +571,67 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
       ];
       const SALARIOS_NIVELES = ['junior', 'mid', 'senior'];
 
+      // SEO-003: Filtrar combinaciones de /salarios/* con masa crítica real en BD (>= 5 ofertas con salario)
+      const activeSalaryTechs = new Set<string>();
+      const activeSalaryTechCities = new Set<string>();
+      const activeSalaryTechCityLevels = new Set<string>();
+      try {
+        const salRes = await client.query(
+          "SELECT LOWER(title) as title, LOWER(location) as location FROM jobs WHERE is_active = TRUE AND ((salary_min IS NOT NULL AND salary_min > 0) OR (salary_max IS NOT NULL AND salary_max > 0) OR (salary IS NOT NULL AND salary != '' AND LOWER(salary) NOT IN ('consultar', 'sin especificar'))) LIMIT 3000"
+        );
+        const techCounts = new Map<string, number>();
+        const techCityCounts = new Map<string, number>();
+        const techCityLevelCounts = new Map<string, number>();
+        for (const r of salRes.rows || []) {
+          const t = String(r.title || '');
+          const l = String(r.location || '');
+          const matchedTech = SALARIOS_TECNOLOGIAS.find((tech) => t.includes(tech === 'csharp' ? 'c#' : tech));
+          if (!matchedTech) continue;
+          techCounts.set(matchedTech, (techCounts.get(matchedTech) || 0) + 1);
+          const matchedCity = SALARIOS_CIUDADES.find((c) => l.includes(c === 'coruna' ? 'coru' : c));
+          if (matchedCity) {
+            const tcKey = `${matchedTech}/${matchedCity}`;
+            techCityCounts.set(tcKey, (techCityCounts.get(tcKey) || 0) + 1);
+            const level = t.includes('senior') || t.includes('sr') || t.includes('lead') ? 'senior' : (t.includes('junior') || t.includes('jr') ? 'junior' : 'mid');
+            const tclKey = `${tcKey}/${level}`;
+            techCityLevelCounts.set(tclKey, (techCityLevelCounts.get(tclKey) || 0) + 1);
+          }
+        }
+        techCounts.forEach((cnt, tech) => { if (cnt >= 5) activeSalaryTechs.add(tech); });
+        techCityCounts.forEach((cnt, key) => { if (cnt >= 5) activeSalaryTechCities.add(key); });
+        techCityLevelCounts.forEach((cnt, key) => { if (cnt >= 5) activeSalaryTechCityLevels.add(key); });
+      } catch {}
+
       const salaryUrls = [
         {
           url: `${BASE_URL}/salarios`,
-          lastModified: new Date(),
+          lastModified: SITE_LAST_STRUCTURAL_UPDATE,
           changeFrequency: 'daily' as const,
           priority: 0.9,
         },
-        ...SALARIOS_TECNOLOGIAS.map(tech => ({
+        ...SALARIOS_TECNOLOGIAS.filter(tech => activeSalaryTechs.has(tech)).map(tech => ({
           url: `${BASE_URL}/salarios/${tech}`,
           lastModified: SITE_LAST_STRUCTURAL_UPDATE,
           changeFrequency: 'monthly' as const,
           priority: 0.8,
         })),
-        ...SALARIOS_TECNOLOGIAS.flatMap(tech => 
-          SALARIOS_CIUDADES.map(city => ({
-            url: `${BASE_URL}/salarios/${tech}/${city}`,
-            lastModified: SITE_LAST_STRUCTURAL_UPDATE,
-            changeFrequency: 'monthly' as const,
-            priority: 0.8,
-          }))
-        ),
-        ...SALARIOS_TECNOLOGIAS.flatMap(tech => 
-          SALARIOS_CIUDADES.flatMap(city =>
-            SALARIOS_NIVELES.map(level => ({
-              url: `${BASE_URL}/salarios/${tech}/${city}/${level}`,
-              lastModified: SITE_LAST_STRUCTURAL_UPDATE,
-              changeFrequency: 'monthly' as const,
-              priority: 0.75,
-            }))
-          )
-        )
+        ...Array.from(activeSalaryTechCities).map(tc => ({
+          url: `${BASE_URL}/salarios/${tc}`,
+          lastModified: SITE_LAST_STRUCTURAL_UPDATE,
+          changeFrequency: 'monthly' as const,
+          priority: 0.8,
+        })),
+        ...Array.from(activeSalaryTechCityLevels).map(tcl => ({
+          url: `${BASE_URL}/salarios/${tcl}`,
+          lastModified: SITE_LAST_STRUCTURAL_UPDATE,
+          changeFrequency: 'monthly' as const,
+          priority: 0.75,
+        })),
       ];
 
       const glossaryUrls = GLOSSARY_TERMS.map((term) => ({
         url: `${BASE_URL}/glosario/${term.slug}`,
-        lastModified: new Date(),
+        lastModified: SITE_LAST_STRUCTURAL_UPDATE,
         changeFrequency: 'monthly' as const,
         priority: 0.6,
       }));
@@ -666,7 +707,7 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
     // ----------------------------------------------------
     if (sitemapId === 1) {
       const jobsRes = await client.query(
-        "SELECT id, title, company, location, created_at FROM jobs WHERE is_active = TRUE AND created_at >= NOW() - INTERVAL 30 DAY ORDER BY created_at DESC LIMIT 8000 OFFSET 0"
+        "SELECT id, title, company, location, created_at FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 8000 OFFSET 0"
       );
       const jobs = jobsRes.rows;
 
@@ -698,7 +739,7 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
     // ----------------------------------------------------
     if (sitemapId === 2) {
       const jobsRes = await client.query(
-        "SELECT id, title, company, location, created_at FROM jobs WHERE is_active = TRUE AND created_at >= NOW() - INTERVAL 30 DAY ORDER BY created_at DESC LIMIT 8000 OFFSET 8000"
+        "SELECT id, title, company, location, created_at FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 8000 OFFSET 8000"
       );
       const jobs = jobsRes.rows;
 

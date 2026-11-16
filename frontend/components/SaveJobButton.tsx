@@ -59,6 +59,27 @@ async function fetchAuthSavedState(): Promise<{ authenticated: boolean; savedIds
   return cachedAuthStatePromise;
 }
 
+const LOCAL_SAVED_KEY = 'saved_jobs';
+
+function readLocalSavedIds(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(LOCAL_SAVED_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.map((item) => String(typeof item === 'object' && item !== null ? item.id ?? '' : item)).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalSavedIds(ids: string[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(LOCAL_SAVED_KEY, JSON.stringify(Array.from(new Set(ids))));
+  } catch {}
+}
+
 export default function SaveJobButton({ job, variant = 'card' }: SaveJobButtonProps) {
   const router = useRouter();
   const [isSaved, setIsSaved] = useState(false);
@@ -74,8 +95,24 @@ export default function SaveJobButton({ job, variant = 'card' }: SaveJobButtonPr
       const state = await fetchAuthSavedState();
       if (!active) return;
       setIsAuthenticated(state.authenticated);
-      if (job.id) {
-        setIsSaved(state.savedIds.has(String(job.id)));
+      if (state.authenticated) {
+        const localIds = readLocalSavedIds();
+        if (localIds.length > 0) {
+          try {
+            await fetch('/api/auth/saved-jobs', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ jobIds: localIds }),
+            });
+            localIds.forEach((id) => state.savedIds.add(id));
+            localStorage.removeItem(LOCAL_SAVED_KEY);
+          } catch {}
+        }
+        if (job.id) {
+          setIsSaved(state.savedIds.has(String(job.id)));
+        }
+      } else if (job.id) {
+        setIsSaved(readLocalSavedIds().includes(String(job.id)));
       }
     };
     sync();
@@ -85,8 +122,11 @@ export default function SaveJobButton({ job, variant = 'card' }: SaveJobButtonPr
       sync();
     };
     const handleSavedChange = () => {
-      if (cachedSavedIds && job.id) {
+      if (!job.id) return;
+      if (cachedAuthenticated && cachedSavedIds) {
         setIsSaved(cachedSavedIds.has(String(job.id)));
+      } else {
+        setIsSaved(readLocalSavedIds().includes(String(job.id)));
       }
     };
 
@@ -105,13 +145,21 @@ export default function SaveJobButton({ job, variant = 'card' }: SaveJobButtonPr
 
     if (!job.id) return;
 
-    if (!isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-
     const idStr = String(job.id);
     const nextSaved = !isSaved;
+
+    if (!isAuthenticated) {
+      const current = readLocalSavedIds();
+      const updated = nextSaved ? [...current, idStr] : current.filter((id) => id !== idStr);
+      writeLocalSavedIds(updated);
+      setIsSaved(nextSaved);
+      if (nextSaved) {
+        setShowSavedToast(true);
+        setTimeout(() => setShowSavedToast(false), 3000);
+      }
+      window.dispatchEvent(new Event('saved_jobs_changed'));
+      return;
+    }
     setIsSaved(nextSaved);
     if (cachedSavedIds) {
       if (nextSaved) cachedSavedIds.add(idStr);

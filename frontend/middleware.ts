@@ -13,7 +13,7 @@ function generateNonce(): string {
 }
 
 function buildDefaultCsp(nonce: string): string {
-  return `default-src 'self'; script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://pagead2.googlesyndication.com https://cdn.onesignal.com https://onesignal.com https://www.googletagmanager.com https://js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https:; frame-src 'self' https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.youtube.com https://js.stripe.com https://checkout.stripe.com; object-src 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com; frame-ancestors 'none'; upgrade-insecure-requests;`;
+  return `default-src 'self'; script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://pagead2.googlesyndication.com https://cdn.onesignal.com https://onesignal.com https://www.googletagmanager.com https://js.stripe.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https:; frame-src 'self' https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.youtube.com https://js.stripe.com https://checkout.stripe.com https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com; frame-ancestors 'none'; upgrade-insecure-requests;`;
 }
 
 function buildAdminCsp(nonce: string): string {
@@ -215,6 +215,16 @@ export async function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-nonce', nonce);
 
+  // SEO-056: Normalizar a minúsculas con 301 rutas taxonómicas públicas
+  if (
+    /^\/(trabajos|salarios|empresas|glosario|certificaciones)(\/|$)/i.test(pathname) &&
+    pathname !== pathname.toLowerCase()
+  ) {
+    const lowerUrl = request.nextUrl.clone();
+    lowerUrl.pathname = pathname.toLowerCase();
+    return NextResponse.redirect(lowerUrl, 301);
+  }
+
   // 3. Control centralizado y criptográfico de acceso para rutas administrativas (SEC-018)
   if (pathname.startsWith('/admin')) {
     const sessionCookie = request.cookies.get('admin_session')?.value;
@@ -236,6 +246,7 @@ export async function middleware(request: NextRequest) {
     response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), browsing-topics=(), usb=()');
     response.headers.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
     response.headers.set('Cross-Origin-Resource-Policy', 'same-site');
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow');
 
     return response;
   }
@@ -259,6 +270,20 @@ export async function middleware(request: NextRequest) {
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), browsing-topics=(), usb=()');
   response.headers.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
   response.headers.set('Cross-Origin-Resource-Policy', 'same-site');
+
+  if (
+    pathname === '/login' ||
+    pathname === '/registro' ||
+    pathname === '/recuperar-password' ||
+    pathname === '/gracias' ||
+    pathname === '/darse-de-baja' ||
+    pathname === '/perfil' ||
+    pathname.startsWith('/mi-perfil') ||
+    pathname.startsWith('/ofertas-guardadas') ||
+    pathname.startsWith('/empresa-dashboard')
+  ) {
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  }
 
   if (process.env.NODE_ENV === 'production') {
     response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');

@@ -52,7 +52,7 @@ def main():
         
         tech_counts = []
         for tech_name, pattern in TECHS:
-            cur.execute("SELECT COUNT(*) FROM jobs WHERE is_active = TRUE AND (title ILIKE %s OR description_snippet ILIKE %s)", (pattern, pattern))
+            cur.execute("SELECT COUNT(*) FROM jobs WHERE is_active = TRUE AND (LOWER(title) LIKE LOWER(%s) OR LOWER(description_snippet) LIKE LOWER(%s))", (pattern, pattern))
             count = cur.fetchone()[0]
             tech_counts.append((tech_name, count))
             

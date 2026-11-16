@@ -3,8 +3,26 @@ import sys
 import time
 import subprocess
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 print("🚀 INICIANDO SISTEMA DE AGREGACIÓN DE EMPLEO...")
 print("===============================================")
+
+# SEC-064: Lock exclusivo no bloqueante para evitar ejecuciones cron solapadas
+_run_lock_fh = None
+try:
+    import fcntl
+    _run_lock_fh = open("/tmp/portal_run_all.lock", "w")
+    fcntl.flock(_run_lock_fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+except ImportError:
+    pass
+except BlockingIOError:
+    print("⚠️ Otra instancia de run_all.py ya está en ejecución. Saliendo para evitar race conditions.")
+    sys.exit(0)
 
 # Detectar el ejecutable de Python a usar (preferir venv si existe)
 python_bin = "venv/bin/python3" if os.path.exists("venv/bin/python3") else "python3"
@@ -37,14 +55,14 @@ run_cmd([python_bin, "consolidate_production_schema.py"])
 
 # 1. Ejecutar el Scraper Internacional (WWR, Remotive, JobFluent, RemoteOK, WorkingNomads, Himalayas, Python.org)
 print("\n[1/5] 🌎 Ejecutando Scrapers Internacionales (main.py)...")
-exit_code = run_cmd([python_bin, "main.py"])
+exit_code = run_cmd([python_bin, "main.py"], timeout_sec=600)
 if exit_code != 0:
     print("⚠️ Advertencia: Algún scraper internacional terminó con errores.")
 
 # 2. Ejecutar el Scraper de Tecnoempleo (Nacional España - Scrapy)
 print("\n[2/5] 🇪🇸 Ejecutando Tecnoempleo Scraper (scrapy crawl job_spider)...")
 scrapy_bin = "venv/bin/scrapy" if os.path.exists("venv/bin/scrapy") else "scrapy"
-exit_code = run_cmd([scrapy_bin, "crawl", "job_spider"])
+exit_code = run_cmd([scrapy_bin, "crawl", "job_spider"], timeout_sec=600)
 if exit_code != 0:
     print("⚠️ Advertencia: Tecnoempleo Scraper (Scrapy) terminó con errores.")
 

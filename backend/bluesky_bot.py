@@ -147,7 +147,14 @@ def run_bluesky_bot():
     print(f"📣 Seleccionadas {len(jobs_to_post)} ofertas para publicar en Bluesky.")
 
     for idx, job in enumerate(jobs_to_post):
+        from logic.social_sanitize import sanitize_social_text, is_safe_social_job
         job_id, title, company, location, salary, category = job
+        if not is_safe_social_job(title, company):
+            print(f"⚠️ Oferta {job_id} omitida por filtro de moderación social.")
+            continue
+        title = sanitize_social_text(title, 120)
+        company = sanitize_social_text(company, 80)
+        location = sanitize_social_text(location, 60)
         job_url = f"{frontend_url}/job/{get_job_slug(job_id, title, location, company)}?utm_source=bluesky&utm_medium=social"
         
         post_text = f"🚀 Nueva vacante IT en España:\n\n"
@@ -175,8 +182,8 @@ def run_bluesky_bot():
     try:
         cur.close()
         conn.close()
-    except:
-        pass
+    except Exception as close_err:
+        print(f"⚠️ Error cerrando conexión BD en bluesky_bot: {close_err}")
     print("===============================================")
 
 if __name__ == "__main__":

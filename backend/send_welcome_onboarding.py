@@ -11,6 +11,8 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from logic.slug import get_job_slug
 from logic.privacy import mask_email
+from logic.legal import build_unsubscribe_headers
+from logic.tracking import build_track_click_url, build_track_open_url
 
 load_dotenv()
 
@@ -74,7 +76,7 @@ def build_welcome_email(email, tech_keywords, jobs):
             location_esc = html.escape(str(location or ''))
             sal_text = f" | 💰 {html.escape(str(salary))}" if salary and salary not in ("Consultar", "") else ""
             original_link = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_1&utm_term={urllib.parse.quote(category)}&utm_content={job_id}"
-            job_link = f"{BASE_URL}/api/track-click?email={urllib.parse.quote(email)}&campaign=welcome_email_1&redirect={urllib.parse.quote(original_link)}"
+            job_link = build_track_click_url(BASE_URL, email, "welcome_email_1", original_link)
             jobs_html += f"""
             <div style="margin-bottom: 12px; padding: 12px; background: #f8faff; border-left: 4px solid #4f46e5; border-radius: 4px;">
                 <h4 style="margin: 0 0 4px; color: #312e81; font-size: 14px;">{title_esc}</h4>
@@ -86,9 +88,11 @@ def build_welcome_email(email, tech_keywords, jobs):
         jobs_html = f"<p style='color: #6b7280; font-size: 13px; text-align: center;'>Visita nuestra web para ver las últimas ofertas del día.</p>"
 
     original_explore_link = f"{BASE_URL}?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_1"
-    explore_link = f"{BASE_URL}/api/track-click?email={urllib.parse.quote(email)}&campaign=welcome_email_1&redirect={urllib.parse.quote(original_explore_link)}"
+    explore_link = build_track_click_url(BASE_URL, email, "welcome_email_1", original_explore_link)
     original_referidos_link = f"{BASE_URL}/referidos?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_1"
-    referidos_link = f"{BASE_URL}/api/track-click?email={urllib.parse.quote(email)}&campaign=welcome_email_1&redirect={urllib.parse.quote(original_referidos_link)}"
+    referidos_link = build_track_click_url(BASE_URL, email, "welcome_email_1", original_referidos_link)
+    open_pixel_url = build_track_open_url(BASE_URL, email, "welcome_email_1")
+    open_pixel_html = f'<img src="{open_pixel_url}" width="1" height="1" style="display:none;" alt="" />' if open_pixel_url else ""
 
     return f"""
     <html>
@@ -134,7 +138,7 @@ def build_welcome_email(email, tech_keywords, jobs):
                 </p>
             </div>
         </div>
-        <img src="{BASE_URL}/api/track-open?email={urllib.parse.quote(email)}&campaign=welcome_email_1" width="1" height="1" style="display:none;" />
+        {open_pixel_html}
     </body>
     </html>
     """
@@ -145,13 +149,15 @@ def build_resources_email(email, tech_keywords):
     CV_LINK = f"{BASE_URL}/recursos?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_2"
     unsubscribe_link = generate_unsubscribe_link(email)
     
-    bootcamp_track = f"{BASE_URL}/api/track-click?email={urllib.parse.quote(email)}&campaign=welcome_email_2&redirect={urllib.parse.quote(BOOTCAMP_LINK)}"
-    cv_track = f"{BASE_URL}/api/track-click?email={urllib.parse.quote(email)}&campaign=welcome_email_2&redirect={urllib.parse.quote(CV_LINK)}"
-    
+    bootcamp_track = build_track_click_url(BASE_URL, email, "welcome_email_2", BOOTCAMP_LINK)
+    cv_track = build_track_click_url(BASE_URL, email, "welcome_email_2", CV_LINK)
+
     original_salarios_link = f"{BASE_URL}/salarios?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_2"
-    salarios_track = f"{BASE_URL}/api/track-click?email={urllib.parse.quote(email)}&campaign=welcome_email_2&redirect={urllib.parse.quote(original_salarios_link)}"
+    salarios_track = build_track_click_url(BASE_URL, email, "welcome_email_2", original_salarios_link)
     original_referidos_link = f"{BASE_URL}/referidos?utm_source=onboarding&utm_medium=email&utm_campaign=welcome_2"
-    referidos_track = f"{BASE_URL}/api/track-click?email={urllib.parse.quote(email)}&campaign=welcome_email_2&redirect={urllib.parse.quote(original_referidos_link)}"
+    referidos_track = build_track_click_url(BASE_URL, email, "welcome_email_2", original_referidos_link)
+    open_pixel_url_2 = build_track_open_url(BASE_URL, email, "welcome_email_2")
+    open_pixel_html_2 = f'<img src="{open_pixel_url_2}" width="1" height="1" style="display:none;" alt="" />' if open_pixel_url_2 else ""
     
     return f"""
     <html>
@@ -212,7 +218,7 @@ def build_resources_email(email, tech_keywords):
                 </p>
             </div>
         </div>
-        <img src="{BASE_URL}/api/track-open?email={urllib.parse.quote(email)}&campaign=welcome_email_2" width="1" height="1" style="display:none;" />
+        {open_pixel_html_2}
     </body>
     </html>
     """
@@ -233,15 +239,25 @@ def run_onboarding():
         print(f"❌ Error conectando a BD: {e}")
         return
 
-    # 2. Obtener usuarios en onboarding_stage < 2 (activos, no bajas, excluyendo avisos únicos)
+    # 2. Obtener usuarios en onboarding_stage < 2 (activos, confirmados, no suprimidos, excluyendo avisos únicos)
     cur.execute("""
         SELECT email, tech_keywords, onboarding_stage, onboarding_last_sent_at
         FROM subscribers
         WHERE (onboarding_stage < 2 OR onboarding_stage IS NULL)
           AND email IS NOT NULL
           AND email NOT LIKE '%@deleted.local'
-          AND (is_active IS NULL OR is_active = TRUE)
+          AND is_active = TRUE
+          AND confirmed_at IS NOT NULL
           AND (frequency IS NULL OR frequency != 'once')
+          AND NOT EXISTS (
+            SELECT 1 FROM email_suppression_list esl
+            WHERE esl.email_hash = SHA2(LOWER(TRIM(subscribers.email)), 256)
+          )
+          AND NOT EXISTS (
+            SELECT 1 FROM users u
+            WHERE u.email = subscribers.email
+              AND u.email_notifications_enabled = FALSE
+          )
     """)
     subscribers = cur.fetchall()
 
@@ -253,13 +269,15 @@ def run_onboarding():
 
     # 3. Iniciar servidor SMTP
     try:
+        import ssl
+        ssl_ctx = ssl.create_default_context()
         smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
         smtp_port = int(os.getenv("SMTP_PORT", "587"))
         if smtp_port == 465:
-            server = smtplib.SMTP_SSL(smtp_host, smtp_port)
+            server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=30, context=ssl_ctx)
         else:
-            server = smtplib.SMTP(smtp_host, smtp_port)
-            server.starttls()
+            server = smtplib.SMTP(smtp_host, smtp_port, timeout=30)
+            server.starttls(context=ssl_ctx)
         server.login(EMAIL_USER, EMAIL_PASSWORD)
         print(f"✅ Login en SMTP ({smtp_host}:{smtp_port}) correcto.")
     except Exception as e:
@@ -286,8 +304,8 @@ def run_onboarding():
                 msg['From'] = f"Portal Trabajo IT <{EMAIL_USER}>"
                 msg['To'] = email
                 msg['Subject'] = "¡Te damos la bienvenida a Portal Trabajo IT! 🚀"
-                msg['List-Unsubscribe'] = f"<mailto:contacto@portalempleoit.com?subject=unsubscribe>, <{unsubscribe_link}>"
-                msg['List-Unsubscribe-Post'] = "List-Unsubscribe=One-Click"
+                for h_k, h_v in build_unsubscribe_headers(unsubscribe_link).items():
+                    msg[h_k] = h_v
                 msg.attach(MIMEText(html_body, 'html'))
                 
                 server.send_message(msg)
@@ -315,8 +333,8 @@ def run_onboarding():
                     msg['From'] = f"Portal Trabajo IT <{EMAIL_USER}>"
                     msg['To'] = email
                     msg['Subject'] = "💰 Recursos recomendados y calculadora de salarios en Portal Trabajo IT"
-                    msg['List-Unsubscribe'] = f"<{unsubscribe_link}>"
-                    msg['List-Unsubscribe-Post'] = "List-Unsubscribe=One-Click"
+                    for h_k, h_v in build_unsubscribe_headers(unsubscribe_link).items():
+                        msg[h_k] = h_v
                     msg.attach(MIMEText(html_body, 'html'))
                     
                     server.send_message(msg)

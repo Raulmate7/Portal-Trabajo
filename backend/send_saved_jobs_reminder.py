@@ -149,7 +149,17 @@ def get_pending_subscribers(conn):
             FROM subscribers s
             WHERE (s.source = 'saved_jobs_reminder' OR s.tech_keywords LIKE 'origen:saved_jobs_reminder%')
               AND s.email NOT LIKE '%@deleted.local'
-              AND (s.is_active IS NULL OR s.is_active = TRUE)
+              AND s.is_active = TRUE
+              AND s.confirmed_at IS NOT NULL
+              AND NOT EXISTS (
+                SELECT 1 FROM email_suppression_list esl
+                WHERE esl.email_hash = SHA2(LOWER(TRIM(s.email)), 256)
+              )
+              AND NOT EXISTS (
+                SELECT 1 FROM users u
+                WHERE u.email = s.email
+                  AND u.email_notifications_enabled = FALSE
+              )
               AND s.created_at BETWEEN %s AND %s
               AND s.email NOT IN (
                 SELECT sr.email FROM saved_jobs_reminders sr
@@ -208,41 +218,46 @@ def send_saved_jobs_reminders():
         print(f"❌ Error conectando a BD: {e}")
         return
 
-    setup_table(conn)
-    subscribers = get_pending_subscribers(conn)
-
-    if not subscribers:
-        print("ℹ️ No hay suscriptores pendientes de recordatorio de ofertas guardadas.")
-        conn.close()
-        print("===============================================")
-        return
-
-    print(f"📧 Enviando recordatorios de ofertas guardadas a {len(subscribers)} usuarios...")
-    sent = 0
-    errors = 0
-
     try:
-        smtp_ctx = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT) if SMTP_PORT == 465 else smtplib.SMTP(SMTP_HOST, SMTP_PORT)
-        with smtp_ctx as smtp:
-            smtp.ehlo()
-            if SMTP_PORT != 465:
-                smtp.starttls()
-            smtp.login(SMTP_USER, SMTP_PASS)
-            for email in subscribers:
-                try:
-                    send_reminder_email(smtp, email)
-                    mark_sent(conn, email)
-                    sent += 1
-                    print(f"  ✅ Enviado a {mask_email(email)}")
-                except Exception as e:
-                    errors += 1
-                    print(f"  ❌ Error enviando a {mask_email(email)}: {e}")
-    except Exception as e:
-        print(f"❌ Error de conexión SMTP: {e}")
+        setup_table(conn)
+        subscribers = get_pending_subscribers(conn)
 
-    conn.close()
-    print(f"\n✅ Recordatorios enviados: {sent} | Errores: {errors}")
-    print("===============================================")
+        if not subscribers:
+            print("ℹ️ No hay suscriptores pendientes de recordatorio de ofertas guardadas.")
+            return
+
+        print(f"📧 Enviando recordatorios de ofertas guardadas a {len(subscribers)} usuarios...")
+        sent = 0
+        errors = 0
+
+        try:
+            import ssl
+            ssl_ctx = ssl.create_default_context()
+            smtp_ctx = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=30, context=ssl_ctx) if SMTP_PORT == 465 else smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30)
+            with smtp_ctx as smtp:
+                smtp.ehlo()
+                if SMTP_PORT != 465:
+                    smtp.starttls(context=ssl_ctx)
+                smtp.login(SMTP_USER, SMTP_PASS)
+                for email in subscribers:
+                    try:
+                        send_reminder_email(smtp, email)
+                        mark_sent(conn, email)
+                        sent += 1
+                        print(f"  ✅ Enviado a {mask_email(email)}")
+                    except Exception as e:
+                        errors += 1
+                        print(f"  ❌ Error enviando a {mask_email(email)}: {e}")
+        except Exception as e:
+            print(f"❌ Error de conexión SMTP: {e}")
+
+        print(f"\n✅ Recordatorios enviados: {sent} | Errores: {errors}")
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+        print("===============================================")
 
 
 if __name__ == "__main__":

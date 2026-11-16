@@ -79,6 +79,10 @@ def connect(dsn=None, **kwargs):
 
     if db_url and (db_url.startswith("postgresql://") or db_url.startswith("postgres://") or db_url.startswith("mysql://")):
         host, user, password, database, port = parse_db_url(db_url)
+        host = host or os.getenv("MYSQL_HOST") or 'localhost'
+        user = user or os.getenv("MYSQL_USER")
+        password = password if password is not None else os.getenv("MYSQL_PASSWORD")
+        database = database or os.getenv("MYSQL_DATABASE")
     else:
         host = kwargs.get('host') or os.getenv("MYSQL_HOST") or 'localhost'
         user = kwargs.get('user') or os.getenv("MYSQL_USER")
@@ -87,14 +91,6 @@ def connect(dsn=None, **kwargs):
         port = kwargs.get('port') or os.getenv("MYSQL_PORT") or 3306
         if isinstance(port, str):
             port = int(port)
-
-    # Si estamos en localhost y las variables individuales de cPanel están definidas, las priorizamos
-    cpanel_user = os.getenv("MYSQL_USER")
-    cpanel_db = os.getenv("MYSQL_DATABASE")
-    if host == 'localhost' or host == '127.0.0.1':
-        if cpanel_user: user = cpanel_user
-        if cpanel_db: database = cpanel_db
-        if os.getenv("MYSQL_PASSWORD"): password = os.getenv("MYSQL_PASSWORD")
 
     try:
         connect_timeout = kwargs.get('connect_timeout') or kwargs.get('timeout') or 5
@@ -163,23 +159,22 @@ class CursorWrapper:
     def __init__(self, cursor, connection):
         self.cursor = cursor
         self.connection = connection
+        self._returning_id = None
 
-    def execute(self, query, vars=None):
-        if not query:
-            return
-        
+    def _translate_sql(self, query, vars=None):
         mysql_query = query
-        
+        returning_requested = False
+
         # 0. Traducir consulta de schema de tablas de Postgres a MySQL SHOW TABLES
         if "INFORMATION_SCHEMA.TABLES" in mysql_query.upper() and "TABLE_SCHEMA = 'PUBLIC'" in mysql_query.upper():
             mysql_query = "SHOW TABLES"
-            
+
         # 1. Traducir ILIKE a LIKE (MySQL es case-insensitive por defecto), respetando cadenas literales (VULN-18)
         parts = re.split(r"('(?:[^'\\]|\\.)*'|\"(?:[^\"\\]|\\.)*\")", mysql_query)
         for i in range(0, len(parts), 2):
             parts[i] = re.sub(r'\bILIKE\b', 'LIKE', parts[i], flags=re.IGNORECASE)
         mysql_query = "".join(parts)
-        
+
         # 2. Traducir ON CONFLICT (col) DO NOTHING a INSERT IGNORE
         if "ON CONFLICT" in mysql_query.upper():
             if "DO NOTHING" in mysql_query.upper():
@@ -214,10 +209,17 @@ class CursorWrapper:
         mysql_query = re.sub(r"INTERVAL\s+'(\d+)\s+hours?'", r"INTERVAL \1 HOUR", mysql_query, flags=re.IGNORECASE)
         mysql_query = re.sub(r"INTERVAL\s+'(\d+)\s+days?'", r"INTERVAL \1 DAY", mysql_query, flags=re.IGNORECASE)
 
-        # 5. Adaptar SELECTs con alias o límites específicos si aplica
-        # (ej: MySQL requiere usar alias de forma obligatoria en subconsultas FROM)
+        # 5. BUG-014: Eliminar RETURNING <cols> no soportado en MySQL
+        if re.search(r'\bRETURNING\b', mysql_query, flags=re.IGNORECASE):
+            mysql_query, n_sub = re.subn(r'\s+RETURNING\s+[^;]+;?\s*$', '', mysql_query, flags=re.IGNORECASE)
+            if n_sub > 0:
+                returning_requested = True
+
+        return mysql_query, vars, returning_requested
+
+    def _run_with_mapped_errors(self, fn, *args):
         try:
-            self.cursor.execute(mysql_query, vars)
+            return fn(*args)
         except pymysql.err.IntegrityError as e:
             raise IntegrityError(f"Error de integridad MySQL: {e}") from e
         except pymysql.err.OperationalError as e:
@@ -235,8 +237,29 @@ class CursorWrapper:
         except pymysql.err.MySQLError as e:
             raise DatabaseError(f"Error de base de datos MySQL: {e}") from e
 
+    def execute(self, query, vars=None):
+        if not query:
+            return
+        self._returning_id = None
+        mysql_query, vars, returning_requested = self._translate_sql(query, vars)
+        self._run_with_mapped_errors(self.cursor.execute, mysql_query, vars)
+        if returning_requested and getattr(self.cursor, 'lastrowid', None):
+            self._returning_id = self.cursor.lastrowid
+
+    def executemany(self, query, seq_of_params):
+        if not query or not seq_of_params:
+            return
+        self._returning_id = None
+        mysql_query, _, _ = self._translate_sql(query, None)
+        return self._run_with_mapped_errors(self.cursor.executemany, mysql_query, seq_of_params)
+
     def fetchone(self):
-        return self.cursor.fetchone()
+        row = self.cursor.fetchone()
+        if row is None and self._returning_id is not None:
+            ret = (self._returning_id,)
+            self._returning_id = None
+            return ret
+        return row
 
     def fetchall(self):
         return self.cursor.fetchall()

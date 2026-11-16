@@ -13,7 +13,8 @@ from scrapers.workingnomads import get_workingnomads_jobs
 from scrapers.himalayas import get_himalayas_jobs
 from scrapers.pythonorg import get_pythonorg_jobs
 from logic.classifier import classify_job
-from logic.dedup import compute_dedup_hash
+from logic.dedup import compute_dedup_hash, token_jaccard_similarity
+from logic.job_identity import new_job_id, infer_work_mode
 from logic.translator import translate_text
 from logic.salary_parser import parse_salary, extract_salary_from_text
 
@@ -74,8 +75,10 @@ def save_jobs(jobs, source_name):
         title = str(job.get('title', 'Sin título')).strip()[:250]
         company = str(job.get('company', 'Desconocida')).strip()[:250]
         location = str(job.get('location', 'Remoto')).strip()[:250]
-        # Deduplicación multi-fuente por dedup_hash canónico (FUNC-019)
-        dedup_hash = compute_dedup_hash(company, title)
+        # Deduplicación multi-fuente por dedup_hash canónico (FUNC-019).
+        # BUG-001: la modalidad se infiere antes del hash para no colapsar ofertas remoto/presencial.
+        work_mode = infer_work_mode(title, location, job.get('description_snippet', ''))
+        dedup_hash = compute_dedup_hash(company, title, work_mode or '')
         if company != 'Desconocida':
             try:
                 cursor.execute("""
@@ -91,6 +94,17 @@ def save_jobs(jobs, source_name):
                 """, (title, company))
             if cursor.fetchone():
                 continue
+            # Segunda etapa difusa (FUNC-025): comparar similitud Jaccard contra vacantes recientes de la misma empresa
+            try:
+                cursor.execute("""
+                    SELECT title FROM jobs
+                    WHERE company = %s AND work_mode = %s AND created_at > NOW() - INTERVAL '14 days'
+                    LIMIT 10
+                """, (company, work_mode or ''))
+                if any(token_jaccard_similarity(title, row[0]) >= 0.85 for row in cursor.fetchall()):
+                    continue
+            except Exception:
+                pass
 
         desc_snippet = job.get('description_snippet', '')
         
@@ -147,9 +161,10 @@ def save_jobs(jobs, source_name):
                 salary_raw = f"{raw_ext} (estimado)"
 
         cursor.execute("""
-            INSERT INTO jobs (title, company, location, salary, description_snippet, url_source, sector_id, category, title_es, description_snippet_es, salary_min, salary_max, salary_currency, is_active)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, TRUE)
+            INSERT INTO jobs (id, title, company, location, salary, description_snippet, url_source, sector_id, category, title_es, description_snippet_es, salary_min, salary_max, salary_currency, dedup_hash, work_mode, is_active)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, TRUE)
         """, (
+            new_job_id(),
             title,
             company,
             location,
@@ -163,6 +178,8 @@ def save_jobs(jobs, source_name):
             s_min,
             s_max,
             s_curr,
+            dedup_hash,
+            work_mode,
         ))
         new_count += 1
 
@@ -173,30 +190,34 @@ def save_jobs(jobs, source_name):
 
 
 def main():
-    print("🚀 Iniciando Scrapers (Pack Completo — Internacional y España)...")
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    print("🚀 Iniciando Scrapers en paralelo (Pack Completo — Internacional y España)...")
 
-    # --- ESPAÑA & EUROPA ---
-    print("\n--- Ejecutando JobFluent (ES) ---")
-    save_jobs(get_jobfluent_jobs(), "JobFluent")
+    scrapers = [
+        ("JobFluent", get_jobfluent_jobs),
+        ("RemoteOK", get_remoteok_jobs),
+        ("WorkingNomads", get_workingnomads_jobs),
+        ("WeWorkRemotely", get_wwr_jobs),
+        ("Remotive", get_remotive_jobs),
+        ("Himalayas", get_himalayas_jobs),
+        ("Python.org", get_pythonorg_jobs),
+    ]
 
-    print("\n--- Ejecutando RemoteOK (ES) ---")
-    save_jobs(get_remoteok_jobs(), "RemoteOK")
+    results = {}
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        future_map = {executor.submit(fn): name for name, fn in scrapers}
+        for future in as_completed(future_map):
+            name = future_map[future]
+            try:
+                results[name] = future.result() or []
+                print(f"📡 {name}: {len(results[name])} ofertas obtenidas.")
+            except Exception as exc:
+                print(f"❌ Error ejecutando scraper {name}: {exc}")
+                results[name] = []
 
-    print("\n--- Ejecutando WorkingNomads (EU/ES) ---")
-    save_jobs(get_workingnomads_jobs(), "WorkingNomads")
-
-    # --- GLOBAL ---
-    print("\n--- Ejecutando WeWorkRemotely ---")
-    save_jobs(get_wwr_jobs(), "WeWorkRemotely")
-
-    print("\n--- Ejecutando Remotive API ---")
-    save_jobs(get_remotive_jobs(), "Remotive")
-
-    print("\n--- Ejecutando Himalayas API ---")
-    save_jobs(get_himalayas_jobs(), "Himalayas")
-
-    print("\n--- Ejecutando Python.org RSS ---")
-    save_jobs(get_pythonorg_jobs(), "Python.org")
+    for name, _ in scrapers:
+        print(f"\n--- Guardando {name} ---")
+        save_jobs(results.get(name, []), name)
 
     print("\n✅ Todo terminado con éxito.")
 

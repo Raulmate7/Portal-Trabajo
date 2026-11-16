@@ -21,25 +21,32 @@ def submit_urls_to_indexnow(urls: List[str], frontend_url: str, timeout: int = 1
 
     clean_frontend = frontend_url.rstrip("/")
     host = urllib.parse.urlparse(clean_frontend).netloc
-    payload = {
-        "host": host,
-        "key": key,
-        "keyLocation": f"{clean_frontend}/{key}.txt",
-        "urlList": urls,
-    }
+    chunk_size = 5000
+    all_ok = True
 
-    try:
-        res = requests.post(
-            "https://api.indexnow.org/indexnow",
-            json=payload,
-            headers={"Content-Type": "application/json; charset=utf-8"},
-            timeout=timeout,
-        )
-        if res.status_code in (200, 202):
-            print(f"✅ IndexNow envío exitoso (HTTP {res.status_code}) para {len(urls)} URLs.")
-            return True
-        print(f"⚠️ IndexNow respuesta HTTP {res.status_code}: {res.text[:200]}")
-        return False
-    except Exception as exc:
-        print(f"❌ Error de red enviando a IndexNow: {exc}")
-        return False
+    for i in range(0, len(urls), chunk_size):
+        batch = urls[i : i + chunk_size]
+        payload = {
+            "host": host,
+            "key": key,
+            "keyLocation": f"{clean_frontend}/{key}.txt",
+            "urlList": batch,
+        }
+
+        try:
+            res = requests.post(
+                "https://api.indexnow.org/indexnow",
+                json=payload,
+                headers={"Content-Type": "application/json; charset=utf-8"},
+                timeout=timeout,
+            )
+            if res.status_code in (200, 202):
+                print(f"✅ IndexNow envío exitoso (HTTP {res.status_code}) para {len(batch)} URLs.")
+            else:
+                print(f"⚠️ IndexNow respuesta HTTP {res.status_code}: {res.text[:200]}")
+                all_ok = False
+        except Exception as exc:
+            print(f"❌ Error de red enviando a IndexNow: {exc}")
+            all_ok = False
+
+    return all_ok

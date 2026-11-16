@@ -10,9 +10,9 @@ export function hasAnalyticsConsent(): boolean {
     const saved = localStorage.getItem('cookies_consent');
     if (saved) {
       const parsed = JSON.parse(saved);
-      return parsed.analytics === true;
+      return parsed?.analytics === true;
     }
-    return localStorage.getItem('cookies_accepted') === 'true';
+    return false;
   } catch {
     return false;
   }

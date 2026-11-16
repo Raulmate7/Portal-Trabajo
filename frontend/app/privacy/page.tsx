@@ -80,7 +80,7 @@ export default function PrivacyPage() {
               De conformidad con el artículo 28 del RGPD y dentro de nuestro Registro de Actividades de Tratamiento (RAT), tus datos personales pueden ser procesados a través de proveedores de infraestructura que actúan como encargados de tratamiento bajo estrictas cláusulas de confidencialidad y seguridad:
             </p>
             <ul className="list-disc pl-5 mt-2 space-y-1.5">
-              <li><strong>Pasarelas de Pagos:</strong> Stripe Payments Europe, Ltd. (sede en Irlanda, UE) y PayPal Europe S.à r.l. et Cie, S.C.A. (Luxemburgo, UE), ambas certificadas bajo el estándar de seguridad PCI-DSS.</li>
+              <li><strong>Pasarelas de Pagos:</strong> Stripe Payments Europe, Ltd. (sede en Irlanda, UE), certificada bajo el estándar de seguridad PCI-DSS.</li>
               <li><strong>Notificaciones Push en Navegador:</strong> OneSignal, Inc. (adherida al marco de privacidad Data Privacy Framework UE-EE.UU.), actuando únicamente si el usuario activa voluntariamente las alertas push.</li>
               <li><strong>Programas de Afiliación (Cursos y Recursos):</strong> Enlaces recomendados a plataformas educativas externas (Udemy Ireland Ltd., Coursera Inc., Domestika, Platzi y Amazon EU). Al hacer clic en un enlace de afiliado, el usuario es redirigido a la plataforma externa con parámetros de campaña sin que Portal Trabajo IT transmita datos de carácter personal.</li>
               <li><strong>Infraestructura de Alojamiento y Despliegue:</strong> Servidores en la Unión Europea protegidos mediante cifrado TLS v1.3 y túneles proxy de base de datos con autenticación reforzada y listas de control de acceso por IP.</li>
@@ -120,7 +120,7 @@ export default function PrivacyPage() {
             <ul className="list-disc pl-5 mt-2 space-y-1">
               <li><strong>Vercel Inc.</strong> (Alojamiento frontend/Edge — EE.UU./UE, EU-US DPF y SCCs).</li>
               <li><strong>Stripe Technology Europe / Stripe Inc.</strong> (Pagos y facturación — Irlanda/EE.UU., EU-US DPF y SCCs).</li>
-              <li><strong>PayPal (Europe) S.à r.l. et Cie, S.C.A.</strong> (Pasarela alternativa de pago — Luxemburgo/EEE).</li>
+              <li><strong>Stripe Payments Europe, Ltd.</strong> (Procesamiento seguro de pagos y facturación — Irlanda/EEE y EE. UU. bajo EU-US DPF/SCCs).</li>
               <li><strong>Upstash Inc.</strong> (Rate-limiting distribuido Redis — UE/EE.UU., SCCs).</li>
               <li><strong>Google Ireland / Google LLC</strong> (Analytics 4 previo consentimiento y API Gemini sin entrenamiento con PII — Irlanda/EE.UU., EU-US DPF).</li>
               <li><strong>OneSignal Inc.</strong> (Notificaciones push previo consentimiento explícito — EE.UU., SCCs).</li>

@@ -240,7 +240,8 @@ def generate_article_with_gemini(api_key, topic):
     Realiza una petición HTTP a la API de Gemini para generar un artículo estructurado
     de más de 2000 palabras en formato JSON mediante Structured Outputs.
     """
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
     
     prompt = f"""
 Escribe un artículo de blog técnico completo, exhaustivo y de nivel profesional en español de más de 2000 palabras basándote en la siguiente información temática delimitada:
@@ -299,8 +300,13 @@ Instrucciones de formato e interlinking para maximizar el SEO y AdSense (E-E-A-T
         }
     }
 
-    print(f"🧠 Llamando a la API de Gemini (gemini-1.5-pro) para generar '{topic['title']}'...")
-    response = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=120)
+    print(f"🧠 Llamando a la API de Gemini ({model_name}) para generar '{topic['title']}'...")
+    response = requests.post(
+        url,
+        json=payload,
+        headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
+        timeout=120,
+    )
     
     if response.status_code != 200:
         raise ValueError(f"Gemini API returned status {response.status_code}: {response.text}")

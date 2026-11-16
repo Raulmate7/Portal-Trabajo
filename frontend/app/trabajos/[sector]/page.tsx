@@ -297,10 +297,10 @@ function parseSector(sectorSlug: string) {
   let salaryMin: number | null = null;
   let salaryMax: number | null = null;
 
-  // Buscar coincidencia de salario y limpiarlo de tec
-  const salaryMatch1 = tec.match(/salario-mas-de-(\d+)k?/i);
+  // Buscar coincidencia de salario y limpiarlo de tec (BUG-010: k literal obligatoria para multiplicar por 1000)
+  const salaryMatch1 = tec.match(/salario-mas-de-(\d+)k\b/i);
   const salaryMatch2 = tec.match(/salario-mas-de-(\d+)/i);
-  const salaryMatch3 = tec.match(/salario-(\d+)k-(\d+)k/i);
+  const salaryMatch3 = tec.match(/salario-(\d+)k-(\d+)k\b/i);
   const salaryMatch4 = tec.match(/salario-(\d+)-(\d+)/i);
 
   if (salaryMatch1) {
@@ -542,7 +542,7 @@ export async function generateMetadata({ params, searchParams }: { params: Param
   let tituloBase = "";
   let descBase = "";
 
-  const mes = now.toLocaleDateString('es-ES', { month: 'long' });
+  const mes = now.toLocaleDateString(isEnglish ? 'en-US' : 'es-ES', { month: 'long' });
   const anio = now.getFullYear();
   const mesCapitalizado = mes.charAt(0).toUpperCase() + mes.slice(1);
 
@@ -550,11 +550,11 @@ export async function generateMetadata({ params, searchParams }: { params: Param
 
   if (isEnglish) {
     const totalText = totalCount > 0 ? `${totalCount} ` : '';
-    tituloBase = `${totalText}${categoriaBonita}${modLabelEn}${expLabel}${contractLabel}${salaryLabel} Jobs in Spain [${mesCapitalizado} ${anio}] 🔥`;
+    tituloBase = `${totalText}${categoriaBonita}${modLabelEn}${expLabel}${contractLabel}${salaryLabel} Jobs in Spain [${mesCapitalizado} ${anio}]`;
     descBase = `Apply to ${totalCount > 0 ? `${totalCount} ` : ''}active ${categoriaBonita}${modLabelEn}${expLabel ? ` (${expLabel.trim()})` : ''}${contractLabel ? ` (${contractLabel.trim()})` : ''}${salaryLabel} vacancies. Updated today.`;
     if (ciudad) {
       const ciudadBonita = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
-      tituloBase = `${totalText}${categoriaBonita}${modLabelEn}${expLabel}${contractLabel}${salaryLabel} Jobs in ${ciudadBonita} [${mesCapitalizado} ${anio}] 🔥`;
+      tituloBase = `${totalText}${categoriaBonita}${modLabelEn}${expLabel}${contractLabel}${salaryLabel} Jobs in ${ciudadBonita} [${mesCapitalizado} ${anio}]`;
       descBase += ` in ${ciudadBonita}.`;
     }
     if (stats.averageSalary) {
@@ -562,7 +562,7 @@ export async function generateMetadata({ params, searchParams }: { params: Param
     }
   } else {
     const totalText = totalCount > 0 ? `${totalCount} ` : '';
-    tituloBase = `${totalText}Ofertas de Trabajo${modLabel}${expLabel}${contractLabel} de ${categoriaBonita}${salaryLabel} 🔥`;
+    tituloBase = `${totalText}Ofertas de Trabajo${modLabel}${expLabel}${contractLabel} de ${categoriaBonita}${salaryLabel}`;
     descBase = `Encuentra ${totalCount > 0 ? `${totalCount} ` : ''}ofertas de trabajo${modLabel}${expLabel ? ` para ${expLabel.trim()}` : ''}${contractLabel ? ` con ${contractLabel.trim()}` : ''} de ${categoriaBonita}${salaryLabel} actualizadas hoy.`;
     if (ciudad) {
       const ciudadBonita = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
@@ -601,6 +601,7 @@ export async function generateMetadata({ params, searchParams }: { params: Param
   const canonicalUrl = isEnglish 
     ? `${BASE_URL}/en/trabajos/${sectorSlug}` 
     : `${BASE_URL}/trabajos/${sectorSlug}`;
+  const effectiveCanonical = isPaged ? `${canonicalUrl}?page=${validPage}` : canonicalUrl;
 
   return {
     title: isEnglish ? `${tituloSeo} | IT Job Portal` : `${tituloSeo} | Portal Trabajo`,
@@ -608,12 +609,14 @@ export async function generateMetadata({ params, searchParams }: { params: Param
       ? `${descBase} ${isPaged ? ` (Page ${validPage})` : ''}`
       : `${descBase} ${isPaged ? ` (Página ${validPage})` : ''}`,
     alternates: {
-      canonical: canonicalUrl,
-      languages: {
-        'es-ES': `${BASE_URL}/trabajos/${sectorSlug}`,
-        'en': `${BASE_URL}/en/trabajos/${sectorSlug}`,
-        'x-default': `${BASE_URL}/trabajos/${sectorSlug}`,
-      },
+      canonical: effectiveCanonical,
+      ...(!isPaged ? {
+        languages: {
+          'es-ES': `${BASE_URL}/trabajos/${sectorSlug}`,
+          'en': `${BASE_URL}/en/trabajos/${sectorSlug}`,
+          'x-default': `${BASE_URL}/trabajos/${sectorSlug}`,
+        },
+      } : {}),
       types: {
         'application/rss+xml': rssUrl,
       },
@@ -1122,39 +1125,12 @@ export default async function SectorPage({
     name: isEnglish ? `${tituloMostrado} Vacancies` : `Ofertas de empleo de ${tituloMostrado}`,
     description: isEnglish ? `List of tech job offers for ${tituloMostrado} in Spain` : `Listado de ofertas de trabajo para ${tituloMostrado} en España`,
     numberOfItems: jobs.length,
-    itemListElement: jobs.map((job: Job, idx: number) => {
-      const item: any = {
-        '@type': 'ListItem',
-        position: idx + 1,
-        url: `${BASE_URL}/job/${getJobSlug(job)}`,
-        name: `${job.title} - ${job.company}`
-      };
-      
-      // Inyectar schema JobPosting para los primeros 5 puestos para rich snippets en Google
-      if (idx < 5) {
-        item.item = {
-          '@type': 'JobPosting',
-          'title': job.title,
-          'description': job.description_snippet || (isEnglish ? `Job vacancy for ${job.title} at ${job.company}` : `Oferta de empleo para ${job.title} en ${job.company}`),
-          'datePosted': job.created_at,
-          'validThrough': new Date(new Date(job.created_at).getTime() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-          'hiringOrganization': {
-            '@type': 'Organization',
-            'name': job.company || 'Desconocida',
-            'sameAs': job.company ? `${BASE_URL}/empresas/${slugify(job.company)}` : undefined
-          },
-          'jobLocation': {
-            '@type': 'Place',
-            'address': {
-              '@type': 'PostalAddress',
-              'addressLocality': job.location || 'España',
-              'addressCountry': 'ES'
-            }
-          }
-        };
-      }
-      return item;
-    })
+    itemListElement: jobs.map((job: Job, idx: number) => ({
+      '@type': 'ListItem',
+      position: idx + 1,
+      url: `${BASE_URL}/job/${getJobSlug(job)}`,
+      name: `${job.title} - ${job.company}`
+    }))
   };
 
   const occupationSchema = {
@@ -1172,7 +1148,7 @@ export default async function SectorPage({
     ] : undefined,
     'occupationLocation': [
       {
-        '@type': 'City',
+        '@type': ciudad ? 'City' : 'Country',
         'name': ciudad ? ciudad.charAt(0).toUpperCase() + ciudad.slice(1) : 'España'
       }
     ]

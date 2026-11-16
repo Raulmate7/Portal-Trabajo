@@ -1,11 +1,12 @@
 import mysql from 'mysql2/promise';
+import crypto from 'crypto';
 
 /**
  * Pool de conexiones MySQL con capa de traducción y soporte opcional de proxy HTTP
  * para saltar cortafuegos y bloqueos de puertos externos (ej. puerto 3306 en Raiola).
  */
 const useProxy = !!process.env.DB_PROXY_URL;
-const proxyUrl = process.env.DB_PROXY_URL || 'https://mail.portalempleoit.com/db_proxy.php';
+const proxyUrl = process.env.DB_PROXY_URL || '';
 const proxyToken = process.env.DB_PROXY_TOKEN || '';
 if (useProxy && !proxyToken) {
   console.warn('⚠️ Warning: DB_PROXY_URL is set but DB_PROXY_TOKEN is empty.');
@@ -77,7 +78,11 @@ function setCache(key: string, data: any): void {
 // ─────────────────────────────────────────────────────────────────────────────
 
 let poolConnection: mysql.Pool | null = null;
-if (!useProxy) {
+// BUG-022: singleton del pool en globalThis para sobrevivir a HMR / multiples bundles de Next.js
+const globalForDb = globalThis as unknown as { __portalMysqlPool?: mysql.Pool };
+if (!useProxy && globalForDb.__portalMysqlPool) {
+  poolConnection = globalForDb.__portalMysqlPool;
+} else if (!useProxy) {
   const connectionLimit = Number(process.env.MYSQL_CONNECTION_LIMIT) || 25;
   const connectionString = process.env.DATABASE_URL;
   // VULN-14: Forzar cifrado TLS/SSL en conexiones directas para prevenir sniffing de credenciales y datos en tránsito
@@ -111,6 +116,7 @@ if (!useProxy) {
         keepAliveInitialDelay: 10000,
         ssl: sslOptions,
       });
+  globalForDb.__portalMysqlPool = poolConnection;
 }
 
 
@@ -199,13 +205,26 @@ function translatePostgresToMysql(sql: string, params: any[] = []): { mysqlSql: 
  * Envía una petición HTTP al proxy PHP con timeout estricto (SEC-012).
  */
 async function sendProxyRequest(payload: Record<string, any>) {
+  if (!proxyUrl) {
+    throw new Error('DB_PROXY_URL no configurado.');
+  }
+  const body = JSON.stringify(payload);
+  const timestamp = Math.floor(Date.now() / 1000).toString();
+  const nonce = crypto.randomBytes(16).toString('hex');
+  const signature = proxyToken
+    ? crypto.createHmac('sha256', proxyToken).update(`${timestamp}.${nonce}.${body}`).digest('hex')
+    : '';
+
   const response = await fetch(proxyUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-Proxy-Token': proxyToken,
+      'X-Proxy-Timestamp': timestamp,
+      'X-Proxy-Nonce': nonce,
+      ...(signature ? { 'X-Proxy-Signature': signature } : {}),
     },
-    body: JSON.stringify(payload),
+    body,
     cache: 'no-store',
     signal: AbortSignal.timeout(8000),
   });
@@ -231,6 +250,10 @@ async function executeQuery(conn: mysql.Pool | mysql.PoolConnection | null, sql:
   if (useProxy) {
     try {
       const resJson = await sendProxyRequest({ sql: mysqlSql, params: mysqlParams });
+      if (resJson.truncated) {
+        // BUG-021: el proxy corto el resultado; no debe pasar desapercibido
+        console.error(`⚠️ db_proxy.php truncó el resultado (DB_PROXY_MAX_ROWS). Consulta: ${mysqlSql.slice(0, 160)}`);
+      }
       const rows = resJson.rows || [];
       const rowCount = typeof resJson.affected_rows === 'number'
         ? resJson.affected_rows
@@ -336,7 +359,13 @@ const pool = {
 
           if (inTransaction) {
             if (upper.startsWith('SELECT') || upper.startsWith('SHOW')) {
-              throw new Error('Las lecturas SELECT intermedias dentro de transacciones no están soportadas vía db_proxy.php; use conexión MySQL directa.');
+              // BUG-002: el proxy solo ejecuta lotes de escritura al hacer COMMIT, por lo que una lectura
+              // intermedia no puede ser transaccional. En lugar de abortar (lo que rompia los webhooks de
+              // Stripe) se ejecuta de inmediato fuera del lote y se descarta FOR UPDATE, que no tendria
+              // efecto. La idempotencia debe apoyarse en UPDATE condicionales; con conexion MySQL directa
+              // (sin DB_PROXY_URL) el bloqueo FOR UPDATE sigue siendo real.
+              const readSql = mysqlSql.replace(/\s+FOR\s+UPDATE\s*$/i, '');
+              return executeQuery(null, readSql, mysqlParams);
             }
             txQueue.push({ sql: mysqlSql, params: mysqlParams });
             return { rows: [], rowCount: 0 };
@@ -352,11 +381,23 @@ const pool = {
     }
     
     const connection = await poolConnection!.getConnection();
+    // BUG-022: seguimiento de transaccion abierta para hacer ROLLBACK automatico en release()
+    let inTx = false;
     return {
       async query(sql: string, params: any[] = []) {
-        return executeQuery(connection, sql, params);
+        const u = sql.trim().toUpperCase();
+        if (u === 'BEGIN' || u === 'START TRANSACTION') inTx = true;
+        const result = await executeQuery(connection, sql, params);
+        if (u === 'COMMIT' || u === 'ROLLBACK') inTx = false;
+        return result;
       },
       release() {
+        if (inTx) {
+          inTx = false;
+          // Fire-and-forget: nunca devolver al pool una conexion con locks/cambios pendientes
+          connection.rollback().catch(() => {}).finally(() => connection.release());
+          return;
+        }
         connection.release();
       }
     };

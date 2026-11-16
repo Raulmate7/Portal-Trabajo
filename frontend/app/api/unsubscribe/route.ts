@@ -11,17 +11,17 @@ function getUnsubscribeSecret(): string | null {
 }
 
 function verifyUnsubscribeToken(email: string, token: string): boolean {
-  const secret = getUnsubscribeSecret();
-  if (!secret || !email || !token) return false;
+  const primary = getUnsubscribeSecret();
+  const previous = process.env.UNSUBSCRIBE_SECRET_PREVIOUS?.trim() || '';
+  const secrets = [primary, previous].filter((s): s is string => Boolean(s));
+  if (secrets.length === 0 || !email || !token) return false;
 
   const cleanEmail = email.trim().toLowerCase();
-  const expectedHash = crypto.createHmac('sha256', secret).update(cleanEmail).digest('hex');
-
-  if (token.length !== expectedHash.length) {
-    return false;
-  }
-
-  return crypto.timingSafeEqual(Buffer.from(token, 'utf-8'), Buffer.from(expectedHash, 'utf-8'));
+  return secrets.some((sec) => {
+    const expectedHash = crypto.createHmac('sha256', sec).update(cleanEmail).digest('hex');
+    if (token.length !== expectedHash.length) return false;
+    return crypto.timingSafeEqual(Buffer.from(token, 'utf-8'), Buffer.from(expectedHash, 'utf-8'));
+  });
 }
 
 function getSafeSiteBaseUrl(): string {
@@ -108,8 +108,15 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Verificación Turnstile si está habilitada en el servidor
+      // Verificación Turnstile obligatoria en producción (SEC-027)
       const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
+      if (!turnstileSecret && process.env.NODE_ENV === 'production') {
+        console.error('❌ TURNSTILE_SECRET_KEY no configurada en producción para /api/unsubscribe.');
+        return NextResponse.json(
+          { success: false, error: 'Servicio de verificación anti-bot no disponible temporalmente.' },
+          { status: 503 }
+        );
+      }
       if (turnstileSecret) {
         const tsToken = (body.turnstileToken || body['cf-turnstile-response'] || '').toString().trim();
         if (!tsToken) {
@@ -212,55 +219,60 @@ export async function POST(request: NextRequest) {
 
     const client = await pool.connect();
     try {
-      // LEG-013: Baja integral multi-tabla + lista de supresión (Art. 7.3 y 21 RGPD)
-      try {
-        await client.query(
-          "UPDATE subscribers SET is_active = FALSE, marketing_accepted = FALSE, unsubscribed_at = NOW(), status = 'unsubscribed' WHERE email = $1",
-          [email]
-        );
-      } catch {
-        await client.query(
-          "UPDATE subscribers SET tech_keywords = NULL, location_pref = NULL WHERE email = $1",
-          [email]
-        ).catch(() => {});
-      }
+      await client.query('START TRANSACTION');
+      // LEG-013: Baja integral multi-tabla + lista de supresión (Art. 7.3 y 21 RGPD, SEC-047 atómica)
+      await client.query(
+        "UPDATE subscribers SET is_active = FALSE, marketing_accepted = FALSE, unsubscribed_at = NOW(), status = 'unsubscribed' WHERE email = $1",
+        [email]
+      );
 
-      // Desactivar registros vinculados en tablas auxiliares y cuentas de usuario
+      // Desactivar registros vinculados en tablas auxiliares y cuentas de usuario (BUG-035)
       const auxQueries = [
         "UPDATE users SET email_notifications_enabled = FALSE, email_consent_updated_at = NOW() WHERE email = $1",
-        "UPDATE alerts SET is_active = FALSE WHERE email = $1",
-        "UPDATE saved_jobs_reminders SET is_active = FALSE WHERE email = $1",
-        "UPDATE streak_reminders SET is_active = FALSE WHERE email = $1",
         "UPDATE premium_leads SET status = 'unsubscribed' WHERE email = $1",
       ];
       for (const q of auxQueries) {
         try {
           await client.query(q, [email]);
-        } catch {}
+        } catch (auxErr) {
+          console.error('Error actualizando tabla auxiliar en /api/unsubscribe:', auxErr);
+        }
       }
 
-      // Registrar en lista de supresión interna y audit log de consentimiento
+      // Registrar en lista de supresión interna y audit log de consentimiento (BUG-063)
       const unsubEmailHash = crypto.createHash('sha256').update(email).digest('hex');
       try {
         await client.query(
           "INSERT INTO email_suppression_list (email_hash, reason, created_at) VALUES ($1, 'unsubscribe', NOW())",
           [unsubEmailHash]
         );
-      } catch {}
+      } catch (suppErr) {
+        await client.query('ROLLBACK').catch(() => {});
+        console.error('CRITICAL: Error insertando en email_suppression_list:', suppErr);
+        return NextResponse.json({ success: false, error: 'Error interno registrando la baja.' }, { status: 500 });
+      }
       try {
         await client.query(
           "INSERT INTO consent_audit_log (email_hash, action, marketing_accepted, created_at) VALUES ($1, 'unsubscribe', FALSE, NOW())",
           [unsubEmailHash]
         );
-      } catch {}
+      } catch (auditErr) {
+        await client.query('ROLLBACK').catch(() => {});
+        console.error('CRITICAL: Error insertando en consent_audit_log:', auditErr);
+        return NextResponse.json({ success: false, error: 'Error interno registrando auditoría de baja.' }, { status: 500 });
+      }
 
       try {
         await client.query("DELETE FROM email_tracking WHERE email = $1", [email]);
       } catch {}
 
+      await client.query('COMMIT');
       const [localPart, domainPart] = email.split('@');
       const masked = localPart && domainPart ? `${localPart.slice(0, 2)}***@${domainPart}` : '***';
       console.log(`📭 Suscriptor dado de baja integralmente: ${masked}`);
+    } catch (txErr) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw txErr;
     } finally {
       client.release();
     }

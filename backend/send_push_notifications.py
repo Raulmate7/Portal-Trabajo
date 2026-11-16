@@ -9,10 +9,12 @@ Mejoras (Cat. 5.1):
 """
 
 import os
+import tempfile
 import requests
 import psycopg2
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
+from logic.social_sanitize import notify_admin_auth_error
 
 load_dotenv()
 
@@ -32,11 +34,22 @@ def send_push_notification():
     print("===============================================")
     print("🔔 INICIANDO BOT DE NOTIFICACIONES PUSH ONESIGNAL")
 
-    app_id = os.getenv("ONESIGNAL_APP_ID")
-    api_key = os.getenv("ONESIGNAL_REST_API_KEY")
+    app_id = (os.getenv("ONESIGNAL_APP_ID") or "").strip()
+    api_key = (os.getenv("ONESIGNAL_REST_API_KEY") or "").strip()
 
     if not app_id or not api_key:
         print("ℹ️ Info: Falta ONESIGNAL_APP_ID o ONESIGNAL_REST_API_KEY. Modo SIMULACIÓN.")
+    elif len(api_key) < 20:
+        print("⚠️ Alerta: ONESIGNAL_REST_API_KEY tiene longitud inválida (<20). Abortando envío.")
+        return
+
+    # SEC-061: Lock idempotente por fecha para evitar campañas push duplicadas en re-ejecuciones del mismo día
+    today_tag = datetime.now().strftime("%Y%m%d")
+    lock_path = os.path.join(tempfile.gettempdir(), f"portal_onesignal_push_{today_tag}.lock")
+    if app_id and api_key and os.path.exists(lock_path):
+        print(f"⏭️ Campaña push de hoy ({today_tag}) ya ejecutada ({lock_path}). Omitiendo para evitar duplicados.")
+        print("===============================================")
+        return
 
     # Conectar a BD
     try:
@@ -143,8 +156,17 @@ def send_push_notification():
             result = response.json()
             if response.status_code == 200 and not result.get("errors"):
                 print(f"  ✅ [{notif['segment']}] Notificación push enviada. ID: {result.get('id')}")
+                try:
+                    with open(lock_path, "w", encoding="utf-8") as lf:
+                        lf.write(datetime.now().isoformat())
+                except OSError:
+                    pass
             else:
                 print(f"  ⚠️ [{notif['segment']}] Error OneSignal ({response.status_code}): {result}")
+                if response.status_code in (401, 403):
+                    notify_admin_auth_error("OneSignal", response.status_code, str(result))
+                    print("🛑 Circuit breaker activado por credencial OneSignal inválida (401/403).")
+                    break
         except Exception as e:
             print(f"  ❌ [{notif['segment']}] Error de red: {e}")
 

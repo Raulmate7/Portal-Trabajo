@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import shutil
 import requests
 import psycopg2
@@ -189,6 +190,9 @@ def get_youtube_access_token(client_id, client_secret, refresh_token):
             return res.json().get("access_token")
         else:
             print(f"⚠️ Error al obtener access token de YouTube (Código {res.status_code}): {res.text}")
+            if res.status_code in (400, 401, 403):
+                from logic.social_sanitize import notify_admin_auth_error
+                notify_admin_auth_error("YouTube OAuth", 401 if res.status_code == 400 else res.status_code, res.text)
             return None
     except Exception as e:
         print(f"❌ Error conectando con el servidor de autenticación de Google: {e}")
@@ -225,7 +229,7 @@ def upload_video_to_youtube(access_token, video_path, title, description):
         headers["Content-Type"] = f"multipart/related; boundary={boundary}"
         
         # Construir cuerpo del mensaje
-        metadata_json = requests.models.json.dumps(metadata)
+        metadata_json = json.dumps(metadata)
         with open(video_path, 'rb') as f:
             video_bytes = f.read()
             
@@ -299,92 +303,91 @@ def run_youtube_shorts_bot():
         print("===============================================")
         return
 
-    if not jobs:
-        print("💡 No hay ofertas nuevas sin publicar en YouTube Shorts. Saliendo.")
-        cur.close()
-        conn.close()
-        print("===============================================")
-        return
-
-    # Publicar máximo 1 Shorts por ejecución para no exceder cuotas de API diarias (10.000 unidades)
-    job = jobs[0]
-    job_id, title, company, location, salary, category = job
-    job_slug = get_job_slug(job_id, title, location, company)
-    job_link = f"{frontend_url}/job/{job_slug}"
-
-    print(f"📣 Seleccionada oferta para YouTube Shorts: {title} en {company}")
-
-    # Paso 1: Generar la tarjeta de imagen vertical
-    image_path = f"shorts_card_{job_id}.jpg"
-    video_path = f"shorts_video_{job_id}.mp4"
-    
+    image_path = None
+    video_path = None
     try:
-        generate_shorts_card(
-            title=title,
-            company=company,
-            location=location,
-            salary=salary,
-            output_path=image_path
-        )
-    except Exception as img_err:
-        print(f"❌ Error generando la tarjeta de imagen: {img_err}")
-        cur.close()
-        conn.close()
-        return
+        if not jobs:
+            print("💡 No hay ofertas nuevas sin publicar en YouTube Shorts. Saliendo.")
+            return
 
-    # Paso 2: Crear el video con ffmpeg
-    video_created = build_shorts_video(image_path, video_path)
-    
-    # Limpiar imagen temporal
-    if os.path.exists(image_path):
-        os.remove(image_path)
-        
-    if not video_created:
-        print("❌ Error al construir el archivo de video.")
-        cur.close()
-        conn.close()
-        return
+        # Publicar máximo 1 Shorts por ejecución para no exceder cuotas de API diarias (10.000 unidades)
+        job = jobs[0]
+        job_id, title, company, location, salary, category = job
+        job_slug = get_job_slug(job_id, title, location, company)
+        job_link = f"{frontend_url}/job/{job_slug}"
 
-    # Paso 3: Obtener access token de la API de YouTube
-    access_token = get_youtube_access_token(client_id, client_secret, refresh_token)
-    if not access_token:
-        print("❌ Error al autenticar con la API de YouTube.")
-        if os.path.exists(video_path):
-            os.remove(video_path)
-        cur.close()
-        conn.close()
-        return
+        print(f"📣 Seleccionada oferta para YouTube Shorts: {title} en {company}")
 
-    # Paso 4: Subir a YouTube
-    video_title = f"Oferta de Empleo IT: {title} en {company} #shorts"[:100]
-    
-    salary_text = f" con salario {salary}" if (salary and salary != "Consultar" and salary.strip() != "") else ""
-    video_description = (
-        f"¿Buscas empleo como desarrollador en España? Se busca {title} en {company} ({location}){salary_text}.\n\n"
-        f"👉 Aplica e inscríbete a la oferta completa aquí:\n"
-        f"{job_link}?utm_source=youtube&utm_medium=social&utm_campaign=shorts_video\n\n"
-        f"Acuérdate de suscribirte a nuestro canal para no perderte ninguna oferta de empleo IT destacada en España.\n\n"
-        f"#shorts #empleotech #empleoit #trabajoit #desarrollosoftware #programacion"
-    )
-    
-    youtube_video_id = upload_video_to_youtube(access_token, video_path, video_title, video_description)
-    
-    # Limpiar video temporal
-    if os.path.exists(video_path):
-        os.remove(video_path)
+        # Paso 1: Generar la tarjeta de imagen vertical en directorio temporal seguro (SEC-053)
+        import re as _re
+        import tempfile as _tempfile
+        safe_job_id = _re.sub(r"[^a-zA-Z0-9_-]", "", str(job_id)) or "job"
+        tmp_dir = _tempfile.gettempdir()
+        image_path = os.path.join(tmp_dir, f"shorts_card_{safe_job_id}.jpg")
+        video_path = os.path.join(tmp_dir, f"shorts_video_{safe_job_id}.mp4")
 
-    # Paso 5: Actualizar la BD si se subió correctamente
-    if youtube_video_id:
         try:
-            cur.execute("UPDATE jobs SET last_youtube_posted_at = %s WHERE id = %s", (datetime.now(), job_id))
-            conn.commit()
-            print(f"💾 BD actualizada para oferta {job_id} (YouTube Shorts).")
-        except Exception as db_err:
-            print(f"⚠️ Error al actualizar last_youtube_posted_at en BD: {db_err}")
+            generate_shorts_card(
+                title=title,
+                company=company,
+                location=location,
+                salary=salary,
+                output_path=image_path
+            )
+        except Exception as img_err:
+            print(f"❌ Error generando la tarjeta de imagen: {img_err}")
+            return
 
-    cur.close()
-    conn.close()
-    print("===============================================")
+        # Paso 2: Crear el video con ffmpeg
+        video_created = build_shorts_video(image_path, video_path)
+        if not video_created:
+            print("❌ Error al construir el archivo de video.")
+            return
+
+        # Paso 3: Obtener access token de la API de YouTube
+        access_token = get_youtube_access_token(client_id, client_secret, refresh_token)
+        if not access_token:
+            print("❌ Error al autenticar con la API de YouTube.")
+            return
+
+        # Paso 4: Subir a YouTube
+        video_title = f"Oferta de Empleo IT: {title} en {company} #shorts"[:100]
+
+        salary_text = f" con salario {salary}" if (salary and salary != "Consultar" and salary.strip() != "") else ""
+        video_description = (
+            f"¿Buscas empleo como desarrollador en España? Se busca {title} en {company} ({location}){salary_text}.\n\n"
+            f"👉 Aplica e inscríbete a la oferta completa aquí:\n"
+            f"{job_link}?utm_source=youtube&utm_medium=social&utm_campaign=shorts_video\n\n"
+            f"Acuérdate de suscribirte a nuestro canal para no perderte ninguna oferta de empleo IT destacada en España.\n\n"
+            f"#shorts #empleotech #empleoit #trabajoit #desarrollosoftware #programacion"
+        )
+
+        youtube_video_id = upload_video_to_youtube(access_token, video_path, video_title, video_description)
+
+        # Paso 5: Actualizar la BD si se subió correctamente
+        if youtube_video_id:
+            try:
+                cur.execute("UPDATE jobs SET last_youtube_posted_at = %s WHERE id = %s", (datetime.now(), job_id))
+                conn.commit()
+                print(f"💾 BD actualizada para oferta {job_id} (YouTube Shorts).")
+            except Exception as db_err:
+                print(f"⚠️ Error al actualizar last_youtube_posted_at en BD: {db_err}")
+    finally:
+        for temp_file in (image_path, video_path):
+            if temp_file and os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                except Exception as rm_err:
+                    print(f"⚠️ No se pudo eliminar temporal {temp_file}: {rm_err}")
+        try:
+            cur.close()
+        except Exception:
+            pass
+        try:
+            conn.close()
+        except Exception:
+            pass
+        print("===============================================")
 
 if __name__ == "__main__":
     run_youtube_shorts_bot()

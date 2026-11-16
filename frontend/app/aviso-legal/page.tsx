@@ -111,7 +111,7 @@ export default function LegalPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-gray-950 mb-2">7. Condiciones Generales de Contratación, Pasarelas de Pago (Stripe y PayPal), Facturación y Desistimiento (TRLGDCU, LSSI-CE y RD 1619/2012)</h2>
+          <h2 className="text-lg font-bold text-gray-950 mb-2">7. Condiciones Generales de Contratación, Pasarela de Pago (Stripe), Facturación y Desistimiento (TRLGDCU, LSSI-CE y RD 1619/2012)</h2>
           <p>
             Portal Trabajo IT comercializa servicios digitales tanto en modalidad B2C para candidatos (informes salariales descargables y suscripción Candidato Premium) como en modalidad B2B para empresas (difusión destacada y patrocinio publicitario). Toda contratación se rige por las siguientes condiciones:
           </p>
@@ -123,7 +123,7 @@ export default function LegalPage() {
               <strong>Suscripciones Recurrentes y Cancelación sin Permanencia (Art. 108 bis TRLGDCU):</strong> El servicio de Candidato Premium opera mediante suscripción periódica mensual (4,99 €/mes, IVA incluido) con renovación automática. El usuario puede cancelar la renovación automática en cualquier momento, sin permanencia, penalización ni coste adicional, directamente desde la plataforma o enviando un correo a <strong>contacto@portalempleoit.com</strong> antes de la siguiente fecha de cargo.
             </li>
             <li>
-              <strong>Pasarelas de Pago Seguras (Stripe y PayPal):</strong> Las transacciones se procesan mediante protocolos cifrados SSL/TLS a través de entidades de pago certificadas PCI-DSS: <strong>Stripe Technology Europe, Limited</strong> y <strong>PayPal Europe S.à r.l. et Cie, S.C.A.</strong> Portal Trabajo IT no almacena ni tiene acceso a los datos completos de tarjetas bancarias.
+              <strong>Pasarela de Pago Segura (Stripe):</strong> Las transacciones se procesan mediante protocolos cifrados SSL/TLS a través de entidad de pago certificada PCI-DSS: <strong>Stripe Technology Europe, Limited</strong>. Portal Trabajo IT no almacena ni tiene acceso a los datos completos de tarjetas bancarias.
             </li>
             <li>
               <strong>Precios, Impuestos y Emisión de Facturas (RD 1619/2012 y Ley del IVA):</strong> Los precios para consumidores finales se expresan en euros (€) con el IVA correspondiente incluido. Los planes dirigidos a empresas y reclutadores se indican como precios netos (+21% de IVA legal aplicable). Para la emisión de factura legal según el RD 1619/2012, el comprador podrá introducir su Razón Social, NIF/CIF y domicilio fiscal durante el checkout o solicitarla fehacientemente a <strong>contacto@portalempleoit.com</strong>.
@@ -144,7 +144,7 @@ export default function LegalPage() {
               <strong>Normas de la Comunidad y Contenidos Prohibidos:</strong> Queda terminantemente prohibido verter expresiones injuriosas o calumniosas, imputaciones de delitos sin sentencia firme, difusión de secretos comerciales protegidos por la Ley 1/2019 de Secretos Empresariales o la revelación de datos personales de terceros sin su consentimiento.
             </li>
             <li>
-              <strong>Mecanismo de Notificación y Acción (Art. 16 DSA):</strong> Cualquier empresa, entidad o particular afectado dispone de un botón directo de <strong>&quot;🚩 Reportar&quot;</strong> junto a cada reseña pública. Mediante este formulario legal motivado, el interesado puede solicitar la revisión y retirada inmediata del contenido ilícito, recibiendo el acuse de recibo y la resolución correspondiente.
+              <strong>Mecanismo de Notificación y Acción (Art. 16 DSA y Art. 16 LSSI-CE):</strong> Cualquier empresa, entidad o particular afectado dispone de un botón directo de <strong>&quot;🚩 Reportar&quot;</strong> junto a cada reseña pública, así como del canal directo de retirada de ofertas o contenidos agregados (<em>Notice-and-Takedown</em>) escribiendo a <strong>{legalEmail}</strong> con la URL exacta de la vacante y el motivo (oferta cubierta, derechos de propiedad intelectual o datos inexactos) para su desactivación inmediata.
             </li>
           </ul>
         </section>

@@ -13,36 +13,48 @@
 set -euo pipefail
 umask 077
 
-# 1. Configuración de Base de Datos y Rutas (Fail-Closed: sin contraseñas por defecto)
+# 1. Configuración de Base de Datos y Rutas (SEC-041: priorizar /etc/proyecto_empleo/backup.my.cnf)
+DEDICATED_CNF="/etc/proyecto_empleo/backup.my.cnf"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${SCRIPT_DIR}/../frontend/.env.local"
 
-read_env_var() {
-    local var_name="$1"
-    if [ -f "$ENV_FILE" ]; then
-        grep -E "^${var_name}=" "$ENV_FILE" | head -n 1 | cut -d '=' -f2- | tr -d '"' | tr -d "'" || true
-    fi
-}
+if [ -f "$DEDICATED_CNF" ]; then
+    MYSQL_CNF_TEMP="$DEDICATED_CNF"
+    DB_NAME="${DB_NAME:-portal_empleo}"
+    cleanup() { :; }
+    trap cleanup EXIT
+else
+    read_env_var() {
+        local var_name="$1"
+        if [ -f "$ENV_FILE" ]; then
+            grep -E "^${var_name}=" "$ENV_FILE" | head -n 1 | cut -d '=' -f2- | sed -e 's/^["'\'']//' -e 's/["'\'']$//' || true
+        fi
+    }
 
-DB_NAME="${DB_NAME:-$(read_env_var MYSQL_DATABASE)}"
-DB_NAME="${DB_NAME:-portal_empleo}"
-DB_USER="${DB_USER:-$(read_env_var MYSQL_USER)}"
-DB_HOST="${DB_HOST:-$(read_env_var MYSQL_HOST)}"
-DB_HOST="${DB_HOST:-localhost}"
-DB_PASS="${DB_PASS:-$(read_env_var MYSQL_PASSWORD)}"
+    DB_NAME="${DB_NAME:-$(read_env_var MYSQL_DATABASE)}"
+    DB_NAME="${DB_NAME:-portal_empleo}"
+    DB_USER="${DB_USER:-$(read_env_var MYSQL_USER)}"
+    DB_HOST="${DB_HOST:-$(read_env_var MYSQL_HOST)}"
+    DB_HOST="${DB_HOST:-localhost}"
+    DB_PASS="${DB_PASS:-$(read_env_var MYSQL_PASSWORD)}"
 
-: "${DB_USER:?Error crítico: DB_USER/MYSQL_USER no configurado.}"
-: "${DB_PASS:?Error crítico: DB_PASS/MYSQL_PASSWORD no configurado (se prohíben credenciales fallback).}"
+    : "${DB_USER:?Error crítico: DB_USER/MYSQL_USER no configurado.}"
+    : "${DB_PASS:?Error crítico: DB_PASS/MYSQL_PASSWORD no configurado (se prohíben credenciales fallback).}"
 
-# Archivo temporal seguro con permisos 0600 para no exponer la contraseña en ps aux / /proc
-MYSQL_CNF_TEMP="$(mktemp)"
-chmod 600 "$MYSQL_CNF_TEMP"
-cleanup() {
-    rm -f "$MYSQL_CNF_TEMP"
-}
-trap cleanup EXIT
+    MYSQL_CNF_TEMP="$(mktemp)"
+    chmod 600 "$MYSQL_CNF_TEMP"
+    cleanup() {
+        rm -f "$MYSQL_CNF_TEMP"
+    }
+    trap cleanup EXIT
 
-cat > "$MYSQL_CNF_TEMP" <<EOF
+    cat > "$MYSQL_CNF_TEMP" <<EOF
+[client]
+host=${DB_HOST}
+user=${DB_USER}
+password=${DB_PASS}
+EOF
+fi
 [client]
 user=${DB_USER}
 password=${DB_PASS}
@@ -86,6 +98,11 @@ elif [ -n "${BACKUP_GPG_RECIPIENT:-}" ] && command -v gpg --version >/dev/null 2
     FINAL_BACKUP="${RAW_ARCHIVE}.gpg"
     chmod 600 "$FINAL_BACKUP"
 else
+    if [ "${BACKUP_REQUIRE_ENCRYPTION:-true}" = "true" ]; then
+        echo "❌ Error crítico (SEC-015): BACKUP_AGE_RECIPIENT / BACKUP_GPG_RECIPIENT no configurado y BACKUP_REQUIRE_ENCRYPTION=true. Abortando para no almacenar/replicar dumps sin cifrar."
+        rm -f "$RAW_ARCHIVE"
+        exit 1
+    fi
     echo "⚠️ Aviso de seguridad: BACKUP_AGE_RECIPIENT / BACKUP_GPG_RECIPIENT no configurado; el backup permanece sin cifrado asimétrico en reposo."
 fi
 

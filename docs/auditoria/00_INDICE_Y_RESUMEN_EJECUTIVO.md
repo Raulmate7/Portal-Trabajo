@@ -1,119 +1,134 @@
-# 00. Índice Maestro y Resumen Ejecutivo — Auditoría Integral del Portal de Empleo IT (España / UE)
+# Auditoría Integral y Plan Maestro de Mejoras — Portal Empleo IT (España / UE)
 
-> **Modo de Auditoría**: Solo lectura estricta (*Audit Only*). No se modificó, movió ni eliminó ningún archivo de código, configuración, script ni base de datos existente.  
-> **Cobertura**: Arquitectura Next.js App Router (`frontend/`), Backend & Scrapers Python (`backend/`), Pasarela PHP (`db_proxy.php`), Proxy Perimetral (`nginx.conf.template`), Base de Datos (`ecosier2_PortalEmpleo.sql`, `backend/database_optimization.sql`), Scripts y CI/CD (`.github/workflows/`, `scripts/`, `deploy.sh`).
+> **Modo de ejecución**: Solo lectura (`AUDIT ONLY`) sobre el repositorio de código e infraestructura.  
+> **Cobertura**: Backend (`backend/`, `scripts/`), Frontend Next.js (`frontend/`), Pasarela Proxy y Despliegue (`db_proxy.php`, `nginx.conf.template`, `docker-compose.yml`, `deploy.sh`), Modelo Relacional, SEO Técnico/Programático y Cumplimiento Normativo (España / UE).  
+> **Nota de inventario de esquema**: El archivo `ecosier2_PortalEmpleo.sql` referenciado en las especificaciones originales no existe en disco dentro del repositorio; el esquema efectivo fue auditado directamente sobre [consolidate_production_schema.py](file:///home/raul/proyecto_empleo/backend/consolidate_production_schema.py) (25 tablas MySQL), [database_optimization.sql](file:///home/raul/proyecto_empleo/backend/database_optimization.sql) (21 tablas en sintaxis PostgreSQL) y [userAuth.ts](file:///home/raul/proyecto_empleo/frontend/lib/userAuth.ts).
 
 ---
 
 ## 1. Dashboard Cuantitativo de Hallazgos
 
-La auditoría ha documentado un total de **230 hallazgos técnicos, arquitectónicos, SEO y normativos** verificados directamente sobre el código fuente, esquemas SQL y plantillas de infraestructura del repositorio.
+Se documentan **295 hallazgos individuales verificados** (sin agrupación artificial), superando todas las cuotas mínimas exigidas en las cinco disciplinas evaluadas:
 
-| Módulo / Categoría | Archivo de Detalle | P0 - Crítico | P1 - Alto | P2 - Medio | P3 - Mejora/Bajo | Total |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| **1. Seguridad y Resiliencia** | [01_SEGURIDAD_Y_RESILIENCIA.md](./01_SEGURIDAD_Y_RESILIENCIA.md) | 9 | 29 | 25 | 2 | **65** |
-| **2. SEO Técnico y Crecimiento Orgánico** | [02_SEO_Y_CRECIMIENTO_ORGANICO.md](./02_SEO_Y_CRECIMIENTO_ORGANICO.md) | 15 | 26 | 22 | 2 | **65** |
-| **3. Funcionalidades, UX y Arquitectura** | [03_FUNCIONALIDADES_UX_Y_ARQUITECTURA.md](./03_FUNCIONALIDADES_UX_Y_ARQUITECTURA.md) | 7 | 26 | 27 | 5 | **65** |
-| **4. Legalidad, RGPD y Cumplimiento UE** | [04_LEGALIDAD_RGPD_Y_CUMPLIMIENTO_UE.md](./04_LEGALIDAD_RGPD_Y_CUMPLIMIENTO_UE.md) | 9 | 17 | 8 | 1 | **35** |
-| **TOTAL GLOBAL AUDITADO** | **4 módulos técnicos** | **40** | **98** | **82** | **10** | **230** |
+| Documento / Área Auditada | Archivo del Informe | Total Ítems | Cuota Exigida | P0 - Crítico | P1 - Alto | P2 - Medio | P3 - Mejora/Bajo | % del Total |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **1. Bugs, Errores y Calidad de Código** | [01_BUGS_ERRORES_Y_CALIDAD_CODIGO.md](file:///home/raul/proyecto_empleo/docs/auditoria/01_BUGS_ERRORES_Y_CALIDAD_CODIGO.md) | **65** | 60 – 100 | 6 | 27 | 28 | 4 | 22.0% |
+| **2. Seguridad y Resiliencia** | [02_SEGURIDAD_Y_RESILIENCIA.md](file:///home/raul/proyecto_empleo/docs/auditoria/02_SEGURIDAD_Y_RESILIENCIA.md) | **65** | 60 – 100 | 2 | 14 | 36 | 13 | 22.0% |
+| **3. SEO y Crecimiento Orgánico** | [03_SEO_Y_CRECIMIENTO_ORGANICO.md](file:///home/raul/proyecto_empleo/docs/auditoria/03_SEO_Y_CRECIMIENTO_ORGANICO.md) | **65** | 60 – 100 | 4 | 15 | 28 | 18 | 22.0% |
+| **4. Funcionalidades, UX y Arquitectura** | [04_FUNCIONALIDADES_UX_Y_ARQUITECTURA.md](file:///home/raul/proyecto_empleo/docs/auditoria/04_FUNCIONALIDADES_UX_Y_ARQUITECTURA.md) | **65** | 60 – 100 | 10 | 31 | 23 | 1 | 22.0% |
+| **5. Legalidad, RGPD y Cumplimiento UE** | [05_LEGALIDAD_RGPD_Y_CUMPLIMIENTO_UE.md](file:///home/raul/proyecto_empleo/docs/auditoria/05_LEGALIDAD_RGPD_Y_CUMPLIMIENTO_UE.md) | **35** | 30 – 60 | 14 | 13 | 8 | 0 | 11.9% |
+| **TOTAL CONSOLIDADO** | **5 módulos auditados** | **295** | **270 – 460** | **36** | **100** | **123** | **36** | **100%** |
 
 ### Distribución por Criticidad
-- **P0 — Crítico (40 hallazgos | 17,4 %)**: Riesgo inmediato de compromiso de base de datos/secretos, bypass de pago, XSS/CSRF, sanción RGPD/LSSI-CE/AEPD, acción manual de Google o rotura total de scripts en ejecución. Requieren intervención en **24–72 horas**.
-- **P1 — Alto (98 hallazgos | 42,6 %)**: Brechas importantes de seguridad, degradación grave de crawl budget/Core Web Vitals/indexación, bugs funcionales con pérdida de conversión y vacíos legales exigibles. Objetivo: **Semanas 1–2**.
-- **P2 — Medio (82 hallazgos | 35,7 %)**: Deuda técnica, duplicación lógica, fricción UX, resiliencia de scrapers/bots y adecuación normativa complementaria. Objetivo: **Semanas 3–6**.
-- **P3 — Mejora/Bajo (10 hallazgos | 4,3 %)**: Hardening adicional, observabilidad, entorno local reproducible y optimizaciones de madurez. Objetivo: **Mes 2+**.
+
+- **P0 - Crítico (`36` ítems / `12.2%`)**: Fallos bloqueantes en producción (crashes en webhooks Stripe, inserciones rotas sin PK `id`, bloqueo total de moderación `/admin`, bypass de seguridad en proxy SQL/CSP, incumplimientos legales graves RGPD/LSSI-CE/TRLGDCU/TDM).
+- **P1 - Alto (`100` ítems / `33.9%`)**: Degradación severa de datos, pérdida de cobertura de scraping, errores de indexación Google for Jobs, fallos funcionales en informes/referidos/paginación y riesgos normativos relevantes.
+- **P2 - Medio (`123` ítems / `41.7%`)**: Deuda técnica estructural, cuellos de botella de rendimiento, falta de caché/observabilidad, UX incompleta y refuerzos legales preventivos.
+- **P3 - Mejora/Bajo (`36` ítems / `12.2%`)**: Pulido técnico, automatizaciones secundarias y optimizaciones incrementales.
+
+```mermaid
+xychart-beta
+    title "Distribución de Hallazgos por Nivel de Criticidad (Total 295)"
+    x-axis ["P0 Crítico", "P1 Alto", "P2 Medio", "P3 Bajo"]
+    y-axis "Número de Hallazgos" 0 --> 140
+    bar [36, 100, 123, 36]
+```
 
 ---
 
-## 2. Top 10 Vulnerabilidades y Riesgos Críticos Prioritarios
+## 2. Top 10 Fallos Críticos Inmediatos (`P0`)
 
-A continuación se destacan los 10 hallazgos de mayor riesgo combinado (impacto técnico, financiero, reputacional y sancionador) detectados en la auditoría:
+Estos diez bloqueos exigen intervención prioritaria antes de escalar tráfico, campañas comerciales o captación orgánica:
 
-1. **Credenciales reales, dump SQL con PII y artefactos `.env` expuestos en el repositorio** (`SEC-001`, `SEC-002`, `LEG-012`)  
-   `scripts/backup_mysql.sh` (líneas 23 y 37) contiene la contraseña fallback hardcodeada `Tolili07@` y la expone en la tabla de procesos (`-p"$DB_PASS"`). Adicionalmente conviven en el árbol de trabajo el volcado `ecosier2_PortalEmpleo.sql` (3.99 MB con emails reales en líneas 41 y 9554), `backend/migration_data/` (7.7 MB) y `backend/.env` (996 B).
-2. **Evasión gratuita de informes de pago (PayPal PDT Fail-Open + TOCTOU en descargas)** (`SEC-031`, `SEC-032`)  
-   `frontend/app/api/checkout/report/verify/route.ts` (líneas 43–71) concede el token de acceso si falta `PAYPAL_IDENTITY_TOKEN` o falla la red (*Fail-Open*), mientras `api/checkout/report/download/route.ts` sufre condición de carrera sobre el límite de 5 descargas agravada porque `db_proxy.php` ignora transacciones.
-3. **Transacciones SQL "no-op" y suplantación de IP en `db_proxy.php`** (`SEC-008`, `SEC-009`, `FUNC-013`)  
-   `db_proxy.php` confía incondicionalmente en `HTTP_CF_CONNECTING_IP` (líneas 68–71) permitiendo falsificar IP origen, y devuelve éxito sintético ante `START TRANSACTION`/`COMMIT`/`ROLLBACK` (líneas 157–165), dejando sin atomicidad a `submitSponsoredJob`, descargas e idempotencia Stripe.
-4. **Bypass global de Rate Limiting distribuido en APIs y DoS funcional en acciones** (`SEC-024`, `SEC-025`, `SEC-026`, `SEC-027`)  
-   Las rutas `/api/jobs`, `/api/salarios`, `/api/fresh-alerts`, `/api/checkout/newsletter`, `/api/widget/vacantes-count` y `/api/index-job` llaman al método síncrono `.limit()` en lugar de `.limitAsync()`, anulando Upstash Redis en serverless. Además, `request_link` en `/api/unsubscribe` carece de límite (vector de Email Bombing) y `reactToJob` / `submitCompanyReview` usan claves globales sin IP provocando DoS funcional.
-5. **XSS reflejado en `/api/unsubscribe` y bypass CSRF cuando faltan `Origin`/`Referer`** (`SEC-036`, `SEC-016`, `SEC-017`)  
-   `frontend/app/api/unsubscribe/route.ts` (líneas 140–150) interpola `${email}` sin escapar en HTML fallback e inyecta cabeceras `host`/`x-forwarded-proto` sin validar en enlaces enviados por correo (líneas 27–35). Paralelamente, `frontend/middleware.ts` (líneas 31–75) y `verifyCsrfOrigin` en `actions.ts` (líneas 64–82) aceptan peticiones cuando faltan `Origin` y `Referer`.
-6. **Incumplimientos frontales RGPD/LSSI-CE/ePrivacy sancionables por la AEPD** (`LEG-001`, `LEG-010`, `LEG-011`, `LEG-013`, `LEG-014`, `LEG-023`, `LEG-024`, `LEG-029`)  
-   Ocultación de NIF/domicilio real (`aviso-legal` y `backend/mailer.py:491`), carga de OneSignal y llamadas directas del navegador a Clearbit (`CompanyLogo.tsx`) sin consentimiento previo, logs CI con emails en texto plano en 5 scripts `send_*.py`, envíos ignorando `marketing_accepted`, baja `/api/unsubscribe` que no detiene `alerts`/Stripe, borrado físico en `send_reactivation.py` destruyendo lista de exclusión/usuarios premium y afirmaciones falsas en `bot/page.tsx` frente a scrapers reales.
-7. **Deriva crítica de esquema SQL y bloqueo `403` de migraciones vía proxy** (`FUNC-004`, `FUNC-005`, `FUNC-036`, `FUNC-037`)  
-   El esquema volcado `ecosier2_PortalEmpleo.sql` carece de 5 tablas críticas (`stripe_processed_events`, `report_downloads`, `saved_jobs_reminders`, `streak_reminders`, `review_reports`) y decenas de columnas asumidas por el código (`source`, `is_active`, `marketing_accepted`, `clicks_count`, `impressions_count`), choca entre `varchar(36)` y `INT AUTO_INCREMENT` en `subscribers.id`, ejecuta `ILIKE '%query%'` sin índices `FULLTEXT`/compuestos y `consolidate_production_schema.py` intenta `ALTER TABLE` contra `db_proxy.php` (bloqueado con `403`).
-8. **Sistemas enteros rotos silenciosamente en producción** (`FUNC-001`, `FUNC-002`, `FUNC-003`, `FUNC-006`)  
-   `generate_blog_post.py:92` lanza `AttributeError` por `.toLocaleString()` JS en Python; `send_streak_reminder.py:152` y `send_saved_jobs_reminder.py:149` consultan `s.source` que `/api/subscribe` deja `NULL`; `send_push_notifications.py:98` compara tecnologías contra `jobs.category` dando siempre `0`; y `getRecruiterJobs` (`actions.ts:954`) hardcodea `0` impresiones/clics.
-9. **Riesgo de acción manual y pérdida severa de tráfico en Google / Google for Jobs** (`SEO-001`..`SEO-004`, `SEO-011`, `SEO-016`..`SEO-019`, `SEO-029`, `SEO-036`, `SEO-037`, `SEO-041`)  
-   Schema `Course` abusivo en `CourseAffiliate.tsx` sobre búsqueda afiliada de Udemy; `JobPosting` con errores en `directApply`, `addressRegion`, `applicantLocationRequirements` y `baseSalary`; `deactivate_expired_jobs.py:164` borrando ofertas sin retornar `410 Gone`; `index_new_jobs.py:67` enviando URLs sin slug mientras conviven dos claves IndexNow incompatibles; `sitemap.ts` emitiendo `lastModified: new Date()` y desajuste con `robots.ts`; landings `/trabajo-[ciudad]/[tech]` vacías indexables y páginas `/ca/` y `/eu/` renderizando cuerpo en español bajo metadatos locales con `hreflang` roto.
-10. **Activos LCP sin optimizar (`logo.png` 566 KB, `og-image.png` 455 KB) y clases Tailwind v4 inexistentes** (`SEO-046`, `FUNC-007`)  
-    Más de 1 MB en dos imágenes PNG sin WebP/AVIF y uso masivo de utilidades CSS inexistentes en `globals.css` (`indigo-650/750/550`, `slate-350/650/850`, `duration-205`) que rompen estilos visuales, hover y contraste de accesibilidad.
+| Prioridad | ID(s) Vinculados | Archivo Afectado | Diagnóstico Resumido y Bloqueo en Producción |
+| :---: | :--- | :--- | :--- |
+| **1** | `BUG-002` / `FUNC-002` | [db.ts](file:///home/raul/proyecto_empleo/frontend/lib/db.ts#L337-L340) y [webhooks/stripe/route.ts](file:///home/raul/proyecto_empleo/frontend/app/api/webhooks/stripe/route.ts#L113-L116) | **Colapso de transacciones Stripe sobre proxy HTTP**: `db.ts` lanza error ante `SELECT`/`SHOW` dentro de transacciones proxy, rompiendo la activación post-pago de ofertas, newsletter, informes y planes Premium. |
+| **2** | `SEC-001` | [db_proxy.php](file:///home/raul/proyecto_empleo/db_proxy.php#L335-L344) | **Superficie crítica `UPDATE` en proxy SQL**: ausencia de lista blanca estricta de tablas y riesgo de bypass en cláusula `WHERE`, agravado por truncamiento silencioso `$max_rows = 1000` (`FUNC-001`). |
+| **3** | `BUG-001` / `BUG-005` / `BUG-007` / `FUNC-012` | [main.py](file:///home/raul/proyecto_empleo/backend/main.py#L78-L167), [pipelines.py](file:///home/raul/proyecto_empleo/backend/job_aggregator/pipelines.py#L48-L87), [scraper_infoempleo.py](file:///home/raul/proyecto_empleo/backend/scraper_infoempleo.py#L94-L112) | **Ingesta rota en `jobs`**: los tres caminos de inserción omiten la PK obligatoria `id`, `dedup_hash` y `work_mode`; Scrapy además contradice `autocommit=True` y reactiva ofertas rechazadas/expiradas. |
+| **4** | `BUG-003` / `BUG-004` / `FUNC-014` | [api/admin/jobs/route.ts](file:///home/raul/proyecto_empleo/frontend/app/api/admin/jobs/route.ts#L17-L50) y [admin/page.tsx](file:///home/raul/proyecto_empleo/frontend/app/admin/page.tsx#L73) | **Moderación administrativa inoperante**: castear UUID a `Number()` produce `NaN` y las consultas emplean `RETURNING id` no soportado por el adaptador MySQL, bloqueando aprobar o rechazar ofertas. |
+| **5** | `LEG-005` / `LEG-006` / `LEG-004` | [mailer.py](file:///home/raul/proyecto_empleo/backend/mailer.py) y scripts `backend/send_*.py` | **Envíos masivos sin respetar bajas ni exclusiones**: ninguno de los 8 scripts consulta `email_suppression_list`, 5 scripts ignoran `users.email_notifications_enabled = FALSE` y se omite exigir `confirmed_at IS NOT NULL`. |
+| **6** | `LEG-002` / `LEG-003` / `FUNC-046` | [actions.ts](file:///home/raul/proyecto_empleo/frontend/app/actions.ts#L384-L403) | **Alta de alertas sin Double Opt-In y pérdida de prueba**: la Server Action `subscribeUser` activa correos sin verificación previa y, en fallback SQL, elimina `consent_timestamp`, `consent_ip_hash` y `consent_policy_version`. |
+| **7** | `LEG-010` / `LEG-012` / `LEG-013` / `FUNC-015` | [api/unsubscribe/route.ts](file:///home/raul/proyecto_empleo/frontend/app/api/unsubscribe/route.ts#L43-L55) y [api/admin/gdpr/route.ts](file:///home/raul/proyecto_empleo/frontend/app/api/admin/gdpr/route.ts#L45-L95) | **Derechos RGPD y bajas rotos por desfase de esquema**: consultan tablas/columnas inexistentes (`alerts`, `saved_jobs_reminders.is_active`) y el borrado RGPD omite `users`, sesiones, leads, patrocinadores y denuncias. |
+| **8** | `LEG-008` | [tracking.py](file:///home/raul/proyecto_empleo/backend/logic/tracking.py#L21-L59) y mailers de retención | **Exposición de email PII en URLs**: enlaces de tracking, reactivación y onboarding incluyen `?email=` en claro o Base64 reversible, filtrando datos personales en logs de proxy, navegador y cabeceras `Referer`. |
+| **9** | `LEG-017` / `LEG-018` / `SEC-002` | [CookieBanner.tsx](file:///home/raul/proyecto_empleo/frontend/components/CookieBanner.tsx), [layout.tsx](file:///home/raul/proyecto_empleo/frontend/app/layout.tsx#L181-L250), [middleware.ts](file:///home/raul/proyecto_empleo/frontend/middleware.ts#L16-L20) | **Consentimiento ePrivacy inválido y CSP en colisión**: bandera `cookies_accepted = 'true'` agrupa analítica y publicidad sin granularidad real; doble cabecera CSP entre middleware y `next.config.ts` bloquea recursos. |
+| **10** | `LEG-001` / `LEG-023` / `LEG-028` / `FUNC-048` | [legalConfig.ts](file:///home/raul/proyecto_empleo/frontend/lib/legalConfig.ts#L9-L10), [tdm.py](file:///home/raul/proyecto_empleo/backend/logic/tdm.py#L39-L41), [checkout/report/route.ts](file:///home/raul/proyecto_empleo/frontend/app/api/checkout/report/route.ts#L23-L46) | **Incumplimientos críticos LSSI-CE, TDM, Consumo y producto Enterprise**: NIF/domicilio con marcadores placeholder, verificador `robots.txt` en modo fail-open, bypass del desistimiento Art. 103.m TRLGDCU y plan `enterprise` no diferenciado. |
 
----
+### Índice Completo de los 36 Hallazgos `P0 - Crítico`
 
-## 3. Patrones Transversales Detectados
-
-- **Frontera HTTP `db_proxy.php` como cuello de botella y fuente de inconsistencia**: Al concentrar el tráfico SQL de Next.js sobre llamadas PHP independientes sin transacciones reales, sin pooling optimizado y bloqueando DDL, genera a la vez problemas de seguridad (`SEC-008`–`SEC-011`), rendimiento (`SEO-052`, `FUNC-038`) y fallo de atomicidad en pagos (`SEC-032`, `FUNC-013`).
-- **Desalineación entre código de aplicación y base de datos real**: Múltiples parches defensivos en runtime (`catch` silenciosos en `webhooks/stripe`, `0 AS impressions_count` en `actions.ts`, `CREATE TABLE IF NOT EXISTS` en `reportCompanyReview`) encubren una base de datos no migrada formalmente.
-- **Lógica distribuida en memoria de contenedor serverless**: Tanto `revokedMagicTokens`, `checkRateLimit` en `actions.ts`, `/api/subscribe` y las llamadas `.limit()` síncronas en endpoints API operan asumiendo proceso único persistente cuando Vercel escala horizontalmente en lambdas efímeras.
-- **Duplicación sin capa compartida en backend y frontend**: 7 scripts de correo duplicando plantillas HTML y lógica de pies legales/tracking; dos analizadores salariales (`salary_parser.py` y `salarios.ts`); dos constructores de filtros SQL (`getJobs` / `getFeaturedJobs`); y múltiples generadores de URLs de oferta (con y sin slug).
+- **Bugs (`6`)**: `BUG-001`, `BUG-002`, `BUG-003`, `BUG-004`, `BUG-005`, `BUG-007` en [01_BUGS_ERRORES_Y_CALIDAD_CODIGO.md](file:///home/raul/proyecto_empleo/docs/auditoria/01_BUGS_ERRORES_Y_CALIDAD_CODIGO.md).
+- **Seguridad (`2`)**: `SEC-001`, `SEC-002` en [02_SEGURIDAD_Y_RESILIENCIA.md](file:///home/raul/proyecto_empleo/docs/auditoria/02_SEGURIDAD_Y_RESILIENCIA.md).
+- **SEO (`4`)**: `SEO-001`, `SEO-002`, `SEO-003`, `SEO-004` en [03_SEO_Y_CRECIMIENTO_ORGANICO.md](file:///home/raul/proyecto_empleo/docs/auditoria/03_SEO_Y_CRECIMIENTO_ORGANICO.md).
+- **Funcionalidades y Arquitectura (`10`)**: `FUNC-001`, `FUNC-002`, `FUNC-006`, `FUNC-012`, `FUNC-014`, `FUNC-015`, `FUNC-045`, `FUNC-046`, `FUNC-048`, `FUNC-050` en [04_FUNCIONALIDADES_UX_Y_ARQUITECTURA.md](file:///home/raul/proyecto_empleo/docs/auditoria/04_FUNCIONALIDADES_UX_Y_ARQUITECTURA.md).
+- **Legalidad España/UE (`14`)**: `LEG-001`, `LEG-002`, `LEG-003`, `LEG-004`, `LEG-005`, `LEG-006`, `LEG-008`, `LEG-010`, `LEG-012`, `LEG-013`, `LEG-017`, `LEG-018`, `LEG-023`, `LEG-028` en [05_LEGALIDAD_RGPD_Y_CUMPLIMIENTO_UE.md](file:///home/raul/proyecto_empleo/docs/auditoria/05_LEGALIDAD_RGPD_Y_CUMPLIMIENTO_UE.md).
 
 ---
 
-## 4. Roadmap Recomendado de Implementación por Fases
+## 3. Estructura Modular de Entrega (Índice Navegable)
 
-### Fase 0: Contención de Emergencia (Primeras 24–72 Horas)
-*Objetivo: Cerrar fugas activas de secretos, bypass de pago, XSS y vulnerabilidades críticas de infraestructura.*
-1. **Rotación y limpieza de secretos (`SEC-001`, `SEC-002`, `SEC-003`, `SEC-004`, `SEC-005`, `LEG-011`, `LEG-012`)**:
-   - Rotar contraseña de MySQL expuesta en `scripts/backup_mysql.sh`, `PROXY_SECRET`, claves en `backend/.env` y API key de Gemini; purgar `ecosier2_PortalEmpleo.sql` y `backend/migration_data/` del árbol e historial Git.
-   - Eliminar el fallback `'portal_unsub_secret_fallback'` en `/api/unsubscribe`, pasar la Gemini key a cabecera `x-goog-api-key` y enmascarar emails en los `print()` de los 5 scripts `send_*.py`.
-2. **Cierre de brechas críticas de pago y XSS (`SEC-031`, `SEC-036`, `SEC-017`)**:
-   - Pasar PayPal PDT en `/api/checkout/report/verify` a modo **Fail-Closed** estricto.
-   - Escapar o reemplazar por redirección segura la plantilla HTML de `/api/unsubscribe` (XSS) y eliminar `x-forwarded-host`/`host` en favor de `NEXT_PUBLIC_SITE_URL`.
-3. **Activar Rate Limiting distribuido real (`SEC-024`, `SEC-025`, `SEC-026`, `SEC-020`)**:
-   - Reemplazar todas las llamadas `.limit()` por `await .limitAsync()` en `api/*`, añadir `resetAsync` en `admin/auth`, añadir límite distribuido + Turnstile en `request_link` de `/api/unsubscribe` e incluir `clientIp` en las claves de `reactToJob` / `submitCompanyReview`.
-4. **Retirada de riesgo inmediato de acción manual SEO (`SEO-041`)**:
-   - Retirar el JSON-LD `Course` de `CourseAffiliate.tsx` y corregir las rutas erróneas más críticas (`index_new_jobs.py` con slug + clave IndexNow única `SEO-018`/`SEO-019`).
-
-### Fase 1: Estabilización Legal, Base de Datos y Corrección de Flujos Rotos (Semanas 1–2)
-*Objetivo: Sincronizar esquema SQL real, cumplir mínimos irrenunciables RGPD/LSSI-CE y reactivar los sistemas rotos.*
-1. **Consolidación formal del esquema MySQL/MariaDB (`FUNC-004`, `FUNC-005`, `FUNC-036`, `FUNC-037`)**:
-   - Auditar el esquema en producción, resolver la llave `subscribers.id`, aplicar las tablas faltantes (`stripe_processed_events`, `report_downloads`, `saved_jobs_reminders`, `streak_reminders`, `review_reports`) y columnas faltantes (`source`, `is_active`, `marketing_accepted`, `clicks_count`, `impressions_count`, etc.) por conexión TLS directa segura.
-   - Crear índices compuestos + índice `FULLTEXT` y sustituir `ILIKE '%query%'` en `frontend/lib/jobs.ts`.
-   - Añadir soporte de lote transaccional real (`$pdo->beginTransaction()`) y cerrar fallos de seguridad en `db_proxy.php` (`SEC-008`–`SEC-011`).
-2. **Cumplimiento RGPD, LSSI-CE y ePrivacy (`LEG-001`, `LEG-010`, `LEG-013`, `LEG-014`, `LEG-023`, `LEG-024`, `LEG-029`)**:
-   - Completar NIF, razón social y domicilio en `aviso-legal` y pie de correos; retirar enlace EU ODR (`LEG-003`); exigir renuncia Art. 103.m TRLGDCU y alinear precios/IVA en checkout (`LEG-004`, `LEG-005`).
-   - Condicionar carga de OneSignal al consentimiento `cookies_consent` (`LEG-023`) y eliminar peticiones directas de navegador a Clearbit cacheando logotipos en servidor (`LEG-024`).
-   - Reemplazar `DELETE` en `send_reactivation.py` por baja lógica preservando lista de supresión y clientes `is_premium` (`LEG-014`), hacer la baja `/api/unsubscribe` integral sobre todas las tablas y RFC 8058 One-Click (`LEG-013`, `LEG-018`), filtrar `marketing_accepted = 1` antes de publicidad (`LEG-010`) y alinear `bot/page.tsx` + verificación `robots.txt`/TDM (`LEG-029`, `LEG-030`).
-3. **Reparación de flujos rotos críticos (`FUNC-001`..`FUNC-003`, `FUNC-006`..`FUNC-008`, `SEC-016`, `SEC-019`, `SEC-032`..`SEC-035`)**:
-   - Corregir `generate_blog_post.py:92`, persistencia de `source` en `/api/subscribe`, consulta push en `send_push_notifications.py:98`, métricas reales en `getRecruiterJobs`, clases CSS en `globals.css`/`AdBanner`/`SearchFilters` y literales `**` en `salarios/page.tsx` y `send_reactivation.py`.
-   - Endurecer `middleware.ts` / `actions.ts` (verificación HMAC en Edge, tokens CSRF reales, revocación de magic links en Redis, webhooks Stripe de disputas/reembolsos e incremento atómico en descargas PDF).
-
-### Fase 2: Motor SEO Técnico, Core Web Vitals y Resiliencia Operativa (Semanas 3–4)
-*Objetivo: Maximizar visibilidad en Google for Jobs, optimizar rastreo y estabilizar scrapers/mailing.*
-1. **Google for Jobs y ciclo de vida `410 Gone` (`SEO-001`..`SEO-005`, `SEO-011`..`SEO-014`, `SEO-016`..`SEO-024`)**:
-   - Corregir `directApply`, `PostalAddress`, `applicantLocationRequirements`, `baseSalary` y tabla histórica `expired_jobs_graveyard` devolviendo HTTP `410 Gone`.
-   - Alinear `robots.ts` con un `<sitemapindex>` particionado con `<lastmod>` real de BD, corregir ventana estricta 48h en `sitemap-news.xml` y unificar enlaces con slug canónico en feeds y notificaciones.
-2. **Arquitectura `hreflang` y SEO Programático (`SEO-029`..`SEO-031`, `SEO-036`..`SEO-039`)**:
-   - Aplicar `noindex, follow` dinámico a combinaciones `/trabajo-[ciudad]/[tech]` vacías; completar traducción real de `/ca/` y `/eu/` y corregir la matriz simétrica `hreflang`.
-3. **Core Web Vitals y Rendimiento (`SEO-046`..`SEO-052`, `SEC-038`, `SEC-060`)**:
-   - Comprimir/convertir `logo.png` (566 KB) y `og-image.png` (455 KB), habilitar optimización `next/image`, reservar alturas SSR en `AdBanner.tsx`, optimizar `sw.js`, añadir `limit_req` y corregir herencia `add_header` en `nginx.conf.template`.
-4. **Resiliencia Backend (`FUNC-019`, `FUNC-041`..`FUNC-046`, `SEC-045`, `SEC-046`)**:
-   - Migrar parseo RSS a `defusedxml`, añadir cliente HTTP con SSRF pinning + backoff exponencial + check `robots.txt`/TDM, deduplicación por hash+similitud, desacoplar monolito `run_all.py` y centralizar plantillas Jinja2 con checkpoints SMTP idempotentes y registro de envíos.
-
-### Fase 3: Consolidación Arquitectónica, Producto IA y Madurez (Mes 2+)
-*Objetivo: Escalar calidad editorial/producto, automatizar tests y elevar conversión B2C/B2B.*
-1. **Normalización con IA y Producto (`FUNC-010`, `FUNC-011`, `FUNC-012`, `FUNC-047`, `FUNC-049`, `FUNC-060`, `LEG-031`..`LEG-033`)**:
-   - Servir informe salarial en PDF real (`report/download`), construir `/empresa/[slug]` y `/mi-cuenta` + Stripe Billing Portal, implementar pipeline batch con Structured Outputs (Gemini Flash) para salario/remoto/stack y añadir etiquetado AI Act + transparencia retributiva en `submitSponsoredJob`.
-2. **Calidad de Ingeniería y Observabilidad (`FUNC-056`, `FUNC-065`, `SEC-058`, `SEC-065`, `LEG-032`)**:
-   - Levantar `docker-compose` local de desarrollo, implementar tests unitarios/integración en CI (`pytest` + `vitest` + chequeo SEO automatizado + `npm audit`/`pip-audit`), auditoría real WCAG 2.1 AA con `axe-core` y alertas operativas de seguridad centralizadas.
+1. **[01_BUGS_ERRORES_Y_CALIDAD_CODIGO.md](file:///home/raul/proyecto_empleo/docs/auditoria/01_BUGS_ERRORES_Y_CALIDAD_CODIGO.md)** (`BUG-001` – `BUG-065`):
+   Excepciones no controladas, incompatibilidades MySQL/PostgreSQL, fugas de conexiones y cursores, fallos en adaptadores (`psycopg2.py`, `db.ts`), condiciones de carrera en cron/webhooks, roturas silenciosas en scrapers y errores React/hidratación.
+2. **[02_SEGURIDAD_Y_RESILIENCIA.md](file:///home/raul/proyecto_empleo/docs/auditoria/02_SEGURIDAD_Y_RESILIENCIA.md)** (`SEC-001` – `SEC-065`):
+   Superficie SQL y controles en `db_proxy.php`, cabeceras CSP/Nginx (`nginx.conf.template`), protección SSRF (`ssrf.py`, `urlSafetyServer.ts`), validación de webhooks Stripe, autenticación/sesiones (`userAuth.ts`), rate limiting (`rate-limit.ts`) y gestión de secretos.
+3. **[03_SEO_Y_CRECIMIENTO_ORGANICO.md](file:///home/raul/proyecto_empleo/docs/auditoria/03_SEO_Y_CRECIMIENTO_ORGANICO.md)** (`SEO-001` – `SEO-065`):
+   Datos estructurados `JobPosting` (`baseSalary`, `validThrough`, `ItemList`), cobertura y thin content en `sitemap.ts` / `sitemap-news.xml` / `sitemap-images.xml`, gestión de ofertas caducadas (`410` vs redirección), SEO programático (`/trabajos/[sector]`, `/salarios`, `/tendencias`), IndexNow, Google Search Console y Core Web Vitals.
+4. **[04_FUNCIONALIDADES_UX_Y_ARQUITECTURA.md](file:///home/raul/proyecto_empleo/docs/auditoria/04_FUNCIONALIDADES_UX_Y_ARQUITECTURA.md)** (`FUNC-001` – `FUNC-065`):
+   Consistencia de esquema, proxy SQL, resiliencia y cobertura de scrapers (`job_spider.py`, `scraper_http.py`), deduplicación fuzzy + modalidad, normalización salarial EUR, UX de búsqueda (`AISearchBar`, `LoadMoreJobs`, `SaveJobButton`), checkout B2B/B2C, generador PDF, sistema de referidos, mailing/bots y `/api/health`.
+5. **[05_LEGALIDAD_RGPD_Y_CUMPLIMIENTO_UE.md](file:///home/raul/proyecto_empleo/docs/auditoria/05_LEGALIDAD_RGPD_Y_CUMPLIMIENTO_UE.md)** (`LEG-001` – `LEG-035`):
+   LSSI-CE Art. 10, consentimiento Double Opt-In y trazabilidad probatoria, `email_suppression_list`, RFC 8058 y `/api/unsubscribe`, derechos ARSOLP (`/api/admin/gdpr`), retención efectiva (`cleanup_retention.py`), cookies granulares AEPD/ePrivacy (`CookieBanner`), Directiva TDM (UE) 2019/790, TRLGDCU Art. 103.m, Directiva de Transparencia Retributiva (UE) 2023/970, Ley 15/2022, Ley 11/2023 y Reglamento IA (UE) 2024/1689 Art. 50.
 
 ---
 
-## 5. Índice de Entregables Detallados
+## 4. Plan Maestro Secuencial de Resolución por Fases
 
-1. **[01_SEGURIDAD_Y_RESILIENCIA.md](./01_SEGURIDAD_Y_RESILIENCIA.md)** — **65 hallazgos** (`SEC-001` a `SEC-065`): Secretos, `db_proxy.php`, autenticación/sesiones/CSRF, rate limiting/DoS, Stripe/PayPal, XSS/CSP/Nginx, SSRF/XML y CI/CD.
-2. **[02_SEO_Y_CRECIMIENTO_ORGANICO.md](./02_SEO_Y_CRECIMIENTO_ORGANICO.md)** — **65 hallazgos** (`SEO-001` a `SEO-065`): `JobPosting`, `410 Gone` y crawl budget, sitemaps/IndexNow/Indexing API, SEO programático, `hreflang`, `Course`/esquemas ricos, Core Web Vitals y enlazado interno.
-3. **[03_FUNCIONALIDADES_UX_Y_ARQUITECTURA.md](./03_FUNCIONALIDADES_UX_Y_ARQUITECTURA.md)** — **65 hallazgos** (`FUNC-001` a `FUNC-065`): Bugs críticos de runtime, deriva SQL y migraciones, paneles B2B/Admin, UI/Tailwind v4, buscador/filtros, eficiencia SQL, resiliencia de scrapers, bots sociales y mailing.
-4. **[04_LEGALIDAD_RGPD_Y_CUMPLIMIENTO_UE.md](./04_LEGALIDAD_RGPD_Y_CUMPLIMIENTO_UE.md)** — **35 hallazgos** (`LEG-001` a `LEG-035`): LSSI-CE, consumo/TRLGDCU, DSA, RGPD/LOPDGDD, ePrivacy/AEPD cookies, TDM Directiva 2019/790, AI Act, Directiva 2023/970 y Ley 11/2023 de Accesibilidad.
+La ejecución debe respetar estrictamente las dependencias entre infraestructura de datos, cumplimiento legal bloqueante y optimización funcional/SEO:
+
+```mermaid
+flowchart LR
+    F0["Fase 0: Contención Urgente (Días 1-3)"] --> F1["Fase 1: Base de Datos, Proxy y Pagos (Semanas 1-2)"]
+    F1 --> F2["Fase 2: Cumplimiento RGPD, LSSI-CE, Cookies y TDM (Semanas 2-3)"]
+    F2 --> F3["Fase 3: Scrapers, Deduplicación, Mailing y Observabilidad (Semanas 4-6)"]
+    F3 --> F4["Fase 4: SEO Programático, UX Frontend y Escalado B2B (Semanas 6-8)"]
+```
+
+### Fase 0: Contención Urgente de Seguridad, Pagos y Riesgos Legales Inmediatos (Días 1–3)
+- **Objetivos**: Detener fugas PII, blindar perímetro proxy/CSP y frenar riesgos sancionadores inmediatos de envío comercial no autorizado y consumo.
+- **Acciones clave**:
+  1. Configurar NIF/CIF real, razón social y domicilio físico en entorno de producción para `legalConfig.ts` y `backend/logic/legal.py`, añadiendo comprobación de arranque fail-fast (`LEG-001`).
+  2. Aplicar lista blanca estricta y contención de `UPDATE` en `db_proxy.php` (`SEC-001`) y unificar `Content-Security-Policy` eliminando la colisión entre `middleware.ts` y `next.config.ts` (`SEC-002`).
+  3. Cambiar `backend/logic/tdm.py` a comportamiento estricto **fail-closed** ante fallos de red/timeout (`LEG-023`).
+  4. Corregir la validación de renuncia al desistimiento (`waiver_accepted !== true`) en `checkout/report/route.ts` (`LEG-028`) y suspender temporalmente la comercialización del tier `enterprise` hasta entregar diferenciación real (`FUNC-048`, `LEG-030`).
+  5. Pausar envíos no esenciales hasta parchear filtros de supresión (`email_suppression_list`), `confirmed_at IS NOT NULL`, `email_notifications_enabled = TRUE` (`LEG-004`, `LEG-005`, `LEG-006`) y sustituir email en claro/Base64 en `backend/logic/tracking.py` por tokens opacos HMAC (`LEG-008`).
+
+### Fase 1: Unificación de Esquema, Estabilidad de BD y Flujos Transaccionales (Semanas 1–2)
+- **Objetivos**: Garantizar integridad ACID en Stripe/admin y erradicar errores de inserción en ingesta y moderación.
+- **Acciones clave**:
+  1. Consolidar las 25 tablas reales en migraciones SQL MySQL 8 versionadas e idempotentes (`FUNC-006`, `FUNC-009`), alinear `docker-compose.yml` con MySQL 8 (`FUNC-007`) y retirar DDL en tiempo de ejecución dentro de `userAuth.ts` (`FUNC-008`).
+  2. Habilitar conexión MySQL directa (con singleton `globalThis`, `ROLLBACK` automático en `release()` y eliminación de sintaxis `RETURNING` PostgreSQL) para webhooks Stripe y `/api/admin/jobs`, eliminando el bloqueo `SELECT`/`SHOW` en transacciones y el truncamiento silencioso `$max_rows = 1000` (`BUG-002`, `BUG-004`, `FUNC-001`–`FUNC-005`).
+  3. Corregir tipo UUID frente a `Number()` en `admin/page.tsx` y `/api/admin/jobs` (`BUG-003`, `FUNC-014`).
+  4. Alinear `main.py`, Scrapy `pipelines.py` (`autocommit=False`, preservación de bajas manuales) y `scraper_infoempleo.py` a un repositorio único que genere PK `id`, `dedup_hash` con `work_mode` y fechas válidas (`BUG-001`, `BUG-005`, `BUG-007`, `FUNC-011`–`FUNC-013`).
+  5. Mover borradores pre-pago de `/api/checkout` a tabla `pending_checkouts`/`sponsored_job_orders` con `type: 'sponsored_job'` (`FUNC-045`) y corregir concesión transaccional de `is_premium = TRUE` en referidos confirmados (`FUNC-050`).
+
+### Fase 2: Cumplimiento Normativo Integral RGPD, Cookies, Propiedad Intelectual e IA (Semanas 2–3)
+- **Objetivos**: Alinear el comportamiento efectivo del software con los textos legales y directivas europeas.
+- **Acciones clave**:
+  1. Retirar inserción directa y fallback sin metadatos de consentimiento en `subscribeUser` (`actions.ts`), enrutando todo formulario por Double Opt-In (`LEG-002`, `LEG-003`, `FUNC-046`) con comprobación de `email_suppression_list` (`LEG-007`).
+  2. Reparar nombres de tabla y atomicidad en `POST /api/unsubscribe` (soporte pleno RFC 8058) y en `/api/admin/gdpr` cubriendo exportación y supresión en todas las tablas personales (`LEG-010`–`LEG-013`, `FUNC-015`), así como las consultas rotas de `backend/cleanup_retention.py` (`LEG-014`, `FUNC-016`).
+  3. Eliminar el fallback `cookies_accepted === 'true'` en `CookieBanner.tsx` y `layout.tsx`, corregir `handleSaveCustom` y ejecutar revocación efectiva incluyendo `OneSignal.User.PushSubscription.optOut()` (`LEG-017`–`LEG-019`, `FUNC-062`).
+  4. Corregir falsas menciones a PayPal en `/privacy` y `/aviso-legal` (`LEG-015`), alinear `/cookies` (`LEG-020`), documentar transferencias internacionales y proxy de Clearbit (`LEG-016`), activar canal Notice-and-Takedown (`LEG-027`) y aplicar etiquetado transparente Art. 50 AI Act (`LEG-033`).
+
+### Fase 3: Resiliencia de Scrapers, Deduplicación Inteligente, Mailing y Bots (Semanas 4–6)
+- **Objetivos**: Escalar cobertura de ofertas limpias sin duplicados y profesionalizar mensajería y editorial.
+- **Acciones clave**:
+  1. Paralelizar scrapers fuera del cuello de botella secuencial de `180s` en `main.py` / `run_all.py`, sustituir espera síncrona por `httpx.AsyncClient` con circuit breaker persistente y añadir tabla `scraper_runs` + `/api/health/deep` (`FUNC-017`, `FUNC-021`–`FUNC-024`, `FUNC-065`).
+  2. Ampliar paginación y extracción de detalle en Tecnoempleo (`job_spider.py`) con parsers resilientes y cobertura TDM obligatoria en `scraper_http.py` (`FUNC-018`–`FUNC-020`, `LEG-024`–`LEG-026`).
+  3. Implantar deduplicación en dos fases (hash con `work_mode` + similitud fuzzy por empresa normalizada ampliada) y columnas indexadas `salary_min_eur` / `salary_max_eur` con cálculo correcto por jornada (`220` días) y tasas BCE (`FUNC-025`–`FUNC-031`).
+  4. Rediseñar el despacho de correo con cursores por lote, idempotencia en `email_deliveries`, webhooks de rebotes SMTP, frecuencia coordinada Web Push/Email y reparación de `send_reactivation.py` (`FUNC-051`–`FUNC-055`).
+  5. Consolidar bots sociales duplicados (`backend/` vs `scripts/`), añadir `social_posts_log`, pasar contenido IA por verificación factual SQL y estado `draft` (`FUNC-056`–`FUNC-059`), y reemplazar `buildSimplePdfBuffer` por generador UTF-8 profesional con diferenciación real `enterprise` (`FUNC-047`–`FUNC-049`).
+
+### Fase 4: SEO Programático de Alto Tráfico, UX de Producto y Rendimiento (Semanas 6–8)
+- **Objetivos**: Desbloquear captación orgánica limpia en Google / Google for Jobs y optimizar conversión de candidatos y empresas.
+- **Acciones clave**:
+  1. Corregir Schema.org `JobPosting` (`baseSalary` para `"40k"` y periodicidad real, retirada de `JobPosting` dentro de `ItemList` en categorías) (`SEO-001`, `SEO-002`).
+  2. Depurar Thin Content del producto cartesiano de `/salarios/...` (`sitemap/0.xml`), alinear ventana de activos >30 días en `sitemap/1` y `sitemap/2`, unificar política HTTP `410 Gone` vs redirección semántica en caducadas y orquestar cola de IndexNow / Google Indexing (`SEO-003`, `SEO-004`, `FUNC-060`).
+  3. Eliminar `MOCK_JOBS` y contador `9197` (`FUNC-033`, `LEG-030`), soportar tokens técnicos (`C#`, `C++`, `Go`, `.NET`, `AI`) (`FUNC-034`), dotar `AISearchBar` de autocompletado + sincronización URL con debounce (`FUNC-035`, `FUNC-036`) y corregir dependencias, `useRef` y `AbortController` en `LoadMoreJobs.tsx` (`FUNC-037`, `FUNC-038`).
+  4. Restaurar guardado local anónimo sincronizable (`SaveJobButton.tsx` en `FUNC-039`), desbloquear preferencia `theme` (`FUNC-040`, `LEG-034`), optimizar `Footer.tsx` + caché invalidable por tags (`FUNC-041`, `FUNC-064`), añadir paginación/acciones en `/admin` (`FUNC-042`), habilitar portal B2B de anunciantes (`FUNC-063`) e incorporar requisitos de transparencia salarial UE 2023/970 y filtros antidiscriminación (`LEG-031`, `LEG-032`).

@@ -8,15 +8,38 @@ header('Content-Type: application/json');
 /**
  * Obtiene una variable de entorno consultando getenv(), $_ENV y $_SERVER de forma segura.
  */
+/**
+ * BUG-021: maximo de filas devueltas por consulta (defensa OOM, VULN-11).
+ * Configurable con DB_PROXY_MAX_ROWS; por defecto 10000, techo duro 50000.
+ */
+function proxy_max_rows(): int {
+    $v = (int)(get_proxy_env('DB_PROXY_MAX_ROWS') ?: 10000);
+    if ($v < 1) { $v = 10000; }
+    return min($v, 50000);
+}
+
+$PROXY_CONFIG = [];
+
 function get_proxy_env($key) {
+    global $PROXY_CONFIG;
     $val = getenv($key);
     if ($val !== false && $val !== '') return $val;
     if (isset($_ENV[$key]) && $_ENV[$key] !== '') return $_ENV[$key];
     if (isset($_SERVER[$key]) && $_SERVER[$key] !== '') return $_SERVER[$key];
+    if (isset($PROXY_CONFIG[$key]) && $PROXY_CONFIG[$key] !== '') return $PROXY_CONFIG[$key];
     return null;
 }
 
-// Cargar variables de entorno si no están definidas a nivel de servidor web (ej. tras despliegues FTP en cPanel)
+// Cargar variables de entorno permitidas en un mapa privado sin mutar putenv() (SEC-004)
+$ALLOWED_PROXY_ENV_KEYS = [
+    'ENABLE_DB_PROXY', 'PROXY_SECRET', 'DB_PROXY_TOKEN',
+    'PROXY_SECRET_PREVIOUS', 'DB_PROXY_TOKEN_PREVIOUS',
+    'DB_PROXY_ALLOWED_IPS', 'DB_PROXY_MAX_ROWS', 'DB_PROXY_REQUIRE_HMAC',
+    'DB_HOST', 'MYSQL_HOST', 'DB_NAME', 'MYSQL_DATABASE',
+    'DB_USER', 'MYSQL_USER', 'DB_PASSWORD', 'MYSQL_PASSWORD',
+    'DB_PORT', 'MYSQL_PORT', 'DB_SSL_CA'
+];
+
 if (get_proxy_env('ENABLE_DB_PROXY') !== 'true') {
     $env_candidates = [
         __DIR__ . '/.env.proxy',
@@ -32,11 +55,10 @@ if (get_proxy_env('ENABLE_DB_PROXY') !== 'true') {
                 if (empty($line) || strpos($line, '#') === 0 || strpos($line, '=') === false) continue;
                 list($k, $v) = explode('=', $line, 2);
                 $k = trim($k);
+                if (!in_array($k, $ALLOWED_PROXY_ENV_KEYS, true)) continue;
                 $v = trim($v, " \t\n\r\0\x0B\"'");
                 if (get_proxy_env($k) === null) {
-                    putenv("$k=$v");
-                    $_ENV[$k] = $v;
-                    $_SERVER[$k] = $v;
+                    $PROXY_CONFIG[$k] = $v;
                 }
             }
             if (get_proxy_env('ENABLE_DB_PROXY') === 'true') {
@@ -161,6 +183,41 @@ if (!$valid_primary && !$valid_previous) {
     http_response_code(403);
     echo json_encode(['error' => 'Acceso denegado: Token no válido, ausente o insuficiente.']);
     exit;
+}
+
+// SEC-003: Verificación HMAC-SHA256 de timestamp + nonce + body contra replay
+$rawBody = file_get_contents('php://input');
+$reqSig = $_SERVER['HTTP_X_PROXY_SIGNATURE'] ?? '';
+$reqTs = $_SERVER['HTTP_X_PROXY_TIMESTAMP'] ?? '';
+$reqNonce = $_SERVER['HTTP_X_PROXY_NONCE'] ?? '';
+$requireHmac = get_proxy_env('DB_PROXY_REQUIRE_HMAC') === 'true';
+
+if ($requireHmac || $reqSig !== '') {
+    if (!ctype_digit((string)$reqTs) || !preg_match('/^[a-f0-9]{16,64}$/i', (string)$reqNonce) || !preg_match('/^[a-f0-9]{64}$/i', (string)$reqSig)) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Cabeceras de firma HMAC inválidas o ausentes.']);
+        exit;
+    }
+    $nowTs = time();
+    if (abs($nowTs - (int)$reqTs) > 30) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Petición expirada fuera de ventana temporal (30s).']);
+        exit;
+    }
+    $signingKey = $valid_primary ? $expected_secret : $previous_secret;
+    $expectedHmac = hash_hmac('sha256', $reqTs . '.' . $reqNonce . '.' . $rawBody, $signingKey);
+    if (!hash_equals($expectedHmac, strtolower($reqSig))) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Firma HMAC de petición inválida.']);
+        exit;
+    }
+    $nonceFile = sys_get_temp_dir() . '/db_proxy_nonce_' . hash('sha256', $reqNonce);
+    if (file_exists($nonceFile) && (time() - filemtime($nonceFile)) <= 35) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Nonce repetido detectado (anti-replay).']);
+        exit;
+    }
+    @touch($nonceFile);
 }
 
 // 5. Leer consulta e inputs JSON (con límite de tamaño para prevenir DoS por memoria)
@@ -321,7 +378,7 @@ function validate_sql_and_params($sql, $params): string {
 
     if (preg_match('/^DELETE\b/i', $sql_upper)) {
         if (
-            !preg_match('/^DELETE\s+FROM\s+`?(subscribers|jobs|job_reactions|newsletter_sponsors|report_downloads|email_tracking|company_reviews|review_reports|users|user_sessions|user_password_resets|user_saved_jobs)`?\s+WHERE\s+/is', $sql_upper) ||
+            !preg_match('/^DELETE\s+FROM\s+`?(subscribers|jobs|job_reactions|newsletter_sponsors|report_downloads|email_tracking|company_reviews|review_reports|users|user_sessions|user_password_resets|user_saved_jobs|premium_leads|sponsored_jobs|recruiter_affiliates|email_deliveries|subscriber_job_notifications|saved_jobs_reminders|streak_reminders)`?\s+WHERE\s+/is', $sql_upper) ||
             preg_match('/\bOR\b/i', $sql_upper) ||
             !preg_match('/\bWHERE\s+.*`?[a-zA-Z_][a-zA-Z0-9_]*`?\s*=\s*\?/is', $sql_upper) ||
             count($params) === 0
@@ -333,12 +390,15 @@ function validate_sql_and_params($sql, $params): string {
     }
 
     if (preg_match('/^UPDATE\b/i', $sql_upper)) {
+        $allowedUpdateTables = 'jobs|subscribers|job_reactions|newsletter_sponsors|report_downloads|email_tracking|company_reviews|review_reports|premium_leads|sponsored_jobs|recruiter_affiliates|user_saved_jobs|users|user_sessions|user_password_resets';
         if (
-            !preg_match('/^UPDATE\s+`?[a-zA-Z0-9_]+`?\s+SET\s+.+\s+WHERE\s+.*`?[a-zA-Z_][a-zA-Z0-9_]*`?\s*(?:=|IN)\s*/is', $sql_upper) ||
+            !preg_match('/^UPDATE\s+`?(' . $allowedUpdateTables . ')`?\s+SET\s+.+\s+WHERE\s+.*`?[a-zA-Z_][a-zA-Z0-9_]*`?\s*(?:=|IN)\s*/is', $sql_upper) ||
+            preg_match('/\bWHERE\b.*\bOR\b/is', $sql_upper) ||
+            !preg_match('/\bWHERE\b.*\?/is', $sql_upper) ||
             count($params) === 0
         ) {
             http_response_code(403);
-            echo json_encode(['error' => 'Operación UPDATE no autorizada sin cláusula WHERE parametrizada.']);
+            echo json_encode(['error' => 'Operación UPDATE no autorizada: tabla fuera de lista blanca o WHERE sin parámetro.']);
             exit;
         }
     }
@@ -418,19 +478,22 @@ try {
     if ($is_batch) {
         $pdo->beginTransaction();
         $batch_results = [];
-        $max_rows = 1000;
+        $max_rows = proxy_max_rows();
         foreach ($queries_to_run as $q) {
             $stmt = $pdo->prepare($q['sql']);
             $stmt->execute($q['params']);
             $rows = [];
+            $truncated = false;
             if (strpos($q['upper'], 'SELECT') === 0 || strpos($q['upper'], 'SHOW') === 0) {
                 $count = 0;
-                while ($count < $max_rows && ($row = $stmt->fetch())) {
+                while ($row = $stmt->fetch()) {
+                    if ($count >= $max_rows) { $truncated = true; break; }
                     $rows[] = $row;
                     $count++;
                 }
             }
             $batch_results[] = [
+                'truncated' => $truncated,
                 'rows' => $rows,
                 'affected_rows' => $stmt->rowCount(),
                 'insert_id' => $pdo->lastInsertId()
@@ -447,11 +510,14 @@ try {
         $stmt->execute($q['params']);
 
         // VULN-11: Límite defensivo de filas por consulta para prevenir DoS por agotamiento de memoria (OOM)
-        $max_rows = 1000;
+        // BUG-021: limite configurable (DB_PROXY_MAX_ROWS) y aviso explicito 'truncated' al cliente
+        $max_rows = proxy_max_rows();
         $rows = [];
+        $truncated = false;
         if (strpos($q['upper'], 'SELECT') === 0 || strpos($q['upper'], 'SHOW') === 0) {
             $count = 0;
-            while ($count < $max_rows && ($row = $stmt->fetch())) {
+            while ($row = $stmt->fetch()) {
+                if ($count >= $max_rows) { $truncated = true; break; }
                 $rows[] = $row;
                 $count++;
             }
@@ -459,6 +525,7 @@ try {
 
         echo json_encode([
             'success' => true,
+            'truncated' => $truncated,
             'rows' => $rows,
             'affected_rows' => $stmt->rowCount(),
             'insert_id' => $pdo->lastInsertId()

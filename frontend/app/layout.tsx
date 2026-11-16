@@ -131,27 +131,6 @@ export default async function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
 
-        {/* WebSite Schema para Google Sitelinks Search Box */}
-        <script
-          nonce={nonce}
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: safeJsonLdString({
-              "@context": "https://schema.org",
-              "@type": "WebSite",
-              "name": "Portal Trabajo IT",
-              "url": BASE_URL,
-              "potentialAction": {
-                "@type": "SearchAction",
-                "target": {
-                  "@type": "EntryPoint",
-                  "urlTemplate": `${BASE_URL}/trabajos/informatica-tecnologia?q={search_term_string}`
-                },
-                "query-input": "required name=search_term_string"
-              }
-            })
-          }}
-        />
         {/* Google Consent Mode v2 por defecto denegado (AEPD / RGPD / ePrivacy) */}
         <script
           nonce={nonce}
@@ -172,17 +151,14 @@ export default async function RootLayout({
                 var saved = localStorage.getItem('cookies_consent');
                 if (saved) {
                   var parsed = JSON.parse(saved);
-                  if (parsed.analytics) defaultConsent.analytics_storage = 'granted';
-                  if (parsed.advertising) {
-                    defaultConsent.ad_storage = 'granted';
-                    defaultConsent.ad_user_data = 'granted';
-                    defaultConsent.ad_personalization = 'granted';
+                  if (parsed && typeof parsed === 'object') {
+                    if (parsed.analytics === true) defaultConsent.analytics_storage = 'granted';
+                    if (parsed.advertising === true) {
+                      defaultConsent.ad_storage = 'granted';
+                      defaultConsent.ad_user_data = 'granted';
+                      defaultConsent.ad_personalization = 'granted';
+                    }
                   }
-                } else if (localStorage.getItem('cookies_accepted') === 'true') {
-                  defaultConsent.analytics_storage = 'granted';
-                  defaultConsent.ad_storage = 'granted';
-                  defaultConsent.ad_user_data = 'granted';
-                  defaultConsent.ad_personalization = 'granted';
                 }
               } catch(e) {}
 
@@ -197,7 +173,8 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
-                try { localStorage.removeItem('theme'); } catch(e) {}
+                var savedTheme = null;
+                try { savedTheme = localStorage.getItem('theme'); } catch(e) {}
                 var mq = window.matchMedia('(prefers-color-scheme: dark)');
                 function applyTheme(isDark) {
                   if (isDark) {
@@ -206,9 +183,21 @@ export default async function RootLayout({
                     document.documentElement.classList.remove('dark');
                   }
                 }
-                applyTheme(mq.matches);
+                if (savedTheme === 'dark') {
+                  applyTheme(true);
+                } else if (savedTheme === 'light') {
+                  applyTheme(false);
+                } else {
+                  applyTheme(mq.matches);
+                }
                 if (mq.addEventListener) {
-                  mq.addEventListener('change', function(e) { applyTheme(e.matches); });
+                  mq.addEventListener('change', function(e) {
+                    var currentSaved = null;
+                    try { currentSaved = localStorage.getItem('theme'); } catch(err) {}
+                    if (currentSaved !== 'dark' && currentSaved !== 'light') {
+                      applyTheme(e.matches);
+                    }
+                  });
                 }
               })();
             `
@@ -238,21 +227,16 @@ export default async function RootLayout({
                     if (saved) {
                       var parsed = JSON.parse(saved);
                       var maxAgeMs = 365 * 24 * 60 * 60 * 1000;
-                      if (parsed.updatedAt && (Date.now() - parsed.updatedAt > maxAgeMs)) {
+                      if (!parsed || typeof parsed !== 'object' || (parsed.updatedAt && (Date.now() - parsed.updatedAt > maxAgeMs))) {
                         return { analytics: false, advertising: false, notifications: false };
                       }
                       return {
-                        analytics: !!parsed.analytics,
-                        advertising: !!parsed.advertising,
-                        notifications: !!parsed.notifications
+                        analytics: parsed.analytics === true,
+                        advertising: parsed.advertising === true,
+                        notifications: parsed.notifications === true
                       };
                     }
-                    var legacy = localStorage.getItem('cookies_accepted') === 'true';
-                    return {
-                      analytics: legacy,
-                      advertising: legacy,
-                      notifications: legacy
-                    };
+                    return { analytics: false, advertising: false, notifications: false };
                   } catch(e) {
                     return { analytics: false, advertising: false, notifications: false };
                   }

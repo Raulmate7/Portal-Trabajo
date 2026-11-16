@@ -5,7 +5,7 @@ import PushSubscribe from '@/components/PushSubscribe';
 import AdBanner from '@/components/AdBanner';
 import Link from 'next/link';
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { BASE_URL , safeJsonLdString } from '@/lib/constants';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import StickyDesktopAd from '@/components/StickyDesktopAd';
@@ -114,7 +114,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     ? `Active ${techName} developer job vacancies ${locationText}. Compare average salaries, requirements, and hiring tech companies in ${cityName}.`
     : `Vacantes de empleo activas para desarrolladores de ${techName} ${locationText}. Compara salarios medios, requisitos y empresas contratantes en ${cityName}.`;
 
-  const canonical = `${BASE_URL}/trabajo-${ciudad}/${tech}`;
+  const canonicalSlug = ciudad === 'remoto' ? `${tech}-remoto` : `${tech}-en-${ciudad}`;
+  const canonical = `${BASE_URL}/trabajos/${canonicalSlug}`;
   const jobsCount = await getCityTechJobs(cityName, techName, ciudad === 'remoto', 1).then(rows => rows.length).catch(() => 0);
 
   return {
@@ -125,7 +126,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
       canonical,
       languages: {
         'es-ES': canonical,
-        'en': `${canonical}?lang=en`,
+        'en': `${BASE_URL}/en/trabajos/${canonicalSlug}`,
         'x-default': canonical,
       }
     },
@@ -197,6 +198,8 @@ export default async function CityTechLandingPage({ params, searchParams }: Prop
   const validPage = isNaN(page) || page < 1 ? 1 : page;
   const lang = resolvedSearchParams.lang === 'en' ? 'en' : 'es';
   const isEnglish = lang === 'en';
+  const canonicalSlug = ciudad === 'remoto' ? `${tech}-remoto` : `${tech}-en-${ciudad}`;
+  permanentRedirect(isEnglish ? `/en/trabajos/${canonicalSlug}` : `/trabajos/${canonicalSlug}`);
   const isRemote = ciudad === 'remoto';
 
   const jobs = await getCityTechJobs(cityName, techName, isRemote, validPage);

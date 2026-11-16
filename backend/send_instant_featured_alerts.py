@@ -133,15 +133,20 @@ def send_instant_featured_alerts():
 
     print(f"⭐ Encontradas {len(featured_jobs)} ofertas destacadas nuevas.")
 
-    # 3. Obtener todos los suscriptores activos (excluyendo bajas y avisos únicos)
+    # 3. Obtener todos los suscriptores activos y confirmados (excluyendo bajas, supresión y avisos únicos)
     cur.execute("""
         SELECT email, tech_keywords 
         FROM subscribers 
         WHERE email IS NOT NULL 
           AND email NOT LIKE '%@deleted.local'
-          AND (is_active IS NULL OR is_active = TRUE)
+          AND is_active = TRUE
+          AND confirmed_at IS NOT NULL
           AND COALESCE(marketing_accepted, FALSE) = TRUE
           AND (frequency IS NULL OR frequency != 'once')
+          AND NOT EXISTS (
+            SELECT 1 FROM email_suppression_list esl
+            WHERE esl.email_hash = SHA2(LOWER(TRIM(subscribers.email)), 256)
+          )
           AND NOT EXISTS (
             SELECT 1 FROM users u
             WHERE u.email = subscribers.email
@@ -159,13 +164,15 @@ def send_instant_featured_alerts():
 
     # 4. Iniciar sesión SMTP
     try:
+        import ssl
+        ssl_ctx = ssl.create_default_context()
         smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
         smtp_port = int(os.getenv("SMTP_PORT", "587"))
         if smtp_port == 465:
-            server = smtplib.SMTP_SSL(smtp_host, smtp_port)
+            server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=30, context=ssl_ctx)
         else:
-            server = smtplib.SMTP(smtp_host, smtp_port)
-            server.starttls()
+            server = smtplib.SMTP(smtp_host, smtp_port, timeout=30)
+            server.starttls(context=ssl_ctx)
         server.login(EMAIL_USER, EMAIL_PASSWORD)
         print(f"✅ Login en servidor SMTP ({smtp_host}:{smtp_port}) correcto.")
     except Exception as e:
@@ -199,29 +206,35 @@ def send_instant_featured_alerts():
 
         print(f"📣 Enviando alerta de '{title}' en '{company}' a {len(matching_emails)} suscriptores coincidentes...")
 
+        job_sent_count = 0
         for email in matching_emails:
             try:
                 html_body = build_alert_email(email, job)
                 unsubscribe_link = generate_unsubscribe_link(email)
                 
+                from logic.legal import sanitize_header
                 msg = MIMEMultipart()
                 msg['From'] = f"Portal Trabajo IT <{EMAIL_USER}>"
                 msg['To'] = email
-                msg['Subject'] = f"🚨 ALERTA URGENTE: Oferta destacada de {title} en {company}"
+                msg['Subject'] = sanitize_header(f"🚨 ALERTA URGENTE: Oferta destacada de {title} en {company}")
                 msg['List-Unsubscribe'] = f"<mailto:contacto@portalempleoit.com?subject=unsubscribe>, <{unsubscribe_link}>"
                 msg['List-Unsubscribe-Post'] = "List-Unsubscribe=One-Click"
                 msg.attach(MIMEText(html_body, 'html'))
                 
                 server.send_message(msg)
                 alerts_sent_total += 1
+                job_sent_count += 1
                 
             except Exception as e:
                 print(f"  ⚠️ Error enviando alerta a {mask_email(email)} para la oferta {job_id}: {e}")
 
-        # Actualizar timestamp en la oferta destacada
-        cur.execute("UPDATE jobs SET last_instant_alert_sent_at = %s WHERE id = %s", (datetime.now(), job_id))
-        conn.commit()
-        print(f"💾 BD actualizada. Oferta {job_id} marcada como alertada.")
+        # Actualizar timestamp en la oferta destacada solo si al menos un correo salió bien (BUG-049)
+        if job_sent_count > 0:
+            cur.execute("UPDATE jobs SET last_instant_alert_sent_at = %s WHERE id = %s", (datetime.now(), job_id))
+            conn.commit()
+            print(f"💾 BD actualizada. Oferta {job_id} marcada como alertada ({job_sent_count} envíos).")
+        else:
+            print(f"⚠️ Ningún correo pudo enviarse para la oferta {job_id}; no se marca como alertada para reintentar.")
 
     server.quit()
     cur.close()

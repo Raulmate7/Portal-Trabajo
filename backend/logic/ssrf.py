@@ -180,3 +180,43 @@ def safe_http_get(
         return resp
 
     raise ValueError(f"Demasiadas redirecciones HTTP (máximo {max_redirects})")
+
+
+def safe_http_head(
+    url: str,
+    headers: Optional[Dict[str, str]] = None,
+    timeout: Tuple[int, int] = (4, 6),
+    max_redirects: int = 3,
+) -> requests.Response:
+    """Ejecuta HEAD HTTP seguro contra SSRF y DNS Rebinding validando cada salto."""
+    current_url = url
+    for _ in range(max_redirects + 1):
+        if not is_safe_public_url(current_url, resolve_dns=False):
+            raise ValueError(f"URL bloqueada por política SSRF: {current_url}")
+
+        parsed = urllib.parse.urlparse(current_url)
+        host = parsed.hostname or ""
+        public_ips = resolve_and_validate_public_ips(host)
+        pinned_ip = public_ips[0]
+
+        with _pin_host_ip(host, pinned_ip):
+            resp = requests.head(
+                current_url,
+                headers=headers,
+                timeout=timeout,
+                allow_redirects=False,
+                verify=True,
+            )
+
+        if resp.is_redirect or resp.status_code in (301, 302, 303, 307, 308):
+            location = resp.headers.get("Location")
+            resp.close()
+            if not location:
+                raise ValueError("Redirección HTTP sin cabecera Location")
+            current_url = urllib.parse.urljoin(current_url, location)
+            continue
+
+        resp.close()
+        return resp
+
+    raise ValueError(f"Demasiadas redirecciones HTTP (máximo {max_redirects})")

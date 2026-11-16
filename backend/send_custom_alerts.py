@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from logic.slug import get_job_slug
 from logic.privacy import mask_email
 from logic.legal import get_legal_footer_identity
+from logic.tracking import build_track_click_url
 
 load_dotenv()
 
@@ -70,9 +71,8 @@ def build_job_html(jobs, subscriber_email):
         safe_company = html_escape.escape(str(company or ''))
         safe_location = html_escape.escape(str(location or ''))
         category = category or 'Otros'
-        encoded_email = urllib.parse.quote(subscriber_email)
         original_job_link = f"{BASE_URL}/job/{get_job_slug(job_id, title, location, company)}?utm_source=alert&utm_medium=email&utm_campaign=custom_alert&utm_term={urllib.parse.quote(category)}&utm_content={job_id}"
-        job_link = f"{BASE_URL}/api/track-click?email={encoded_email}&campaign=custom_alert&redirect={urllib.parse.quote(original_job_link)}"
+        job_link = build_track_click_url(BASE_URL, subscriber_email, "custom_alert", original_job_link)
         safe_salary = html_escape.escape(str(salary)) if salary and salary not in ("Consultar", None) else ""
         salary_text = f"💰 {safe_salary}" if safe_salary else ""
 
@@ -90,12 +90,11 @@ def build_job_html(jobs, subscriber_email):
 
 def build_email_html(jobs, subscriber_email: str, tech_keywords: str, frequency: str, include_marketing: bool = False):
     """Construye el cuerpo HTML completo del email de alerta."""
-    encoded_email = urllib.parse.quote(subscriber_email)
     BOOTCAMP_LINK = "https://trk.udemy.com/9VMAEj"
-    bootcamp_track = f"{BASE_URL}/api/track-click?email={encoded_email}&campaign=custom_alert&redirect={urllib.parse.quote(BOOTCAMP_LINK)}"
+    bootcamp_track = build_track_click_url(BASE_URL, subscriber_email, "custom_alert", BOOTCAMP_LINK)
     cta_btn_orig = f"{BASE_URL}?utm_source=alert&utm_medium=email&utm_campaign=cta_btn"
-    cta_btn_track = f"{BASE_URL}/api/track-click?email={encoded_email}&campaign=custom_alert&redirect={urllib.parse.quote(cta_btn_orig)}"
-    visit_web_track = f"{BASE_URL}/api/track-click?email={encoded_email}&campaign=custom_alert&redirect={urllib.parse.quote(BASE_URL)}"
+    cta_btn_track = build_track_click_url(BASE_URL, subscriber_email, "custom_alert", cta_btn_orig)
+    visit_web_track = build_track_click_url(BASE_URL, subscriber_email, "custom_alert", BASE_URL)
     
     unsubscribe_link = generate_unsubscribe_link(subscriber_email)
     freq_text = "diario" if frequency == "daily" else "semanal"
@@ -172,13 +171,18 @@ def send_custom_alerts():
         print(f"❌ Error conectando a BD: {e}")
         return
 
-    # 2. Obtener suscriptores con sus preferencias (LEG-010: excluir frequency IS NULL y comprobar marketing_accepted)
+    # 2. Obtener suscriptores activos y confirmados (LEG-010: excluir frequency IS NULL, supresión y verificar confirmed_at)
     cur.execute("""
         SELECT email, tech_keywords, location_pref, frequency, tech_keywords_json, COALESCE(marketing_accepted, FALSE)
         FROM subscribers
         WHERE email IS NOT NULL
           AND email NOT LIKE '%@deleted.local'
-          AND COALESCE(is_active, TRUE) = TRUE
+          AND is_active = TRUE
+          AND confirmed_at IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM email_suppression_list esl
+            WHERE esl.email_hash = SHA2(LOWER(TRIM(subscribers.email)), 256)
+          )
           AND NOT EXISTS (
             SELECT 1 FROM users u
             WHERE u.email = subscribers.email
@@ -206,13 +210,15 @@ def send_custom_alerts():
         return
 
     try:
+        import ssl
+        ssl_ctx = ssl.create_default_context()
         smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
         smtp_port = int(os.getenv("SMTP_PORT", "587"))
         if smtp_port == 465:
-            server = smtplib.SMTP_SSL(smtp_host, smtp_port)
+            server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=30, context=ssl_ctx)
         else:
-            server = smtplib.SMTP(smtp_host, smtp_port)
-            server.starttls()
+            server = smtplib.SMTP(smtp_host, smtp_port, timeout=30)
+            server.starttls(context=ssl_ctx)
         server.login(EMAIL_USER, EMAIL_PASSWORD)
         print(f"✅ Login en SMTP ({smtp_host}:{smtp_port}) correcto.")
     except Exception as e:
@@ -242,8 +248,13 @@ def send_custom_alerts():
             if tech_keywords_json:
                 try:
                     data = json.loads(tech_keywords_json)
-                    keywords = data.get("keywords", [])
-                    operator = data.get("operator", "OR")
+                    if isinstance(data, dict):
+                        raw_kws = data.get("keywords", [])
+                        if isinstance(raw_kws, list):
+                            keywords = [str(k).strip() for k in raw_kws if str(k).strip()]
+                        operator = str(data.get("operator", "OR") or "OR")
+                    elif isinstance(data, list):
+                        keywords = [str(k).strip() for k in data if str(k).strip()]
                 except Exception:
                     pass
             
@@ -264,10 +275,11 @@ def send_custom_alerts():
             subject = f"⚡ {job_count} nueva{'s' if job_count != 1 else ''} oferta{'s' if job_count != 1 else ''} de empleo IT para ti"
             unsubscribe_link = generate_unsubscribe_link(email)
 
+            from logic.legal import sanitize_header
             msg = MIMEMultipart()
             msg['From'] = f"Portal Trabajo IT <{EMAIL_USER}>"
             msg['To'] = email
-            msg['Subject'] = subject
+            msg['Subject'] = sanitize_header(subject)
             # Cabeceras obligatorias RFC 8058 / Google & Yahoo One-Click Unsubscribe (HTTPS + mailto)
             msg['List-Unsubscribe'] = f"<{unsubscribe_link}>, <mailto:contacto@portalempleoit.com?subject=unsubscribe>"
             msg['List-Unsubscribe-Post'] = "List-Unsubscribe=One-Click"

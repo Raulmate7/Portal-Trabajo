@@ -1,15 +1,22 @@
 from bs4 import BeautifulSoup
 from logic.ssrf import safe_http_get
+from logic.tdm import is_scraping_allowed
 
 def get_himalayas_jobs():
     print("🏔️  Conectando con Himalayas Remote Jobs API...")
     url = "https://himalayas.app/jobs/api?limit=50"
 
-    headers = {'User-Agent': 'PortalTrabajoITBot/1.0 (+https://portalempleoit.com/bot; bot@portalempleoit.com)'}
+    headers = {'User-Agent': 'PortalTrabajoITBot/1.0 (+https://portalempleoit.com/bot-info; contacto@portalempleoit.com)'}
 
     try:
+        if not is_scraping_allowed(url):
+            print("⛔ Himalayas API bloqueado por política TDM/robots.txt.")
+            return []
         response = safe_http_get(url, headers=headers, timeout=(5, 15))
         response.raise_for_status()
+        if not is_scraping_allowed(url, response.headers):
+            print("⛔ Himalayas API reserva derechos TDM en cabeceras.")
+            return []
 
         data = response.json()
         raw_jobs = data.get('jobs', [])
@@ -29,16 +36,16 @@ def get_himalayas_jobs():
 
                 url_source = item.get('applicationLink', '') or item.get('guid', '')
 
-                # Salario
+                # Salario (sin comas inglesas de miles para evitar confusión con decimales europeos)
                 min_sal = item.get('minSalary')
                 max_sal = item.get('maxSalary')
                 currency = item.get('currency', 'USD')
                 if min_sal and max_sal:
-                    salary = f"{min_sal:,} - {max_sal:,} {currency}"
+                    salary = f"{int(min_sal)} - {int(max_sal)} {currency}"
                 elif min_sal:
-                    salary = f"Desde {min_sal:,} {currency}"
+                    salary = f"Desde {int(min_sal)} {currency}"
                 elif max_sal:
-                    salary = f"Hasta {max_sal:,} {currency}"
+                    salary = f"Hasta {int(max_sal)} {currency}"
                 else:
                     salary = "Ver en oferta"
 

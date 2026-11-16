@@ -187,8 +187,8 @@ def run_mastodon_bot():
     try:
         cur.close()
         conn.close()
-    except:
-        pass
+    except Exception as close_err:
+        print(f"⚠️ Error cerrando conexión BD en mastodon_bot: {close_err}")
 
     print("===============================================")
 

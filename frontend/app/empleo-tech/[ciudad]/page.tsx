@@ -48,10 +48,24 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { ciudad } = await params;
   const cityName = cityNamesMap[ciudad] || (ciudad.charAt(0).toUpperCase() + ciudad.slice(1));
+  let activeCount = 0;
+  try {
+    const res = await pool.query(
+      'SELECT COUNT(*) as total FROM jobs WHERE is_active = TRUE AND LOWER(location) LIKE $1',
+      [`%${ciudad.toLowerCase()}%`]
+    );
+    activeCount = Number(res.rows?.[0]?.total || 0);
+  } catch {
+    activeCount = 3; // fail-open solo si falla BD puntual
+  }
 
   return {
     title: `Trabajo IT en ${cityName} | Ofertas de Empleo en Tecnología`,
     description: `Encuentra las últimas ofertas de empleo tecnológico en ${cityName}. Vacantes de programación, salarios de desarrolladores y teletrabajo en ${cityName}.`,
+    robots: {
+      index: activeCount >= 3,
+      follow: true,
+    },
     alternates: {
       canonical: `${BASE_URL}/empleo-tech/${ciudad}`,
     },

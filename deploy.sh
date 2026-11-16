@@ -26,8 +26,8 @@ fi
 echo "💻 Preparando el Frontend..."
 cd frontend
 
-echo "📦 Instalando dependencias..."
-npm install
+echo "📦 Instalando dependencias reproducibles (npm ci --omit=dev)..."
+npm ci --omit=dev
 
 echo "🛠️ Compilando aplicación Next.js para producción..."
 npm run build

@@ -137,11 +137,25 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    const extraLines: string[] = [];
+    if (verified.plan === 'enterprise' || verified.plan === 'pro') {
+      extraLines.push('------------------------------------------------------------------------');
+      extraLines.push(`DESGLOSE AMPLIADO (${verified.plan.toUpperCase()})`);
+      const topTechs = Object.keys(TECH_DETAILS).slice(0, verified.plan === 'enterprise' ? 20 : 10);
+      const topStats = await Promise.all(
+        topTechs.map(async (tech) => {
+          const s = await calculateSalaryStats(tech, '', '');
+          return `${tech.toUpperCase()}: Mediana ${s.median ?? s.average ?? 'N/D'} EUR | Media ${s.average ?? 'N/D'} EUR | Muestra: ${s.count}`;
+        })
+      );
+      extraLines.push(...topStats);
+    }
+
     const pdfBuffer = buildSimplePdfBuffer(reportData.titulo, [
       `Titular: ${verified.email || 'Cliente'} | Plan: ${verified.plan} | Ref: ${verified.sessionId}`,
-      `Fecha de emision: ${reportData.licencia.fecha_emision}`,
+      `Fecha de emisión: ${reportData.licencia.fecha_emision}`,
       '------------------------------------------------------------------------',
-      'RESUMEN EJECUTIVO DE SALARIOS IT EN ESPANA (EUR ANUAL BRUTO)',
+      'RESUMEN EJECUTIVO DE SALARIOS IT EN ESPAÑA (EUR ANUAL BRUTO)',
       `Total ofertas analizadas: ${reportData.resumen_ejecutivo.total_ofertas_analizadas}`,
       `Mediana salarial general: ${reportData.resumen_ejecutivo.mediana_salarial_general} EUR`,
       `Salario promedio: ${reportData.resumen_ejecutivo.salario_promedio} EUR`,
@@ -149,8 +163,9 @@ export async function GET(request: NextRequest) {
       `Percentil 75 (P75): ${reportData.resumen_ejecutivo.percentil_75} EUR`,
       `Rango observado: ${reportData.resumen_ejecutivo.salario_minimo_registrado} - ${reportData.resumen_ejecutivo.salario_maximo_registrado} EUR`,
       '------------------------------------------------------------------------',
-      `Tecnologias incluidas: ${Object.keys(TECH_DETAILS).slice(0, 10).join(', ')}`,
-      `Ciudades analizadas: ${Object.keys(DISPLAY_CITIES).slice(0, 10).join(', ')}`,
+      `Tecnologías incluidas: ${Object.keys(TECH_DETAILS).join(', ')}`,
+      `Ciudades analizadas: ${Object.keys(DISPLAY_CITIES).join(', ')}`,
+      ...extraLines,
       '------------------------------------------------------------------------',
       reportData.aviso_confidencialidad,
     ]);

@@ -4,17 +4,24 @@ Cumple con Directiva (UE) 2019/790 Art. 4 (W3C TDMRep) y RFC 9309 (robots.txt).
 """
 
 import re
+import time
 from urllib.parse import urlparse
 from urllib.robotparser import RobotFileParser
 from logic.ssrf import safe_http_get
 
-_ROBOTS_CACHE: dict[str, RobotFileParser | None] = {}
+_ROBOTS_CACHE: dict[str, tuple[RobotFileParser | None, float]] = {}
+_ROBOTS_TTL_SECONDS = 3600
+_ROBOTS_ERROR_TTL_SECONDS = 300
 DEFAULT_USER_AGENT = "PortalTrabajoITBot/1.0 (+https://portalempleoit.com/bot)"
 
 
 def _get_robot_parser(base_origin: str) -> RobotFileParser | None:
-    if base_origin in _ROBOTS_CACHE:
-        return _ROBOTS_CACHE[base_origin]
+    now = time.time()
+    cached = _ROBOTS_CACHE.get(base_origin)
+    if cached is not None:
+        rp_cached, expires_at = cached
+        if now < expires_at:
+            return rp_cached
 
     rp = RobotFileParser()
     robots_url = f"{base_origin}/robots.txt"
@@ -26,23 +33,25 @@ def _get_robot_parser(base_origin: str) -> RobotFileParser | None:
         )
         if res.status_code == 200:
             rp.parse(res.text.splitlines())
-            _ROBOTS_CACHE[base_origin] = rp
+            _ROBOTS_CACHE[base_origin] = (rp, now + _ROBOTS_TTL_SECONDS)
             return rp
         # Si 404/410 -> sin restricciones explícitas en robots.txt
         if res.status_code in (404, 410):
-            _ROBOTS_CACHE[base_origin] = None
+            _ROBOTS_CACHE[base_origin] = (None, now + _ROBOTS_TTL_SECONDS)
             return None
         # En 403/429/5xx aplicamos fail-closed conservador
         rp.parse(["User-agent: *", "Disallow: /"])
-        _ROBOTS_CACHE[base_origin] = rp
+        _ROBOTS_CACHE[base_origin] = (rp, now + _ROBOTS_ERROR_TTL_SECONDS)
         return rp
     except Exception:
-        _ROBOTS_CACHE[base_origin] = None
-        return None
+        # Fail-closed ante timeouts/errores de red en robots.txt (BUG-048)
+        rp.parse(["User-agent: *", "Disallow: /"])
+        _ROBOTS_CACHE[base_origin] = (rp, now + _ROBOTS_ERROR_TTL_SECONDS)
+        return rp
 
 
 def is_scraping_allowed(url: str, response_headers: dict | None = None, user_agent: str = "PortalTrabajoITBot") -> bool:
-    """Verifica robots.txt y cabeceras TDM-Reservation / X-Robots-Tag."""
+    """Verifica robots.txt (RFC 9309) y cabeceras TDM-Reservation / X-Robots-Tag."""
     parsed = urlparse(url)
     if not parsed.scheme or not parsed.netloc:
         return False
@@ -50,7 +59,7 @@ def is_scraping_allowed(url: str, response_headers: dict | None = None, user_age
     origin = f"{parsed.scheme}://{parsed.netloc}"
     rp = _get_robot_parser(origin)
     if rp is not None:
-        if not rp.can_fetch(user_agent, url) or not rp.can_fetch("*", url):
+        if not rp.can_fetch(user_agent, url):
             return False
 
     if response_headers:

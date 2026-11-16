@@ -34,7 +34,8 @@ export async function GET() {
     });
 
     const newsNodes = newsPosts.map((post) => {
-      const postUrl = `${BASE_URL}/blog/${encodeURIComponent(post.slug)}`;
+      const baseSegment = post.slug.startsWith('tendencias-') ? 'noticias' : 'blog';
+      const postUrl = `${BASE_URL}/${baseSegment}/${encodeURIComponent(post.slug)}`;
       const postTitle = escapeXml(post.title);
       let isoDate: string;
       try {

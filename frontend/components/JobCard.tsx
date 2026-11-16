@@ -20,6 +20,7 @@ interface Job {
   salary?: string | null;
   salary_min?: number | null;
   salary_max?: number | null;
+  is_featured?: boolean | number | null;
 }
 
 interface JobCardProps {
@@ -145,6 +146,7 @@ export default function JobCard({ job, lang, prefetch, variant = 'default' }: Jo
   return (
     <article
       data-variant={variant}
+      data-sponsored={job.is_featured ? 'true' : undefined}
       className="relative group ui-card ui-card-interactive rounded-xl p-4 sm:p-5 flex flex-col h-full"
     >
       {/* Cabecera: Logo + Título (stretched link) + Acciones rápidas */}
@@ -156,6 +158,7 @@ export default function JobCard({ job, lang, prefetch, variant = 'default' }: Jo
               <Link
                 href={detailUrl}
                 prefetch={prefetch}
+                rel={job.is_featured ? 'sponsored' : undefined}
                 className="after:absolute after:inset-0 after:z-0 focus:outline-none group-hover:text-[var(--accent-primary)] transition-colors duration-150"
               >
                 {displayTitle}

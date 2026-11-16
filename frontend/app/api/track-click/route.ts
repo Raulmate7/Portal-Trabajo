@@ -123,8 +123,8 @@ export async function GET(request: NextRequest) {
     isAuthorized = verifyTrackingSignature(rawEmail.trim().toLowerCase(), rawCampaign.trim(), sig, redirect, exp);
   }
 
-  // Validar redirecciones contra open redirect (solo si está autorizado o es ruta interna/permitida)
-  const targetUrl = getSanitizedRedirect(redirect, request.url);
+  // SEC-038: Solo permitir redirección al destino tras verificar firma HMAC; si no, forzar '/'
+  const targetUrl = isAuthorized ? getSanitizedRedirect(redirect, request.url) : '/';
 
   // 1. Rate Limiting anti-inundación en track-click (Vector 19)
   const clientIp = getClientIp(request);

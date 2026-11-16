@@ -149,12 +149,16 @@ def run_twitter_bot():
         cat_slug = get_sector_slug(title, category)
         cat_url = f"{base_url}/trabajos/{cat_slug}"
         
-        # Formatear el Tweet usando una plantilla aleatoria
+        # Formatear el Tweet usando una plantilla aleatoria (SEC-032)
+        from logic.social_sanitize import sanitize_social_text, is_safe_social_job
+        if not is_safe_social_job(title, company):
+            print(f"⚠️ Oferta {job_id} omitida por filtro de moderación social.")
+            continue
         template = random.choice(TEMPLATES)
         tweet_text = template.format(
-            title=title,
-            company=company,
-            location=location,
+            title=sanitize_social_text(title, 110),
+            company=sanitize_social_text(company, 70),
+            location=sanitize_social_text(location, 50),
             url=job_url,
             cat_url=cat_url,
             hashtags=hashtags_str
@@ -162,8 +166,11 @@ def run_twitter_bot():
         
         print(f"\n📝 Preparando Tweet {idx+1}/{len(jobs_to_tweet)}:\n{tweet_text}\n")
         
-        # Generar la imagen para adjuntar
-        image_path = f"temp_card_{job_id}.jpg"
+        # Generar la imagen para adjuntar en directorio temporal seguro (SEC-053)
+        import re as _re
+        import tempfile as _tempfile
+        safe_job_id = _re.sub(r"[^a-zA-Z0-9_-]", "", str(job_id)) or "job"
+        image_path = os.path.join(_tempfile.gettempdir(), f"temp_card_{safe_job_id}.jpg")
         has_image = False
         try:
             generate_job_card(
@@ -208,8 +215,8 @@ def run_twitter_bot():
         if has_image and os.path.exists(image_path):
             try:
                 os.remove(image_path)
-            except:
-                pass
+            except Exception as rm_err:
+                print(f"⚠️ Error eliminando imagen temporal {image_path}: {rm_err}")
                 
         # Si se publicó con éxito, actualizamos la base de datos
         if published:
@@ -229,8 +236,8 @@ def run_twitter_bot():
     try:
         cur.close()
         conn.close()
-    except:
-        pass
+    except Exception as close_err:
+        print(f"⚠️ Error cerrando conexión BD en twitter_bot: {close_err}")
 
     print("===============================================")
     import sys

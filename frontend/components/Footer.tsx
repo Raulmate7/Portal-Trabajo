@@ -35,7 +35,7 @@ const getCachedProgrammaticLinks = unstable_cache(
     ];
     try {
       const jobsRes = await pool.query(
-        "SELECT title, category, location FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 150"
+        "SELECT title, category, location FROM jobs WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 1500"
       );
       const jobs = jobsRes.rows || [];
       const candidates = new Map<string, { label: string; href: string; count: number }>();
@@ -91,7 +91,7 @@ const getCachedProgrammaticLinks = unstable_cache(
     return DEFAULT_LINKS;
   },
   ['footer-programmatic-links'],
-  { revalidate: 3600, tags: ['footer'] }
+  { revalidate: 86400, tags: ['footer'] }
 );
 // ─────────────────────────────────────────────────────────────────────────────
 

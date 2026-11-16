@@ -105,6 +105,9 @@ def run_pinterest_bot():
                 published = True
             else:
                 print(f"⚠️ Error al crear el Pin (Código {res.status_code}): {res.text}")
+                if res.status_code in (401, 403):
+                    from logic.social_sanitize import notify_admin_auth_error
+                    notify_admin_auth_error("Pinterest", res.status_code, res.text)
         except Exception as e:
             print(f"❌ Error de red al conectar con la API de Pinterest: {e}")
 
@@ -125,8 +128,8 @@ def run_pinterest_bot():
     try:
         cur.close()
         conn.close()
-    except:
-        pass
+    except Exception as close_err:
+        print(f"⚠️ Error cerrando conexión BD en pinterest_bot: {close_err}")
         
     print("===============================================")
 

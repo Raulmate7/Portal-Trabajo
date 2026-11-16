@@ -1,7 +1,17 @@
 import type { MetadataRoute } from 'next';
 import { BASE_URL } from '@/lib/constants';
- 
+
 export default function robots(): MetadataRoute.Robots {
+  const isStaging =
+    !BASE_URL.includes('portalempleoit.com') &&
+    !BASE_URL.includes('localhost') &&
+    !BASE_URL.includes('127.0.0.1');
+
+  if (isStaging) {
+    return {
+      rules: [{ userAgent: '*', disallow: '/' }],
+    };
+  }
 
   return {
     rules: [
@@ -9,19 +19,21 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: '*',
         allow: '/',
         disallow: [
-          // Rutas privadas o sin valor SEO
+          // Rutas privadas o sin valor SEO (SEC-065, SEO-028)
           '/api/',
+          '/admin',
+          '/login',
+          '/registro',
+          '/recuperar-password',
+          '/gracias',
+          '/darse-de-baja',
+          '/perfil',
           '/ofertas-guardadas',
           '/mi-perfil',
           '/empresa-dashboard',
           '/redirect/',
           '/ref/',
-          // Páginas paginadas (no deben indexarse)
-          '/*?page=',
-          '/*?*page=',
-          // Parámetros de búsqueda dinámica del homepage:
-          // Generan miles de URLs sin valor SEO que desperdician crawl budget.
-          // El contenido SEO está en /trabajos/[sector] (páginas estáticas programáticas).
+          // Parámetros de búsqueda dinámica y ordenación (SEO-020: permitir ?page=, SEO-037):
           '/*?q=',
           '/*?*q=',
           '/*?modality=',
@@ -32,13 +44,24 @@ export default function robots(): MetadataRoute.Robots {
           '/*?*experience=',
           '/*?date_range=',
           '/*?*date_range=',
+          '/*?sort=',
+          '/*?*sort=',
+          '/*?with_salary=',
+          '/*?*with_salary=',
+          '/*?location=',
+          '/*?*location=',
         ],
-      }
+      },
+      {
+        userAgent: ['OAI-SearchBot', 'PerplexityBot'],
+        allow: ['/', '/salarios', '/tendencias', '/noticias', '/trabajos', '/job'],
+        disallow: ['/api/', '/admin', '/redirect/', '/ref/'],
+      },
     ],
     sitemap: [
       `${BASE_URL}/sitemap.xml`,
       `${BASE_URL}/sitemap-images.xml`,
-      `${BASE_URL}/sitemap-news.xml`
+      `${BASE_URL}/sitemap-news.xml`,
     ],
-  }
+  };
 }

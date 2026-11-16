@@ -56,6 +56,19 @@ export default function GlossaryIndexPage() {
         type="application/ld+json" 
         dangerouslySetInnerHTML={{ __html: safeJsonLdString(definedTermSetSchema) }} 
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: safeJsonLdString({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Inicio', item: BASE_URL },
+              { '@type': 'ListItem', position: 2, name: 'Glosario IT', item: `${BASE_URL}/glosario` },
+            ],
+          }),
+        }}
+      />
       {/* Hero */}
       <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-900 text-white py-16 px-4 relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.2),transparent_50%)]" />

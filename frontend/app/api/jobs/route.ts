@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getJobs } from '@/lib/jobs';
-import { jobsApiLimiter, getClientIp } from '@/lib/rate-limit';
+import { jobsApiLimiter, getClientIp, rateLimitResponse } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,10 +9,7 @@ export async function GET(request: NextRequest) {
   const rateLimit = await jobsApiLimiter.limitAsync(clientIp);
 
   if (!rateLimit.success) {
-    return NextResponse.json(
-      { error: 'Demasiadas solicitudes. Por favor, espera un momento.' },
-      { status: 429 }
-    );
+    return rateLimitResponse(rateLimit, 'Demasiadas solicitudes. Por favor, espera un momento.');
   }
 
   const { searchParams } = new URL(request.url);
@@ -66,7 +63,11 @@ export async function GET(request: NextRequest) {
       beforeId
     }, page);
     
-    return NextResponse.json(jobs);
+    return NextResponse.json(jobs, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+      },
+    });
   } catch (error) {
     console.error('Error in GET /api/jobs:', error);
     return NextResponse.json({ error: 'Error al consultar las ofertas' }, { status: 500 });

@@ -1,4 +1,5 @@
 import net from 'net';
+import tls from 'tls';
 
 interface RateLimitInfo {
   count: number;
@@ -52,7 +53,10 @@ async function execLocalRedisCommands(redisUrl: string, commands: string[][]): P
   const payload = allCmds.map(encodeRespCommand).join('');
 
   return new Promise((resolve, reject) => {
-    const socket = net.createConnection({ host, port });
+    const useTls = parsed.protocol === 'rediss:';
+    const socket = useTls
+      ? tls.connect({ host, port, servername: host })
+      : net.createConnection({ host, port });
     let raw = '';
     const expectedCount = allCmds.length;
 
@@ -61,7 +65,7 @@ async function execLocalRedisCommands(redisUrl: string, commands: string[][]): P
       reject(new Error('Redis TCP timeout'));
     }, 400);
 
-    socket.on('connect', () => {
+    socket.on(useTls ? 'secureConnect' : 'connect', () => {
       socket.write(payload);
     });
 
@@ -94,16 +98,20 @@ async function execLocalRedisCommands(redisUrl: string, commands: string[][]): P
   });
 }
 
+let redisMissingWarned = false;
+
 export class RateLimiter {
   private ipMap: Map<string, RateLimitInfo> = new Map();
   private windowMs: number;
   private maxRequests: number;
   private name: string;
+  private failClosed: boolean;
 
-  constructor(windowMs: number, maxRequests: number, name: string = 'default') {
+  constructor(windowMs: number, maxRequests: number, name: string = 'default', failClosed: boolean = false) {
     this.windowMs = windowMs;
     this.maxRequests = maxRequests;
     this.name = name;
+    this.failClosed = failClosed;
   }
 
   /**
@@ -171,9 +179,17 @@ export class RateLimiter {
           remaining: Math.max(0, this.maxRequests - count),
           reset: now + (pttl > 0 ? pttl : this.windowMs),
         };
-      } catch {
-        // Fallback tolerante si Redis local no responde
+      } catch (redisErr) {
+        console.error(`❌ Error Redis local en RateLimiter(${this.name}):`, redisErr);
+        if (this.failClosed && process.env.RATE_LIMIT_FAIL_CLOSED === 'true') {
+          return { success: false, limit: this.maxRequests, remaining: 0, reset: Date.now() + this.windowMs };
+        }
       }
+    }
+
+    if (process.env.NODE_ENV === 'production' && !localRedisUrl && !process.env.UPSTASH_REDIS_REST_URL && !redisMissingWarned) {
+      redisMissingWarned = true;
+      console.error('CRITICAL: REDIS_URL/UPSTASH_REDIS_REST_URL no configurado en producción; rate-limit usando RAM local por worker.');
     }
 
     // 2. Upstash Redis REST si está configurado
@@ -281,17 +297,39 @@ export const freshAlertsLimiter = new RateLimiter(60000, 10, 'fresh_alerts'); //
 export const trackOpenLimiter = new RateLimiter(60000, 20, 'track_open'); // 20 req / min
 export const trackClickLimiter = new RateLimiter(60000, 30, 'track_click'); // 30 req / min
 export const vacantesWidgetLimiter = new RateLimiter(60000, 30, 'widget_vacantes'); // 30 req / min
-export const checkoutLimiter = new RateLimiter(60000, 5, 'checkout'); // 5 req / min
-export const adminAuthLimiter = new RateLimiter(15 * 60 * 1000, 5, 'admin_auth'); // 5 intentos / 15 min
+export const checkoutLimiter = new RateLimiter(60000, 5, 'checkout', true); // 5 req / min
+export const adminAuthLimiter = new RateLimiter(15 * 60 * 1000, 5, 'admin_auth', true); // 5 intentos / 15 min
+export const adminActionLimiter = new RateLimiter(60000, 30, 'admin_action'); // 30 req / min
+export const companyLogoLimiter = new RateLimiter(60000, 60, 'company_logo'); // 60 req / min
 export const jobsApiLimiter = new RateLimiter(60000, 60, 'jobs_api'); // 60 req / min
 export const salariosLimiter = new RateLimiter(60000, 40, 'salarios_api'); // 40 req / min
 export const indexJobLimiter = new RateLimiter(60000, 30, 'index_job'); // 30 req / min
 export const subscribeLimiter = new RateLimiter(60000, 6, 'subscribe'); // 6 req / min
 export const unsubscribeLinkLimiter = new RateLimiter(15 * 60 * 1000, 3, 'unsub_link'); // 3 req / 15 min
 export const actionsRateLimiter = new RateLimiter(60000, 10, 'actions'); // 10 req / min
-export const userLoginLimiter = new RateLimiter(15 * 60 * 1000, 5, 'user_login'); // 5 intentos / 15 min
-export const userRegisterLimiter = new RateLimiter(15 * 60 * 1000, 5, 'user_register'); // 5 registros / 15 min
-export const passwordResetLimiter = new RateLimiter(15 * 60 * 1000, 3, 'password_reset'); // 3 solicitudes / 15 min
+export const userLoginLimiter = new RateLimiter(15 * 60 * 1000, 5, 'user_login', true); // 5 intentos / 15 min
+export const userRegisterLimiter = new RateLimiter(15 * 60 * 1000, 5, 'user_register', true); // 5 registros / 15 min
+export const passwordResetLimiter = new RateLimiter(15 * 60 * 1000, 3, 'password_reset', true); // 3 solicitudes / 15 min
+
+/**
+ * SEC-057: Respuesta 429 estándar con cabeceras Retry-After y X-RateLimit-*.
+ */
+export function rateLimitResponse(
+  result: { limit: number; remaining: number; reset: number },
+  message: string = 'Demasiadas solicitudes. Por favor, espera un momento.'
+) {
+  const retryAfterSec = Math.max(1, Math.ceil((result.reset - Date.now()) / 1000));
+  return new Response(JSON.stringify({ error: message }), {
+    status: 429,
+    headers: {
+      'Content-Type': 'application/json',
+      'Retry-After': String(retryAfterSec),
+      'X-RateLimit-Limit': String(result.limit),
+      'X-RateLimit-Remaining': String(result.remaining),
+      'X-RateLimit-Reset': String(Math.ceil(result.reset / 1000)),
+    },
+  });
+}
 
 export function getClientIp(request: Request): string {
   const nextReq = request as any;

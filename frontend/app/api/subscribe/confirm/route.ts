@@ -29,10 +29,15 @@ export async function GET(request: NextRequest) {
       [email]
     );
     const emailHash = crypto.createHash('sha256').update(email).digest('hex');
-    await client.query(
-      "INSERT INTO consent_audit_log (email_hash, action, policy_version, created_at) VALUES ($1, 'double_opt_in_confirmed', 'v2026.11', NOW())",
-      [emailHash]
-    ).catch(() => {});
+    try {
+      await client.query(
+        "INSERT INTO consent_audit_log (email_hash, action, policy_version, created_at) VALUES ($1, 'double_opt_in_confirmed', 'v2026.11', NOW())",
+        [emailHash]
+      );
+    } catch (auditErr) {
+      console.error('CRITICAL: Error registrando consent_audit_log en confirmación double opt-in:', auditErr);
+      return NextResponse.json({ success: false, error: 'Error interno registrando consentimiento.' }, { status: 500 });
+    }
   } finally {
     client.release();
   }

@@ -120,6 +120,12 @@ export default function CookieBanner() {
       if ('indexedDB' in window && typeof window.indexedDB.deleteDatabase === 'function') {
         window.indexedDB.deleteDatabase('ONE_SIGNAL_SDK_DB');
       }
+      const w = window as any;
+      if (Array.isArray(w.OneSignalDeferred)) {
+        w.OneSignalDeferred.push((OneSignal: any) => {
+          try { OneSignal?.User?.PushSubscription?.optOut?.(); } catch {}
+        });
+      }
     } catch {}
 
     try {
@@ -145,7 +151,7 @@ export default function CookieBanner() {
   useEffect(() => {
     // 1. Comprobar consentimiento previo almacenado y caducidad máxima (<= 24 meses, LEG-027)
     const savedConsent = localStorage.getItem('cookies_consent');
-    const legacyAccepted = localStorage.getItem('cookies_accepted');
+    localStorage.removeItem('cookies_accepted');
 
     if (savedConsent) {
       try {
@@ -153,14 +159,13 @@ export default function CookieBanner() {
         const updatedAt = typeof parsed.updatedAt === 'number' ? parsed.updatedAt : 0;
         if (updatedAt > 0 && Date.now() - updatedAt > CONSENT_MAX_AGE_MS) {
           localStorage.removeItem('cookies_consent');
-          localStorage.removeItem('cookies_accepted');
           updateGtagConsent(false, false);
           setShow(true);
         } else {
           const prefs: CookiePreferences = {
             essential: true,
-            analytics: !!parsed.analytics,
-            advertising: !!parsed.advertising,
+            analytics: parsed.analytics === true,
+            advertising: parsed.advertising === true,
             updatedAt: updatedAt || Date.now(),
           };
           setPreferences(prefs);
@@ -168,23 +173,14 @@ export default function CookieBanner() {
           notifyConsentUpdate(prefs);
         }
       } catch {
-        const isAll = savedConsent === 'all';
-        const prefs: CookiePreferences = {
-          essential: true,
-          analytics: isAll,
-          advertising: isAll,
-          updatedAt: Date.now(),
-        };
-        setPreferences(prefs);
-        updateGtagConsent(isAll, isAll);
-        notifyConsentUpdate(prefs);
+        // Fail-closed ante JSON corrupto o formato heredado inválido (BUG-032)
+        localStorage.removeItem('cookies_consent');
+        const failClosed: CookiePreferences = { essential: true, analytics: false, advertising: false };
+        setPreferences(failClosed);
+        updateGtagConsent(false, false);
+        notifyConsentUpdate(failClosed);
+        setShow(true);
       }
-    } else if (legacyAccepted === 'true') {
-      const prefs: CookiePreferences = { essential: true, analytics: true, advertising: true, updatedAt: Date.now() };
-      localStorage.setItem('cookies_consent', JSON.stringify(prefs));
-      setPreferences(prefs);
-      updateGtagConsent(true, true);
-      notifyConsentUpdate(prefs);
     } else {
       const defaultPrefs: CookiePreferences = { essential: true, analytics: false, advertising: false };
       updateGtagConsent(false, false);
@@ -207,7 +203,6 @@ export default function CookieBanner() {
   const handleAcceptAll = () => {
     const allConsents: CookiePreferences = { essential: true, analytics: true, advertising: true, updatedAt: Date.now() };
     localStorage.setItem('cookies_consent', JSON.stringify(allConsents));
-    localStorage.setItem('cookies_accepted', 'true');
     setPreferences(allConsents);
     updateGtagConsent(true, true);
     notifyConsentUpdate(allConsents);
@@ -218,7 +213,6 @@ export default function CookieBanner() {
   const handleRejectAll = () => {
     const onlyEssential: CookiePreferences = { essential: true, analytics: false, advertising: false, updatedAt: Date.now() };
     localStorage.setItem('cookies_consent', JSON.stringify(onlyEssential));
-    localStorage.setItem('cookies_accepted', 'false');
     purgeNonEssentialStorage();
     setPreferences(onlyEssential);
     updateGtagConsent(false, false);
@@ -235,7 +229,6 @@ export default function CookieBanner() {
       updatedAt: Date.now(),
     };
     localStorage.setItem('cookies_consent', JSON.stringify(customConsents));
-    localStorage.setItem('cookies_accepted', preferences.analytics || preferences.advertising ? 'true' : 'false');
     if (!preferences.analytics || !preferences.advertising) {
       purgeNonEssentialStorage();
     }
@@ -254,7 +247,7 @@ export default function CookieBanner() {
       aria-describedby="cookie-banner-desc"
       className="fixed bottom-0 left-0 right-0 bg-slate-950/98 backdrop-blur-md text-white p-4 sm:p-5 z-50 shadow-[0_-6px_20px_rgba(0,0,0,0.35)] border-t border-slate-700/80 animate-in fade-in duration-300"
     >
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto max-h-[45vh] overflow-y-auto">
         {!showConfig ? (
           // Vista 1: Banner Principal (AEPD: Aceptar y Rechazar con estricta simetría visual y jerarquía neutra)
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">

@@ -335,6 +335,9 @@ def run_linkedin_bot():
                 published = True
             else:
                 print(f"⚠️ Error al publicar post {idx+1} en LinkedIn (Código {response.status_code}): {response.text}")
+                if response.status_code in (401, 403):
+                    from logic.social_sanitize import notify_admin_auth_error
+                    notify_admin_auth_error("LinkedIn", response.status_code, response.text)
         except Exception as e:
             print(f"❌ Error de red al conectar con la API de LinkedIn: {e}")
 
@@ -342,8 +345,8 @@ def run_linkedin_bot():
         if has_image and os.path.exists(image_path):
             try:
                 os.remove(image_path)
-            except:
-                pass
+            except Exception as rm_err:
+                print(f"⚠️ Error eliminando imagen temporal {image_path}: {rm_err}")
 
         # Si se publicó correctamente, actualizar la BD para evitar duplicados
         if published:
@@ -362,8 +365,8 @@ def run_linkedin_bot():
     try:
         cur.close()
         conn.close()
-    except:
-        pass
+    except Exception as close_err:
+        print(f"⚠️ Error cerrando conexión BD en linkedin_bot: {close_err}")
         
     print("===============================================")
 

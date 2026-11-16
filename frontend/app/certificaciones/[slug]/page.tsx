@@ -96,6 +96,20 @@ export default async function CertificationDetailPage({ params }: Props) {
     <main className="min-h-screen bg-gray-50 pb-16">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(courseJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(faqJsonLd) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: safeJsonLdString({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Inicio', item: BASE_URL },
+              { '@type': 'ListItem', position: 2, name: 'Certificaciones IT', item: `${BASE_URL}/certificaciones` },
+              { '@type': 'ListItem', position: 3, name: cert.title, item: `${BASE_URL}/certificaciones/${cert.slug}` },
+            ],
+          }),
+        }}
+      />
 
       {/* Hero */}
       <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-purple-950 text-white py-14 px-4 relative overflow-hidden">

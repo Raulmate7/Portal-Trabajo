@@ -11,3 +11,10 @@ export const LEGAL_CONFIG = {
   email: process.env.NEXT_PUBLIC_LEGAL_EMAIL || 'contacto@portalempleoit.com',
   registry: process.env.NEXT_PUBLIC_LEGAL_REGISTRY || 'Actividad profesional / servicio digital en España (no sujeta a inscripción obligatoria en Registro Mercantil salvo constitución societaria)',
 } as const;
+
+export function isLegalConfigComplete(): boolean {
+  const hasPlaceholder =
+    LEGAL_CONFIG.nif.toLowerCase().includes('pendiente') ||
+    LEGAL_CONFIG.address.toLowerCase().includes('domicilio de notificaciones:');
+  return !hasPlaceholder && Boolean(LEGAL_CONFIG.owner && LEGAL_CONFIG.nif && LEGAL_CONFIG.address);
+}

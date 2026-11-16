@@ -30,25 +30,7 @@ def generate_trends_post():
         print(f"❌ Error de BD: {e}")
         return
 
-    # 1. Asegurar que existe la tabla blog_posts en MySQL
-    try:
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS blog_posts (
-                slug VARCHAR(255) PRIMARY KEY,
-                title VARCHAR(255) NOT NULL,
-                excerpt TEXT,
-                content LONGTEXT,
-                date VARCHAR(50),
-                author VARCHAR(100),
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                is_evergreen INT DEFAULT 1
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        """)
-        conn.commit()
-    except Exception as e:
-        print(f"❌ Error asegurando la tabla blog_posts: {e}")
-        conn.close()
-        return
+    # 1. La estructura de blog_posts la gestiona consolidate_production_schema.py (BUG-025)
 
     # 2. Fechas para intervalos
     now = datetime.now()
@@ -109,7 +91,8 @@ def generate_trends_post():
     try:
         cur.execute("SELECT COUNT(*) FROM jobs WHERE is_active = 1 AND created_at >= %s", (seven_days_ago,))
         total_weekly_jobs = cur.fetchone()[0]
-    except:
+    except Exception as weekly_err:
+        print(f"⚠️ Error consultando total semanal de ofertas: {weekly_err}")
         total_weekly_jobs = sum(t['current'] for t in stats)
 
     # 5. Redactar el artículo

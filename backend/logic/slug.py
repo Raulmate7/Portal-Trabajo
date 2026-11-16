@@ -6,8 +6,9 @@ def slugify(text):
         return ''
     text = unicodedata.normalize('NFD', str(text).strip().lower())
     text = re.sub(r'[\u0300-\u036f]', '', text) # Elimina acentos igual que frontend
+    text = text.replace('c++', 'cpp').replace('c#', 'csharp').replace('f#', 'fsharp').replace('.net', 'dotnet').replace('node.js', 'nodejs')
     text = re.sub(r'\s+', '-', text)
-    text = re.sub(r'[^\w\-]', '', text)
+    text = re.sub(r'[^a-z0-9\-]', '', text)
     text = re.sub(r'-{2,}', '-', text)
     return text.strip('-')
 

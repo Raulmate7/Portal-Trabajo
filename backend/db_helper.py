@@ -41,14 +41,18 @@ def get_db_connection():
         ssl_ctx.verify_mode = ssl.CERT_REQUIRED
         ssl_config = ssl_ctx
 
-    return pymysql.connect(
-        host=host,
-        user=user,
-        password=password,
-        database=database,
-        port=port,
-        charset='utf8mb4',
-        autocommit=True,  # Confirmaciones automáticas para simplificar escrituras
-        connect_timeout=5,
-        ssl=ssl_config
-    )
+    try:
+        return pymysql.connect(
+            host=host,
+            user=user,
+            password=password,
+            database=database,
+            port=port,
+            charset='utf8mb4',
+            autocommit=True,  # Confirmaciones automáticas para simplificar escrituras
+            connect_timeout=5,
+            ssl=ssl_config
+        )
+    except Exception as conn_err:
+        from logic.privacy import redact_secrets
+        raise RuntimeError(redact_secrets(str(conn_err))) from None
