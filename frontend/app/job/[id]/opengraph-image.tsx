@@ -71,75 +71,52 @@ export default async function Image({ params }: { params: Promise<{ id: string }
     job = await getJobById(id);
   }
 
-  const title = job ? (job.title_es || job.title) : 'Oferta de Empleo IT';
-  const company = job ? job.company : 'Portal Trabajo IT';
-  const location = job ? job.location : 'España';
-  const salary = job && job.salary && job.salary !== 'Consultar' ? job.salary : 'Sueldo Competitivo';
+  const safeText = (v: unknown, fallback: string, maxLen: number) => {
+    const cleaned = String(v ?? '').replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/\s+/g, ' ').trim();
+    return (cleaned || fallback).slice(0, maxLen);
+  };
 
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          height: '100%',
-          width: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311042 100%)',
-          padding: '80px',
-          fontFamily: 'sans-serif',
-          color: 'white',
-        }}
-      >
-        {/* Decoraciones de fondo */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '-150px',
-            right: '-150px',
-            width: '450px',
-            height: '450px',
-            borderRadius: '50%',
-            background: 'rgba(99, 102, 241, 0.15)',
-            filter: 'blur(50px)',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '-100px',
-            left: '-100px',
-            width: '350px',
-            height: '350px',
-            borderRadius: '50%',
-            background: 'rgba(236, 72, 153, 0.1)',
-            filter: 'blur(40px)',
-          }}
-        />
+  const title = job ? safeText(job.title_es || job.title, 'Oferta de Empleo IT', 110) : 'Oferta de Empleo IT';
+  const company = job ? safeText(job.company, 'Portal Trabajo IT', 60) : 'Portal Trabajo IT';
+  const location = job ? safeText(job.location, 'España', 50) : 'España';
+  const salary = job && job.salary && job.salary !== 'Consultar' ? safeText(job.salary, 'Sueldo Competitivo', 40) : 'Sueldo Competitivo';
 
-        {/* Cabecera / Logo */}
+  try {
+    return new ImageResponse(
+      (
         <div
           style={{
+            height: '100%',
+            width: '100%',
             display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311042 100%)',
+            padding: '80px',
+            fontFamily: 'sans-serif',
+            color: 'white',
           }}
         >
-          <span style={{ fontSize: '32px' }}>🚀</span>
-          <span
+          {/* Cabecera / Logo */}
+          <div
             style={{
-              fontSize: '28px',
-              fontWeight: 800,
-              letterSpacing: '1px',
-              background: 'linear-gradient(to right, #818cf8, #c084fc)',
-              backgroundClip: 'text',
-              color: 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
             }}
           >
-            PORTAL TRABAJO IT
-          </span>
-        </div>
+            <span
+              style={{
+                fontSize: '28px',
+                fontWeight: 800,
+                letterSpacing: '1px',
+                color: '#a5b4fc',
+              }}
+            >
+              PORTAL TRABAJO IT
+            </span>
+          </div>
 
         {/* Cuerpo principal (Detalle del Puesto) */}
         <div
@@ -232,7 +209,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
               boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)',
             }}
           >
-            Postularse →
+            Postularse
           </div>
         </div>
       </div>
@@ -241,4 +218,28 @@ export default async function Image({ params }: { params: Promise<{ id: string }
       ...size,
     }
   );
+  } catch {
+    return new ImageResponse(
+      (
+        <div
+          style={{
+            height: '100%',
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            background: '#0f172a',
+            color: '#ffffff',
+            fontFamily: 'sans-serif',
+            padding: '60px',
+          }}
+        >
+          <div style={{ fontSize: '36px', fontWeight: 800, color: '#a5b4fc' }}>PORTAL TRABAJO IT</div>
+          <div style={{ fontSize: '28px', marginTop: '20px', textAlign: 'center' }}>Ofertas de Empleo Tecnológico en España</div>
+        </div>
+      ),
+      { ...size }
+    );
+  }
 }

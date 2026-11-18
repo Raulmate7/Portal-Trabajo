@@ -565,7 +565,9 @@ export default async function JobPage({ params, searchParams }: Props) {
 
   const cleanLocation = job.location ? job.location.toLowerCase().trim() : '';
   const isRemoteLoc = cleanLocation.includes('remoto') || cleanLocation.includes('teletrabajo') || cleanLocation.includes('remote');
-  const locationSlug = isRemoteLoc ? 'remoto' : correctSlug.split('-').slice(-2, -1)[0] || 'espana'; // usar ciudad del slug
+  const rawCityPart = (job.location || '').split(',')[0].split('(')[0].split('/')[0].trim();
+  const parsedCitySlug = slugify(rawCityPart);
+  const locationSlug = isRemoteLoc ? 'remoto' : (parsedCitySlug && !/^[0-9a-f]{4}$/i.test(parsedCitySlug) ? parsedCitySlug : 'espana');
   
   const queryParam = isEnglish ? '?lang=en' : '';
   const sectorUrl = detectedTec ? `/trabajos/${detectedTec}${queryParam}` : null;
