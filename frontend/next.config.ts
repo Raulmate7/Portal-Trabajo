@@ -96,17 +96,62 @@ const nextConfig: NextConfig = {
         destination: '/job/:id',
         permanent: true,
       },
+      {
+        source: '/trabajo-remoto/:tech',
+        destination: '/trabajos/:tech-remoto',
+        permanent: true,
+      },
+      {
+        source: '/trabajo-:ciudad/:tech',
+        destination: '/trabajos/:tech-en-:ciudad',
+        permanent: true,
+      },
+      {
+        source: '/trabajo/remoto/:tech',
+        destination: '/trabajos/:tech-remoto',
+        permanent: true,
+      },
+      {
+        source: '/trabajo/:ciudad/:tech',
+        destination: '/trabajos/:tech-en-:ciudad',
+        permanent: true,
+      },
+      {
+        source: '/empleo-tech/remoto',
+        destination: '/trabajo-remoto',
+        permanent: true,
+      },
+      {
+        source: '/empleo-tech/:ciudad(madrid|barcelona|valencia|malaga|sevilla|bilbao|zaragoza)',
+        destination: '/trabajo-:ciudad',
+        permanent: true,
+      },
+      {
+        source: '/empleo-tech/:ciudad',
+        destination: '/trabajos/informatica-tecnologia-en-:ciudad',
+        permanent: true,
+      },
+      {
+        source: '/trabajos/informatica-tecnologia-en-:ciudad(madrid|barcelona|valencia|malaga|sevilla|bilbao|zaragoza)',
+        destination: '/trabajo-:ciudad',
+        permanent: true,
+      },
+      {
+        source: '/empleadores/:sector',
+        destination: '/trabajos/:sector/empresas',
+        permanent: true,
+      },
     ];
   },
   async rewrites() {
     return [
       {
-        source: '/:key([a-fA-F0-9]{16,64}).txt',
-        destination: '/api/indexnow-key?key=:key',
+        source: '/cuanto-gana-un-:rol-en-espana',
+        destination: '/cuanto-gana/:rol',
       },
       {
-        source: '/trabajo-:ciudad/:tech',
-        destination: '/trabajo/:ciudad/:tech',
+        source: '/:key([a-fA-F0-9]{16,64}).txt',
+        destination: '/api/indexnow-key?key=:key',
       },
     ];
   },

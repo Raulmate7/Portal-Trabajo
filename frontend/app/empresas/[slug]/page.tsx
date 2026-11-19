@@ -526,43 +526,6 @@ export default async function CompanyPage({ params, searchParams }: Props) {
     ]
   };
 
-  const top3Jobs = allJobs.slice(0, 3);
-  const jobPostingSchemas = top3Jobs.map((job) => {
-    const isRemote = job.location.toLowerCase().includes('remoto') || job.location.toLowerCase().includes('teletrabajo') || job.location.toLowerCase().includes('remote');
-    return {
-      '@context': 'https://schema.org',
-      '@type': 'JobPosting',
-      title: job.title_es || job.title,
-      description: job.description_snippet || `Oferta de empleo para ${job.title_es || job.title} en ${job.company}`,
-      datePosted: (() => {
-        try {
-          const d = new Date(job.created_at);
-          return !isNaN(d.getTime()) ? d.toISOString() : new Date().toISOString();
-        } catch {
-          return new Date().toISOString();
-        }
-      })(),
-      hiringOrganization: {
-        '@type': 'Organization',
-        name: job.company
-      },
-      identifier: {
-        '@type': 'PropertyValue',
-        name: job.company,
-        value: `job-${job.id}`
-      },
-      jobLocation: {
-        '@type': 'Place',
-        address: {
-          '@type': 'PostalAddress',
-          addressLocality: job.location,
-          addressCountry: 'ES'
-        }
-      },
-      jobLocationType: isRemote ? 'TELECOMMUTE' : undefined
-    };
-  });
-
   return (
     <div className="container mx-auto px-4 py-8">
       <script 
@@ -581,13 +544,6 @@ export default async function CompanyPage({ params, searchParams }: Props) {
         type="application/ld+json" 
         dangerouslySetInnerHTML={{ __html: safeJsonLdString(faqJsonLd) }} 
       />
-      {jobPostingSchemas.map((schema, idx) => (
-        <script 
-          key={`job-schema-${idx}`}
-          type="application/ld+json" 
-          dangerouslySetInnerHTML={{ __html: safeJsonLdString(schema) }} 
-        />
-      ))}
 
       <Breadcrumbs items={breadcrumbItems} />
       

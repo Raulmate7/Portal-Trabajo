@@ -328,8 +328,6 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
         pageCounts.set(path, (pageCounts.get(path) || 0) + 1);
       };
 
-      const activeCityTechKeys = new Set<string>();
-
       for (const job of jobs) {
         const techs = detectTechForSitemap(job.title || '', job.category || null);
         const city = detectCityForSitemap(job.location);
@@ -341,9 +339,6 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
         const max = job.salary_max ? Math.round(parseFloat(job.salary_max.toString())) : null;
 
         for (const tech of techs) {
-          if (city) {
-            activeCityTechKeys.add(`${city}::${tech}`);
-          }
           // 1. Página principal de la tecnología (ej: /trabajos/react)
           incrementCount(`/trabajos/${tech}`);
           
@@ -467,7 +462,7 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
         'react', 'node', 'python', 'java', 'typescript', 'javascript', 'aws', 'docker', 'kubernetes', 'backend', 'frontend', 'fullstack'
       ];
       for (const tech of technologies) {
-        activeEmployersPages.push(`/empleadores/${tech}`);
+        activeEmployersPages.push(`/trabajos/${tech}/empresas`);
       }
 
       // 8. Convertirse en (Oportunidad 1.5)
@@ -643,35 +638,6 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
         priority: 0.7,
       }));
 
-      const CITIES_SITEMAP = [
-        'madrid', 'barcelona', 'valencia', 'malaga', 'bilbao', 'sevilla', 'zaragoza',
-        'alicante', 'murcia', 'gijon', 'oviedo', 'vigo', 'coruna', 'granada',
-        'san-sebastian', 'pamplona', 'valladolid', 'santander', 'palma', 'las-palmas', 'remoto'
-      ];
-      const TECHS_SITEMAP = [
-        'react', 'angular', 'vue', 'node', 'python', 'java', 'php', 'csharp', 'go', 'rust',
-        'typescript', 'javascript', 'aws', 'docker', 'kubernetes', 'backend', 'frontend', 'devops',
-        'data', 'mobile', 'nextjs', 'flutter', 'kotlin', 'swift', 'sql', 'salesforce',
-        'cybersecurity', 'ciberseguridad', 'fullstack', 'qa-engineer',
-        'graphql', 'redis', 'mongodb', 'django', 'fastapi', 'spring-boot', 'laravel', 'spark', 'kafka', 'linux', 'azure', 'gcp', 'jenkins', 'ansible'
-      ];
-      
-      const cityTechUrls = CITIES_SITEMAP.flatMap(city =>
-        TECHS_SITEMAP.filter(tech => activeCityTechKeys.has(`${city}::${tech}`)).map(tech => ({
-          url: `${BASE_URL}/trabajo-${city}/${tech}`,
-          lastModified: SITE_LAST_STRUCTURAL_UPDATE,
-          changeFrequency: 'weekly' as const,
-          priority: 0.75,
-          alternates: {
-            languages: {
-              'es-ES': `${BASE_URL}/trabajo-${city}/${tech}`,
-              'en': `${BASE_URL}/trabajo-${city}/${tech}?lang=en`,
-              'x-default': `${BASE_URL}/trabajo-${city}/${tech}`,
-            }
-          }
-        }))
-      );
-
       return [
         {
           url: BASE_URL,
@@ -691,7 +657,6 @@ export default async function sitemap({ id }: { id: number | string }): Promise<
         ...salaryUrls,
         ...glossaryUrls,
         ...comparisonUrls,
-        ...cityTechUrls,
         ...newsUrls,
         ...activeCertificationsPages.map((path) => ({
           url: `${BASE_URL}${path}`,

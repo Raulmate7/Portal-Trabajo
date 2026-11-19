@@ -4,6 +4,10 @@ import { revalidatePath, revalidateTag } from 'next/cache';
 import pool from '@/lib/db';
 import { verifyAdminSessionTokenAsync, recordAdminAuditLog } from '@/lib/adminAuth';
 import { adminActionLimiter, getClientIp } from '@/lib/rate-limit';
+import { requestGoogleIndexing } from '@/lib/googleIndexing';
+import { submitUrlsToIndexNow } from '@/lib/indexNow';
+import { getJobSlug, slugify } from '@/lib/slug';
+import { BASE_URL } from '@/lib/constants';
 
 export async function GET(req: NextRequest) {
   try {
@@ -141,6 +145,32 @@ export async function POST(req: NextRequest) {
         revalidateTag('salaries:stats');
         revalidatePath('/');
       } catch {}
+
+      if (action === 'approve') {
+        try {
+          const jobRes = await client.query(
+            `SELECT id, title, title_es, location, company, category FROM jobs WHERE id = $1 LIMIT 1`,
+            [jobId]
+          );
+          const job = jobRes.rows?.[0];
+          if (job) {
+            const jobUrl = `${BASE_URL}/job/${getJobSlug(job)}`;
+            const indexNowUrls = [jobUrl];
+            if (job.company) indexNowUrls.push(`${BASE_URL}/empresas/${slugify(job.company)}`);
+            if (job.category) indexNowUrls.push(`${BASE_URL}/empleos/${slugify(job.category)}`);
+
+            const [googleRes] = await Promise.allSettled([
+              requestGoogleIndexing(jobUrl, 'URL_UPDATED'),
+              submitUrlsToIndexNow(indexNowUrls),
+            ]);
+            if (googleRes.status === 'fulfilled' && googleRes.value.success) {
+              await client.query(`UPDATE jobs SET google_indexed_at = NOW() WHERE id = $1`, [jobId]).catch(() => {});
+            }
+          }
+        } catch (idxErr) {
+          console.warn('⚠️ Error no bloqueante en indexación en tiempo real (admin approve):', idxErr);
+        }
+      }
       await recordAdminAuditLog({
         eventType: action === 'approve' ? 'job_approved' : 'job_rejected',
         clientIp: getClientIp(req),

@@ -5,6 +5,10 @@ import stripe from '@/lib/stripe';
 import pool from '@/lib/db';
 import { generateReportToken } from '@/lib/reportToken';
 import { logSecurityEvent } from '@/lib/securityLogger';
+import { requestGoogleIndexing } from '@/lib/googleIndexing';
+import { submitUrlsToIndexNow } from '@/lib/indexNow';
+import { getJobSlug, slugify } from '@/lib/slug';
+import { BASE_URL } from '@/lib/constants';
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -304,7 +308,7 @@ export async function POST(request: Request) {
 
           // Idempotencia y exclusión mutua contra race conditions (FOR UPDATE)
           const checkJobRes = await client.query(
-            "SELECT id, is_active, is_featured, company, title, location, salary, description_snippet, url_source FROM jobs WHERE id = $1 LIMIT 1 FOR UPDATE",
+            "SELECT id, is_active, is_featured, company, title, title_es, location, category, salary, description_snippet, url_source FROM jobs WHERE id = $1 LIMIT 1 FOR UPDATE",
             [jobId]
           );
 
@@ -448,6 +452,31 @@ export async function POST(request: Request) {
           }
 
           await client.query('COMMIT');
+
+          if (!isAlreadyFeatured) {
+            try {
+              const jobUrl = `${BASE_URL}/job/${getJobSlug({
+                id: existingJob.id,
+                title: existingJob.title,
+                title_es: existingJob.title_es,
+                location: existingJob.location,
+                company: existingJob.company,
+              })}`;
+              const indexNowUrls = [jobUrl];
+              if (existingJob.company) indexNowUrls.push(`${BASE_URL}/empresas/${slugify(existingJob.company)}`);
+              if (existingJob.category) indexNowUrls.push(`${BASE_URL}/empleos/${slugify(existingJob.category)}`);
+
+              const [googleRes] = await Promise.allSettled([
+                requestGoogleIndexing(jobUrl, 'URL_UPDATED'),
+                submitUrlsToIndexNow(indexNowUrls),
+              ]);
+              if (googleRes.status === 'fulfilled' && googleRes.value.success) {
+                await client.query(`UPDATE jobs SET google_indexed_at = NOW() WHERE id = $1`, [jobId]).catch(() => {});
+              }
+            } catch (idxErr) {
+              console.warn(`⚠️ Error no bloqueante en indexación en tiempo real (Stripe job_id=${jobId}):`, idxErr);
+            }
+          }
         } catch (dbErr) {
           try {
             await client.query('ROLLBACK');

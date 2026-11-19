@@ -285,7 +285,13 @@ export default async function MapaEmpleoPage() {
                       </td>
                       <td className="p-4 pr-6">
                         <Link 
-                          href={s.name === 'Remoto' ? '/trabajo-remoto' : `/trabajos/informatica-tecnologia-en-${slugify(s.name)}`}
+                          href={
+                            s.name === 'Remoto'
+                              ? '/trabajo-remoto'
+                              : ['madrid', 'barcelona', 'valencia', 'malaga', 'sevilla', 'bilbao', 'zaragoza'].includes(slugify(s.name))
+                                ? `/trabajo-${slugify(s.name)}`
+                                : `/trabajos/informatica-tecnologia-en-${slugify(s.name)}`
+                          }
                           className="text-xs font-bold text-indigo-650 hover:underline"
                         >
                           Ver ofertas &rarr;

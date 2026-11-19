@@ -553,7 +553,52 @@ def _run_migration_steps(execute):
     ensure_column("jobs", "dedup_hash", "VARCHAR(64) NULL")
     ensure_column("jobs", "company_id", "INT NULL")
     ensure_column("jobs", "work_mode", "ENUM('remote', 'hybrid', 'onsite') NULL")
+    ensure_column("jobs", "skills_json", "JSON NULL")
+    ensure_column("jobs", "normalized_city", "VARCHAR(100) NULL")
+    ensure_column("jobs", "seniority_level", "ENUM('junior', 'mid', 'senior', 'lead') NULL")
+    ensure_column("jobs", "expired_at", "TIMESTAMP NULL")
     ensure_column("company_reviews", "company_id", "INT NULL")
+
+    print("\n📦 [26/27] Verificando tabla 'seo_category_metrics' (métricas pSEO precalculadas)...")
+    execute("""
+        CREATE TABLE IF NOT EXISTS seo_category_metrics (
+            slug VARCHAR(180) PRIMARY KEY,
+            route_type ENUM('jobs_sector', 'city_hub', 'salary', 'remote_tech', 'junior_tech', 'freelance_tech', 'company') NOT NULL,
+            tech_slug VARCHAR(80) NULL,
+            city_slug VARCHAR(80) NULL,
+            seniority_slug VARCHAR(40) NULL,
+            active_count INT NOT NULL DEFAULT 0,
+            new_72h_count INT NOT NULL DEFAULT 0,
+            historical_180d_count INT NOT NULL DEFAULT 0,
+            salary_sample_count INT NOT NULL DEFAULT 0,
+            salary_avg INT NULL,
+            salary_median INT NULL,
+            salary_p25 INT NULL,
+            salary_p75 INT NULL,
+            salary_min_observed INT NULL,
+            salary_max_observed INT NULL,
+            remote_pct TINYINT UNSIGNED NOT NULL DEFAULT 0,
+            hybrid_pct TINYINT UNSIGNED NOT NULL DEFAULT 0,
+            onsite_pct TINYINT UNSIGNED NOT NULL DEFAULT 0,
+            top_companies_json JSON NULL,
+            related_skills_json JSON NULL,
+            last_job_created_at TIMESTAMP NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_seo_route_active (route_type, active_count DESC),
+            INDEX idx_seo_lastmod (last_job_created_at DESC)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    """)
+
+    print("\n📦 [27/27] Verificando tabla 'expired_jobs_tombstones' (HTTP 410 / 301)...")
+    execute("""
+        CREATE TABLE IF NOT EXISTS expired_jobs_tombstones (
+            job_id VARCHAR(255) PRIMARY KEY,
+            action ENUM('410', '301') NOT NULL DEFAULT '410',
+            redirect_path VARCHAR(500) NULL,
+            expired_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_tombstones_expired (expired_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    """)
 
     print("\n⚡ Optimizando índices de rendimiento (idempotente vía INFORMATION_SCHEMA, FUNC-036/037)...")
     indexes = [
@@ -565,6 +610,9 @@ def _run_migration_steps(execute):
         ("jobs", "idx_jobs_active_cat_created", "CREATE INDEX idx_jobs_active_cat_created ON jobs (is_active, category, created_at DESC)"),
         ("jobs", "idx_jobs_active_feat_created", "CREATE INDEX idx_jobs_active_feat_created ON jobs (is_active, is_featured, created_at DESC)"),
         ("jobs", "idx_jobs_active_work_mode", "CREATE INDEX idx_jobs_active_work_mode ON jobs (is_active, work_mode, created_at DESC)"),
+        ("jobs", "idx_jobs_city_active", "CREATE INDEX idx_jobs_city_active ON jobs (normalized_city, is_active, created_at DESC)"),
+        ("jobs", "idx_jobs_seniority_active", "CREATE INDEX idx_jobs_seniority_active ON jobs (seniority_level, is_active, created_at DESC)"),
+        ("jobs", "idx_jobs_expired_at", "CREATE INDEX idx_jobs_expired_at ON jobs (is_active, expired_at)"),
         ("jobs", "idx_jobs_company_id", "CREATE INDEX idx_jobs_company_id ON jobs (company_id)"),
         ("jobs", "ft_jobs_search", "CREATE FULLTEXT INDEX ft_jobs_search ON jobs (title, company, description_snippet)"),
         ("subscribers", "idx_subscribers_user_id", "CREATE INDEX idx_subscribers_user_id ON subscribers (user_id)"),

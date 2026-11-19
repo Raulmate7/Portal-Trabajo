@@ -22,7 +22,7 @@ import CompanyLogo from '@/components/CompanyLogo';
 import Image from 'next/image';
 import { RecentlyViewedTracker } from '@/components/RecentlyViewed';
 import StickyDesktopAd from '@/components/StickyDesktopAd';
-import { getCurrentUser } from '@/lib/userAuth';
+import { buildJobPostingJsonLd, CompanySchemaRecord } from '@/lib/schemas/jobPosting';
 
 export const revalidate = 3600; // Cache de 1 hora — las ofertas individuales no cambian con frecuencia; las nuevas se indexan vía Google Indexing API
 
@@ -77,23 +77,6 @@ const DISPLAY_NAMES: Record<string, string> = {
   'jenkins': 'Jenkins',
   'ansible': 'Ansible'
 };
-
-function textToHtml(text: string | null | undefined): string {
-  if (!text) return '';
-  return text
-    .split('\n')
-    .map(para => {
-      const trimmed = para.trim();
-      if (!trimmed) return '';
-      if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
-        return `<li>${trimmed.substring(1).trim()}</li>`;
-      }
-      return `<p>${trimmed}</p>`;
-    })
-    .filter(Boolean)
-    .join('')
-    .replace(/(<li>.*?<\/li>)+/g, '<ul>$&</ul>');
-}
 
 function autoLinkDescription(desc: string | null | undefined, isEnglish: boolean): string {
   if (!desc) return '';
@@ -219,12 +202,12 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const client = await pool.connect();
   try {
     const res = await client.query(
-      "SELECT id, title, company, location, description_snippet, is_active, created_at, title_es, description_snippet_es FROM jobs WHERE id = $1",
+      "SELECT id, title, company, location, salary, salary_min, salary_max, description_snippet, is_active, created_at, updated_at, title_es, description_snippet_es FROM jobs WHERE id = $1",
       [numericId]
     );
 
     const job = res.rows[0];
-    if (!job || !job.is_active) {
+    if (!job) {
       return {
         title: 'Oferta no encontrada | Portal Empleo IT',
         robots: { index: false, follow: false }
@@ -236,15 +219,64 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 
     const displayTitle = isEnglish ? job.title : (job.title_es || job.title);
     const displayDesc = isEnglish ? job.description_snippet : (job.description_snippet_es || job.description_snippet);
-    const titulo = isEnglish 
-      ? `${displayTitle} in ${job.location}` 
-      : `${displayTitle} en ${job.location}`;
-    const desc = isEnglish 
-      ? `Job opportunity at ${job.company}. ${displayDesc?.substring(0, 130) ?? ''}...`
-      : `Oportunidad laboral en ${job.company}. ${displayDesc?.substring(0, 130) ?? ''}...`;
-
-    const isOld = (new Date().getTime() - new Date(job.created_at).getTime()) > 100 * 24 * 60 * 60 * 1000;
+    const isOld = (Date.now() - new Date(job.created_at).getTime()) > 45 * 24 * 60 * 60 * 1000;
     const isExpired = !job.is_active || isOld;
+    const expiredAnchorMs = job.updated_at ? new Date(job.updated_at).getTime() : Date.now();
+    const hoursSinceExpired = isExpired ? (Date.now() - expiredAnchorMs) / (1000 * 60 * 60) : 0;
+    // Primeras 48h tras expirar mantiene index=true para que Googlebot procese validThrough pasado + URL_DELETED; luego noindex, follow
+    const allowIndex = !isExpired || hoursSinceExpired <= 48;
+
+    const locLower = `${job.location || ''} ${displayTitle || ''}`.toLowerCase();
+    const isRemote = /remoto|remote|teletrabajo|worldwide/.test(locLower);
+    const isHybrid = !isRemote && /h[ií]brido|hybrid/.test(locLower);
+    const modality = isEnglish
+      ? (isRemote ? 'Remote' : isHybrid ? 'Hybrid' : 'On-site')
+      : (isRemote ? 'Remoto' : isHybrid ? 'Híbrido' : 'Presencial');
+
+    const rawMin = job.salary_min ? Math.round(Number(job.salary_min)) : null;
+    const rawMax = job.salary_max ? Math.round(Number(job.salary_max)) : null;
+    const formatK = (v: number) => (v >= 1000 ? `${Math.round(v / 1000)}k` : `${v}`);
+    let salaryShort = '';
+    let salaryFull = '';
+    if (rawMin && rawMax && rawMax > rawMin) {
+      salaryShort = `${formatK(rawMin)}-${formatK(rawMax)}€`;
+      salaryFull = `${rawMin.toLocaleString('es-ES')}€ - ${rawMax.toLocaleString('es-ES')}€/año`;
+    } else if (rawMin && rawMin > 0) {
+      salaryShort = `${formatK(rawMin)}€`;
+      salaryFull = `${rawMin.toLocaleString('es-ES')}€/año`;
+    } else if (job.salary && !/consultar|no especificado|a convenir|n\/a/i.test(String(job.salary))) {
+      salaryShort = String(job.salary).trim().slice(0, 22);
+      salaryFull = String(job.salary).trim();
+    }
+
+    const now = new Date();
+    const mes = now.toLocaleDateString(isEnglish ? 'en-US' : 'es-ES', { month: 'long' });
+    const mesCap = mes.charAt(0).toUpperCase() + mes.slice(1);
+    const anio = now.getFullYear();
+    const cleanCity = (job.location || (isEnglish ? 'Spain' : 'España')).split(',')[0].trim();
+    const snippetClean = (displayDesc || '').replace(/\s+/g, ' ').trim().substring(0, 95);
+
+    const titulo = isExpired
+      ? (isEnglish ? `[Closed] ${displayTitle} in ${cleanCity}` : `[Cerrada] ${displayTitle} en ${cleanCity}`)
+      : salaryShort
+        ? (isEnglish
+            ? `${displayTitle} at ${job.company} (${salaryShort} · ${modality}) | ${cleanCity}`
+            : `${displayTitle} en ${job.company} (${salaryShort} · ${modality}) | ${cleanCity}`)
+        : (isEnglish
+            ? `${displayTitle} at ${job.company} · ${modality} in ${cleanCity} [${mesCap} ${anio}]`
+            : `${displayTitle} en ${job.company} · ${modality} en ${cleanCity} [${mesCap} ${anio}]`);
+
+    const desc = isExpired
+      ? (isEnglish
+          ? `This ${displayTitle} position at ${job.company} has closed. Explore similar active IT jobs in ${cleanCity}.`
+          : `La vacante de ${displayTitle} en ${job.company} ya se ha cerrado. Explora ofertas activas similares en ${cleanCity}.`)
+      : salaryFull
+        ? (isEnglish
+            ? `💼 Active role: ${displayTitle} at ${job.company} (${cleanCity}). 💰 Salary: ${salaryFull}. Mode: ${modality}. ${snippetClean}... Apply today!`
+            : `💼 Vacante activa: ${displayTitle} en ${job.company} (${cleanCity}). 💰 Sueldo: ${salaryFull}. Modalidad: ${modality}. ${snippetClean}... ¡Postúlate hoy!`)
+        : (isEnglish
+            ? `💼 Verified role: ${displayTitle} at ${job.company} (${cleanCity}). Mode: ${modality}. ${snippetClean}... Check requirements & apply.`
+            : `💼 Oferta verificada de ${displayTitle} en ${job.company} (${cleanCity}). Modalidad: ${modality}. ${snippetClean}... Consulta requisitos e inscríbete.`);
 
     const correctSlug = getJobSlug(job);
     const canonicalUrl = isEnglish 
@@ -266,7 +298,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
         },
       },
       robots: {
-        index: isExpired ? false : true,
+        index: allowIndex,
         follow: true,
       },
       openGraph: {
@@ -479,39 +511,28 @@ export default async function JobPage({ params, searchParams }: Props) {
   const job = await getJob(numericId);
 
   if (!job) {
+    try {
+      const tombRes = await pool.query(
+        'SELECT action, redirect_path FROM expired_jobs_tombstones WHERE job_id = $1 LIMIT 1',
+        [numericId]
+      );
+      const tomb = tombRes.rows?.[0];
+      if (tomb?.action === '301' && tomb?.redirect_path) {
+        permanentRedirect(tomb.redirect_path);
+      }
+    } catch {
+      // Si la tabla aún no existe o falla, continuar al 404 estándar
+    }
     notFound();
   }
 
-  if (!job.is_active) {
-    let savedByCurrentUser = false;
-    try {
-      const currentUser = await getCurrentUser();
-      if (currentUser) {
-        const client = await pool.connect();
-        try {
-          const savedRes = await client.query(
-            'SELECT 1 FROM user_saved_jobs WHERE user_id = $1 AND job_id = $2 LIMIT 1',
-            [currentUser.id, String(job.id)]
-          );
-          savedByCurrentUser = (savedRes.rows?.length || 0) > 0;
-        } finally {
-          client.release();
-        }
-      }
-    } catch {
-      savedByCurrentUser = false;
-    }
-
-    if (!savedByCurrentUser) {
-      notFound();
-    }
-  }
-
-  const ageMs = new Date().getTime() - new Date(job.created_at).getTime();
+  const ageMs = Date.now() - new Date(job.created_at).getTime();
   const ageDays = ageMs / (1000 * 60 * 60 * 24);
-  const isOld = ageDays >= 100;
+  const isOld = ageDays >= 45;
   const isExpired = !job.is_active || isOld;
-  const graceDaysLeft = Math.max(0, Math.ceil(110 - ageDays));
+  const expiredAnchorMs = job.updated_at ? new Date(job.updated_at).getTime() : Date.now();
+  const hoursSinceExpired = isExpired ? (Date.now() - expiredAnchorMs) / (1000 * 60 * 60) : 0;
+  const shouldEmitJobPostingSchema = !isExpired || hoursSinceExpired <= 48;
 
   const correctSlug = getJobSlug(job);
   const lang = resolvedSearchParams?.lang === 'en' ? 'en' : 'es';
@@ -550,11 +571,29 @@ export default async function JobPage({ params, searchParams }: Props) {
     return null;
   };
 
+  const fetchCompanyRecord = async (): Promise<CompanySchemaRecord | null> => {
+    if (!job.company || job.company === 'Desconocida') return null;
+    const companySlug = slugify(job.company);
+    const client = await pool.connect();
+    try {
+      const res = await client.query(
+        "SELECT canonical_name, domain, logo_url FROM companies WHERE id = $1 OR slug = $2 LIMIT 1",
+        [job.company_id || -1, companySlug]
+      );
+      return res.rows?.[0] ?? null;
+    } catch {
+      return null;
+    } finally {
+      client.release();
+    }
+  };
+
   // FUNC-038: Paralelizar consultas independientes en lugar de ejecutarlas secuencialmente
-  const [similarJobs, reactions, companyRating] = await Promise.all([
-    getSimilarJobs(numericId, job.category, job.title, detectedTec, 3),
+  const [similarJobs, reactions, companyRating, companyRecord] = await Promise.all([
+    getSimilarJobs(numericId, job.category, job.title, detectedTec, 6),
     getJobReactions(job.id),
     fetchCompanyRating(),
+    fetchCompanyRecord(),
   ]);
 
   const hasTranslation = !!job.title_es && !isEnglish;
@@ -581,7 +620,9 @@ export default async function JobPage({ params, searchParams }: Props) {
   const relatedBlogPost = await getRelatedBlogPost(job.title, job.description_snippet || '', isRemote);
 
   const datePosted = new Date(job.created_at);
-  const validThroughDate = new Date(datePosted.getTime() + 100 * 24 * 60 * 60 * 1000);
+  const validThroughDate = isExpired
+    ? new Date(Math.min(Date.now() - 3600_000, expiredAnchorMs))
+    : new Date(datePosted.getTime() + 45 * 24 * 60 * 60 * 1000);
 
   let baseSalaryObj = null;
   if (job.salary_min || job.salary_max) {
@@ -652,202 +693,56 @@ export default async function JobPage({ params, searchParams }: Props) {
 
   const isWorldwide = cleanLocationForLd.includes('worldwide') || cleanLocationForLd.includes('global') || cleanLocationForLd.includes('anywhere') || cleanLocationForLd.includes('todo el mundo');
 
-  const titleLower = job.title.toLowerCase();
-  let expRequirements = undefined;
-  if (titleLower.includes('junior') || titleLower.includes('jr') || titleLower.includes('sin experiencia')) {
-    expRequirements = {
-      "@type": "OccupationalExperienceRequirements",
-      "monthsOfExperience": 12
-    };
-  } else if (titleLower.includes('senior') || titleLower.includes('sr') || titleLower.includes('lead')) {
-    expRequirements = {
-      "@type": "OccupationalExperienceRequirements",
-      "monthsOfExperience": 36
-    };
-  }
+  const hiringOrgName = companyRecord?.canonical_name ||
+    ((job.company && job.company !== 'Desconocida')
+      ? job.company
+      : (sourceLabel && sourceLabel !== 'Internet' ? sourceLabel : 'Portal Trabajo IT'));
 
-  const hiringOrgName = (job.company && job.company !== 'Desconocida') 
-    ? job.company 
-    : (sourceLabel && sourceLabel !== 'Internet' ? sourceLabel : 'Portal Trabajo IT');
+  const jsonLd = buildJobPostingJsonLd({
+    job,
+    companyRecord,
+    companyRating,
+    baseSalaryObj,
+    employmentTypes,
+    tecLabel,
+    sourceLabel,
+    countryCode,
+    isWorldwide,
+    isEnglish,
+    validThroughDate,
+  });
 
-  const REGION_BY_CITY: Array<[RegExp, string]> = [
-    [/\bmadrid\b/i, 'Madrid'],
-    [/\bbarcelona\b|\bbcn\b/i, 'Barcelona'],
-    [/\bvalencia\b/i, 'Valencia'],
-    [/\bsevilla\b/i, 'Sevilla'],
-    [/\bbilbao\b|\bvizcaya\b|\bbizkaia\b/i, 'Bizkaia'],
-    [/\bm[aá]laga\b/i, 'Málaga'],
-    [/\bzaragoza\b/i, 'Zaragoza'],
-    [/\balicante\b/i, 'Alicante'],
-    [/\bmurcia\b/i, 'Murcia'],
-    [/\bvalladolid\b/i, 'Valladolid'],
-    [/\bpalma\b|\bmallorca\b|\bbaleares\b/i, 'Illes Balears'],
-    [/\blas palmas\b|\bgran canaria\b/i, 'Las Palmas'],
-    [/\btenerife\b/i, 'Santa Cruz de Tenerife'],
-    [/\bcoru[nñ]a\b/i, 'A Coruña'],
-    [/\bvigo\b|\bpontevedra\b/i, 'Pontevedra'],
-    [/\boviedo\b|\bgij[oó]n\b|\basturias\b/i, 'Asturias'],
-    [/\bsantander\b|\bcantabria\b/i, 'Cantabria'],
-    [/\bpamplona\b|\bnavarra\b/i, 'Navarra'],
-    [/\bdonostia\b|\bsan sebasti[aá]n\b|\bgipuzkoa\b/i, 'Gipuzkoa'],
-    [/\bvitoria\b|\b[aá]lava\b|\baraba\b/i, 'Álava'],
-    [/\bgranada\b/i, 'Granada'],
-    [/\bc[oó]rdoba\b/i, 'Córdoba'],
-    [/\btoledo\b/i, 'Toledo'],
-    [/\bsalamanca\b/i, 'Salamanca'],
-    [/\bbadajoz\b/i, 'Badajoz'],
-    [/\bc[aá]ceres\b/i, 'Cáceres'],
-    [/\bcastell[oó]n\b/i, 'Castellón'],
-    [/\btarragona\b/i, 'Tarragona'],
-    [/\bgirona\b/i, 'Girona'],
-    [/\blleida\b/i, 'Lleida'],
-    [/\balmer[ií]a\b/i, 'Almería'],
-    [/\bc[aá]diz\b/i, 'Cádiz'],
-    [/\bhuelva\b/i, 'Huelva'],
-    [/\bja[eé]n\b/i, 'Jaén'],
-    [/\ble[oó]n\b/i, 'León'],
-    [/\bburgos\b/i, 'Burgos'],
-    [/\blogro[nñ]o\b|\bla rioja\b/i, 'La Rioja'],
-    [/\balbacete\b/i, 'Albacete'],
-    [/\bciudad real\b/i, 'Ciudad Real'],
+  const canonicalCityHubs = new Set(['madrid', 'barcelona', 'valencia', 'malaga', 'sevilla', 'bilbao', 'zaragoza']);
+  const primaryCityName = (job.location || (isEnglish ? 'Spain' : 'España')).split(',')[0].trim();
+  const primaryCitySlug = slugify(primaryCityName);
+  const categoryLabel = detectedTec
+    ? detectedTec.charAt(0).toUpperCase() + detectedTec.slice(1)
+    : (job.category && job.category !== 'General' ? job.category : (isEnglish ? 'Tech' : 'Tecnología'));
+  const categorySlug = detectedTec ? slugify(detectedTec) : slugify(categoryLabel);
+
+  const cityHref = isWorldwide || primaryCitySlug === 'remoto'
+    ? `/trabajo-remoto${queryParam}`
+    : canonicalCityHubs.has(primaryCitySlug)
+      ? `/trabajo-${primaryCitySlug}${queryParam}`
+      : `/trabajos/${categorySlug}-en-${primaryCitySlug}${queryParam}`;
+
+  const breadcrumbItems: Array<{ label: string; href?: string }> = [
+    { label: isEnglish ? 'Home' : 'Inicio', href: isEnglish ? '/?lang=en' : '/' },
+    { label: isEnglish ? 'Jobs' : 'Ofertas', href: `/trabajos/informatica-tecnologia${queryParam}` },
+    { label: categoryLabel, href: `/trabajos/${categorySlug}${queryParam}` },
+    { label: isWorldwide ? (isEnglish ? 'Remote' : 'Remoto') : primaryCityName, href: cityHref },
+    { label: displayTitle },
   ];
-
-  const cleanLocForAddress = job.location || '';
-  const addressRegion = REGION_BY_CITY.find(([regex]) => regex.test(cleanLocForAddress))?.[1];
-
-  const jobLocationObj: any = {
-    '@type': 'Place',
-    address: { 
-      '@type': 'PostalAddress', 
-      addressCountry: countryCode 
-    },
-  };
-
-  if (!isRemote) {
-    jobLocationObj.address.addressLocality = job.location || 'España';
-    if (addressRegion) {
-      jobLocationObj.address.addressRegion = addressRegion;
-    }
-  }
-
-  // companyRating ya obtenido en paralelo arriba (FUNC-038)
-
-  const isDirectNativeJob = Boolean(
-    job.company_email ||
-    job.stripe_session_id ||
-    (job.url_source && String(job.url_source).includes('portalempleoit.com'))
-  );
-
-  const jsonLd: any = {
-    '@context': 'https://schema.org',
-    '@type': 'JobPosting',
-    title: displayTitle,
-    description: textToHtml(displayDesc) || `Oferta de empleo para ${displayTitle} en ${hiringOrgName}`,
-    datePosted: datePosted.toISOString(),
-    validThrough: validThroughDate.toISOString(),
-    hiringOrganization: { 
-      '@type': 'Organization', 
-      name: hiringOrgName,
-      ...(hiringOrgName === 'Portal Trabajo IT' ? { logo: `${BASE_URL}/logo.png` } : {}),
-      ...(companyRating ? {
-        aggregateRating: {
-          '@type': 'AggregateRating',
-          ratingValue: companyRating.ratingValue,
-          reviewCount: companyRating.reviewCount
-        }
-      } : {})
-    },
-    identifier: {
-      '@type': 'PropertyValue',
-      name: hiringOrgName,
-      value: `job-${job.id}`
-    },
-    jobLocation: jobLocationObj,
-    employmentType: employmentTypes,
-    directApply: isDirectNativeJob,
-    industry: "Information Technology",
-    speakable: {
-      '@type': 'SpeakableSpecification',
-      cssSelector: ['h1', '.job-description']
-    }
-  };
-
-  if (tecLabel) {
-    jsonLd.skills = [tecLabel];
-  }
-
-  if (expRequirements) {
-    jsonLd.experienceRequirements = expRequirements;
-  }
-
-  // URL canónica de la oferta (campo requerido por Google para Rich Results)
-  jsonLd.url = `${BASE_URL}/job/${correctSlug}`;
-
-  // Moneda del salario explícita (mejora la precisión del Rich Result de salario)
-  if (baseSalaryObj) {
-    const currency = job.salary_currency || 'EUR';
-    baseSalaryObj.currency = currency;
-    jsonLd.baseSalary = baseSalaryObj;
-  }
-
-  // Beneficios para trabajo remoto (SEO-003: siempre incluir applicantLocationRequirements en TELECOMMUTE)
-  if (isRemote) {
-    jsonLd.jobBenefits = isEnglish
-      ? 'Remote work (telecommute), flexible schedule'
-      : 'Teletrabajo (trabajo remoto), horario flexible';
-    jsonLd.jobLocationType = 'TELECOMMUTE';
-    jsonLd.applicantLocationRequirements = {
-      '@type': 'Country',
-      name: countryCode || 'ES'
-    };
-  }
-
-  // Requisitos formativos inferidos del título
-  const titleForEdu = job.title.toLowerCase();
-  if (
-    titleForEdu.includes('junior') ||
-    titleForEdu.includes('becario') ||
-    titleForEdu.includes('trainee') ||
-    titleForEdu.includes('prácticas')
-  ) {
-    jsonLd.educationRequirements = {
-      '@type': 'EducationalOccupationalCredential',
-      credentialCategory: isEnglish ? 'bachelor degree' : 'grado universitario o FP Superior'
-    };
-  } else if (
-    titleForEdu.includes('senior') ||
-    titleForEdu.includes('lead') ||
-    titleForEdu.includes('architect')
-  ) {
-    jsonLd.educationRequirements = {
-      '@type': 'EducationalOccupationalCredential',
-      credentialCategory: isEnglish ? 'bachelor degree' : 'grado universitario'
-    };
-  }
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
-    itemListElement: [
-      {
-        '@type': 'ListItem',
-        position: 1,
-        name: isEnglish ? 'Home' : 'Inicio',
-        item: isEnglish ? `${BASE_URL}/?lang=en` : BASE_URL
-      },
-      {
-        '@type': 'ListItem',
-        position: 2,
-        name: isEnglish ? 'Jobs' : 'Ofertas',
-        item: isEnglish ? `${BASE_URL}/trabajos/informatica-tecnologia?lang=en` : `${BASE_URL}/trabajos/informatica-tecnologia`
-      },
-      {
-        '@type': 'ListItem',
-        position: 3,
-        name: displayTitle,
-        item: isEnglish ? `${BASE_URL}/job/${correctSlug}?lang=en` : `${BASE_URL}/job/${correctSlug}`
-      }
-    ]
+    itemListElement: breadcrumbItems.map((item, idx) => ({
+      '@type': 'ListItem',
+      position: idx + 1,
+      name: item.label,
+      item: item.href ? `${BASE_URL}${item.href}` : (isEnglish ? `${BASE_URL}/job/${correctSlug}?lang=en` : `${BASE_URL}/job/${correctSlug}`),
+    })),
   };
 
   const faqJsonLd = {
@@ -911,7 +806,9 @@ export default async function JobPage({ params, searchParams }: Props) {
   return (
     <main className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] py-8 md:py-12 px-4 md:px-8">
       <RecentlyViewedTracker job={{ id: job.id, title: displayTitle, company: job.company, location: job.location, salary: job.salary }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(jsonLd) }} />
+      {shouldEmitJobPostingSchema && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(jsonLd) }} />
+      )}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(breadcrumbJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLdString(faqJsonLd) }} />
       {videoJsonLd && (
@@ -919,13 +816,7 @@ export default async function JobPage({ params, searchParams }: Props) {
       )}
 
       <div className="max-w-5xl mx-auto">
-        <Breadcrumbs
-          items={[
-            { label: isEnglish ? 'Home' : 'Inicio', href: isEnglish ? '/?lang=en' : '/' },
-            { label: isEnglish ? 'Jobs' : 'Ofertas', href: isEnglish ? '/trabajos/informatica-tecnologia?lang=en' : '/trabajos/informatica-tecnologia' },
-            { label: displayTitle }
-          ]}
-        />
+        <Breadcrumbs items={breadcrumbItems} />
 
         <div className="flex justify-between items-center mb-6">
           <Link href={isEnglish ? '/?lang=en' : '/'} className="text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] inline-flex items-center gap-1.5 transition-colors">
@@ -939,22 +830,74 @@ export default async function JobPage({ params, searchParams }: Props) {
           {/* Main Content */}
           <div className="lg:col-span-2">
             {isExpired && (
-              <div className="mb-6 p-4 sm:p-5 rounded-xl border border-[var(--border-featured)] bg-[var(--status-amber-tint)] flex items-start gap-3.5">
-                <svg className="w-5 h-5 text-[var(--status-amber)] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <div>
-                  <h4 className="font-semibold text-sm text-[var(--text-primary)]">
-                    {isEnglish
-                      ? 'This job offer has expired'
-                      : 'Esta oferta de empleo ha expirado'}
-                  </h4>
-                  <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
-                    {isEnglish
-                      ? `This vacancy is no longer publicly listed (over 100 days old). Because you saved it, it will remain visible here for ${graceDaysLeft} more day(s) before permanent deletion.`
-                      : `Esta vacante ya no aparece en el buscador público (supera los 100 días). La sigues viendo porque la guardaste; se eliminará definitivamente en ${graceDaysLeft} día(s).`}
-                  </p>
+              <div className="mb-6 space-y-5">
+                <div className="p-4 sm:p-5 rounded-xl border border-[var(--border-featured)] bg-[var(--status-amber-tint)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-start gap-3.5">
+                    <svg className="w-5 h-5 text-[var(--status-amber)] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div>
+                      <h2 className="font-semibold text-sm text-[var(--text-primary)]">
+                        {isEnglish
+                          ? `This ${displayTitle} offer at ${hiringOrgName} has closed`
+                          : `Esta oferta de ${displayTitle} en ${hiringOrgName} ya se ha cerrado`}
+                      </h2>
+                      <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
+                        {isEnglish
+                          ? 'Below you can apply to similar active vacancies available today.'
+                          : 'A continuación tienes vacantes activas similares disponibles hoy para postularte.'}
+                      </p>
+                    </div>
+                  </div>
+                  {(sectorLocationUrl || sectorUrl) && (
+                    <Link
+                      href={sectorLocationUrl || sectorUrl || '/'}
+                      className="shrink-0 ui-btn-press px-4 py-2 bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white text-xs font-semibold rounded-lg text-center transition-colors"
+                    >
+                      {isEnglish
+                        ? `See active ${tecLabel || 'IT'} jobs →`
+                        : `Ver ofertas activas de ${tecLabel || 'IT'} →`}
+                    </Link>
+                  )}
                 </div>
+
+                {similarJobs && similarJobs.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+                      {isEnglish ? 'Active similar positions available today' : 'Ofertas activas similares disponibles hoy'}
+                    </h3>
+                    <div className="grid grid-cols-1 gap-3">
+                      {similarJobs.map((simJob: any) => {
+                        const simSlug = getJobSlug(simJob);
+                        const simUrl = `/job/${simSlug}${queryParam}`;
+                        const displaySimTitle = isEnglish ? simJob.title : (simJob.title_es || simJob.title);
+                        return (
+                          <div key={`expired-top-${simJob.id}`} className="relative group ui-card ui-card-interactive p-4 rounded-xl flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                            <div className="min-w-0 flex-1">
+                              <Link href={simUrl} className="after:absolute after:inset-0 font-semibold text-sm text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors line-clamp-1">
+                                {displaySimTitle}
+                              </Link>
+                              <p className="text-xs text-[var(--text-secondary)] mt-0.5 flex flex-wrap items-center gap-x-2">
+                                <span className="font-medium">{simJob.company}</span>
+                                <span aria-hidden="true">·</span>
+                                <span>{simJob.location}</span>
+                                {simJob.salary && simJob.salary !== 'Consultar' && (
+                                  <>
+                                    <span aria-hidden="true">·</span>
+                                    <span className="font-mono tabular-nums text-[var(--status-emerald)]">{simJob.salary}</span>
+                                  </>
+                                )}
+                              </p>
+                            </div>
+                            <span aria-hidden="true" className="shrink-0 text-xs font-medium text-[var(--accent-primary)]">
+                              {isEnglish ? 'Apply →' : 'Ver oferta →'}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

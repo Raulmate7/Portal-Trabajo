@@ -162,10 +162,10 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     if (isPaged) {
       metadata.title = isEnglish ? `Page ${page} | IT Job Portal` : `Página ${page} | Portal Trabajo IT`;
       metadata.alternates = {
-        canonical: isEnglish ? `${BASE_URL}/?lang=en` : `${BASE_URL}/`,
+        canonical: isEnglish ? `${BASE_URL}/en?page=${page}` : `${BASE_URL}/?page=${page}`,
         languages: {
           'es-ES': `${BASE_URL}/`,
-          'en': `${BASE_URL}/?lang=en`,
+          'en': `${BASE_URL}/en`,
           'x-default': `${BASE_URL}/`,
         },
         types: {

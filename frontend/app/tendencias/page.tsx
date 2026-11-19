@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     url: `${BASE_URL}/tendencias`,
     images: [
       {
-        url: `${BASE_URL}/og-image.png`,
+        url: `${BASE_URL}/tendencias/opengraph-image`,
         width: 1200,
         height: 630,
         alt: 'Tendencias del Mercado Laboral IT en España',
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Tendencias del Mercado Laboral IT en España [2026]',
     description: 'Estadísticas del mercado de empleo tecnológico en España en tiempo real.',
-    images: [`${BASE_URL}/og-image.png`],
+    images: [`${BASE_URL}/tendencias/opengraph-image`],
   }
 };
 
@@ -571,7 +571,7 @@ export default async function TrendsPage() {
                   return (
                     <div key={city.name} className="space-y-1">
                       <div className="flex justify-between items-center text-xs">
-                        <Link href={`/trabajos/informatica-tecnologia-en-${city.slug}`} className="font-bold text-indigo-650 hover:underline">
+                        <Link href={`/trabajo-${city.slug}`} className="font-bold text-indigo-650 hover:underline">
                           {city.name}
                         </Link>
                         <span className="text-gray-500 font-medium">{city.count.toLocaleString('es-ES')} vacantes</span>

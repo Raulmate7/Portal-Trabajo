@@ -11,6 +11,7 @@ import { cache } from "react";
 import { BASE_URL , safeJsonLdString } from "@/lib/constants";
 import { getJobSlug, slugify } from "@/lib/slug";
 import StickyDesktopAd from "@/components/StickyDesktopAd";
+import { getIndexableSectorSlugsSet } from "@/lib/seoInsights";
 
 export const revalidate = 900; // Cache de 15 minutos (ISR)
 
@@ -1023,7 +1024,7 @@ export default async function SectorPage({
 
   const stats = calculateStats(jobs);
 
-  const relatedLinks: { label: string, href: string }[] = [];
+  const rawRelatedLinks: { label: string, href: string }[] = [];
   const tLabel = displayNameMapUsed[tec] || tec.charAt(0).toUpperCase() + tec.slice(1);
 
   if (ciudad) {
@@ -1033,24 +1034,24 @@ export default async function SectorPage({
     const tecsToUse = ['react', 'node', 'python', 'java', 'backend', 'frontend', 'data', 'cloud', 'mobile'].filter(t => t !== tec).slice(0, 5);
     for (const t of tecsToUse) {
       const otherTLabel = displayNameMapUsed[t] || t.charAt(0).toUpperCase() + t.slice(1);
-      relatedLinks.push({
+      rawRelatedLinks.push({
         label: isEnglish ? `${otherTLabel} in ${cLabel}` : `${otherTLabel} en ${cLabel}`,
         href: ciudad === 'remoto' ? `/trabajos/${t}-remoto${queryParam}` : `/trabajos/${t}-en-${ciudad.replace(/\s+/g, '-')}${queryParam}`
       });
     }
 
     // 2. Experiencia en esta misma ciudad (2 enlaces)
-    relatedLinks.push({
+    rawRelatedLinks.push({
       label: isEnglish ? `Junior ${tLabel} in ${cLabel}` : `${tLabel} Junior en ${cLabel}`,
       href: `/trabajos/${tec}-junior-en-${ciudad.replace(/\s+/g, '-')}${queryParam}`
     });
-    relatedLinks.push({
+    rawRelatedLinks.push({
       label: isEnglish ? `Senior ${tLabel} in ${cLabel}` : `${tLabel} Senior en ${cLabel}`,
       href: `/trabajos/${tec}-senior-en-${ciudad.replace(/\s+/g, '-')}${queryParam}`
     });
 
     // 3. Modalidad en esta misma ciudad (1 enlace)
-    relatedLinks.push({
+    rawRelatedLinks.push({
       label: isEnglish ? `Hybrid ${tLabel} in ${cLabel}` : `${tLabel} Híbrido en ${cLabel}`,
       href: `/trabajos/${tec}-hibrido-en-${ciudad.replace(/\s+/g, '-')}${queryParam}`
     });
@@ -1059,7 +1060,7 @@ export default async function SectorPage({
     const citiesToUse = ['madrid', 'barcelona', 'valencia', 'sevilla', 'malaga'].filter(c => c !== ciudad.toLowerCase()).slice(0, 4);
     for (const c of citiesToUse) {
       const otherCLabel = c.charAt(0).toUpperCase() + c.slice(1);
-      relatedLinks.push({
+      rawRelatedLinks.push({
         label: isEnglish ? `${tLabel} in ${otherCLabel}` : `${tLabel} en ${otherCLabel}`,
         href: `/trabajos/${tec}-en-${c}${queryParam}`
       });
@@ -1070,24 +1071,24 @@ export default async function SectorPage({
     const citiesToUse = ['remoto', 'madrid', 'barcelona', 'valencia', 'sevilla', 'malaga'];
     for (const c of citiesToUse) {
       const otherCLabel = c.charAt(0).toUpperCase() + c.slice(1);
-      relatedLinks.push({
+      rawRelatedLinks.push({
         label: isEnglish ? `${tLabel} in ${otherCLabel}` : `${tLabel} en ${otherCLabel}`,
         href: c === 'remoto' ? `/trabajos/${tec}-remoto${queryParam}` : `/trabajos/${tec}-en-${c}${queryParam}`
       });
     }
 
     // 2. Por experiencia (2 enlaces)
-    relatedLinks.push({
+    rawRelatedLinks.push({
       label: isEnglish ? `Junior ${tLabel}` : `${tLabel} Junior`,
       href: `/trabajos/${tec}-junior${queryParam}`
     });
-    relatedLinks.push({
+    rawRelatedLinks.push({
       label: isEnglish ? `Senior ${tLabel}` : `${tLabel} Senior`,
       href: `/trabajos/${tec}-senior${queryParam}`
     });
 
     // 3. Por modalidad híbrida (1 enlace)
-    relatedLinks.push({
+    rawRelatedLinks.push({
       label: isEnglish ? `Hybrid ${tLabel}` : `${tLabel} Híbrido`,
       href: `/trabajos/${tec}-hibrido${queryParam}`
     });
@@ -1101,12 +1102,24 @@ export default async function SectorPage({
     
     for (const t of relatedTecs) {
       const otherTLabel = displayNameMapUsed[t] || t.charAt(0).toUpperCase() + t.slice(1);
-      relatedLinks.push({
+      rawRelatedLinks.push({
         label: isEnglish ? `${otherTLabel} Jobs` : `Trabajo de ${otherTLabel}`,
         href: `/trabajos/${t}${queryParam}`
       });
     }
   }
+
+  // Filtrar relatedLinks contra seo_category_metrics para no pasar PageRank a landings thin/noindex
+  const candidateSlugs = rawRelatedLinks.map((l) =>
+    l.href.replace(/^\/trabajos\//, '').split('?')[0].toLowerCase()
+  );
+  const indexableSet = await getIndexableSectorSlugsSet(candidateSlugs);
+  const relatedLinks = indexableSet
+    ? rawRelatedLinks.filter((l) => {
+        const s = l.href.replace(/^\/trabajos\//, '').split('?')[0].toLowerCase();
+        return indexableSet.has(s);
+      })
+    : rawRelatedLinks;
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',

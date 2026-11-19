@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { BASE_URL , safeJsonLdString } from '@/lib/constants';
+import { COMPARE_LABELS as labelMap, COMPARE_CITY_KEYS as CITY_KEYS, ALL_COMPARE_SLUGS } from '@/lib/comparar';
 
 export const revalidate = 86400; // Cache 24h (ISR)
 
@@ -11,132 +12,8 @@ type Props = {
   params: Promise<{ slug: string }>;
 };
 
-const labelMap: Record<string, string> = {
-  'react': 'React',
-  'angular': 'Angular',
-  'vue': 'Vue',
-  'node': 'Node.js',
-  'python': 'Python',
-  'java': 'Java',
-  'php': 'PHP',
-  'csharp': 'C# / .NET',
-  'go': 'Go',
-  'rust': 'Rust',
-  'aws': 'AWS',
-  'azure': 'Azure',
-  'gcp': 'Google Cloud',
-  'kubernetes': 'Kubernetes',
-  'typescript': 'TypeScript',
-  'javascript': 'JavaScript',
-  'flutter': 'Flutter',
-  'kotlin': 'Kotlin',
-  'swift': 'Swift',
-  'sql': 'SQL',
-  'docker': 'Docker',
-  'podman': 'Podman',
-  'nextjs': 'Next.js',
-  'nuxt': 'Nuxt',
-  'postgresql': 'PostgreSQL',
-  'mysql': 'MySQL',
-  'mongodb': 'MongoDB',
-  'redis': 'Redis',
-  'memcached': 'Memcached',
-  'kafka': 'Apache Kafka',
-  'rabbitmq': 'RabbitMQ',
-  'fastapi': 'FastAPI',
-  'flask': 'Flask',
-  'django': 'Django',
-  'spring-boot': 'Spring Boot',
-  'express': 'Express',
-  'vite': 'Vite',
-  'webpack': 'Webpack',
-  'graphql': 'GraphQL',
-  'rest': 'REST API',
-  'ansible': 'Ansible',
-  'devops': 'DevOps',
-  'sre': 'SRE',
-  'react-native': 'React Native',
-  'net': '.NET Core',
-  'ruby': 'Ruby',
-  'scala': 'Scala',
-  'elixir': 'Elixir',
-  'salesforce': 'Salesforce',
-  'cybersecurity': 'Ciberseguridad',
-  'terraform': 'Terraform',
-  'cobol': 'COBOL',
-  // Ciudades
-  'madrid': 'Madrid',
-  'barcelona': 'Barcelona',
-  'valencia': 'Valencia',
-  'malaga': 'Málaga',
-  'bilbao': 'Bilbao',
-  'sevilla': 'Sevilla',
-  'remoto': 'Remoto'
-};
-
-const CITY_KEYS = new Set(['madrid', 'barcelona', 'valencia', 'malaga', 'bilbao', 'sevilla', 'remoto']);
-
 export async function generateStaticParams() {
-  const comparativas = [
-    'react-vs-angular',
-    'vue-vs-react',
-    'python-vs-java',
-    'javascript-vs-typescript',
-    'node-vs-python',
-    'go-vs-rust',
-    'aws-vs-kubernetes',
-    'python-vs-go',
-    'kotlin-vs-swift',
-    'php-vs-node',
-    'csharp-vs-java',
-    'vue-vs-angular',
-    'docker-vs-kubernetes',
-    'react-vs-vue',
-    'typescript-vs-javascript',
-    'node-vs-go',
-    'python-vs-rust',
-    'aws-vs-azure',
-    'devops-vs-sre',
-    'terraform-vs-ansible',
-    'react-native-vs-flutter',
-    'flutter-vs-react-native',
-    'java-vs-kotlin',
-    'php-vs-laravel',
-    'sql-vs-nosql',
-    'mysql-vs-postgresql',
-    'mongodb-vs-postgresql',
-    'scrum-vs-kanban',
-    'nextjs-vs-react',
-    'angular-vs-react',
-    'java-vs-spring-boot',
-    'csharp-vs-net',
-    'rust-vs-go',
-    'elixir-vs-ruby',
-    'scala-vs-java',
-    'aws-vs-terraform',
-    // Nuevas comparativas P1
-    'python-vs-javascript',
-    'docker-vs-podman',
-    'nextjs-vs-nuxt',
-    'postgresql-vs-mysql',
-    'graphql-vs-rest',
-    'kafka-vs-rabbitmq',
-    'fastapi-vs-flask',
-    'spring-boot-vs-express',
-    'vite-vs-webpack',
-    'redis-vs-memcached',
-    'django-vs-fastapi',
-    // Comparativas de Ciudades
-    'madrid-vs-barcelona',
-    'valencia-vs-malaga',
-    'madrid-vs-remoto',
-    'barcelona-vs-sevilla',
-    'bilbao-vs-madrid',
-    'malaga-vs-barcelona',
-    'valencia-vs-madrid',
-    'barcelona-vs-remoto'
-  ];
-  return comparativas.map(slug => ({ slug }));
+  return ALL_COMPARE_SLUGS.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -148,6 +25,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   
   const tech1 = labelMap[parts[0]] || (parts[0].charAt(0).toUpperCase() + parts[0].slice(1));
   const tech2 = labelMap[parts[1]] || (parts[1].charAt(0).toUpperCase() + parts[1].slice(1));
+
+  const ogImageUrl = `${BASE_URL}/comparar/${slug}/opengraph-image`;
 
   return {
     title: `Comparativa ${tech1} vs ${tech2} [2026] | ¿Cuál elegir para trabajar?`,
@@ -161,7 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       url: `${BASE_URL}/comparar/${slug}`,
       images: [
         {
-          url: `${BASE_URL}/og-image.png`,
+          url: ogImageUrl,
           width: 1200,
           height: 630,
           alt: `Comparativa ${tech1} vs ${tech2} — Portal Trabajo IT`,
@@ -172,7 +51,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       card: 'summary_large_image',
       title: `Comparativa ${tech1} vs ${tech2} [2026] | Salarios y Empleo`,
       description: `Comparamos sueldos y vacantes de ${tech1} vs ${tech2} en España.`,
-      images: [`${BASE_URL}/og-image.png`],
+      images: [ogImageUrl],
     }
   };
 }

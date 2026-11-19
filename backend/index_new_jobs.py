@@ -3,7 +3,7 @@ import requests
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from db_helper import get_db_connection
-from logic.slug import get_job_slug
+from logic.slug import get_job_slug, slugify
 
 load_dotenv()
 
@@ -32,14 +32,14 @@ def index_new_jobs():
 
     try:
         cur.execute("""
-            SELECT id, title, title_es, location, company
+            SELECT id, title, title_es, location, company, category
             FROM jobs
             WHERE is_active = TRUE
               AND (
                 created_at > %s
                 OR (google_indexed_at IS NULL AND created_at > %s)
               )
-            ORDER BY is_featured DESC, (salary_min IS NOT NULL) DESC, created_at DESC
+            ORDER BY is_featured DESC, (company_email IS NOT NULL) DESC, (salary_min IS NOT NULL) DESC, created_at DESC
             LIMIT 180
         """, (nine_hours_ago, forty_eight_hours_ago))
         jobs = cur.fetchall()
@@ -62,12 +62,29 @@ def index_new_jobs():
 
     success_count = 0
     error_count = 0
-    url_list = []
+    indexnow_urls = []
+    seen_urls = set()
+
+    def _add_indexnow(u: str):
+        if u and u not in seen_urls:
+            seen_urls.add(u)
+            indexnow_urls.append(u)
+
+    # Pre-construir URLs para IndexNow (ofertas + hubs afectados + tendencias/news)
+    for job in jobs:
+        job_id, title, title_es, location, company, category = job
+        _add_indexnow(f"{frontend_url}/job/{get_job_slug(job_id, title, location=location, company=company, title_es=title_es)}")
+        if company:
+            _add_indexnow(f"{frontend_url}/empresas/{slugify(company)}")
+        if category:
+            _add_indexnow(f"{frontend_url}/empleos/{slugify(category)}")
+
+    _add_indexnow(f"{frontend_url}/tendencias")
+    _add_indexnow(f"{frontend_url}/sitemap-news.xml")
 
     for job in jobs:
-        job_id, title, title_es, location, company = job
+        job_id, title, title_es, location, company, _category = job
         job_url = f"{frontend_url}/job/{get_job_slug(job_id, title, location=location, company=company, title_es=title_es)}"
-        url_list.append(job_url)
         payload = {
             "url": job_url,
             "type": "URL_UPDATED"
@@ -104,10 +121,10 @@ def index_new_jobs():
     print(f"\n🎉 Google Indexing completado: {success_count} indexados, {error_count} fallidos.")
 
     # 4. Enviar a IndexNow (Bing/Yandex) en lote usando INDEXNOW_KEY de entorno (SEC-047)
-    if url_list:
-        print(f"\n🚀 Enviando {len(url_list)} URLs a IndexNow (Bing/Yandex)...")
+    if indexnow_urls:
+        print(f"\n🚀 Enviando {len(indexnow_urls)} URLs a IndexNow (Bing/Yandex)...")
         from logic.indexnow import submit_urls_to_indexnow
-        submit_urls_to_indexnow(url_list, frontend_url, timeout=10)
+        submit_urls_to_indexnow(indexnow_urls, frontend_url, timeout=10)
 
 if __name__ == "__main__":
     index_new_jobs()

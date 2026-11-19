@@ -1,6 +1,7 @@
 import pool from '@/lib/db';
 import { BASE_URL } from '@/lib/constants';
 import { BLOG_POSTS } from '@/lib/blog';
+import { INTERVIEW_TECHS } from '@/lib/entrevistas';
 import { getJobSlug, slugify } from '@/lib/slug';
 
 export const dynamic = 'force-dynamic';
@@ -44,11 +45,11 @@ export async function GET() {
     `);
     const companies = compRes.rows;
 
-    // 3. Construir nodos con imágenes estáticas verificadas (evitando endpoints dinámicos /opengraph-image, SEO-023)
+    // 3. Construir nodos con Open Graph específico por oferta
     const urlNodes = jobs.map((job: any) => {
       const jobSlug = getJobSlug(job);
       const jobUrl = `${BASE_URL}/job/${jobSlug}`;
-      const imageUrl = `${BASE_URL}/og-image.png`;
+      const imageUrl = `${BASE_URL}/job/${jobSlug}/opengraph-image`;
       const titleText = escapeXml(`${job.title} en ${job.company}`);
 
       return `
@@ -111,14 +112,13 @@ export async function GET() {
   </url>`;
     }).join('');
 
-    // 7. Construir nodos para entrevistas y glosario
-    const INTERVIEW_SLUGS = ['react', 'python', 'java', 'typescript', 'node', 'aws', 'docker', 'angular', 'vue', 'php', 'go', 'sql', 'csharp'];
-    const interviewNodes = INTERVIEW_SLUGS.map((tech) => `
+    // 7. Construir nodos para entrevistas
+    const interviewNodes = INTERVIEW_TECHS.map((t) => `
   <url>
-    <loc>${BASE_URL}/entrevistas/${tech}</loc>
+    <loc>${BASE_URL}/entrevistas/${t.slug}</loc>
     <image:image>
-      <image:loc>${BASE_URL}/entrevistas/${tech}/opengraph-image</image:loc>
-      <image:title>${escapeXml(`Preguntas de Entrevista ${tech.toUpperCase()}`)}</image:title>
+      <image:loc>${BASE_URL}/entrevistas/${t.slug}/opengraph-image</image:loc>
+      <image:title>${escapeXml(`Preguntas de Entrevista ${t.name}`)}</image:title>
     </image:image>
   </url>`).join('');
 

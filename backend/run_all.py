@@ -127,25 +127,27 @@ exit_code = run_cmd([python_bin, "bluesky_bot.py"])
 if exit_code != 0:
     print("⚠️ Advertencia: Bluesky bot terminó con errores.")
 
-# 5. Indexar en Google
-print("\n[5/7] 🔍 Enviando nuevas ofertas a Google Indexing API (index_new_jobs.py)...")
+# 5. Indexar en Google y Bing/Seznam (IndexNow)
+print("\n[5/7] 🔍 Enviando nuevas ofertas a Google Indexing API e IndexNow (index_new_jobs.py)...")
 exit_code = run_cmd([python_bin, "index_new_jobs.py"])
 if exit_code != 0:
     print("⚠️ Advertencia: El script de indexación terminó con errores.")
-
-# 5.1 Indexar en Bing y Seznam mediante IndexNow
-print("\n[5.1/7] 🚀 Enviando URLs a IndexNow (index_now.py)...")
-run_cmd([python_bin, "index_now.py"])
 
 # 5.6 Auditoría de Indexación y Search Console
 print("\n[5.6/7] 🔍 Auditando salud de indexación (monitor_search_console.py)...")
 run_cmd([python_bin, "monitor_search_console.py"])
 
-# 6. Desactivar y Desindexar ofertas expiradas (>30 días)
+# 6. Desactivar y Desindexar ofertas expiradas (>45 días)
 print("\n[6/7] 🧹 Limpiando y desindexando ofertas expiradas (deactivate_expired_jobs.py)...")
 exit_code = run_cmd([python_bin, "deactivate_expired_jobs.py"])
 if exit_code != 0:
     print("⚠️ Advertencia: El script de limpieza de expirados terminó con errores.")
+
+# 6.1 Recalcular métricas SEO programáticas (seo_category_metrics)
+print("\n[6.1/7] 📊 Recalculando métricas pSEO (build_seo_metrics.py)...")
+exit_code = run_cmd([python_bin, "build_seo_metrics.py"])
+if exit_code != 0:
+    print("⚠️ Advertencia: El script de métricas pSEO terminó con errores.")
 
 # 7. Enviar Alertas Personalizadas por Email
 print("\n[7/7] 📧 Enviando alertas personalizadas de empleo (send_custom_alerts.py)...")

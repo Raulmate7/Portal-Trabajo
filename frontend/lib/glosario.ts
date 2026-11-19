@@ -1436,3 +1436,69 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   }
 ];
 
+type CompactGlossarySeed = [
+  term: string,
+  slug: string,
+  definition: string,
+  relevance: string,
+  jobsSlug: string,
+  salariesSlug: string
+];
+
+const EXTRA_GLOSSARY_SEEDS: CompactGlossarySeed[] = [
+  ['RAG (Retrieval-Augmented Generation)', 'rag', 'Arquitectura de IA que combina recuperación semántica de documentos con generación de lenguaje en un LLM.', 'Estándar empresarial para reducir alucinaciones en chatbots y asistentes corporativos.', 'data', 'python'],
+  ['MCP (Model Context Protocol)', 'mcp', 'Protocolo abierto para conectar modelos de IA con herramientas, bases de datos y fuentes de contexto externas.', 'Clave en el desarrollo de agentes autónomos e integraciones LLM.', 'data', 'python'],
+  ['Vector Database', 'vector-database', 'Base de datos optimizada para almacenar y buscar embeddings vectoriales por similitud semántica.', 'Infraestructura base para búsqueda semántica y sistemas RAG.', 'data', 'python'],
+  ['Embeddings', 'embeddings', 'Representaciones numéricas densas de texto, imágenes o audio que capturan su significado semántico.', 'Permiten clustering, recomendación y búsqueda por significado.', 'data', 'python'],
+  ['Fine-Tuning', 'fine-tuning', 'Proceso de reentrenamiento ligero de un modelo preentrenado con un dataset específico de dominio.', 'Usado para adaptar tono, formato o tareas especializadas en IA.', 'data', 'python'],
+  ['LoRA (Low-Rank Adaptation)', 'lora', 'Técnica de ajuste eficiente de parámetros que entrena matrices pequeñas sin modificar todo el modelo base.', 'Reduce drásticamente el coste de GPU al personalizar LLMs.', 'data', 'python'],
+  ['Quantization', 'quantization', 'Reducción de precisión numérica de pesos neuronales (ej. FP16 a INT4) para acelerar inferencia y ahorrar VRAM.', 'Esencial para desplegar modelos locales y en edge.', 'data', 'python'],
+  ['Prompt Injection', 'prompt-injection', 'Vulnerabilidad en aplicaciones LLM donde entradas maliciosas alteran las instrucciones originales del sistema.', 'Vector crítico en auditorías de seguridad de IA (OWASP LLM Top 10).', 'cybersecurity', 'cybersecurity'],
+  ['Agentic AI', 'agentic-ai', 'Sistemas basados en LLMs capaces de planificar pasos, usar herramientas externas y verificar resultados.', 'Tendencia principal en automatización de software y flujos empresariales.', 'data', 'python'],
+  ['OpenTelemetry', 'opentelemetry', 'Estándar open-source unificado para recolectar trazas, métricas y logs de aplicaciones distribuidas.', 'Estándar de facto en observabilidad cloud-native.', 'cloud', 'aws'],
+  ['FinOps', 'finops', 'Disciplina cultural y operativa que une ingeniería, finanzas y negocio para optimizar el gasto en la nube.', 'Muy demandado en arquitectos Cloud y Platform Engineers.', 'cloud', 'aws'],
+  ['Platform Engineering', 'platform-engineering', 'Disciplina enfocada en construir Plataformas Internas de Desarrollo (IDP) autoservicio para equipos de producto.', 'Evolución natural de DevOps en organizaciones medianas y grandes.', 'cloud', 'docker'],
+  ['IDP (Internal Developer Platform)', 'internal-developer-platform', 'Portal y capa de automatización que ofrece plantillas, CI/CD y entornos listos para usar a desarrolladores.', 'Reduce la carga cognitiva y acelera el time-to-market.', 'cloud', 'docker'],
+  ['Zero Trust Architecture', 'zero-trust', 'Modelo de seguridad que asume cero confianza implícita y verifica cada identidad, dispositivo y petición.', 'Obligatorio en infraestructuras cloud y trabajo remoto.', 'cybersecurity', 'cybersecurity'],
+  ['Passkeys (WebAuthn / FIDO2)', 'passkeys', 'Credenciales criptográficas sin contraseña basadas en biometría o llaves de hardware resistentes a phishing.', 'Estándar moderno de autenticación web y móvil.', 'cybersecurity', 'typescript'],
+  ['eBPF', 'ebpf', 'Tecnología del kernel Linux que permite ejecutar programas sandboxed para observabilidad, red y seguridad sin módulos kernel.', 'Base de herramientas modernas como Cilium, Falco y Pixie.', 'cloud', 'go'],
+  ['WebAssembly (Wasm)', 'webassembly', 'Formato binario portable que ejecuta código a velocidad casi nativa en navegadores y runtimes edge/servidor.', 'Usado en computación edge, plugins seguros y apps web pesadas.', 'frontend', 'rust'],
+  ['Server Actions', 'server-actions', 'Funciones asíncronas ejecutadas directamente en el servidor e invocables desde componentes React/Next.js.', 'Simplifican mutaciones y formularios sin crear endpoints REST manuales.', 'react', 'react'],
+  ['React Server Components (RSC)', 'react-server-components', 'Componentes React que se renderizan exclusivamente en servidor sin enviar su JavaScript al navegador.', 'Reducen el bundle JS y mejoran Core Web Vitals (LCP/INP).', 'react', 'react'],
+  ['Hydration', 'hydration', 'Proceso en el que el navegador adjunta interactividad y event listeners al HTML pre-renderizado por SSR.', 'Concepto clave para optimizar rendimiento en React, Vue y Next.js.', 'frontend', 'javascript'],
+  ['Streaming SSR', 'streaming-ssr', 'Envío progresivo de fragmentos HTML desde el servidor conforme se resuelven los datos con Suspense.', 'Mejora el TTFB percibido en aplicaciones web dinámicas.', 'react', 'react'],
+  ['Core Web Vitals', 'core-web-vitals', 'Conjunto de métricas de Google (LCP, INP, CLS) que miden carga, interactividad y estabilidad visual.', 'Factor directo de SEO técnico y experiencia de usuario.', 'frontend', 'react'],
+  ['INP (Interaction to Next Paint)', 'inp', 'Métrica Core Web Vital que evalúa la latencia de respuesta visual ante interacciones del usuario.', 'Sustituyó a FID como indicador oficial de responsividad en Google.', 'frontend', 'javascript'],
+  ['Apache Iceberg', 'apache-iceberg', 'Formato de tabla abierto para data lakes de gran escala con transacciones ACID, time-travel y evolución de esquema.', 'Estándar moderno en arquitecturas Data Lakehouse.', 'data', 'python'],
+  ['Data Lakehouse', 'data-lakehouse', 'Arquitectura que combina el almacenamiento económico de un Data Lake con las capacidades ACID y SQL de un Data Warehouse.', 'Modelo dominante en Databricks, BigQuery BigLake y Snowflake.', 'data', 'sql'],
+  ['Feature Store', 'feature-store', 'Repositorio centralizado para almacenar, versionar y servir características (features) en entrenamiento e inferencia ML.', 'Evita el training-serving skew en equipos de Machine Learning.', 'data', 'python'],
+  ['Vector Indexing (HNSW)', 'hnsw', 'Algoritmo de grafos navegables jerárquicos para búsqueda aproximada de vecinos más cercanos en alta dimensión.', 'Motor de velocidad en bases vectoriales como pgvector, Qdrant o Milvus.', 'data', 'python'],
+  ['Semantic Caching', 'semantic-caching', 'Caché que reutiliza respuestas de LLMs cuando una nueva consulta tiene alta similitud vectorial con otra previa.', 'Reduce latencia y costes de tokens hasta un 60%.', 'data', 'python'],
+  ['SBOM (Software Bill of Materials)', 'sbom', 'Inventario formal y estructurado de todas las dependencias y componentes de un software.', 'Requisito creciente de cumplimiento y seguridad en cadena de suministro.', 'cybersecurity', 'docker'],
+  ['SIEM', 'siem', 'Sistema que centraliza, correlaciona y analiza logs de seguridad en tiempo real para detectar incidentes.', 'Herramienta diaria en equipos SOC y Blue Team.', 'cybersecurity', 'cybersecurity'],
+  ['SOAR', 'soar', 'Plataforma que automatiza la respuesta a incidentes de seguridad mediante playbooks orquestados.', 'Complementa al SIEM reduciendo el tiempo medio de contención.', 'cybersecurity', 'cybersecurity'],
+  ['Idempotency Key', 'idempotency-key', 'Identificador único enviado en peticiones API para garantizar que reintentos no dupliquen efectos secundarios.', 'Imprescindible en pasarelas de pago, webhooks y sistemas distribuidos.', 'backend', 'node'],
+  ['Outbox Pattern', 'outbox-pattern', 'Patrón transaccional que guarda eventos en una tabla local junto al cambio de estado antes de publicarlos a un broker.', 'Garantiza consistencia eventual sin transacciones distribuidas 2PC.', 'backend', 'java'],
+  ['Saga Pattern', 'saga-pattern', 'Patrón para coordinar transacciones distribuidas mediante pasos locales y acciones compensatorias si alguno falla.', 'Esencial en arquitecturas de microservicios desacoplados.', 'backend', 'java'],
+  ['Circuit Breaker', 'circuit-breaker', 'Patrón de resiliencia que corta temporalmente llamadas a un servicio degradado para evitar fallos en cascada.', 'Estándar en microservicios junto a retries con jitter.', 'backend', 'go'],
+  ['Backpressure', 'backpressure', 'Mecanismo por el cual un consumidor lento señala al productor que reduzca la tasa de envío de datos.', 'Crítico en streaming reactivo, colas y pipelines de datos.', 'backend', 'go'],
+  ['Keyset Pagination', 'keyset-pagination', 'Paginación basada en cursores del último registro visto en lugar de OFFSET, manteniendo rendimiento O(1) indexado.', 'Obligatoria en tablas de millones de registros.', 'backend', 'sql'],
+  ['Covering Index', 'covering-index', 'Índice que incluye todas las columnas requeridas por una consulta para resolverla sin leer la tabla principal.', 'Optimización SQL de alto impacto para consultas frecuentes.', 'backend', 'sql'],
+  ['Blue-Green Deployment', 'blue-green-deployment', 'Estrategia de despliegue con dos entornos idénticos donde el tráfico conmuta instantáneamente tras validar la nueva versión.', 'Minimiza downtime y permite rollback inmediato.', 'cloud', 'aws'],
+  ['Canary Release', 'canary-release', 'Despliegue progresivo de una nueva versión a un porcentaje pequeño de usuarios antes de extenderla al 100%.', 'Reduce el radio de impacto ante regresiones en producción.', 'cloud', 'docker'],
+];
+
+for (const [term, slug, definition, relevance, linkedJobsSlug, linkedSalariesSlug] of EXTRA_GLOSSARY_SEEDS) {
+  if (!GLOSSARY_TERMS.some((t) => t.slug === slug)) {
+    GLOSSARY_TERMS.push({
+      term,
+      slug,
+      letter: term.charAt(0).toUpperCase(),
+      definition,
+      relevance,
+      linkedJobsSlug,
+      linkedSalariesSlug,
+    });
+  }
+}
+

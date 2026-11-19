@@ -45,8 +45,8 @@ def deactivate_expired_jobs():
         print(f"❌ Error al expirar estado destacado en base de datos: {e}")
         conn.rollback()
 
-    # 3. Buscar ofertas que llevan activas más de 100 días (BUG-015: límite alineado con Google Indexing API para no dejar huérfanas)
-    expiration_limit = datetime.now() - timedelta(days=100)
+    # 3. Buscar ofertas que llevan activas más de 45 días (ventana óptima para Google for Jobs + 30d de recirculación)
+    expiration_limit = datetime.now() - timedelta(days=45)
 
     try:
         cur.execute("""
@@ -73,7 +73,7 @@ def deactivate_expired_jobs():
             placeholders = ', '.join(['%s'] * len(expired_ids))
             cur.execute(f"""
                 UPDATE jobs
-                SET is_active = 0
+                SET is_active = 0, expired_at = COALESCE(expired_at, NOW())
                 WHERE id IN ({placeholders})
             """, tuple(expired_ids))
             conn.commit()
@@ -198,32 +198,69 @@ def deactivate_expired_jobs():
         except Exception as dl_err:
             print(f"⚠️ Dead-link checker omitido: {dl_err}")
 
-        # B. Purga por ciclo de vida (100 días + 10 días de gracia si algún usuario la tiene guardada)
-        purge_100d = datetime.now() - timedelta(days=100)
-        purge_110d = datetime.now() - timedelta(days=110)
+        # B. Purga por ciclo de vida (solo tras 30 días de recirculación inactiva después de expirar)
+        recirculation_cutoff = datetime.now() - timedelta(days=30)
+        grace_recirculation_cutoff = datetime.now() - timedelta(days=40)
+
+        # Registrar tombstones (301 para ofertas con tracción, 410 para el resto) antes de purgar
+        try:
+            cur.execute("""
+                SELECT id, category, normalized_city, company, impressions_count, clicks_count
+                FROM jobs
+                WHERE is_active = 0
+                  AND COALESCE(expired_at, updated_at) < %s
+                  AND (is_featured = 0 OR is_featured IS NULL)
+                LIMIT 500
+            """, (recirculation_cutoff,))
+            tomb_rows = cur.fetchall()
+            if tomb_rows:
+                tomb_inserts = []
+                for j_id, j_cat, j_city, j_comp, imp_cnt, clk_cnt in tomb_rows:
+                    has_equity = (imp_cnt or 0) >= 500 or (clk_cnt or 0) >= 50
+                    if has_equity:
+                        cat_slug = re.sub(r'[^a-z0-9]+', '-', (j_cat or 'informatica-tecnologia').lower()).strip('-') or 'informatica-tecnologia'
+                        if j_city == 'remoto':
+                            redir = f"/trabajos/{cat_slug}-remoto"
+                        elif j_city:
+                            redir = f"/trabajos/{cat_slug}-en-{j_city}"
+                        else:
+                            redir = f"/trabajos/{cat_slug}"
+                        tomb_inserts.append((str(j_id), '301', redir))
+                    else:
+                        tomb_inserts.append((str(j_id), '410', None))
+                cur.executemany("""
+                    INSERT IGNORE INTO expired_jobs_tombstones (job_id, action, redirect_path)
+                    VALUES (%s, %s, %s)
+                """, tomb_inserts)
+                conn.commit()
+        except Exception as tomb_err:
+            print(f"⚠️ Registro de tombstones omitido: {tomb_err}")
+            conn.rollback()
 
         cur.execute("SHOW TABLES LIKE 'user_saved_jobs'")
         has_saved_table = cur.fetchone() is not None
 
         if has_saved_table:
-            # 1) Eliminar ofertas >= 100 días que NINGÚN usuario tenga guardadas
+            # 1) Eliminar ofertas inactivas con >= 30 días de recirculación que NINGÚN usuario tenga guardadas
             cur.execute("""
                 DELETE FROM jobs
-                WHERE created_at < %s
+                WHERE is_active = 0
+                  AND updated_at < %s
                   AND (is_featured = 0 OR is_featured IS NULL)
                   AND NOT EXISTS (
                       SELECT 1 FROM user_saved_jobs usj
                       WHERE usj.job_id = CAST(jobs.id AS CHAR)
                   )
-            """, (purge_100d,))
+            """, (recirculation_cutoff,))
             deleted_unsaved = cur.rowcount
 
-            # 2) Eliminar ofertas >= 110 días (100 días + 10 días de gracia) aunque estuvieran guardadas
+            # 2) Eliminar ofertas inactivas con >= 40 días de recirculación aunque estuvieran guardadas
             cur.execute("""
                 DELETE FROM jobs
-                WHERE created_at < %s
+                WHERE is_active = 0
+                  AND updated_at < %s
                   AND (is_featured = 0 OR is_featured IS NULL)
-            """, (purge_110d,))
+            """, (grace_recirculation_cutoff,))
             deleted_grace = cur.rowcount
 
             # 3) Limpiar referencias huérfanas en user_saved_jobs
@@ -234,16 +271,17 @@ def deactivate_expired_jobs():
             """)
             deleted_refs = cur.rowcount
             conn.commit()
-            print(f"🗑️ Purga BD: {deleted_unsaved} sin guardar (>100d), {deleted_grace} fin de gracia (>110d), {deleted_refs} refs guardadas limpiadas.")
+            print(f"🗑️ Purga BD: {deleted_unsaved} sin guardar (>30d inactivas), {deleted_grace} fin de gracia (>40d inactivas), {deleted_refs} refs guardadas limpiadas.")
         else:
             cur.execute("""
                 DELETE FROM jobs
-                WHERE created_at < %s
+                WHERE is_active = 0
+                  AND updated_at < %s
                   AND (is_featured = 0 OR is_featured IS NULL)
-            """, (purge_100d,))
+            """, (recirculation_cutoff,))
             conn.commit()
             deleted_rows = cur.rowcount
-            print(f"🗑️ Purga BD: Se eliminaron {deleted_rows} ofertas con más de 100 días.")
+            print(f"🗑️ Purga BD: Se eliminaron {deleted_rows} ofertas inactivas con más de 30 días de recirculación.")
     except Exception as e:
         print(f"❌ Error purgando ofertas antiguas de la base de datos: {e}")
         conn.rollback()

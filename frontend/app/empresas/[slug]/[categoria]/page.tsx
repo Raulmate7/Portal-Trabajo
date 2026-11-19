@@ -369,12 +369,9 @@ export default async function CompanyCategoryPage({ params, searchParams }: Prop
   const jobs = allJobs.slice(offset, offset + limit);
 
   const reviews = await getCompanyReviews(slug);
-  const baseRatingVal = 3.8 + (slug.charCodeAt(0) % 13) / 10;
-  const baseReviewCount = 5 + (slug.charCodeAt(slug.length - 1) % 25);
-  const realReviewsCount = reviews.length;
-  const realReviewsSum = reviews.reduce((sum: number, r: any) => sum + r.rating, 0);
-  const reviewCount = baseReviewCount + realReviewsCount;
-  const ratingValue = ((baseRatingVal * baseReviewCount + realReviewsSum) / reviewCount).toFixed(1);
+  const reviewCount = reviews.length;
+  const realReviewsSum = reviews.reduce((sum: number, r: any) => sum + Number(r.rating || 0), 0);
+  const ratingValue = reviewCount > 0 ? (realReviewsSum / reviewCount).toFixed(1) : null;
 
   const breadcrumbItems = [
     { label: isEnglish ? 'Home' : 'Inicio', href: isEnglish ? '/?lang=en' : '/' },
@@ -394,25 +391,28 @@ export default async function CompanyCategoryPage({ params, searchParams }: Prop
     }))
   };
 
-  const organizationJsonLd = {
+  const organizationJsonLd: Record<string, any> = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: companyName,
     url: `${BASE_URL}/empresas/${slug}`,
     logo: `${BASE_URL}/og-image.png`,
     description: `Ofertas de trabajo de ${categoryPretty} en la empresa ${companyName}.`,
-    aggregateRating: {
-      '@type': 'EmployerAggregateRating',
-      'itemReviewed': {
-        '@type': 'Organization',
-        'name': companyName,
-        'url': `${BASE_URL}/empresas/${slug}`
-      },
-      'ratingValue': ratingValue,
-      'bestRating': '5',
-      'worstRating': '1',
-      'ratingCount': reviewCount
-    }
+    ...(ratingValue && reviewCount > 0 ? {
+      aggregateRating: {
+        '@type': 'EmployerAggregateRating',
+        'itemReviewed': {
+          '@type': 'Organization',
+          'name': companyName,
+          'url': `${BASE_URL}/empresas/${slug}`
+        },
+        'ratingValue': ratingValue,
+        'bestRating': '5',
+        'worstRating': '1',
+        'ratingCount': reviewCount,
+        'reviewCount': reviewCount
+      }
+    } : {})
   };
 
   return (

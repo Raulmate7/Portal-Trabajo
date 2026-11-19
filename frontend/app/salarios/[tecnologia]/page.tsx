@@ -124,8 +124,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: 'Página no encontrada' };
   }
 
-  const title = `Sueldo de Programador ${techInfo.label} en España [2026]`;
-  const description = `¿Cuánto gana un desarrollador ${techInfo.label} en España? Descubre el salario medio, rangos para Junior/Senior y vacantes activas.`;
+  const stats = await getSalaryStatsForTech(techSlug);
+  const year = new Date().getFullYear();
+  const hasStats = Boolean(stats && stats.average && stats.count > 0);
+
+  const title = hasStats && stats?.average
+    ? `Sueldo ${techInfo.label} en España [${year}]: Media de ${stats.average.toLocaleString('es-ES')}€/año`
+    : `Sueldo de Programador ${techInfo.label} en España [${year}]`;
+
+  const description = hasStats && stats?.average
+    ? `¿Cuánto cobra un programador ${techInfo.label} en España? Media real: ${stats.average.toLocaleString('es-ES')}€/año. Junior (P25): ${formatEur(stats.p25)} · Senior (P75): ${formatEur(stats.p75)}. Basado en ${stats.count} ofertas.`
+    : `¿Cuánto gana un desarrollador ${techInfo.label} en España? Descubre el salario medio, rangos para Junior/Senior y vacantes activas.`;
+
+  const ogImageUrl = `${BASE_URL}/salarios/${techSlug}/opengraph-image`;
 
   return {
     title,
@@ -139,7 +150,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       url: `${BASE_URL}/salarios/${techSlug}`,
       images: [
         {
-          url: `${BASE_URL}/og-image.png`,
+          url: ogImageUrl,
           width: 1200,
           height: 630,
           alt: `Sueldo de Programador ${techInfo.label} en España`,
@@ -150,7 +161,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       card: 'summary_large_image',
       title,
       description,
-      images: [`${BASE_URL}/og-image.png`],
+      images: [ogImageUrl],
     }
   };
 }
@@ -241,6 +252,30 @@ export default async function SalarioTechPage({ params }: Props) {
     ]
   };
 
+  const occupationJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Occupation',
+    name: `Programador ${techInfo.label}`,
+    description: techInfo.desc,
+    occupationLocation: {
+      '@type': 'Country',
+      name: 'Spain',
+    },
+    estimatedSalary: [
+      {
+        '@type': 'MonetaryAmountDistribution',
+        name: 'Salario Bruto Anual',
+        currency: 'EUR',
+        duration: 'P1Y',
+        percentile10: minVal,
+        percentile25: p25Val,
+        median: med,
+        percentile75: p75Val,
+        percentile90: maxVal,
+      },
+    ],
+  };
+
   return (
     <main className="min-h-screen bg-gray-50 py-8">
       <script 
@@ -250,6 +285,10 @@ export default async function SalarioTechPage({ params }: Props) {
       <script 
         type="application/ld+json" 
         dangerouslySetInnerHTML={{ __html: safeJsonLdString(faqJsonLd) }} 
+      />
+      <script 
+        type="application/ld+json" 
+        dangerouslySetInnerHTML={{ __html: safeJsonLdString(occupationJsonLd) }} 
       />
 
       <div className="max-w-5xl mx-auto px-4">

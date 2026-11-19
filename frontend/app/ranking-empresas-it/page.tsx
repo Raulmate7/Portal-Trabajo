@@ -128,18 +128,17 @@ async function getTopHiringCompanies() {
       const avgSalary = salaryCount > 0 ? Math.round(sumSalary / salaryCount) : null;
       const remoteRatio = jobsList.length > 0 ? Math.round((remoteCount / jobsList.length) * 100) : 0;
 
-      // Obtener puntuación de reseñas (valor base determinista + reviews reales de la BD)
+      // Obtener puntuación real de reseñas de la BD (sin valores sintéticos)
       const reviewsRes = await pool.query(`
         SELECT rating FROM company_reviews WHERE company_slug = $1
       `, [slug]);
       
       const realReviews = reviewsRes.rows || [];
-      const baseRatingVal = 3.8 + (slug.charCodeAt(0) % 13) / 10;
-      const baseReviewCount = 5 + (slug.charCodeAt(slug.length - 1) % 25);
       const realReviewsCount = realReviews.length;
-      const realReviewsSum = realReviews.reduce((sum: number, r: any) => sum + r.rating, 0);
-      const totalReviewCount = baseReviewCount + realReviewsCount;
-      const ratingValue = parseFloat(((baseRatingVal * baseReviewCount + realReviewsSum) / totalReviewCount).toFixed(1));
+      const realReviewsSum = realReviews.reduce((sum: number, r: any) => sum + Number(r.rating || 0), 0);
+      const ratingValue = realReviewsCount > 0
+        ? parseFloat((realReviewsSum / realReviewsCount).toFixed(1))
+        : null;
 
       enrichedCompanies.push({
         name: companyName,
@@ -148,7 +147,7 @@ async function getTopHiringCompanies() {
         averageSalary: avgSalary,
         remoteRatio,
         rating: ratingValue,
-        reviewsCount: totalReviewCount
+        reviewsCount: realReviewsCount
       });
     }
 
@@ -181,13 +180,21 @@ export default async function RadarEmpresasPage({ searchParams }: Props) {
         "@type": "Organization",
         "name": c.name,
         "url": `${BASE_URL}/empresas/${c.slug}${queryParam}`,
-        "aggregateRating": {
-          "@type": "AggregateRating",
-          "ratingValue": c.rating,
-          "reviewCount": c.reviewsCount,
-          "bestRating": "5",
-          "worstRating": "1"
-        }
+        ...(c.rating !== null && c.reviewsCount > 0 ? {
+          "aggregateRating": {
+            "@type": "EmployerAggregateRating",
+            "itemReviewed": {
+              "@type": "Organization",
+              "name": c.name,
+              "url": `${BASE_URL}/empresas/${c.slug}${queryParam}`
+            },
+            "ratingValue": c.rating,
+            "ratingCount": c.reviewsCount,
+            "reviewCount": c.reviewsCount,
+            "bestRating": "5",
+            "worstRating": "1"
+          }
+        } : {})
       }
     }))
   };
@@ -264,10 +271,16 @@ export default async function RadarEmpresasPage({ searchParams }: Props) {
                         
                         <div className="flex flex-wrap items-center gap-2 text-xs">
                           {/* Reseñas */}
-                          <div className="flex items-center text-amber-500 font-bold">
-                            ★ <span className="ml-1 text-gray-700 dark:text-slate-350">{c.rating}</span>
-                            <span className="text-gray-400 font-medium ml-1">({c.reviewsCount})</span>
-                          </div>
+                          {c.rating !== null && c.reviewsCount > 0 ? (
+                            <div className="flex items-center text-amber-500 font-bold">
+                              ★ <span className="ml-1 text-gray-700 dark:text-slate-350">{c.rating}</span>
+                              <span className="text-gray-400 font-medium ml-1">({c.reviewsCount})</span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 font-medium">
+                              {isEnglish ? 'No reviews yet' : 'Sin opiniones aún'}
+                            </span>
+                          )}
                           <span className="text-gray-300">•</span>
                           {/* Teletrabajo */}
                           <span className="text-purple-650 dark:text-purple-400 font-semibold">
