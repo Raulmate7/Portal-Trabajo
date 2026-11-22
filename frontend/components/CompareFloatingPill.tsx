@@ -1,4 +1,5 @@
-"use client";
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
@@ -9,32 +10,32 @@ export default function CompareFloatingPill() {
 
   useEffect(() => {
     setMounted(true);
-    if (typeof window !== 'undefined') {
-      const compared = JSON.parse(localStorage.getItem('compared_jobs') || '[]');
-      setCount(compared.length);
-      setIds(compared);
-    }
-
-    const handleUpdate = () => {
-      const compared = JSON.parse(localStorage.getItem('compared_jobs') || '[]');
-      setCount(compared.length);
-      setIds(compared);
+    const readCompared = () => {
+      try {
+        const compared = JSON.parse(localStorage.getItem('compared_jobs') || '[]');
+        setCount(Array.isArray(compared) ? compared.length : 0);
+        setIds(Array.isArray(compared) ? compared : []);
+      } catch {
+        setCount(0);
+        setIds([]);
+      }
     };
 
-    window.addEventListener('compared_jobs_updated', handleUpdate);
-    return () => window.removeEventListener('compared_jobs_updated', handleUpdate);
+    readCompared();
+    window.addEventListener('compared_jobs_updated', readCompared);
+    return () => window.removeEventListener('compared_jobs_updated', readCompared);
   }, []);
 
   if (!mounted || count === 0) return null;
 
   return (
-    <div className="fixed bottom-24 right-6 md:right-10 z-[80] animate-in slide-in-from-bottom duration-300">
+    <div className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-[80]">
       <Link
         href={`/comparar-ofertas?ids=${ids.join(',')}`}
-        className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-full shadow-2xl border border-indigo-500 font-extrabold text-xs md:text-sm tracking-wide transition-all scale-100 hover:scale-105 active:scale-95"
+        className="inline-flex items-center gap-2.5 min-h-[44px] px-4 rounded-[var(--r-md)] bg-[var(--p-inv-bg)] text-[var(--p-inv-ink)] border border-[var(--border-strong)] shadow-[var(--shadow-overlay)] font-mono text-[13px] font-medium tabular-nums ui-btn-press"
       >
-        <span>⚖️</span>
-        <span>Comparar ({count}) ofertas</span>
+        <span className="w-1.5 h-1.5 rounded-full bg-[var(--p-inv-accent)] shrink-0" aria-hidden="true" />
+        <span>Comparar ({count}) ofertas →</span>
       </Link>
     </div>
   );

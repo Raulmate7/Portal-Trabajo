@@ -4,8 +4,8 @@
   "description": "Tu agregador de ofertas de trabajo en tecnología.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#4f46e5",
+  "background_color": "#eef0f3",
+  "theme_color": "#1f2de6",
   "icons": [
     {
       "src": "/favicon.ico",

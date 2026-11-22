@@ -28,25 +28,32 @@ export default function Breadcrumbs({ items }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <nav className="flex text-sm text-gray-500 mb-6" aria-label="Breadcrumb">
-        <ol className="inline-flex items-center space-x-1 md:space-x-3">
+      <nav
+        className="mb-6 font-mono text-[13px] font-medium text-[var(--text-muted)]"
+        aria-label="Breadcrumb"
+      >
+        <ol className="flex flex-wrap items-center gap-y-1">
           {items.map((item, index) => {
             const isLast = index === items.length - 1;
             return (
-              <li key={item.label} className="inline-flex items-center">
+              <li key={`${item.label}-${index}`} className="inline-flex items-center min-w-0">
                 {index > 0 && (
-                  <svg className="w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
-                    <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 9 4-4-4-4"/>
-                  </svg>
+                  <span className="mx-2 text-[var(--text-muted)] select-none" aria-hidden="true">
+                    /
+                  </span>
                 )}
                 {isLast || !item.href ? (
-                  <span className="text-gray-700 font-medium ml-1 md:ml-2" aria-current="page">
+                  <span
+                    className="text-[var(--text-primary)] truncate max-w-[200px] sm:max-w-[380px]"
+                    aria-current="page"
+                    title={item.label}
+                  >
                     {item.label}
                   </span>
                 ) : (
                   <Link
                     href={item.href}
-                    className="inline-flex items-center text-gray-500 hover:text-indigo-600 ml-1 md:ml-2 transition-colors"
+                    className="text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors truncate max-w-[160px] sm:max-w-none"
                   >
                     {item.label}
                   </Link>

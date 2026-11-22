@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Footer from "@/components/Footer";
 import { BASE_URL, safeJsonLdString } from "@/lib/constants";
@@ -9,23 +9,27 @@ import { headers } from "next/headers";
 import ClientOnlyWidgets from "@/components/ClientOnlyWidgets";
 
 
-const inter = Inter({
+const geistSans = Geist({
   subsets: ["latin"],
   display: "swap",
   preload: true,
-  variable: "--font-sans",
+  variable: "--font-geist-sans",
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const geistMono = Geist_Mono({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500"],
   display: "swap",
   preload: true,
-  variable: "--font-mono",
+  variable: "--font-geist-mono",
 });
 
-export const viewport = {
-  themeColor: "#4f46e5",
+export const viewport: Viewport = {
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0d14" },
+  ],
 };
 
 export const metadata: Metadata = {
@@ -123,9 +127,18 @@ export default async function RootLayout({
   const gaMeasurementId = process.env.NEXT_PUBLIC_GA_ID || "";
 
   return (
-    <html lang={systemLang} className={`${inter.variable} ${jetbrainsMono.variable}`}>
+    <html
+      lang={systemLang}
+      data-type="software"
+      data-radius="sharp"
+      data-buttons="solid"
+      data-motion="true"
+      className={`${geistSans.variable} ${geistMono.variable}`}
+    >
       <head>
         <meta name="impact-site-verification" content="2348664d-36c1-45a5-8a74-a2dd472c4343" />
+        <meta name="page-type" content="portal" />
+        <meta name="site-kind" content="software" />
         {/* Preconexión y dns-prefetch respetuosos con privacidad (solo fuentes tipográficas estables) */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -343,11 +356,11 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased min-h-screen flex flex-col bg-[var(--bg-canvas)] text-[var(--text-primary)] selection:bg-indigo-500/20 selection:text-indigo-600 dark:selection:text-indigo-300 transition-colors duration-200`}>
-        <Suspense fallback={<div className="h-14 bg-[var(--bg-surface)] border-b border-[var(--border-subtle)]"></div>}>
+      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased min-h-screen flex flex-col bg-[var(--bg-canvas)] text-[var(--text-primary)] selection:bg-[var(--accent-tint)] selection:text-[var(--accent-primary)] transition-colors duration-200`}>
+        <Suspense fallback={<div className="fixed top-0 inset-x-0 z-40 h-[var(--nav)] bg-[var(--bg-surface)] border-b border-[var(--border-subtle)]" />}>
           <Header defaultLang={systemLang} />
         </Suspense>
-        <div className="flex-grow">
+        <div id="top" className="flex-grow pt-[var(--nav)]">
           {children}
         </div>
         <Footer />

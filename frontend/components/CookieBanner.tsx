@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -15,8 +15,8 @@ const CONSENT_MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000; // 12 meses (<= 24 meses G
 
 const BANNER_COPY = {
   es: {
-    title: 'Tu privacidad es nuestra prioridad',
-    desc: 'Utilizamos cookies técnicas necesarias para el funcionamiento del portal, así como cookies analíticas y publicitarias propias y de terceros para entender el uso de la web y mostrar ofertas y anuncios relevantes. Puedes aceptar todas las cookies, rechazar las opcionales o configurar tus preferencias.',
+    title: 'Preferencias de privacidad y cookies',
+    desc: 'Utilizamos cookies técnicas necesarias para el funcionamiento del portal, así como cookies analíticas y publicitarias propias y de terceros para medir el uso y mostrar ofertas relevantes. Puedes aceptar todas, rechazar las opcionales o configurar tus preferencias.',
     moreDetails: 'Más detalles en nuestra',
     cookiesLabel: 'Política de Cookies',
     and: 'y',
@@ -26,7 +26,7 @@ const BANNER_COPY = {
     accept: 'Aceptar todas',
   },
   en: {
-    title: 'Your privacy is our priority',
+    title: 'Privacy and cookie preferences',
     desc: 'We use strictly necessary technical cookies for the site to operate, as well as optional analytics and advertising cookies to measure usage and show relevant listings. You can accept all cookies, reject non-essential ones, or customize your preferences.',
     moreDetails: 'More details in our',
     cookiesLabel: 'Cookie Policy',
@@ -37,7 +37,7 @@ const BANNER_COPY = {
     accept: 'Accept all',
   },
   ca: {
-    title: 'La teva privacitat és la nostra prioritat',
+    title: 'Preferències de privacitat i cookies',
     desc: 'Utilitzem cookies tècniques necessàries per al funcionament del portal, així com cookies analítiques i publicitàries opcionals per entendre l’ús del web i mostrar ofertes rellevants. Pots acceptar-les totes, rebutjar les opcionals o configurar les teves preferències.',
     moreDetails: 'Més detalls a la nostra',
     cookiesLabel: 'Política de Cookies',
@@ -48,7 +48,7 @@ const BANNER_COPY = {
     accept: 'Acceptar totes',
   },
   eu: {
-    title: 'Zure pribatutasuna da gure lehentasuna',
+    title: 'Pribatutasun eta cookie hobespenak',
     desc: 'Atariak funtzionatzeko ezinbesteko cookie teknikoak erabiltzen ditugu, baita aukerako cookie analitikoak eta publizitatekoak ere, webgunearen erabilera ulertzeko eta eskaintza egokiak erakusteko. Guztiak onartu, aukerakoak baztertu edo zure hobespenak konfigura ditzakezu.',
     moreDetails: 'Xehetasun gehiago gure',
     cookiesLabel: 'Cookie Politikan',
@@ -74,7 +74,7 @@ export default function CookieBanner() {
   const [show, setShow] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [preferences, setPreferences] = useState<CookiePreferences>({
-    essential: true, // Siempre obligatorias
+    essential: true,
     analytics: false,
     advertising: false,
   });
@@ -96,10 +96,6 @@ export default function CookieBanner() {
     }
   };
 
-  /**
-   * Purga tokens de analítica, cookies de terceros e identificadores de almacenamiento local
-   * cuando el usuario rechaza las cookies o revoca su consentimiento (Art. 22.2 LSSI-CE).
-   */
   const purgeNonEssentialStorage = () => {
     if (typeof window === 'undefined') return;
     try {
@@ -138,7 +134,7 @@ export default function CookieBanner() {
       for (const cookieStr of currentCookies) {
         const name = cookieStr.split('=')[0].trim();
         const lower = name.toLowerCase();
-        const shouldPurge = cookiesToPurge.some(prefix => lower === prefix || lower.startsWith(prefix));
+        const shouldPurge = cookiesToPurge.some((prefix) => lower === prefix || lower.startsWith(prefix));
         if (shouldPurge) {
           document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`;
           document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${hostname};`;
@@ -149,7 +145,6 @@ export default function CookieBanner() {
   };
 
   useEffect(() => {
-    // 1. Comprobar consentimiento previo almacenado y caducidad máxima (<= 24 meses, LEG-027)
     const savedConsent = localStorage.getItem('cookies_consent');
     localStorage.removeItem('cookies_accepted');
 
@@ -173,7 +168,6 @@ export default function CookieBanner() {
           notifyConsentUpdate(prefs);
         }
       } catch {
-        // Fail-closed ante JSON corrupto o formato heredado inválido (BUG-032)
         localStorage.removeItem('cookies_consent');
         const failClosed: CookiePreferences = { essential: true, analytics: false, advertising: false };
         setPreferences(failClosed);
@@ -188,7 +182,6 @@ export default function CookieBanner() {
       setShow(true);
     }
 
-    // 2. Escuchar evento para permitir reabrir el panel desde el footer o la política de cookies
     const handleOpenPreferences = () => {
       setShowConfig(true);
       setShow(true);
@@ -245,68 +238,66 @@ export default function CookieBanner() {
       role="dialog"
       aria-labelledby="cookie-banner-title"
       aria-describedby="cookie-banner-desc"
-      className="fixed bottom-0 left-0 right-0 bg-slate-950/98 backdrop-blur-md text-white p-4 sm:p-5 z-50 shadow-[0_-6px_20px_rgba(0,0,0,0.35)] border-t border-slate-700/80 animate-in fade-in duration-300"
+      className="fixed bottom-0 inset-x-0 bg-[var(--p-inv-bg)] text-[var(--p-inv-ink)] py-5 z-50 border-t border-white/15 shadow-[var(--shadow-overlay)] pb-[calc(20px+env(safe-area-inset-bottom))]"
     >
-      <div className="max-w-6xl mx-auto max-h-[45vh] overflow-y-auto">
+      <div className="wrap max-h-[55vh] overflow-y-auto">
         {!showConfig ? (
-          // Vista 1: Banner Principal (AEPD: Aceptar y Rechazar con estricta simetría visual y jerarquía neutra)
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5">
             <div className="text-left max-w-3xl">
-              <h3 id="cookie-banner-title" className="text-base font-bold text-white flex items-center gap-2 mb-1.5">
-                <span>🍪</span> {copy.title}
+              <h3 id="cookie-banner-title" className="text-[16px] font-medium text-[var(--p-inv-ink)] mb-1.5">
+                {copy.title}
               </h3>
-              <p id="cookie-banner-desc" className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              <p id="cookie-banner-desc" className="text-[14px] text-[var(--p-inv-muted)] leading-relaxed">
                 {copy.desc} {copy.moreDetails}{' '}
-                <Link href="/cookies" className="underline text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
+                <Link href="/cookies" className="underline text-[var(--p-inv-accent)] hover:text-white font-medium">
                   {copy.cookiesLabel}
                 </Link>{' '}
                 {copy.and}{' '}
-                <Link href="/privacy" className="underline text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
+                <Link href="/privacy" className="underline text-[var(--p-inv-accent)] hover:text-white font-medium">
                   {copy.privacyLabel}
                 </Link>.
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full lg:w-auto shrink-0 pt-2 lg:pt-0">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full lg:w-auto shrink-0">
               <button
                 type="button"
                 onClick={handleRejectAll}
-                className="flex-1 sm:flex-none px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 rounded-lg text-xs sm:text-sm font-bold shadow-sm transition-all text-center focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer"
+                className="min-h-[44px] px-5 rounded-[var(--r-btn)] bg-[var(--p-inv-surface)] hover:bg-white/10 text-[var(--p-inv-ink)] border border-white/20 text-[14px] font-medium text-center cursor-pointer"
               >
                 {copy.reject}
               </button>
               <button
                 type="button"
                 onClick={() => setShowConfig(true)}
-                className="flex-1 sm:flex-none px-4 py-2.5 bg-transparent hover:bg-slate-800 text-slate-300 border border-slate-700 rounded-lg text-xs sm:text-sm font-medium transition-all text-center focus:outline-none focus:ring-2 focus:ring-slate-500 cursor-pointer"
+                className="min-h-[44px] px-4 rounded-[var(--r-btn)] bg-transparent hover:bg-white/10 text-[var(--p-inv-muted)] hover:text-[var(--p-inv-ink)] border border-white/15 text-[14px] font-medium text-center cursor-pointer"
               >
                 {copy.configure}
               </button>
               <button
                 type="button"
                 onClick={handleAcceptAll}
-                className="flex-1 sm:flex-none px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500 rounded-lg text-xs sm:text-sm font-bold shadow-md transition-all text-center focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"
+                className="btn-primary !text-[14px] whitespace-nowrap"
               >
                 {copy.accept}
               </button>
             </div>
           </div>
         ) : (
-          // Vista 2: Panel Granular de Configuración
           <div className="space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+            <div className="flex justify-between items-start gap-4 border-b border-white/12 pb-3">
               <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <span>⚙️</span> Panel de Configuración de Preferencias de Cookies
+                <h3 className="text-[16px] font-medium text-[var(--p-inv-ink)]">
+                  Panel de configuración de preferencias de cookies
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-[13px] text-[var(--p-inv-muted)] mt-0.5">
                   Gestiona el uso de cookies según tus preferencias. Las cookies técnicas son imprescindibles.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowConfig(false)}
-                className="text-slate-400 hover:text-white text-sm font-semibold px-2 py-1"
+                className="min-h-[44px] px-3 rounded-[var(--r-md)] text-[var(--p-inv-muted)] hover:text-[var(--p-inv-ink)] hover:bg-white/10 text-[14px] font-medium cursor-pointer shrink-0"
                 aria-label="Cerrar panel de configuración"
               >
                 ✕ Volver
@@ -314,77 +305,76 @@ export default function CookieBanner() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {/* Categoría 1: Técnicas */}
-              <div className="p-3 bg-slate-900 rounded-lg border border-slate-800">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs font-bold text-white">Técnicas y Necesarias</span>
-                  <span className="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold px-2 py-0.5 rounded">
+              <div className="p-4 bg-[var(--p-inv-surface)] rounded-[var(--r-md)] border border-white/12">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-[14px] font-medium text-[var(--p-inv-ink)]">Técnicas y Necesarias</span>
+                  <span className="font-mono text-[13px] text-[#34d399] font-medium">
                     Obligatorias
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400 leading-tight">
+                <p className="text-[13px] text-[var(--p-inv-muted)] leading-snug">
                   Permiten la navegación segura, autenticación básica y guardar tus preferencias de consentimiento.
                 </p>
               </div>
 
-              {/* Categoría 2: Analíticas */}
-              <div className="p-3 bg-slate-900 rounded-lg border border-slate-800">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs font-bold text-white">Analítica y Rendimiento</span>
-                  <label className="relative inline-flex items-center cursor-pointer">
+              <div className="p-4 bg-[var(--p-inv-surface)] rounded-[var(--r-md)] border border-white/12">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-[14px] font-medium text-[var(--p-inv-ink)]">Analítica y Rendimiento</span>
+                  <label className="relative inline-flex items-center min-h-[44px] min-w-[44px] justify-end cursor-pointer">
                     <input
                       type="checkbox"
                       checked={preferences.analytics}
                       onChange={(e) => setPreferences({ ...preferences, analytics: e.target.checked })}
                       className="sr-only peer"
+                      aria-label="Activar cookies de analítica y rendimiento"
                     />
-                    <div className="w-8 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    <div className="w-10 h-5 bg-white/20 rounded-full peer peer-checked:after:translate-x-5 after:content-[''] after:absolute after:top-[14px] after:right-[22px] peer-checked:after:right-[22px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:bg-[var(--p-action)]" />
                   </label>
                 </div>
-                <p className="text-[11px] text-slate-400 leading-tight">
+                <p className="text-[13px] text-[var(--p-inv-muted)] leading-snug">
                   Miden el número de visitas, páginas populares y tiempos de carga para optimizar la experiencia (Google Analytics).
                 </p>
               </div>
 
-              {/* Categoría 3: Publicidad */}
-              <div className="p-3 bg-slate-900 rounded-lg border border-slate-800">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs font-bold text-white">Publicidad Contextual</span>
-                  <label className="relative inline-flex items-center cursor-pointer">
+              <div className="p-4 bg-[var(--p-inv-surface)] rounded-[var(--r-md)] border border-white/12">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-[14px] font-medium text-[var(--p-inv-ink)]">Publicidad Contextual</span>
+                  <label className="relative inline-flex items-center min-h-[44px] min-w-[44px] justify-end cursor-pointer">
                     <input
                       type="checkbox"
                       checked={preferences.advertising}
                       onChange={(e) => setPreferences({ ...preferences, advertising: e.target.checked })}
                       className="sr-only peer"
+                      aria-label="Activar cookies de publicidad contextual"
                     />
-                    <div className="w-8 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    <div className="w-10 h-5 bg-white/20 rounded-full peer peer-checked:after:translate-x-5 after:content-[''] after:absolute after:top-[14px] after:right-[22px] peer-checked:after:right-[22px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:bg-[var(--p-action)]" />
                   </label>
                 </div>
-                <p className="text-[11px] text-slate-400 leading-tight">
+                <p className="text-[13px] text-[var(--p-inv-muted)] leading-snug">
                   Permiten financiar el portal gratuito mostrando anuncios relevantes mediante Google AdSense.
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-wrap justify-end gap-2 pt-2 border-t border-slate-800">
+            <div className="flex flex-wrap justify-end gap-2.5 pt-3 border-t border-white/12">
               <button
                 type="button"
                 onClick={handleRejectAll}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-semibold cursor-pointer"
+                className="min-h-[44px] px-4 rounded-[var(--r-btn)] bg-[var(--p-inv-surface)] hover:bg-white/10 text-[var(--p-inv-ink)] border border-white/20 text-[14px] font-medium cursor-pointer"
               >
                 Rechazar todas
               </button>
               <button
                 type="button"
                 onClick={handleSaveCustom}
-                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-semibold cursor-pointer"
+                className="min-h-[44px] px-4 rounded-[var(--r-btn)] bg-white/15 hover:bg-white/25 text-[var(--p-inv-ink)] text-[14px] font-medium cursor-pointer"
               >
                 Guardar mi selección
               </button>
               <button
                 type="button"
                 onClick={handleAcceptAll}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold cursor-pointer"
+                className="btn-primary !text-[14px]"
               >
                 Aceptar todas
               </button>

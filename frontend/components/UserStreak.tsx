@@ -12,9 +12,9 @@ interface StreakData {
 }
 
 const MILESTONE_REWARDS: Record<number, { label: string; reward: string; href: string }> = {
-  3:  { label: '🎁 3 días',  reward: 'Guía Salarial IT 2026 gratis',       href: '/salarios' },
-  7:  { label: '🏆 7 días',  reward: 'Acceso a tendencias de empleo tech', href: '/tendencias' },
-  30: { label: '💎 30 días', reward: 'Badge Premium de candidato experto',  href: '/mi-perfil' },
+  3:  { label: 'Hito · 3 días',  reward: 'Guía Salarial IT 2026 gratis',       href: '/salarios' },
+  7:  { label: 'Hito · 7 días',  reward: 'Acceso a tendencias de empleo tech', href: '/tendencias' },
+  30: { label: 'Hito · 30 días', reward: 'Badge de candidato experto',         href: '/mi-perfil' },
 };
 
 function getMilestoneReached(streak: number): { milestone: number; data: typeof MILESTONE_REWARDS[number] } | null {
@@ -34,13 +34,6 @@ function getNextMilestone(streak: number): number {
   return 30;
 }
 
-function getStreakEmoji(streak: number): string {
-  if (streak >= 30) return '💎';
-  if (streak >= 7) return '🏆';
-  if (streak >= 3) return '🔥';
-  return '🔥';
-}
-
 export default function UserStreak({ lang = 'es' }: { lang?: string }) {
   const isEnglish = lang === 'en';
   const [streak, setStreak] = useState<number>(0);
@@ -53,8 +46,6 @@ export default function UserStreak({ lang = 'es' }: { lang?: string }) {
 
   useEffect(() => {
     setMounted(true);
-    // SEC-055: Sincronizar racha autoritativa con servidor (/api/streak con cookie firmada HMAC)
-    // manteniendo localStorage únicamente como caché visual no autoritativa
     fetch('/api/streak', { method: 'POST' })
       .then((res) => (res.ok ? res.json() : null))
       .then((serverData) => {
@@ -99,7 +90,6 @@ export default function UserStreak({ lang = 'es' }: { lang?: string }) {
     }
     setEmailError('');
     try {
-      // Guardar en localStorage para el recordatorio visual
       const storageKey = 'portal_streak_data';
       const raw = localStorage.getItem(storageKey);
       if (raw) {
@@ -107,7 +97,6 @@ export default function UserStreak({ lang = 'es' }: { lang?: string }) {
         data.emailCaptured = trimmed;
         localStorage.setItem(storageKey, JSON.stringify(data));
       }
-      // Guardar recordatorio de racha con base jurídica y consentimiento específico
       await fetch('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -115,7 +104,7 @@ export default function UserStreak({ lang = 'es' }: { lang?: string }) {
       });
       setEmailSaved(true);
     } catch {
-      setEmailSaved(true); // Guardar en local al menos
+      setEmailSaved(true);
     }
   };
 
@@ -123,125 +112,135 @@ export default function UserStreak({ lang = 'es' }: { lang?: string }) {
 
   const milestoneReached = getMilestoneReached(streak);
   const nextMilestone = getNextMilestone(streak);
-  const emoji = getStreakEmoji(streak);
+
+  const dotColor =
+    streak >= 30
+      ? 'bg-[var(--accent-primary)]'
+      : streak >= 7
+      ? 'bg-[var(--status-emerald)]'
+      : 'bg-[var(--status-amber)]';
 
   const renderModal = () => {
     if (!showModal) return null;
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 max-w-sm w-full border border-gray-100 dark:border-slate-800 text-center shadow-2xl relative">
+      <div
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="streak-modal-title"
+      >
+        <div className="bg-[var(--bg-surface)] rounded-[var(--r-lg)] p-6 max-w-md w-full border border-[var(--border-strong)] shadow-[var(--shadow-overlay)] relative text-left">
           <button
+            type="button"
             onClick={() => setShowModal(false)}
-            aria-label={isEnglish ? "Close streak modal" : "Cerrar ventana de racha de visitas"}
-            className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:hover:text-white font-bold cursor-pointer text-lg leading-none"
+            aria-label={isEnglish ? 'Close streak modal' : 'Cerrar ventana de racha de visitas'}
+            className="absolute right-3 top-3 w-11 h-11 flex items-center justify-center rounded-[var(--r-md)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] cursor-pointer font-mono text-[14px]"
           >
             ✕
           </button>
 
-          <span className="text-6xl block mb-3 animate-bounce">{emoji}</span>
-
-          <h3 className="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-1">
-            {isEnglish ? `${streak}-day streak!` : `¡${streak} días de racha!`}
+          <p className="font-mono text-[13px] font-medium text-[var(--status-amber)] mb-1">
+            {isEnglish ? 'Activity ledger' : 'Registro de actividad'}
+          </p>
+          <h3 id="streak-modal-title" className="text-[22px] font-medium text-[var(--text-primary)] tracking-[-0.025em] mb-2 pr-10">
+            {isEnglish ? `${streak}-day visit streak` : `Racha de ${streak} días`}
           </h3>
-          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1.5 leading-relaxed mb-4">
+          <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed mb-5">
             {isEnglish
-              ? 'Keep up the daily streak to stay fully updated with the latest IT jobs and tech trends.'
-              : 'Mantén la racha diaria para estar al tanto de las mejores ofertas IT y tendencias del sector.'}
+              ? 'Keep up the daily streak to stay updated with verified IT roles and compensation benchmarks.'
+              : 'Mantén tu consulta diaria para seguir las últimas vacantes IT y referencias salariales del sector.'}
           </p>
 
-          {/* Hito actual */}
           {milestoneReached && (
-            <div className="mb-5 p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 to-yellow-500/5 border border-amber-500/20 text-center">
-              <span className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider block mb-1">
-                {milestoneReached.data.label} — ¡Premio Desbloqueado!
+            <div className="mb-5 p-4 rounded-[var(--r-md)] bg-[var(--status-amber-tint)] border border-[var(--border-featured)]">
+              <span className="font-mono text-[13px] font-medium text-[var(--status-amber)] block mb-1">
+                {milestoneReached.data.label} · Desbloqueado
               </span>
-              <p className="text-xs text-gray-600 dark:text-slate-400 leading-relaxed mb-3">
-                {isEnglish ? 'You unlocked: ' : 'Has desbloqueado: '}<strong>{milestoneReached.data.reward}</strong>
+              <p className="text-[14px] text-[var(--text-primary)] mb-3">
+                {milestoneReached.data.reward}
               </p>
               <Link
                 href={milestoneReached.data.href}
                 onClick={() => setShowModal(false)}
-                className="inline-block bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold px-4 py-2.5 rounded-xl transition-colors shadow-sm"
+                className="btn-primary w-full"
               >
-                {isEnglish ? 'Claim reward 🎁' : 'Reclamar Premio 🎁'}
+                {isEnglish ? 'Open resource →' : 'Abrir recurso →'}
               </Link>
             </div>
           )}
 
-          {/* Progreso hacia el siguiente hito */}
           {nextMilestone > streak && (
-            <div className="mb-5 text-xs text-gray-500 dark:text-slate-500">
-              <div className="flex justify-between mb-1 font-semibold">
-                <span>{isEnglish ? `Current: ${streak} days` : `Actual: ${streak} días`}</span>
-                <span>{isEnglish ? `Next: ${nextMilestone} days` : `Siguiente: ${nextMilestone} días`}</span>
+            <div className="mb-5">
+              <div className="flex justify-between mb-1.5 font-mono text-[13px] tabular-nums text-[var(--text-secondary)]">
+                <span>{isEnglish ? `Current: ${streak}d` : `Actual: ${streak} días`}</span>
+                <span>{isEnglish ? `Target: ${nextMilestone}d` : `Objetivo: ${nextMilestone} días`}</span>
               </div>
-              <div className="w-full bg-gray-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+              <div className="w-full bg-[var(--bg-subtle)] rounded-[var(--r-sm)] h-2 overflow-hidden">
                 <div
-                  className="bg-gradient-to-r from-amber-400 to-amber-500 h-2 rounded-full transition-all duration-500"
+                  className="bg-[var(--status-emerald)] h-2 transition-all duration-300"
                   style={{ width: `${Math.min(100, (streak / nextMilestone) * 100)}%` }}
                 />
               </div>
-              <p className="mt-2">
+              <p className="mt-2 text-[13px] text-[var(--text-muted)]">
                 {isEnglish
-                  ? `${nextMilestone - streak} more days to unlock ${MILESTONE_REWARDS[nextMilestone]?.reward || 'the next reward'}`
-                  : `${nextMilestone - streak} días más para desbloquear: ${MILESTONE_REWARDS[nextMilestone]?.reward || 'el siguiente premio'}`}
+                  ? `${nextMilestone - streak} days remaining for: ${MILESTONE_REWARDS[nextMilestone]?.reward || 'next milestone'}`
+                  : `Faltan ${nextMilestone - streak} días para: ${MILESTONE_REWARDS[nextMilestone]?.reward || 'siguiente hito'}`}
               </p>
             </div>
           )}
 
-          {/* Captura de email para recordatorio */}
           {!emailSaved ? (
-            <div className="border-t border-gray-100 dark:border-slate-800 pt-4">
-              <p className="text-xs text-gray-500 dark:text-slate-500 mb-3 font-semibold">
-                {isEnglish ? '⏰ Get a reminder if you\'re about to lose your streak:' : '⏰ Recibe un aviso si estás a punto de perder la racha:'}
-              </p>
-              <div className="flex gap-2">
+            <div className="border-t border-[var(--border-subtle)] pt-4">
+              <label htmlFor="streak-reminder-email" className="block text-[14px] font-medium text-[var(--text-primary)] mb-2">
+                {isEnglish ? 'Email reminder before streak resets' : 'Aviso por correo antes de perder la racha'}
+              </label>
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
+                  id="streak-reminder-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSaveEmail()}
-                  placeholder={isEnglish ? 'your@email.com' : 'tu@email.com'}
-                  className="flex-1 text-xs border border-gray-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  placeholder={isEnglish ? 'you@company.com' : 'tu@correo.es'}
+                  className="flex-1 min-h-[48px] text-[16px] border border-[var(--border-strong)] rounded-[var(--r-md)] px-3.5 bg-[var(--bg-surface)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
                 />
                 <button
+                  type="button"
                   onClick={handleSaveEmail}
-                  className="text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-lg transition-colors whitespace-nowrap"
+                  className="btn-primary whitespace-nowrap"
                 >
                   {isEnglish ? 'Save' : 'Guardar'}
                 </button>
               </div>
 
-              <label className="flex items-start gap-1.5 text-[11px] text-gray-500 dark:text-slate-400 cursor-pointer text-left mt-2">
+              <label className="flex items-start gap-2.5 text-[13px] text-[var(--text-secondary)] cursor-pointer mt-3">
                 <input
                   type="checkbox"
                   checked={privacyAccepted}
                   onChange={(e) => setPrivacyAccepted(e.target.checked)}
-                  className="mt-0.5 h-3.5 w-3.5 rounded border-gray-300 dark:border-slate-700 text-amber-500 focus:ring-amber-400"
+                  className="mt-0.5 h-5 w-5 rounded-[var(--r-sm)] border-[var(--border-strong)] accent-[var(--accent-primary)] shrink-0"
                 />
                 <span>
                   {isEnglish ? 'I accept the ' : 'Acepto la '}
-                  <Link href="/privacy" target="_blank" className="underline hover:text-amber-500">
+                  <Link href="/privacy" target="_blank" className="underline text-[var(--text-primary)] hover:text-[var(--accent-primary)]">
                     {isEnglish ? 'Privacy Policy' : 'Política de Privacidad'}
                   </Link>
-                  {isEnglish ? ' to receive streak reminders.*' : ' para recibir recordatorios puntuales de racha.*'}
+                  {isEnglish ? ' for streak reminders.' : ' para recibir recordatorios de racha.'}
                 </span>
               </label>
 
-              {/* Primera capa informativa AEPD (RGPD Art. 13) */}
-              <div className="p-2.5 bg-gray-50 dark:bg-slate-850/80 border border-gray-200 dark:border-slate-700/80 rounded-lg text-[10px] text-gray-500 dark:text-slate-400 text-left space-y-0.5 mt-2">
+              <div className="p-3 bg-[var(--bg-subtle)] border border-[var(--border-subtle)] rounded-[var(--r-md)] text-[13px] text-[var(--text-secondary)] space-y-1 mt-3 leading-snug">
                 <p><strong>Responsable:</strong> Portal Trabajo IT.</p>
                 <p><strong>Finalidad:</strong> {isEnglish ? 'Sending streak reminder alerts.' : 'Envío de recordatorio de mantenimiento de racha.'}</p>
-                <p><strong>Legitimación:</strong> {isEnglish ? 'Your express consent (Art. 6.1.a GDPR).' : 'Tu consentimiento expreso (Art. 6.1.a RGPD).'}</p>
-                <p><strong>Destinatarios:</strong> {isEnglish ? 'No third-party transfer except technical delivery.' : 'Plataforma de envío (Resend). No se ceden datos a terceros.'}</p>
-                <p><strong>Derechos:</strong> {isEnglish ? 'Access, rectification, erasure and unsubscribe in ' : 'Acceso, rectificación, supresión y baja en '}<a href="mailto:contacto@portalempleoit.com" className="underline hover:text-amber-500">contacto@portalempleoit.com</a> ({isEnglish ? 'more in ' : '+ info en '}<Link href="/privacy" className="underline hover:text-amber-500">{isEnglish ? 'Privacy Policy' : 'Política de Privacidad'}</Link>).</p>
+                <p><strong>Legitimación:</strong> {isEnglish ? 'Express consent (Art. 6.1.a GDPR).' : 'Consentimiento expreso (Art. 6.1.a RGPD).'}</p>
+                <p><strong>Derechos:</strong> <a href="mailto:contacto@portalempleoit.com" className="underline">contacto@portalempleoit.com</a> (<Link href="/privacy" className="underline">{isEnglish ? 'Privacy Policy' : 'Privacidad'}</Link>).</p>
               </div>
 
-              {emailError && <p className="text-xs text-rose-600 mt-1.5">{emailError}</p>}
+              {emailError && <p className="text-[13px] text-[var(--status-danger)] mt-2">{emailError}</p>}
             </div>
           ) : (
-            <div className="border-t border-gray-100 dark:border-slate-800 pt-4 text-xs text-green-600 dark:text-green-400 font-semibold flex items-center justify-center gap-1.5">
-              ✅ {isEnglish ? 'Reminder activated! We\'ll alert you before your streak breaks.' : '¡Recordatorio activado! Te avisaremos antes de que pierdas la racha.'}
+            <div className="border-t border-[var(--border-subtle)] pt-4 text-[14px] text-[var(--status-emerald)] font-medium">
+              {isEnglish ? 'Reminder activated.' : 'Recordatorio activado correctamente.'}
             </div>
           )}
         </div>
@@ -252,19 +251,14 @@ export default function UserStreak({ lang = 'es' }: { lang?: string }) {
   return (
     <>
       <button
+        type="button"
         onClick={() => setShowModal(true)}
         aria-label={isEnglish ? `Current visit streak: ${streak} days` : `Racha de visitas actual: ${streak} días`}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-black transition-all cursor-pointer select-none active:scale-95 animate-fade-in ${
-          streak >= 30
-            ? 'bg-violet-500/10 hover:bg-violet-500/20 border-violet-500/20 text-violet-600 dark:text-violet-400'
-            : streak >= 7
-            ? 'bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/20 text-blue-600 dark:text-blue-400'
-            : 'bg-amber-500/10 hover:bg-amber-500/20 dark:bg-amber-500/5 dark:hover:bg-amber-500/15 border-amber-500/20 text-amber-600 dark:text-amber-400'
-        }`}
-        title={isEnglish ? 'Your visit streak!' : '¡Tu racha de visitas!'}
+        className="inline-flex items-center gap-2 min-h-[44px] px-3 rounded-[var(--r-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-subtle)] font-mono text-[13px] font-medium tabular-nums text-[var(--text-primary)] ui-btn-press cursor-pointer select-none whitespace-nowrap"
+        title={isEnglish ? 'Your visit streak' : 'Tu racha de visitas'}
       >
-        <span>{emoji}</span>
-        <span>{streak} {isEnglish ? 'days' : 'días'}</span>
+        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColor}`} aria-hidden="true" />
+        <span>{streak} {isEnglish ? 'd' : 'días'}</span>
       </button>
 
       {mounted && typeof document !== 'undefined'
